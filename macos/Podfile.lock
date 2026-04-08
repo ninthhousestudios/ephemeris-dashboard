@@ -1,4 +1,6 @@
 PODS:
+  - file_picker (0.0.1):
+    - FlutterMacOS
   - file_saver (0.0.1):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
@@ -6,14 +8,20 @@ PODS:
     - Flutter
     - FlutterMacOS
   - swisseph_native (0.0.1)
+  - url_launcher_macos (0.0.1):
+    - FlutterMacOS
 
 DEPENDENCIES:
+  - file_picker (from `Flutter/ephemeral/.symlinks/plugins/file_picker/macos`)
   - file_saver (from `Flutter/ephemeral/.symlinks/plugins/file_saver/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
   - shared_preferences_foundation (from `Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin`)
   - swisseph_native (from `../swisseph_native`)
+  - url_launcher_macos (from `Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos`)
 
 EXTERNAL SOURCES:
+  file_picker:
+    :path: Flutter/ephemeral/.symlinks/plugins/file_picker/macos
   file_saver:
     :path: Flutter/ephemeral/.symlinks/plugins/file_saver/macos
   FlutterMacOS:
@@ -22,12 +30,16 @@ EXTERNAL SOURCES:
     :path: Flutter/ephemeral/.symlinks/plugins/shared_preferences_foundation/darwin
   swisseph_native:
     :path: "../swisseph_native"
+  url_launcher_macos:
+    :path: Flutter/ephemeral/.symlinks/plugins/url_launcher_macos/macos
 
 SPEC CHECKSUMS:
+  file_picker: e716a70a9fe5fd9e09ebc922d7541464289443af
   file_saver: 44e6fbf666677faf097302460e214e977fdd977b
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
   shared_preferences_foundation: 5086985c1d43c5ba4d5e69a4e8083a389e2909e6
-  swisseph_native: f1b0ee0b82b90365bce0ade2b431f2d3a7b5d2b3
+  swisseph_native: a84edd181a503d07003fc54c806708117544e32d
+  url_launcher_macos: 175a54c831f4375a6cf895875f716ee5af3888ce
 
 PODFILE CHECKSUM: f0e0be391e5ba147b87fb55d7ae575f5c1677680
 
