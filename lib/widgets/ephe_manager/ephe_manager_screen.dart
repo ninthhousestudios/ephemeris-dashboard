@@ -11,6 +11,7 @@ import '../../core/ephe/dir_provider.dart';
 import '../../core/ephe/downloader.dart';
 import '../../core/ephe/scanner.dart';
 import '../../core/ephe/types.dart';
+import '../../core/ephe/validation.dart';
 import '../../core/persistence.dart';
 import 'file_row.dart';
 import 'license_notice.dart';
@@ -193,7 +194,16 @@ class _EphemerisManagerScreenState
             runSpacing: 8,
             children: [
               FilterChip(
-                label: const Text('Managed'),
+                label: Text(settings.managedPath == null
+                    ? 'Managed (unavailable — using bundled)'
+                    : 'Managed'),
+                tooltip: settings.managedPath == null
+                    ? 'Could not resolve the app-support directory at '
+                        'startup. The resolver is falling back to the '
+                        'read-only bundled ephe path; deletes and '
+                        'downloads will still be attempted against the '
+                        'bundle.'
+                    : null,
                 selected: settings.useManaged,
                 onSelected: (_) =>
                     ref.read(ephemerisDirectoryProvider.notifier).useManaged(),
@@ -554,6 +564,16 @@ class _EphemerisManagerScreenState
     if (src == null) return;
     final dir = ref.read(resolvedEphePathProvider);
     if (dir == null) return;
+    // Sniff the source before copying so we don't seed the managed dir
+    // with an HTML error page or a truncated file a user picked by mistake.
+    final rej = validateEpheFile(File(src));
+    if (rej != null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Rejected: ${describeRejection(rej)}')),
+      );
+      return;
+    }
     try {
       await File(src).copy('$dir/${f.filename}');
       ref.invalidate(ephemerisScanProvider);

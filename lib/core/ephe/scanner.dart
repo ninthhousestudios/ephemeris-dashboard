@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:swisseph/swisseph.dart';
 
 import '../swe_service.dart';
+import 'catalog.dart';
 import 'dir_provider.dart';
 import 'filename_parser.dart';
 import 'types.dart';
@@ -65,6 +67,8 @@ Future<EphemerisScan> scanEphemerisDirectory(SwissEph swe, String dir) async {
         parsed.family == BodyFamily.moon ||
         parsed.family == BodyFamily.mainAsteroids) {
       entries.add(_probeSeFile(swe, dir, parsed));
+    } else if (parsed.family == BodyFamily.jpl) {
+      entries.add(_enrichJplFromCatalog(parsed));
     } else {
       entries.add(parsed);
     }
@@ -115,7 +119,7 @@ EpheFile _probeSeFile(SwissEph swe, String dir, EpheFile parsed) {
     final fd = swe.getCurrentFileData(fileNum);
     final loadedPath = fd.path;
     final matchesThisFile =
-        loadedPath != null && loadedPath.endsWith(parsed.filename);
+        loadedPath != null && p.basename(loadedPath) == parsed.filename;
     if (matchesThisFile && fd.startDate > 0) {
       return parsed.copyWith(
         startJd: fd.startDate,
@@ -131,6 +135,24 @@ EpheFile _probeSeFile(SwissEph swe, String dir, EpheFile parsed) {
   // large enough to be real. Treat as installed with filename-derived
   // metadata; the resolver will probe again at actual calculation time.
   return parsed.copyWith(status: EpheFileStatus.installed);
+}
+
+/// Fill in [startJd]/[endJd]/[startYear]/[endYear] for a JPL file from
+/// the known catalog. Scanner can't probe JPL files (no SE equivalent of
+/// `getCurrentFileData` for JPL chunks), so we rely on the catalog
+/// entry's declared range. If the file isn't in the catalog, leave the
+/// range at zero — `resolveActiveFile` simply won't match it.
+EpheFile _enrichJplFromCatalog(EpheFile parsed) {
+  final entry = catalogEntryFor(parsed.filename);
+  if (entry == null || entry.startYear == 0 && entry.endYear == 0) {
+    return parsed;
+  }
+  return parsed.copyWith(
+    startJd: gregorianYearStartJd(entry.startYear),
+    endJd: gregorianYearStartJd(entry.endYear),
+    startYear: entry.startYear,
+    endYear: entry.endYear,
+  );
 }
 
 bool _looksLikeEpheFile(String name) {

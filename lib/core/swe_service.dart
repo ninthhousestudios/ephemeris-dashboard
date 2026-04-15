@@ -57,6 +57,16 @@ final sweProvider = Provider<SwissEph>((ref) {
 /// SwissEph instance. Watched by the scanner and any provider that should
 /// invalidate when the user switches directories. Must be `ref.read` once
 /// at app start (see AppShell) so the initial path is set before any calc.
+///
+/// IMPORTANT: this Provider has a deliberate side effect in its build
+/// callback. Riverpod nominally expects build() to be pure, but rewriting
+/// this as a listener on a holder notifier would plumb the `SwissEph`
+/// instance through an init callback for no observable behavior change.
+/// The side effect is idempotent (`setEphePath` is cheap and safe to call
+/// repeatedly), and the provider is `ref.read` once in `AppShell.initState`
+/// which keeps it alive for the rest of the session. If you tree-shake
+/// that `ref.read` call or convert this to a pure provider, `setEphePath`
+/// will stop firing on directory changes and you'll get stale C state.
 final ephePathApplyProvider = Provider<String?>((ref) {
   final swe = ref.watch(sweProvider);
   final path = ref.watch(resolvedEphePathProvider);

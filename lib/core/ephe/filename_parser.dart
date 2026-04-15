@@ -50,6 +50,22 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
     final bceMarker = seMatch.group(2)!; // '_' = AD, 'm' = BCE
     final nn = int.parse(seMatch.group(3)!);
 
+    // The BCE offset math -(nn*100 - 1) is only verified for 2-digit nn in
+    // aloistr/swisseph. A 3-digit BCE chunk is a filename we've never seen
+    // — punt to `unknown` rather than emit a fabricated range.
+    if (bceMarker == 'm' && nn >= 100) {
+      return EpheFile(
+        filename: filename,
+        family: BodyFamily.unknown,
+        startJd: 0,
+        endJd: 0,
+        startYear: 0,
+        endYear: 0,
+        sizeBytes: sizeBytes,
+        status: EpheFileStatus.installed,
+      );
+    }
+
     final family = switch (prefix) {
       'sepl' => BodyFamily.planets,
       'semo' => BodyFamily.moon,
@@ -61,8 +77,8 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
         ? (nn * 100, nn * 100 + 600)
         : (-(nn * 100 - 1), -(nn * 100 - 1) + 599);
 
-    final startJd = _gregorianYearStartJd(startYear);
-    final endJd = _gregorianYearStartJd(endYear);
+    final startJd = gregorianYearStartJd(startYear);
+    final endJd = gregorianYearStartJd(endYear);
 
     return EpheFile(
       filename: filename,
@@ -92,7 +108,7 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
 /// year. Uses astronomical year numbering (year 0 = 1 BCE, year -1 = 2 BCE).
 ///
 /// Pure-Dart formula so the parser stays FFI-free for unit testing.
-double _gregorianYearStartJd(int year) {
+double gregorianYearStartJd(int year) {
   const month = 1;
   const day = 1;
   final a = (14 - month) ~/ 12;

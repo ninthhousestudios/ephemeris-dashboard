@@ -1,3 +1,5 @@
+const Object _sentinel = Object();
+
 /// Types for the ephemeris file manager.
 ///
 /// BCE year convention: we use the astronomical proleptic Gregorian
@@ -63,8 +65,8 @@ class EpheFile {
     int? endYear,
     int? sizeBytes,
     EpheFileStatus? status,
-    int? ephemerisNumber,
-    double? downloadProgress,
+    Object? ephemerisNumber = _sentinel,
+    Object? downloadProgress = _sentinel,
   }) {
     return EpheFile(
       filename: filename ?? this.filename,
@@ -75,8 +77,12 @@ class EpheFile {
       endYear: endYear ?? this.endYear,
       sizeBytes: sizeBytes ?? this.sizeBytes,
       status: status ?? this.status,
-      ephemerisNumber: ephemerisNumber ?? this.ephemerisNumber,
-      downloadProgress: downloadProgress ?? this.downloadProgress,
+      ephemerisNumber: identical(ephemerisNumber, _sentinel)
+          ? this.ephemerisNumber
+          : ephemerisNumber as int?,
+      downloadProgress: identical(downloadProgress, _sentinel)
+          ? this.downloadProgress
+          : downloadProgress as double?,
     );
   }
 
