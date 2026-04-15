@@ -32,9 +32,33 @@ Future<EphemerisScan> scanEphemerisDirectory(SwissEph swe, String dir) async {
   }
 
   final entries = <EpheFile>[];
+  _scanOneDir(swe, dir, '', directory, entries);
+
+  // Asteroid files live in astX/ subdirs (X = MPC ~/ 1000). Walk any that
+  // happen to be present; we don't hard-code a range since aloistr sprays
+  // these from ast0 up into the ast100s for outer bodies.
+  for (final sub in directory.listSync()) {
+    if (sub is! Directory) continue;
+    final subName = p.basename(sub.path);
+    if (!RegExp(r'^ast\d+$').hasMatch(subName)) continue;
+    _scanOneDir(swe, dir, subName, sub, entries);
+  }
+  return EphemerisScan(entries, DateTime.now(), dir);
+}
+
+/// Scan one directory (root or an astX subdir) and append recognisable
+/// ephemeris files to [entries]. [relSubdir] is empty for root, else the
+/// subdir name like 'ast0'.
+void _scanOneDir(
+  SwissEph swe,
+  String rootDir,
+  String relSubdir,
+  Directory directory,
+  List<EpheFile> entries,
+) {
   for (final entity in directory.listSync()) {
     if (entity is! File) continue;
-    final name = entity.uri.pathSegments.last;
+    final name = p.basename(entity.path);
     final size = entity.lengthSync();
 
     // Partial download left by an interrupted transfer.
@@ -53,6 +77,7 @@ Future<EphemerisScan> scanEphemerisDirectory(SwissEph swe, String dir) async {
           );
       entries.add(parsed.copyWith(
         sizeBytes: size,
+        subdir: relSubdir,
         status: EpheFileStatus.partial,
       ));
       continue;
@@ -62,18 +87,20 @@ Future<EphemerisScan> scanEphemerisDirectory(SwissEph swe, String dir) async {
 
     final parsed = parseEpheFilename(name, size);
     if (parsed == null) continue;
+    final parsedWithSubdir = parsed.copyWith(subdir: relSubdir);
 
     if (parsed.family == BodyFamily.planets ||
         parsed.family == BodyFamily.moon ||
         parsed.family == BodyFamily.mainAsteroids) {
-      entries.add(_probeSeFile(swe, dir, parsed));
+      entries.add(_probeSeFile(swe, rootDir, parsedWithSubdir));
     } else if (parsed.family == BodyFamily.jpl) {
-      entries.add(_enrichJplFromCatalog(parsed));
+      entries.add(_enrichJplFromCatalog(parsedWithSubdir));
     } else {
-      entries.add(parsed);
+      // Numbered asteroids, fixed stars, unknown — trust the filename.
+      // getCurrentFileData only covers planets/moon/main-ast slots.
+      entries.add(parsedWithSubdir);
     }
   }
-  return EphemerisScan(entries, DateTime.now(), dir);
 }
 
 /// Probe the file with SE and enrich the [EpheFile] from

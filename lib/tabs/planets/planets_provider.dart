@@ -20,6 +20,7 @@ class PlanetResult {
     required this.speedLat,
     required this.speedDist,
     required this.returnFlag,
+    this.errorMessage,
   });
 
   final int body;
@@ -31,6 +32,10 @@ class PlanetResult {
   final double speedLat;
   final double speedDist;
   final int returnFlag;
+  /// When non-null, the SE call failed for this body. UI shows this in
+  /// place of the numeric fields (typically a missing-ephemeris-file
+  /// message with a pointer to the Ephemeris tab).
+  final String? errorMessage;
 }
 
 /// Body presets for quick selection.
@@ -147,8 +152,7 @@ final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
         speedDist: r.distanceSpeed,
         returnFlag: r.returnFlag,
       ));
-    } on SweException {
-      // Add an error result — show the body with NaN values.
+    } on SweException catch (e) {
       results.add(PlanetResult(
         body: body,
         bodyName: _safeGetName(swe, body),
@@ -159,6 +163,7 @@ final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
         speedLat: double.nan,
         speedDist: double.nan,
         returnFlag: -1,
+        errorMessage: _describeBodyError(body, e.message),
       ));
     }
   }
@@ -187,4 +192,20 @@ String _safeGetName(SwissEph swe, int body) {
   } catch (_) {
     return 'Body $body';
   }
+}
+
+/// Turn a raw SE error into something the user can act on. For numbered
+/// asteroids we append the exact filename to look for (`seNNNNNs.se1`
+/// in `astX/`) so the user can either download it from the Ephemeris
+/// tab or drop it in manually.
+String _describeBodyError(int body, String rawMessage) {
+  if (body >= seAstOffset) {
+    final mpc = body - seAstOffset;
+    final sub = mpc ~/ 1000;
+    final fname = 'se${mpc.toString().padLeft(6, '0')}s.se1';
+    return 'Missing asteroid file $fname (ast$sub/). '
+        'Open the Ephemeris tab to download or drop it in. '
+        'SE error: $rawMessage';
+  }
+  return rawMessage;
 }

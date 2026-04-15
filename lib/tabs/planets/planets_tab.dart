@@ -275,38 +275,45 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                   title: r.bodyName,
                   subtitle: 'calcUt(${r.body})',
                   flagHex: '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
-                  fields: [
-                    ResultField(
-                      label: 'Longitude',
-                      value: formatAngle(r.longitude, format),
-                      rawValue: r.longitude,
-                    ),
-                    ResultField(
-                      label: 'Latitude',
-                      value: formatAngle(r.latitude, format),
-                      rawValue: r.latitude,
-                    ),
-                    ResultField(
-                      label: 'Distance',
-                      value: formatDistance(r.distance, format),
-                      rawValue: r.distance,
-                    ),
-                    ResultField(
-                      label: 'Spd Lon',
-                      value: formatSpeed(r.speedLon, format),
-                      rawValue: r.speedLon,
-                    ),
-                    ResultField(
-                      label: 'Spd Lat',
-                      value: formatSpeed(r.speedLat, format),
-                      rawValue: r.speedLat,
-                    ),
-                    ResultField(
-                      label: 'Spd Dist',
-                      value: formatSpeed(r.speedDist, format),
-                      rawValue: r.speedDist,
-                    ),
-                  ],
+                  fields: r.errorMessage != null
+                      ? [
+                          ResultField(
+                            label: 'Error',
+                            value: r.errorMessage!,
+                          ),
+                        ]
+                      : [
+                          ResultField(
+                            label: 'Longitude',
+                            value: formatAngle(r.longitude, format),
+                            rawValue: r.longitude,
+                          ),
+                          ResultField(
+                            label: 'Latitude',
+                            value: formatAngle(r.latitude, format),
+                            rawValue: r.latitude,
+                          ),
+                          ResultField(
+                            label: 'Distance',
+                            value: formatDistance(r.distance, format),
+                            rawValue: r.distance,
+                          ),
+                          ResultField(
+                            label: 'Spd Lon',
+                            value: formatSpeed(r.speedLon, format),
+                            rawValue: r.speedLon,
+                          ),
+                          ResultField(
+                            label: 'Spd Lat',
+                            value: formatSpeed(r.speedLat, format),
+                            rawValue: r.speedLat,
+                          ),
+                          ResultField(
+                            label: 'Spd Dist',
+                            value: formatSpeed(r.speedDist, format),
+                            rawValue: r.speedDist,
+                          ),
+                        ],
                 ),
               );
             }).toList(),

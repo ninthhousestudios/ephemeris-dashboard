@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../widgets/export_button.dart';
+import '../../core/calc_trigger.dart';
 import '../../core/display_format.dart';
 import 'table_view_provider.dart';
 
@@ -23,16 +24,18 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     super.dispose();
   }
 
-  void _calculate() {
-    final sv = double.tryParse(_stepValueController.text);
+  void _onStepValueChanged(String text) {
+    final sv = double.tryParse(text);
     if (sv != null && sv > 0) {
       ref.read(tableViewStepValueProvider.notifier).state = sv;
     }
-    final sc = int.tryParse(_stepCountController.text);
+  }
+
+  void _onStepCountChanged(String text) {
+    final sc = int.tryParse(text);
     if (sc != null && sc > 0 && sc <= 1000) {
       ref.read(tableViewStepCountProvider.notifier).state = sc;
     }
-    ref.read(tableViewCalcTriggerProvider.notifier).update((n) => n + 1);
   }
 
   @override
@@ -42,7 +45,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     final stepUnit = ref.watch(tableViewStepUnitProvider);
     final format = ref.watch(tableViewFormatProvider);
     final results = ref.watch(tableViewResultsProvider);
-    final triggered = ref.watch(tableViewCalcTriggerProvider) > 0;
+    final triggered = ref.watch(calcTriggerProvider) > 0;
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
@@ -97,6 +100,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                   width: 60,
                   child: TextField(
                     controller: _stepValueController,
+                    onChanged: _onStepValueChanged,
                     style: theme.textTheme.bodySmall,
                     decoration: const InputDecoration(
                       isDense: true,
@@ -127,6 +131,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                   width: 60,
                   child: TextField(
                     controller: _stepCountController,
+                    onChanged: _onStepCountChanged,
                     style: theme.textTheme.bodySmall,
                     decoration: const InputDecoration(
                       isDense: true,
@@ -137,13 +142,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                     keyboardType: TextInputType.number,
                   ),
                 ),
-                const SizedBox(width: 12),
-                FilledButton.icon(
-                  onPressed: _calculate,
-                  icon: const Icon(Icons.calculate, size: 16),
-                  label: const Text('Calculate'),
-                ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
                 ExportButton(
                   hasResults: triggered && results.isNotEmpty,
                   filenameStem: 'table_view',

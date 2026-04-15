@@ -9,6 +9,8 @@ import 'types.dart';
 ///   * `seplmNN.se1`  — planets, BCE chunk [-(NN*100 - 1), -(NN*100 - 1) + 599]
 ///   * `semo_NN.se1` / `semomNN.se1` — moon (same numbering as planets)
 ///   * `seas_NN.se1` / `seasmNN.se1` — main asteroids
+///   * `seNNNNs.se1` / `seNNNN.se1` — per-asteroid files (MPC NNNNN);
+///     live in `astX/` subdirs (X = MPC ~/ 1000).
 ///   * `deNNN.eph`, `deNNNe.eph`, `deNNNt.eph` — JPL DE files
 ///     (date range left at 0/0 here; filled from catalog by scanner)
 ///   * `sefstars.txt` — fixed-star catalog (no range)
@@ -39,6 +41,26 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
       endYear: 0,
       sizeBytes: sizeBytes,
       status: EpheFileStatus.installed,
+    );
+  }
+
+  // Per-asteroid files: seNNNNNs.se1 or seNNNNN.se1. NNNNN is the MPC
+  // number (at least 1 digit, typically 5-6). Trailing 's' marks the
+  // "short" file. We deliberately anchor on the digit run so we don't
+  // collide with sepl/semo/seas (those start with a letter, not a digit).
+  final astMatch = RegExp(r'^se(\d+)(s?)\.se1$').firstMatch(filename);
+  if (astMatch != null) {
+    final mpc = int.parse(astMatch.group(1)!);
+    return EpheFile(
+      filename: filename,
+      family: BodyFamily.numberedAsteroid,
+      startJd: 0,
+      endJd: 0,
+      startYear: 0,
+      endYear: 0,
+      sizeBytes: sizeBytes,
+      status: EpheFileStatus.installed,
+      mpcNumber: mpc,
     );
   }
 

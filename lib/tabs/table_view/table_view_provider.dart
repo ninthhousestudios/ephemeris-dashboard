@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
+import '../../core/calc_trigger.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 import '../../core/display_format.dart';
@@ -54,8 +55,6 @@ final tableViewStepCountProvider = StateProvider<int>((ref) => 30);
 final tableViewFormatProvider =
     StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
 
-final tableViewCalcTriggerProvider = StateProvider<int>((ref) => 0);
-
 // ── Result model ─────────────────────────────────────────────────────────────
 
 class EphemerisRow {
@@ -75,7 +74,7 @@ class EphemerisRow {
 // ── Computation ──────────────────────────────────────────────────────────────
 
 final tableViewResultsProvider = Provider<List<EphemerisRow>>((ref) {
-  final trigger = ref.watch(tableViewCalcTriggerProvider);
+  final trigger = ref.watch(calcTriggerProvider);
   if (trigger == 0) return [];
 
   final ectx = ref.watch(effectiveContextProvider);

@@ -21,6 +21,8 @@ class EffectiveContext {
     required this.zodiacRef,
     required this.eqRef,
     required this.ayanamsa,
+    this.userAyanT0 = 0.0,
+    this.userAyanValue = 0.0,
     required this.epheSource,
     this.jplFilename,
   });
@@ -33,7 +35,9 @@ class EffectiveContext {
   final Origin origin;
   final ZodiacRef zodiacRef;
   final EqRef eqRef;
-  final int ayanamsa; // -1 = tropical/none
+  final int ayanamsa; // -1 = tropical/none; 255 = user-defined
+  final double userAyanT0;
+  final double userAyanValue;
   final EpheSource epheSource;
   final String? jplFilename;
 
@@ -51,7 +55,11 @@ class EffectiveContext {
   void _applyGlobals(SwissEph swe) {
     // Sidereal mode
     if (zodiacRef == ZodiacRef.sidereal && ayanamsa >= 0) {
-      swe.setSidMode(ayanamsa);
+      if (ayanamsa == 255) {
+        swe.setSidMode(ayanamsa, t0: userAyanT0, ayanT0: userAyanValue);
+      } else {
+        swe.setSidMode(ayanamsa);
+      }
     }
 
     // Topocentric
@@ -78,13 +86,16 @@ class EffectiveContext {
           zodiacRef == other.zodiacRef &&
           eqRef == other.eqRef &&
           ayanamsa == other.ayanamsa &&
+          userAyanT0 == other.userAyanT0 &&
+          userAyanValue == other.userAyanValue &&
           epheSource == other.epheSource &&
           jplFilename == other.jplFilename;
 
   @override
   int get hashCode => Object.hash(
         jdUt, iflag, latitude, longitude, altitude,
-        origin, zodiacRef, eqRef, ayanamsa, epheSource, jplFilename,
+        origin, zodiacRef, eqRef, ayanamsa, userAyanT0, userAyanValue,
+        epheSource, jplFilename,
       );
 }
 
@@ -103,6 +114,8 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
     zodiacRef: ctx.zodiacRef,
     eqRef: ctx.eqRef,
     ayanamsa: ctx.ayanamsa,
+    userAyanT0: ctx.userAyanT0,
+    userAyanValue: ctx.userAyanValue,
     epheSource: ctx.epheSource,
     jplFilename: ctx.jplFilename,
   );

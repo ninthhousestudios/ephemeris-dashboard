@@ -15,6 +15,8 @@ enum BodyFamily {
   planets,
   moon,
   mainAsteroids,
+  /// Per-asteroid files (`seNNNNs.se1`) in `astX/` subdirs (X = mpc ~/ 1000).
+  numberedAsteroid,
   fixedStars,
   jpl,
   unknown,
@@ -40,21 +42,32 @@ class EpheFile {
     required this.endYear,
     required this.sizeBytes,
     required this.status,
+    this.subdir = '',
+    this.mpcNumber,
     this.ephemerisNumber,
     this.downloadProgress,
   });
 
-  /// e.g. 'sepl_18.se1', 'de431.eph', 'sefstars.txt'.
+  /// e.g. 'sepl_18.se1', 'de431.eph', 'sefstars.txt', 'se00433s.se1'.
   final String filename;
   final BodyFamily family;
   final double startJd;
   final double endJd;
   final int startYear; // proleptic Gregorian; negative = BCE
   final int endYear;
+  /// Subdirectory relative to the ephe root (e.g. 'ast0'). Empty string
+  /// means the file lives directly in the ephe root. Scanner and
+  /// downloader both honor this for path-joining.
+  final String subdir;
+  /// For [BodyFamily.numberedAsteroid], the MPC number (e.g. 433 = Eros).
+  final int? mpcNumber;
   final int? ephemerisNumber; // from getCurrentFileData; null until probed
   final int sizeBytes;
   final EpheFileStatus status;
   final double? downloadProgress; // 0.0–1.0 when status == downloading
+
+  /// Path relative to the ephe root, joining [subdir] + [filename].
+  String get relativePath => subdir.isEmpty ? filename : '$subdir/$filename';
 
   EpheFile copyWith({
     String? filename,
@@ -63,8 +76,10 @@ class EpheFile {
     double? endJd,
     int? startYear,
     int? endYear,
+    String? subdir,
     int? sizeBytes,
     EpheFileStatus? status,
+    Object? mpcNumber = _sentinel,
     Object? ephemerisNumber = _sentinel,
     Object? downloadProgress = _sentinel,
   }) {
@@ -75,8 +90,12 @@ class EpheFile {
       endJd: endJd ?? this.endJd,
       startYear: startYear ?? this.startYear,
       endYear: endYear ?? this.endYear,
+      subdir: subdir ?? this.subdir,
       sizeBytes: sizeBytes ?? this.sizeBytes,
       status: status ?? this.status,
+      mpcNumber: identical(mpcNumber, _sentinel)
+          ? this.mpcNumber
+          : mpcNumber as int?,
       ephemerisNumber: identical(ephemerisNumber, _sentinel)
           ? this.ephemerisNumber
           : ephemerisNumber as int?,
@@ -96,6 +115,8 @@ class EpheFile {
           endJd == other.endJd &&
           startYear == other.startYear &&
           endYear == other.endYear &&
+          subdir == other.subdir &&
+          mpcNumber == other.mpcNumber &&
           sizeBytes == other.sizeBytes &&
           status == other.status &&
           ephemerisNumber == other.ephemerisNumber &&
@@ -109,6 +130,8 @@ class EpheFile {
         endJd,
         startYear,
         endYear,
+        subdir,
+        mpcNumber,
         sizeBytes,
         status,
         ephemerisNumber,

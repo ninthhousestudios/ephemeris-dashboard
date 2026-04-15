@@ -57,6 +57,8 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
       zodiacRef: overrides['zodiacRef'] as ZodiacRef?,
       eqRef: overrides['eqRef'] as EqRef?,
       ayanamsa: overrides['ayanamsa'] as int?,
+      userAyanT0: overrides['userAyanT0'] as double?,
+      userAyanValue: overrides['userAyanValue'] as double?,
       epheSource: hasEpheFiles
           ? overrides['epheSource'] as EpheSource?
           : EpheSource.moshier,
@@ -127,6 +129,12 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
 
   void setAyanamsa(int sidMode) {
     state = state.copyWith(ayanamsa: sidMode);
+    _save();
+  }
+
+  /// Set user-defined ayanamsa parameters (SE_SIDM_USER, 255).
+  void setUserAyanamsa({required double t0, required double value}) {
+    state = state.copyWith(userAyanT0: t0, userAyanValue: value);
     _save();
   }
 

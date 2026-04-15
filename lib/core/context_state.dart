@@ -18,6 +18,8 @@ class ContextBarState {
     this.zodiacRef = ZodiacRef.tropical,
     this.eqRef = EqRef.trueEquinox,
     this.ayanamsa = -1, // -1 = none; 0+ = SE_SIDM_* constant (only meaningful when sidereal)
+    this.userAyanT0 = 0.0,
+    this.userAyanValue = 0.0,
     this.epheSource = EpheSource.moshier,
     this.jplFilename,
   });
@@ -36,7 +38,9 @@ class ContextBarState {
   final Origin origin;
   final ZodiacRef zodiacRef;
   final EqRef eqRef;
-  final int ayanamsa; // SE_SIDM_* constant (when sidereal)
+  final int ayanamsa; // SE_SIDM_* constant (when sidereal); 255 = user-defined
+  final double userAyanT0; // reference JD for SE_SIDM_USER
+  final double userAyanValue; // ayanamsa value at t0, degrees
   final EpheSource epheSource;
   final String? jplFilename; // e.g. 'de440.eph'; only used when epheSource == jpl
 
@@ -52,6 +56,8 @@ class ContextBarState {
     ZodiacRef? zodiacRef,
     EqRef? eqRef,
     int? ayanamsa,
+    double? userAyanT0,
+    double? userAyanValue,
     EpheSource? epheSource,
     Object? jplFilename = _sentinel,
   }) {
@@ -67,6 +73,8 @@ class ContextBarState {
       zodiacRef: zodiacRef ?? this.zodiacRef,
       eqRef: eqRef ?? this.eqRef,
       ayanamsa: ayanamsa ?? this.ayanamsa,
+      userAyanT0: userAyanT0 ?? this.userAyanT0,
+      userAyanValue: userAyanValue ?? this.userAyanValue,
       epheSource: epheSource ?? this.epheSource,
       jplFilename: identical(jplFilename, _sentinel)
           ? this.jplFilename
@@ -89,6 +97,8 @@ class ContextBarState {
           zodiacRef == other.zodiacRef &&
           eqRef == other.eqRef &&
           ayanamsa == other.ayanamsa &&
+          userAyanT0 == other.userAyanT0 &&
+          userAyanValue == other.userAyanValue &&
           epheSource == other.epheSource &&
           jplFilename == other.jplFilename;
 
@@ -105,6 +115,8 @@ class ContextBarState {
         zodiacRef,
         eqRef,
         ayanamsa,
+        userAyanT0,
+        userAyanValue,
         epheSource,
         jplFilename,
       );

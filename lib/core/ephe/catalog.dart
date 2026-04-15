@@ -11,6 +11,9 @@ class CatalogEntry {
     this.md5,
     this.startYear = 0,
     this.endYear = 0,
+    this.subdir = '',
+    this.mpcNumber,
+    this.displayName,
   });
 
   final String filename;
@@ -20,6 +23,13 @@ class CatalogEntry {
   final String? md5;
   final int startYear;
   final int endYear;
+  /// Subdirectory relative to the ephe root (e.g. 'ast0'). Empty = root.
+  final String subdir;
+  /// For numbered asteroids, the MPC number (e.g. 433 for Eros).
+  final int? mpcNumber;
+  /// Pretty name used in the manager UI (e.g. 'Eros (433)'). Falls back
+  /// to [filename] when absent.
+  final String? displayName;
 }
 
 /// JPL DE files served from ephe.scryr.io. MD5 values copied from the
@@ -114,8 +124,80 @@ List<CatalogEntry> _buildSeCatalog() {
 
 final seCatalog = _buildSeCatalog();
 
-/// Full catalog of files offered for download (JPL + SE extensions).
-List<CatalogEntry> get fullCatalog => [...jplCatalog, ...seCatalog];
+// ── Numbered asteroids ──
+//
+// Aloistr hosts one `seNNNNNs.se1` per asteroid under `ephe/astX/` where
+// `X = MPC ~/ 1000`. We seed the catalog with the set we surface as chips
+// on the Planets tab, plus a helper to conjure an entry for any MPC number
+// on the fly (`asteroidCatalogEntryFor`) so the user isn't blocked on
+// arbitrary numbers we didn't pre-register.
+
+/// Subdir ('astX') for an MPC asteroid number. X = floor(N / 1000).
+String asteroidSubdirFor(int mpcNumber) => 'ast${mpcNumber ~/ 1000}';
+
+/// Canonical short-file filename for an MPC asteroid number.
+/// Aloistr pads to 6 digits (e.g. `se000433s.se1` for Eros).
+String asteroidFilenameFor(int mpcNumber) {
+  return 'se${mpcNumber.toString().padLeft(6, '0')}s.se1';
+}
+
+/// Build a catalog entry for an arbitrary MPC asteroid number, resolving
+/// the aloistr URL + astX subdir. Returns null for non-positive inputs.
+CatalogEntry? asteroidCatalogEntryFor(int mpcNumber, {String? displayName}) {
+  if (mpcNumber <= 0) return null;
+  final filename = asteroidFilenameFor(mpcNumber);
+  final subdir = asteroidSubdirFor(mpcNumber);
+  return CatalogEntry(
+    filename: filename,
+    family: BodyFamily.numberedAsteroid,
+    url:
+        'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/$subdir/$filename',
+    subdir: subdir,
+    mpcNumber: mpcNumber,
+    displayName:
+        displayName == null ? '#$mpcNumber' : '$displayName ($mpcNumber)',
+  );
+}
+
+/// Seed list: the asteroids we offer as named chips on Planets tab, plus
+/// a handful of well-known outer bodies. Users can still add any MPC
+/// number on the fly via `asteroidCatalogEntryFor`.
+const _asteroidSeed = <(int, String)>[
+  (1, 'Ceres'),
+  (2, 'Pallas'),
+  (3, 'Juno'),
+  (4, 'Vesta'),
+  (5, 'Astraea'),
+  (6, 'Hebe'),
+  (7, 'Iris'),
+  (8, 'Flora'),
+  (9, 'Metis'),
+  (10, 'Hygiea'),
+  (16, 'Psyche'),
+  (433, 'Eros'),
+  (1221, 'Amor'),
+  (2060, 'Chiron'),
+  (5145, 'Pholus'),
+  (7066, 'Nessus'),
+  (50000, 'Quaoar'),
+  (90377, 'Sedna'),
+  (90482, 'Orcus'),
+  (136108, 'Haumea'),
+  (136199, 'Eris'),
+  (136472, 'Makemake'),
+  (225088, 'Gonggong'),
+];
+
+final asteroidCatalog = <CatalogEntry>[
+  for (final (mpc, name) in _asteroidSeed)
+    asteroidCatalogEntryFor(mpc, displayName: name)!,
+];
+
+/// Full catalog of files offered for download (JPL + SE extensions +
+/// seeded asteroids). On-the-fly MPC entries come from
+/// [asteroidCatalogEntryFor], not this list.
+List<CatalogEntry> get fullCatalog =>
+    [...jplCatalog, ...seCatalog, ...asteroidCatalog];
 
 CatalogEntry? catalogEntryFor(String filename) {
   for (final e in fullCatalog) {

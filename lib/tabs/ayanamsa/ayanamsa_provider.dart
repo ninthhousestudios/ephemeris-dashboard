@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
+import '../../core/ayanamsa_catalog.dart';
 import '../../core/calc_context.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -22,54 +24,17 @@ class AyanamsaCalcResult {
   final double value;
 }
 
-/// Known ayanamsa modes with names.
-/// SE_SIDM_* constants from swisseph: 0..43 are defined.
-final ayanamsaModes = <int, String>{
-  0: 'Fagan/Bradley',
-  1: 'Lahiri',
-  2: 'De Luce',
-  3: 'Raman',
-  4: 'Ushashashi',
-  5: 'Krishnamurti',
-  6: 'Djwhal Khul',
-  7: 'Yukteswar',
-  8: 'J.N. Bhasin',
-  9: 'Babylonian (Kugler 1)',
-  10: 'Babylonian (Kugler 2)',
-  11: 'Babylonian (Kugler 3)',
-  12: 'Babylonian (Huber)',
-  13: 'Babylonian (Eta Piscium)',
-  14: 'Babylonian (Aldebaran 15 Tau)',
-  15: 'Hipparchos',
-  16: 'Sassanian',
-  17: 'Galactic Center 0 Sag',
-  18: 'J2000',
-  19: 'J1900',
-  20: 'B1950',
-  21: 'Suryasiddhanta',
-  22: 'Suryasiddhanta (mean Sun)',
-  23: 'Aryabhata',
-  24: 'Aryabhata (mean Sun)',
-  25: 'SS Revati',
-  26: 'SS Citra',
-  27: 'True Citra',
-  28: 'True Revati',
-  29: 'True Pushya',
-  30: 'Galactic Center (Gil Brand)',
-  31: 'Galactic Equator (IAU1958)',
-  32: 'Galactic Equator',
-  33: 'Galactic Equator (mid-Mula)',
-  34: 'Skydram (Mardyks)',
-  35: 'True Mula (Chandra Hari)',
-  36: 'Dhruva (Galactic Center mid-Mula)',
-  37: 'Aryabhata 522',
-  38: 'Babylonian (Britton)',
-  39: 'Vedic (Sheoran)',
-  40: 'Cochrane (Galactic Center 0 Cap)',
-  41: 'Galactic Equator (Fiorenza)',
-  42: 'Vettius Valens',
-  43: 'Lahiri (ICRC)',
-};
+/// Ayanamsa modes shown on this tab.
+/// Canonical catalog from lib/core/ayanamsa_catalog.dart.
+/// User-defined (255) is omitted unless the user has set t0/value.
+Map<int, String> ayanamsaModesFor({bool includeUser = true}) {
+  final map = <int, String>{};
+  for (final e in ayanamsaCatalog) {
+    if (!includeUser && e.id == ayanamsaUserId) continue;
+    map[e.id] = e.name;
+  }
+  return map;
+}
 
 /// Selected ayanamsas for compare mode.
 final selectedAyanamsasProvider = StateProvider<List<int>>((ref) => [1]); // Lahiri default
@@ -85,18 +50,28 @@ final ayanamsaResultsProvider = Provider<List<AyanamsaCalcResult>>((ref) {
   ref.watch(ayanamsaCalcTriggerProvider);
 
   final ectx = ref.watch(effectiveContextProvider);
+  final ctx = ref.watch(contextBarProvider);
   final swe = ref.read(sweProvider);
   final selected = ref.watch(selectedAyanamsasProvider);
   final compareMode = ref.watch(ayanamsaCompareModeProvider);
 
-  final modes = compareMode ? ayanamsaModes.keys.toList() : selected;
+  // Compare-all drops user-defined unless params have been set.
+  final hasUserParams = ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
+  final modes = compareMode
+      ? ayanamsaModesFor(includeUser: hasUserParams).keys.toList()
+      : selected;
 
   final results = <AyanamsaCalcResult>[];
   for (final sidMode in modes) {
     try {
-      swe.setSidMode(sidMode);
+      if (sidMode == ayanamsaUserId) {
+        swe.setSidMode(sidMode,
+            t0: ctx.userAyanT0, ayanT0: ctx.userAyanValue);
+      } else {
+        swe.setSidMode(sidMode);
+      }
       final value = swe.getAyanamsaUt(ectx.jdUt);
-      final name = ayanamsaModes[sidMode] ?? swe.getAyanamsaName(sidMode);
+      final name = ayanamsaName(sidMode);
       results.add(AyanamsaCalcResult(sidMode: sidMode, name: name, value: value));
     } on SweException {
       // Skip failed modes.

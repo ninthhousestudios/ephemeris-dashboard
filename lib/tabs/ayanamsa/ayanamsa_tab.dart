@@ -96,23 +96,31 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
               if (!compareMode) ...[
                 const SizedBox(height: 6),
                 // Ayanamsa selector chips — scrollable with constrained height
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 160),
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: ayanamsaModes.entries.map((e) {
-                        return FilterChip(
-                          label: Text(e.value, style: theme.textTheme.labelSmall),
-                          selected: selected.contains(e.key),
-                          onSelected: (_) => _toggleAyanamsa(e.key),
-                          visualDensity: VisualDensity.compact,
-                        );
-                      }).toList(),
+                Consumer(builder: (context, ref, _) {
+                  final ctx = ref.watch(contextBarProvider);
+                  final hasUserParams =
+                      ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
+                  final modes =
+                      ayanamsaModesFor(includeUser: hasUserParams);
+                  return ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 160),
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: modes.entries.map((e) {
+                          return FilterChip(
+                            label: Text(e.value,
+                                style: theme.textTheme.labelSmall),
+                            selected: selected.contains(e.key),
+                            onSelected: (_) => _toggleAyanamsa(e.key),
+                            visualDensity: VisualDensity.compact,
+                          );
+                        }).toList(),
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ],
           ),

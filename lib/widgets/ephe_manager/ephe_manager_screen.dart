@@ -82,6 +82,9 @@ class _EphemerisManagerScreenState
                   const Divider(height: 1),
                   _sectionHeader('JPL'),
                   ..._buildJplRows(scan),
+                  const Divider(height: 1),
+                  _sectionHeader('Asteroids'),
+                  ..._buildAsteroidRows(scan),
                 ],
               ),
             ),
@@ -97,12 +100,16 @@ class _EphemerisManagerScreenState
         f.family == BodyFamily.planets ||
         f.family == BodyFamily.moon ||
         f.family == BodyFamily.mainAsteroids ||
+        f.family == BodyFamily.numberedAsteroid ||
         f.family == BodyFamily.fixedStars ||
         f.family == BodyFamily.jpl);
     yield* seCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing);
     yield* jplCatalog
+        .where((c) => !installedByName.containsKey(c.filename))
+        .map(_catalogToMissing);
+    yield* asteroidCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing);
   }
@@ -291,9 +298,33 @@ class _EphemerisManagerScreenState
         endJd: 0,
         startYear: c.startYear,
         endYear: c.endYear,
+        subdir: c.subdir,
+        mpcNumber: c.mpcNumber,
         sizeBytes: c.sizeBytes ?? 0,
         status: EpheFileStatus.missing,
       );
+
+  List<Widget> _buildAsteroidRows(EphemerisScan scan) {
+    final installedByName = {for (final f in scan.files) f.filename: f};
+    final installed = scan.files
+        .where((f) =>
+            f.family == BodyFamily.numberedAsteroid ||
+            (f.status == EpheFileStatus.partial &&
+                f.filename.startsWith('se') &&
+                f.filename.endsWith('.se1') &&
+                RegExp(r'^se\d').hasMatch(f.filename)))
+        .toList()
+      ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
+    final missing = asteroidCatalog
+        .where((c) => !installedByName.containsKey(c.filename))
+        .map(_catalogToMissing)
+        .toList()
+      ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
+    return [
+      for (final f in installed) _rowFor(f),
+      for (final f in missing) _rowFor(f),
+    ];
+  }
 
   Widget _rowFor(EpheFile f) {
     final liveStatus = _liveStatus[f.filename] ?? f.status;
@@ -360,7 +391,7 @@ class _EphemerisManagerScreenState
     final errors = <String>[];
     for (final f in files) {
       try {
-        _deleteFileAndPart(dir, f.filename);
+        _deleteFileAndPart(dir, f);
         _selected.remove(f.filename);
       } catch (e) {
         errors.add('${f.filename}: $e');
@@ -414,7 +445,7 @@ class _EphemerisManagerScreenState
     final dir = ref.read(resolvedEphePathProvider);
     if (dir == null) return;
     try {
-      _deleteFileAndPart(dir, f.filename);
+      _deleteFileAndPart(dir, f);
       ref.invalidate(ephemerisScanProvider);
     } catch (e) {
       if (!mounted) return;
@@ -425,11 +456,13 @@ class _EphemerisManagerScreenState
   }
 
   /// Remove both the final file and any matching .part alongside it.
-  /// Safe on absent files.
-  void _deleteFileAndPart(String dir, String filename) {
-    final full = File('$dir/$filename');
+  /// Safe on absent files. Honors [EpheFile.subdir] so asteroid files
+  /// stored under `astX/` are deleted from the right location.
+  void _deleteFileAndPart(String dir, EpheFile file) {
+    final parent = file.subdir.isEmpty ? dir : '$dir/${file.subdir}';
+    final full = File('$parent/${file.filename}');
     if (full.existsSync()) full.deleteSync();
-    final part = File('$dir/$filename.part');
+    final part = File('$parent/${file.filename}.part');
     if (part.existsSync()) part.deleteSync();
   }
 
@@ -510,7 +543,8 @@ class _EphemerisManagerScreenState
     // resuming a possibly-bogus partial (e.g. 404 HTML written to disk).
     final dir = ref.read(resolvedEphePathProvider);
     if (dir != null) {
-      final part = File('$dir/${f.filename}.part');
+      final parent = f.subdir.isEmpty ? dir : '$dir/${f.subdir}';
+      final part = File('$parent/${f.filename}.part');
       if (part.existsSync()) {
         try {
           part.deleteSync();
@@ -575,7 +609,12 @@ class _EphemerisManagerScreenState
       return;
     }
     try {
-      await File(src).copy('$dir/${f.filename}');
+      final parent = f.subdir.isEmpty ? dir : '$dir/${f.subdir}';
+      if (f.subdir.isNotEmpty) {
+        final d = Directory(parent);
+        if (!d.existsSync()) d.createSync(recursive: true);
+      }
+      await File(src).copy('$parent/${f.filename}');
       ref.invalidate(ephemerisScanProvider);
     } catch (e) {
       if (!mounted) return;

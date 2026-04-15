@@ -63,8 +63,17 @@ class EphemerisDownloader {
     final controller = StreamController<DownloadProgress>();
 
     Future<void> run() async {
-      final partPath = '$destDir/${entry.filename}.part';
-      final finalPath = '$destDir/${entry.filename}';
+      // Catalog entries for numbered asteroids live in ast*/ subdirs. Make
+      // sure it exists before writing — a fresh managed dir won't have it.
+      final targetDir = entry.subdir.isEmpty
+          ? destDir
+          : '$destDir/${entry.subdir}';
+      if (entry.subdir.isNotEmpty) {
+        final d = Directory(targetDir);
+        if (!d.existsSync()) d.createSync(recursive: true);
+      }
+      final partPath = '$targetDir/${entry.filename}.part';
+      final finalPath = '$targetDir/${entry.filename}';
 
       final sizeHint = entry.sizeBytes ?? 0;
       if (sizeHint > kLargeDownloadThreshold &&

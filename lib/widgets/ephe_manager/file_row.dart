@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/ephe/catalog.dart';
 import '../../core/ephe/types.dart';
 
 class EpheFileRow extends StatelessWidget {
@@ -51,7 +52,7 @@ class EpheFileRow extends StatelessWidget {
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
-          Text(file.filename, style: theme.textTheme.bodyMedium),
+          Text(_label(file), style: theme.textTheme.bodyMedium),
           Text(range, style: theme.textTheme.bodySmall),
           Text(sizeMB, style: theme.textTheme.bodySmall),
           statusChip,
@@ -125,6 +126,17 @@ class EpheFileRow extends StatelessWidget {
         ];
     }
   }
+}
+
+/// Show the pretty display name ('Eros (433)') for asteroid entries when
+/// we have one in the catalog; otherwise fall back to the filename.
+String _label(EpheFile f) {
+  if (f.family == BodyFamily.numberedAsteroid) {
+    final entry = catalogEntryFor(f.filename);
+    if (entry?.displayName != null) return entry!.displayName!;
+    if (f.mpcNumber != null) return '#${f.mpcNumber}  (${f.filename})';
+  }
+  return f.filename;
 }
 
 class _StatusChip extends StatelessWidget {
