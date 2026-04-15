@@ -42,8 +42,9 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
     );
   }
 
-  // SE files: (sepl|semo|seas)(_|m)NN.se1
-  final seMatch = RegExp(r'^(sepl|semo|seas)(_|m)(\d{2})\.se1$').firstMatch(filename);
+  // SE files: (sepl|semo|seas)(_|m)NN.se1 — NN is 2 or 3 digits (step-of-6
+  // chunks from aloistr/swisseph/ephe: …,_48,_54,…,_96,_102,_108,…).
+  final seMatch = RegExp(r'^(sepl|semo|seas)(_|m)(\d{2,3})\.se1$').firstMatch(filename);
   if (seMatch != null) {
     final prefix = seMatch.group(1)!;
     final bceMarker = seMatch.group(2)!; // '_' = AD, 'm' = BCE

@@ -42,63 +42,69 @@ class EphemerisDownloader {
     required String destDir,
     CancelToken? cancel,
     ConfirmLargeDownload? confirmLargeDownload,
-  }) async* {
-    final partPath = '$destDir/${entry.filename}.part';
-    final finalPath = '$destDir/${entry.filename}';
-
-    final size = entry.sizeBytes ?? 0;
-    if (size > kLargeDownloadThreshold && confirmLargeDownload != null) {
-      final ok = await confirmLargeDownload(size);
-      if (!ok) throw const DownloadFailed('Cancelled by user.');
-    }
-
+  }) {
     final controller = StreamController<DownloadProgress>();
-    final done = Completer<void>();
-
-    Future<void> attempt() async {
-      final partFile = File(partPath);
-      final partSize = partFile.existsSync() ? partFile.lengthSync() : 0;
-
-      final headers = <String, String>{};
-      if (partSize > 0) headers['Range'] = 'bytes=$partSize-';
-
-      try {
-        await _dio.download(
-          entry.url,
-          partPath,
-          cancelToken: cancel,
-          deleteOnError: false,
-          options: Options(
-            headers: headers,
-            responseType: ResponseType.stream,
-            // 416 = Range Not Satisfiable; surface as error for handler below.
-            validateStatus: (s) => s != null && s >= 200 && s < 400,
-          ),
-          onReceiveProgress: (r, t) {
-            controller.add(DownloadProgress(partSize + r, size > 0 ? size : partSize + t));
-          },
-        );
-      } on DioException catch (e) {
-        if (e.response?.statusCode == 416) {
-          // Server refused range — nuke .part and restart fresh.
-          if (partFile.existsSync()) partFile.deleteSync();
-          throw const _RetryFromZero();
-        }
-        rethrow;
-      }
-    }
 
     Future<void> run() async {
+      final partPath = '$destDir/${entry.filename}.part';
+      final finalPath = '$destDir/${entry.filename}';
+
+      final sizeHint = entry.sizeBytes ?? 0;
+      if (sizeHint > kLargeDownloadThreshold &&
+          confirmLargeDownload != null) {
+        final ok = await confirmLargeDownload(sizeHint);
+        if (!ok) throw const DownloadFailed('Cancelled by user.');
+      }
+
+      // Surface a starting-progress tick so the UI doesn't sit at 0
+      // with no signal if the server stalls before first bytes.
+      controller.add(DownloadProgress(0, sizeHint));
+
       var attemptN = 0;
       while (true) {
+        final partFile = File(partPath);
+        final partSize = partFile.existsSync() ? partFile.lengthSync() : 0;
+
+        final headers = <String, String>{};
+        if (partSize > 0) headers['Range'] = 'bytes=$partSize-';
+
         try {
-          await attempt();
-          break;
-        } on _RetryFromZero {
-          continue;
+          await _dio.download(
+            entry.url,
+            partPath,
+            cancelToken: cancel,
+            deleteOnError: false,
+            // When resuming, append to the existing .part instead of
+            // truncating it (dio's default is write-from-zero).
+            fileAccessMode: partSize > 0
+                ? FileAccessMode.append
+                : FileAccessMode.write,
+            options: Options(
+              headers: headers,
+              // Accept 200 (fresh) and 206 (range resume).
+              validateStatus: (s) => s != null && s >= 200 && s < 300,
+            ),
+            onReceiveProgress: (r, t) {
+              final total = t > 0 ? partSize + t : sizeHint;
+              controller.add(DownloadProgress(partSize + r, total));
+            },
+          );
+          break; // success
         } on DioException catch (e) {
           if (CancelToken.isCancel(e)) {
             throw const DownloadFailed('Cancelled.');
+          }
+          final status = e.response?.statusCode;
+          if (status == 416) {
+            // Server rejected range — nuke .part and try again fresh.
+            if (partFile.existsSync()) partFile.deleteSync();
+            continue;
+          }
+          // 4xx (except 416/408) means the catalog URL is wrong or the
+          // server rejects us — no amount of retry will help.
+          if (status != null && status >= 400 && status < 500 &&
+              status != 408) {
+            throw DownloadFailed('HTTP $status from ${entry.url}');
           }
           final retriable = e.type == DioExceptionType.connectionError ||
               e.type == DioExceptionType.receiveTimeout ||
@@ -106,7 +112,8 @@ class EphemerisDownloader {
               e.type == DioExceptionType.connectionTimeout;
           attemptN++;
           if (!retriable || attemptN >= 3) {
-            throw DownloadFailed('Network error: ${e.message ?? e.type.name}');
+            throw DownloadFailed(
+                'Network error: ${e.type.name}');
           }
           await Future<void>.delayed(
             Duration(seconds: 1 << (attemptN - 1)), // 1s, 2s, 4s
@@ -123,27 +130,20 @@ class EphemerisDownloader {
       }
 
       File(partPath).renameSync(finalPath);
+      // Final tick at 100%.
+      final finalSize = File(finalPath).lengthSync();
+      controller.add(DownloadProgress(finalSize, finalSize));
     }
 
-    // Run and pipe progress.
-    run().then((_) => done.complete()).catchError((Object e, StackTrace st) {
-      done.completeError(e, st);
+    run()
+        .then((_) => controller.close())
+        .catchError((Object e, StackTrace st) {
+      controller.addError(e, st);
+      controller.close();
     });
 
-    try {
-      await for (final p in controller.stream) {
-        yield p;
-        if (done.isCompleted) break;
-      }
-      await done.future;
-    } finally {
-      await controller.close();
-    }
+    return controller.stream;
   }
-}
-
-class _RetryFromZero implements Exception {
-  const _RetryFromZero();
 }
 
 final downloaderProvider = Provider<EphemerisDownloader>((ref) {

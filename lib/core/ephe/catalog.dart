@@ -67,35 +67,29 @@ const jplCatalog = <CatalogEntry>[
   ),
 ];
 
-/// SE catalog (Phase 1 bound): bundled range ± 2 chunks per family per
-/// direction. Bundled AD covers 00–48 (0–5400 CE), BCE covers m06–m54
-/// (−5399 to 0). Catalog adds chunks 50 and 52 (AD), m56 and m58 (BCE).
-/// Phase 2 will extend further; for Phase 1 we keep the surface small.
-const _seExtensionChunks = <({String prefix, String bceMarker, int nn})>[
-  // Planets AD
-  (prefix: 'sepl', bceMarker: '_', nn: 50),
-  (prefix: 'sepl', bceMarker: '_', nn: 52),
-  // Moon AD
-  (prefix: 'semo', bceMarker: '_', nn: 50),
-  (prefix: 'semo', bceMarker: '_', nn: 52),
-  // Asteroids AD
-  (prefix: 'seas', bceMarker: '_', nn: 50),
-  (prefix: 'seas', bceMarker: '_', nn: 52),
-  // Planets BCE
-  (prefix: 'sepl', bceMarker: 'm', nn: 56),
-  (prefix: 'sepl', bceMarker: 'm', nn: 58),
-  // Moon BCE
-  (prefix: 'semo', bceMarker: 'm', nn: 56),
-  (prefix: 'semo', bceMarker: 'm', nn: 58),
-  // Asteroids BCE
-  (prefix: 'seas', bceMarker: 'm', nn: 56),
-  (prefix: 'seas', bceMarker: 'm', nn: 58),
-];
+/// SE catalog: bundled range is 00–48 (AD) + m06–m54 (BCE). Chunk files
+/// step by 6 (each covers 600 years) in the aloistr/swisseph `ephe/`
+/// directory. Past NN=99 the filename uses 3 digits (`sepl_102.se1`).
+/// We list the next four AD + BCE chunks per family.
+const _seExtensionAdStarts = <int>[54, 60, 66, 72];
+const _seExtensionBceStarts = <int>[60, 66, 72, 78];
+const _seFamilyPrefixes = <String>['sepl', 'semo', 'seas'];
 
 List<CatalogEntry> _buildSeCatalog() {
   final out = <CatalogEntry>[];
-  for (final chunk in _seExtensionChunks) {
-    final nnStr = chunk.nn.toString().padLeft(2, '0');
+  final chunks = <({String prefix, String bceMarker, int nn})>[
+    for (final p in _seFamilyPrefixes)
+      for (final nn in _seExtensionAdStarts)
+        (prefix: p, bceMarker: '_', nn: nn),
+    for (final p in _seFamilyPrefixes)
+      for (final nn in _seExtensionBceStarts)
+        (prefix: p, bceMarker: 'm', nn: nn),
+  ];
+  for (final chunk in chunks) {
+    // Aloistr filenames use 2 digits below 100, 3 digits above.
+    final nnStr = chunk.nn < 100
+        ? chunk.nn.toString().padLeft(2, '0')
+        : chunk.nn.toString();
     final filename = '${chunk.prefix}${chunk.bceMarker}$nnStr.se1';
     final family = switch (chunk.prefix) {
       'sepl' => BodyFamily.planets,

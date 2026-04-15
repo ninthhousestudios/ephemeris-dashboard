@@ -10,6 +10,8 @@ class EpheFileRow extends StatelessWidget {
     required this.onDownload,
     required this.onDropIn,
     required this.onCancel,
+    this.selected = false,
+    this.onSelectedChanged,
   });
 
   final EpheFile file;
@@ -17,6 +19,8 @@ class EpheFileRow extends StatelessWidget {
   final VoidCallback? onDownload;
   final VoidCallback? onDropIn;
   final VoidCallback? onCancel;
+  final bool selected;
+  final ValueChanged<bool?>? onSelectedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +41,16 @@ class EpheFileRow extends StatelessWidget {
         spacing: 12,
         runSpacing: 4,
         children: [
+          if (onSelectedChanged != null)
+            SizedBox(
+              width: 28,
+              child: Checkbox(
+                value: selected,
+                onChanged: onSelectedChanged,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
           Text(file.filename, style: theme.textTheme.bodyMedium),
           Text(range, style: theme.textTheme.bodySmall),
           Text(sizeMB, style: theme.textTheme.bodySmall),
@@ -94,6 +108,21 @@ class EpheFileRow extends StatelessWidget {
             label: const Text('Cancel'),
           ),
         ];
+      case EpheFileStatus.partial:
+        return [
+          if (onDownload != null)
+            FilledButton.tonalIcon(
+              onPressed: onDownload,
+              icon: const Icon(Icons.play_arrow, size: 16),
+              label: const Text('Resume'),
+            ),
+          if (onDelete != null)
+            TextButton.icon(
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline, size: 16),
+              label: const Text('Delete'),
+            ),
+        ];
     }
   }
 }
@@ -123,6 +152,11 @@ class _StatusChip extends StatelessWidget {
         ),
       EpheFileStatus.downloading => (
           'Downloading',
+          theme.colorScheme.tertiaryContainer,
+          theme.colorScheme.onTertiaryContainer,
+        ),
+      EpheFileStatus.partial => (
+          'Partial',
           theme.colorScheme.tertiaryContainer,
           theme.colorScheme.onTertiaryContainer,
         ),

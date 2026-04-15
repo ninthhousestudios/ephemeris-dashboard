@@ -34,6 +34,28 @@ Future<EphemerisScan> scanEphemerisDirectory(SwissEph swe, String dir) async {
     if (entity is! File) continue;
     final name = entity.uri.pathSegments.last;
     final size = entity.lengthSync();
+
+    // Partial download left by an interrupted transfer.
+    if (name.endsWith('.se1.part') || name.endsWith('.eph.part')) {
+      final baseName = name.substring(0, name.length - '.part'.length);
+      final parsed = parseEpheFilename(baseName, size) ??
+          EpheFile(
+            filename: baseName,
+            family: BodyFamily.unknown,
+            startJd: 0,
+            endJd: 0,
+            startYear: 0,
+            endYear: 0,
+            sizeBytes: size,
+            status: EpheFileStatus.partial,
+          );
+      entries.add(parsed.copyWith(
+        sizeBytes: size,
+        status: EpheFileStatus.partial,
+      ));
+      continue;
+    }
+
     if (!_looksLikeEpheFile(name)) continue;
 
     final parsed = parseEpheFilename(name, size);
@@ -50,9 +72,21 @@ Future<EphemerisScan> scanEphemerisDirectory(SwissEph swe, String dir) async {
   return EphemerisScan(entries, DateTime.now(), dir);
 }
 
-/// Fill [ephemerisNumber] and verify on-disk range matches filename range.
-/// Returns a [EpheFile] with status set to either installed or corrupt.
+/// Probe the file with SE and enrich the [EpheFile] from
+/// `getCurrentFileData` when we can confirm the probe actually opened
+/// THIS file. If the probe doesn't come back with matching metadata we
+/// don't flag corrupt — SE's file loading is keyed on the probe date, so
+/// BCE files or out-of-asteroid-range dates can legitimately not resolve
+/// to the file we intended to check. Corrupt is reserved for files that
+/// are unreadable on disk (zero/tiny size).
 EpheFile _probeSeFile(SwissEph swe, String dir, EpheFile parsed) {
+  // Cheap first check: any SE .se1 file smaller than this is structurally
+  // broken. Real bundled files are hundreds of KB to tens of MB.
+  const minPlausibleBytes = 16 * 1024;
+  if (parsed.sizeBytes > 0 && parsed.sizeBytes < minPlausibleBytes) {
+    return parsed.copyWith(status: EpheFileStatus.corrupt);
+  }
+
   // fileNum: 0 = planets, 1 = moon, 2 = main asteroids.
   final fileNum = switch (parsed.family) {
     BodyFamily.planets => 0,
@@ -68,28 +102,35 @@ EpheFile _probeSeFile(SwissEph swe, String dir, EpheFile parsed) {
 
   swe.setEphePath(dir);
   try {
-    final probeJd = parsed.startJd + 100.0;
-    swe.calcUt(probeJd, body, 2); // SEFLG_SWIEPH
+    // Probe near the middle of the file's predicted range so the SE file
+    // loader picks THIS file rather than a neighbouring chunk.
+    final mid = parsed.startJd + (parsed.endJd - parsed.startJd) / 2;
+    swe.calcUt(mid, body, 2); // SEFLG_SWIEPH
   } catch (_) {
-    // Non-fatal — probe may throw for benign reasons (edge-of-range, flag
-    // fallback message). Fall through to getCurrentFileData; trust that.
+    // Probe failures are NOT evidence of corruption — they happen for
+    // benign reasons (asteroid body outside SE range, flag fallback
+    // notices, BCE edge dates). Trust filename metadata below.
   }
   try {
     final fd = swe.getCurrentFileData(fileNum);
-    // A file is really loaded only if getCurrentFileData returns a path
-    // AND a plausible start date. Trust file metadata over the filename.
-    if (fd.path == null || fd.startDate <= 0) {
-      return parsed.copyWith(status: EpheFileStatus.corrupt);
+    final loadedPath = fd.path;
+    final matchesThisFile =
+        loadedPath != null && loadedPath.endsWith(parsed.filename);
+    if (matchesThisFile && fd.startDate > 0) {
+      return parsed.copyWith(
+        startJd: fd.startDate,
+        endJd: fd.endDate,
+        ephemerisNumber: fd.ephemerisNumber,
+        status: EpheFileStatus.installed,
+      );
     }
-    return parsed.copyWith(
-      startJd: fd.startDate,
-      endJd: fd.endDate,
-      ephemerisNumber: fd.ephemerisNumber,
-      status: EpheFileStatus.installed,
-    );
   } catch (_) {
-    return parsed.copyWith(status: EpheFileStatus.corrupt);
+    // ignore — fall through to trust-the-filename branch
   }
+  // Probe didn't conclusively open THIS file, but the file exists and is
+  // large enough to be real. Treat as installed with filename-derived
+  // metadata; the resolver will probe again at actual calculation time.
+  return parsed.copyWith(status: EpheFileStatus.installed);
 }
 
 bool _looksLikeEpheFile(String name) {

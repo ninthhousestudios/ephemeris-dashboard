@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart' show CancelToken;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -26,6 +27,20 @@ class _EphemerisManagerScreenState
     extends ConsumerState<EphemerisManagerScreen> {
   final Map<String, double> _progress = {};
   final Map<String, EpheFileStatus> _liveStatus = {};
+  final Set<String> _selected = {};
+  final Map<String, CancelToken> _cancels = {};
+
+  @override
+  void dispose() {
+    // If the user closes the tab (or app) mid-download, explicitly cancel
+    // every in-flight request. Otherwise dio keeps writing bytes into the
+    // .part file in the background and our progress state is orphaned.
+    for (final token in _cancels.values) {
+      if (!token.isCancelled) token.cancel('manager screen disposed');
+    }
+    _cancels.clear();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,16 +64,99 @@ class _EphemerisManagerScreenState
     return scanAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Scan failed: $e')),
-      data: (scan) => ListView(
-        children: [
-          _buildDirectoryHeader(settings, resolved ?? ''),
-          const Divider(height: 1),
-          _sectionHeader('Swiss Ephemeris'),
-          ..._buildSeRows(scan),
-          const Divider(height: 1),
-          _sectionHeader('JPL'),
-          ..._buildJplRows(scan),
-        ],
+      data: (scan) {
+        final allFiles = [..._buildAllFiles(scan)];
+        // Drop stale selection IDs (files that no longer exist in the view).
+        _selected.retainAll(allFiles.map((f) => f.filename).toSet());
+        return Column(
+          children: [
+            if (_selected.isNotEmpty) _buildSelectionToolbar(allFiles),
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildDirectoryHeader(settings, resolved ?? ''),
+                  const Divider(height: 1),
+                  _sectionHeader('Swiss Ephemeris'),
+                  ..._buildSeRows(scan),
+                  const Divider(height: 1),
+                  _sectionHeader('JPL'),
+                  ..._buildJplRows(scan),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Iterable<EpheFile> _buildAllFiles(EphemerisScan scan) sync* {
+    final installedByName = {for (final f in scan.files) f.filename: f};
+    yield* scan.files.where((f) =>
+        f.family == BodyFamily.planets ||
+        f.family == BodyFamily.moon ||
+        f.family == BodyFamily.mainAsteroids ||
+        f.family == BodyFamily.fixedStars ||
+        f.family == BodyFamily.jpl);
+    yield* seCatalog
+        .where((c) => !installedByName.containsKey(c.filename))
+        .map(_catalogToMissing);
+    yield* jplCatalog
+        .where((c) => !installedByName.containsKey(c.filename))
+        .map(_catalogToMissing);
+  }
+
+  Widget _buildSelectionToolbar(List<EpheFile> allFiles) {
+    final selectedFiles =
+        allFiles.where((f) => _selected.contains(f.filename)).toList();
+    EpheFileStatus statusOf(EpheFile f) =>
+        _liveStatus[f.filename] ?? f.status;
+    final deletable = selectedFiles
+        .where((f) =>
+            statusOf(f) == EpheFileStatus.installed ||
+            statusOf(f) == EpheFileStatus.corrupt ||
+            statusOf(f) == EpheFileStatus.partial)
+        .toList();
+    final downloadable = selectedFiles
+        .where((f) =>
+            (statusOf(f) == EpheFileStatus.missing ||
+                statusOf(f) == EpheFileStatus.partial) &&
+            catalogEntryFor(f.filename) != null)
+        .toList();
+
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: 'Clear selection',
+              icon: const Icon(Icons.close),
+              onPressed: () => setState(_selected.clear),
+            ),
+            Text('${_selected.length} selected'),
+            const Spacer(),
+            if (downloadable.isNotEmpty)
+              FilledButton.tonalIcon(
+                onPressed: () => _handleBulkDownload(downloadable),
+                icon: const Icon(Icons.download, size: 16),
+                label: Text('Download ${downloadable.length}'),
+              ),
+            const SizedBox(width: 8),
+            if (deletable.isNotEmpty)
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                  foregroundColor:
+                      Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                onPressed: () => _handleBulkDelete(deletable),
+                icon: const Icon(Icons.delete_outline, size: 16),
+                label: Text('Delete ${deletable.length}'),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -134,13 +232,15 @@ class _EphemerisManagerScreenState
 
   List<Widget> _buildSeRows(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
-    // Installed SE files first (all of scan minus JPL/unknown), then catalog-only missing.
+    // Known SE families + partials whose base name is also an SE file.
     final installedSe = scan.files
         .where((f) =>
             f.family == BodyFamily.planets ||
             f.family == BodyFamily.moon ||
             f.family == BodyFamily.mainAsteroids ||
-            f.family == BodyFamily.fixedStars)
+            f.family == BodyFamily.fixedStars ||
+            (f.status == EpheFileStatus.partial &&
+                f.filename.endsWith('.se1')))
         .toList()
       ..sort((a, b) => a.filename.compareTo(b.filename));
 
@@ -157,9 +257,13 @@ class _EphemerisManagerScreenState
 
   List<Widget> _buildJplRows(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
-    final installed =
-        scan.files.where((f) => f.family == BodyFamily.jpl).toList()
-          ..sort((a, b) => a.filename.compareTo(b.filename));
+    final installed = scan.files
+        .where((f) =>
+            f.family == BodyFamily.jpl ||
+            (f.status == EpheFileStatus.partial &&
+                f.filename.endsWith('.eph')))
+        .toList()
+      ..sort((a, b) => a.filename.compareTo(b.filename));
     final missing = jplCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing)
@@ -188,20 +292,91 @@ class _EphemerisManagerScreenState
       status: liveStatus,
       downloadProgress: liveProgress,
     );
+    final selectable = effective.status != EpheFileStatus.downloading;
+    final isPartial = effective.status == EpheFileStatus.partial;
     return EpheFileRow(
       file: effective,
       onDelete: effective.status == EpheFileStatus.installed ||
-              effective.status == EpheFileStatus.corrupt
+              effective.status == EpheFileStatus.corrupt ||
+              isPartial
           ? () => _handleDelete(effective)
           : null,
-      onDownload: effective.status == EpheFileStatus.missing
+      onDownload: effective.status == EpheFileStatus.missing || isPartial
           ? () => _handleDownload(effective)
           : null,
       onDropIn: effective.status == EpheFileStatus.missing
           ? () => _handleDropIn(effective)
           : null,
-      onCancel: null, // Phase 1: cancel UX deferred.
+      onCancel: effective.status == EpheFileStatus.downloading
+          ? () => _handleCancel(effective)
+          : null,
+      selected: _selected.contains(f.filename),
+      onSelectedChanged: selectable
+          ? (v) => setState(() {
+                if (v == true) {
+                  _selected.add(f.filename);
+                } else {
+                  _selected.remove(f.filename);
+                }
+              })
+          : null,
     );
+  }
+
+  Future<void> _handleBulkDelete(List<EpheFile> files) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete ${files.length} file(s)?'),
+        content: Text(
+          'This will remove these files from disk:\n\n'
+          '${files.map((f) => '• ${f.filename}').join('\n')}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final dir = ref.read(resolvedEphePathProvider);
+    if (dir == null) return;
+    final errors = <String>[];
+    for (final f in files) {
+      try {
+        _deleteFileAndPart(dir, f.filename);
+        _selected.remove(f.filename);
+      } catch (e) {
+        errors.add('${f.filename}: $e');
+      }
+    }
+    if (!mounted) return;
+    setState(() {});
+    ref.invalidate(ephemerisScanProvider);
+    if (errors.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Some deletes failed: ${errors.join('; ')}')),
+      );
+    }
+  }
+
+  Future<void> _handleBulkDownload(List<EpheFile> files) async {
+    final prefs = ref.read(sharedPrefsProvider);
+    final accepted = await maybeShowLicenseNotice(context, prefs);
+    if (!accepted || !mounted) return;
+    // Serialize to keep bandwidth predictable and UI tidy.
+    for (final f in files) {
+      if (!mounted) return;
+      await _runDownload(f);
+      _selected.remove(f.filename);
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _handleDelete(EpheFile f) async {
@@ -229,7 +404,7 @@ class _EphemerisManagerScreenState
     final dir = ref.read(resolvedEphePathProvider);
     if (dir == null) return;
     try {
-      File('$dir/${f.filename}').deleteSync();
+      _deleteFileAndPart(dir, f.filename);
       ref.invalidate(ephemerisScanProvider);
     } catch (e) {
       if (!mounted) return;
@@ -239,26 +414,41 @@ class _EphemerisManagerScreenState
     }
   }
 
+  /// Remove both the final file and any matching .part alongside it.
+  /// Safe on absent files.
+  void _deleteFileAndPart(String dir, String filename) {
+    final full = File('$dir/$filename');
+    if (full.existsSync()) full.deleteSync();
+    final part = File('$dir/$filename.part');
+    if (part.existsSync()) part.deleteSync();
+  }
+
   Future<void> _handleDownload(EpheFile f) async {
     final prefs = ref.read(sharedPrefsProvider);
     final accepted = await maybeShowLicenseNotice(context, prefs);
     if (!accepted || !mounted) return;
+    await _runDownload(f);
+  }
 
+  Future<void> _runDownload(EpheFile f) async {
     final entry = catalogEntryFor(f.filename);
     if (entry == null) return;
     final dir = ref.read(resolvedEphePathProvider);
     if (dir == null) return;
 
     final downloader = ref.read(downloaderProvider);
+    final cancel = CancelToken();
     setState(() {
       _liveStatus[f.filename] = EpheFileStatus.downloading;
       _progress[f.filename] = 0;
+      _cancels[f.filename] = cancel;
     });
 
     try {
       await for (final p in downloader.download(
         entry: entry,
         destDir: dir,
+        cancel: cancel,
         confirmLargeDownload: (size) => _confirmLarge(entry.filename, size),
       )) {
         if (!mounted) return;
@@ -268,6 +458,7 @@ class _EphemerisManagerScreenState
       setState(() {
         _liveStatus.remove(f.filename);
         _progress.remove(f.filename);
+        _cancels.remove(f.filename);
       });
       ref.invalidate(ephemerisScanProvider);
     } on DownloadFailed catch (e) {
@@ -275,17 +466,57 @@ class _EphemerisManagerScreenState
       setState(() {
         _liveStatus[f.filename] = EpheFileStatus.missing;
         _progress.remove(f.filename);
+        _cancels.remove(f.filename);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
+      // User-initiated cancel — don't blast a scary "failed" snackbar.
+      if (cancel.isCancelled) return;
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         SnackBar(
-          content: Text('Download failed: ${e.message}'),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 6),
+          showCloseIcon: true,
+          content: Text(
+            'Download failed (${f.filename}): ${_shortError(e.message)}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
           action: SnackBarAction(
             label: 'Retry',
-            onPressed: () => _handleDownload(f),
+            onPressed: () => _runDownload(f),
           ),
         ),
       );
     }
+  }
+
+  Future<void> _handleCancel(EpheFile f) async {
+    final token = _cancels[f.filename];
+    if (token != null && !token.isCancelled) {
+      token.cancel('user-cancelled');
+    }
+    // Delete the stale .part so the next retry starts fresh rather than
+    // resuming a possibly-bogus partial (e.g. 404 HTML written to disk).
+    final dir = ref.read(resolvedEphePathProvider);
+    if (dir != null) {
+      final part = File('$dir/${f.filename}.part');
+      if (part.existsSync()) {
+        try {
+          part.deleteSync();
+        } catch (_) {/* best-effort */}
+      }
+    }
+  }
+
+  /// Dio tacks a multi-paragraph MDN blurb onto HTTP-status errors.
+  /// Keep just the first line so the snackbar stays dismissible.
+  String _shortError(String raw) {
+    final firstLine = raw.split('\n').first.trim();
+    const maxLen = 160;
+    return firstLine.length > maxLen
+        ? '${firstLine.substring(0, maxLen)}…'
+        : firstLine;
   }
 
   Future<bool> _confirmLarge(String filename, int size) async {

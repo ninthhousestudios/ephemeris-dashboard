@@ -23,6 +23,9 @@ enum EpheFileStatus {
   missing,
   corrupt,
   downloading,
+  // Orphan .part file on disk — a prior download was interrupted. The
+  // manager offers Resume (HTTP Range) or Delete.
+  partial,
 }
 
 class EpheFile {
