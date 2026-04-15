@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'catalog.dart';
+import 'types.dart';
 import 'validation.dart';
 
 class DownloadProgress {
@@ -305,7 +306,12 @@ class EphemerisDownloader {
         entry.filename.endsWith('.eph')) {
       // No hash in the catalog — at least sanity-check that we didn't
       // write an HTML error page or a tiny truncated blob to disk.
-      final rej = validateEpheFile(partFileHandle);
+      // Numbered-asteroid short files on scryr.io can legitimately be
+      // ~14 KB for faint/short-arc bodies, so drop the size floor for
+      // that family — the HTML-page sniff still rejects error bodies.
+      final minBytes =
+          entry.family == BodyFamily.numberedAsteroid ? 0 : 16 * 1024;
+      final rej = validateEpheFile(partFileHandle, minBytes: minBytes);
       if (rej != null) {
         partFileHandle.deleteSync();
         throw DownloadFailed(

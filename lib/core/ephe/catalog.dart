@@ -136,22 +136,27 @@ final seCatalog = _buildSeCatalog();
 String asteroidSubdirFor(int mpcNumber) => 'ast${mpcNumber ~/ 1000}';
 
 /// Canonical short-file filename for an MPC asteroid number.
-/// Aloistr pads to 6 digits (e.g. `se000433s.se1` for Eros).
+/// Below 100000: `seNNNNNs.se1` (5 digits, 'se' prefix).
+/// At/above 100000: `sNNNNNNs.se1` (6 digits, 's' prefix — note one less 'e').
 String asteroidFilenameFor(int mpcNumber) {
-  return 'se${mpcNumber.toString().padLeft(6, '0')}s.se1';
+  if (mpcNumber < 100000) {
+    return 'se${mpcNumber.toString().padLeft(5, '0')}s.se1';
+  }
+  return 's${mpcNumber.toString().padLeft(6, '0')}s.se1';
 }
 
-/// Build a catalog entry for an arbitrary MPC asteroid number, resolving
-/// the aloistr URL + astX subdir. Returns null for non-positive inputs.
+/// Build a catalog entry for an arbitrary MPC asteroid number.
+/// Returns null for non-positive inputs or MPC 1–4, which have no
+/// standalone files on the scryr.io host (they live in bundled
+/// `seas_*.se1` main-asteroid chunks only).
 CatalogEntry? asteroidCatalogEntryFor(int mpcNumber, {String? displayName}) {
-  if (mpcNumber <= 0) return null;
+  if (mpcNumber < 5) return null;
   final filename = asteroidFilenameFor(mpcNumber);
   final subdir = asteroidSubdirFor(mpcNumber);
   return CatalogEntry(
     filename: filename,
     family: BodyFamily.numberedAsteroid,
-    url:
-        'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/$subdir/$filename',
+    url: 'https://ephe.scryr.io/ephe/$subdir/$filename',
     subdir: subdir,
     mpcNumber: mpcNumber,
     displayName:
@@ -163,10 +168,6 @@ CatalogEntry? asteroidCatalogEntryFor(int mpcNumber, {String? displayName}) {
 /// a handful of well-known outer bodies. Users can still add any MPC
 /// number on the fly via `asteroidCatalogEntryFor`.
 const _asteroidSeed = <(int, String)>[
-  (1, 'Ceres'),
-  (2, 'Pallas'),
-  (3, 'Juno'),
-  (4, 'Vesta'),
   (5, 'Astraea'),
   (6, 'Hebe'),
   (7, 'Iris'),
@@ -202,6 +203,14 @@ List<CatalogEntry> get fullCatalog =>
 CatalogEntry? catalogEntryFor(String filename) {
   for (final e in fullCatalog) {
     if (e.filename == filename) return e;
+  }
+  // Fall back to synthesizing an entry for any numbered-asteroid filename
+  // so bulk/range downloads don't need pre-seeded entries. Two schemes:
+  // `seNNNNN[s].se1` (MPC < 100000) and `sNNNNNN[s].se1` (MPC >= 100000).
+  final m = RegExp(r'^se?(\d+)s?\.se1$').firstMatch(filename);
+  if (m != null) {
+    final mpc = int.parse(m.group(1)!);
+    return asteroidCatalogEntryFor(mpc);
   }
   return null;
 }

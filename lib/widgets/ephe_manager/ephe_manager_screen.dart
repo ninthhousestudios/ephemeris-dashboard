@@ -73,20 +73,29 @@ class _EphemerisManagerScreenState
           children: [
             if (_selected.isNotEmpty) _buildSelectionToolbar(allFiles),
             Expanded(
-              child: ListView(
-                children: [
-                  _buildDirectoryHeader(settings, resolved ?? ''),
-                  const Divider(height: 1),
-                  _sectionHeader('Swiss Ephemeris'),
-                  ..._buildSeRows(scan),
-                  const Divider(height: 1),
-                  _sectionHeader('JPL'),
-                  ..._buildJplRows(scan),
-                  const Divider(height: 1),
-                  _sectionHeader('Asteroids'),
-                  ..._buildAsteroidRows(scan),
-                ],
-              ),
+              child: Builder(builder: (_) {
+                final seFiles = _collectSeFiles(scan);
+                final jplFiles = _collectJplFiles(scan);
+                final astFiles = _collectAsteroidFiles(scan);
+                return ListView(
+                  children: [
+                    _buildDirectoryHeader(settings, resolved ?? ''),
+                    const Divider(height: 1),
+                    _sectionHeader('Swiss Ephemeris', seFiles),
+                    for (final f in seFiles) _rowFor(f),
+                    const Divider(height: 1),
+                    _sectionHeader('JPL', jplFiles),
+                    for (final f in jplFiles) _rowFor(f),
+                    const Divider(height: 1),
+                    _sectionHeader(
+                      'Asteroids',
+                      astFiles,
+                      extraActions: _asteroidExtraActions(),
+                    ),
+                    for (final f in astFiles) _rowFor(f),
+                  ],
+                );
+              }),
             ),
           ],
         );
@@ -237,20 +246,81 @@ class _EphemerisManagerScreenState
     );
   }
 
-  Widget _sectionHeader(String label) {
+  Widget _sectionHeader(
+    String label,
+    List<EpheFile> files, {
+    List<Widget> extraActions = const [],
+  }) {
+    EpheFileStatus statusOf(EpheFile f) =>
+        _liveStatus[f.filename] ?? f.status;
+    final selectable = files
+        .where((f) => statusOf(f) != EpheFileStatus.downloading)
+        .toList();
+    final missing = selectable
+        .where((f) =>
+            statusOf(f) == EpheFileStatus.missing ||
+            statusOf(f) == EpheFileStatus.partial)
+        .toList();
+    final hasSelectableMissing = missing.isNotEmpty;
+    final allSelectedHere = selectable.isNotEmpty &&
+        selectable.every((f) => _selected.contains(f.filename));
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.titleMedium,
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          TextButton.icon(
+            onPressed: selectable.isEmpty
+                ? null
+                : () => setState(() {
+                      if (allSelectedHere) {
+                        for (final f in selectable) {
+                          _selected.remove(f.filename);
+                        }
+                      } else {
+                        for (final f in selectable) {
+                          _selected.add(f.filename);
+                        }
+                      }
+                    }),
+            icon: Icon(
+              allSelectedHere
+                  ? Icons.check_box_outlined
+                  : Icons.check_box_outline_blank,
+              size: 16,
+            ),
+            label: Text(allSelectedHere ? 'Deselect all' : 'Select all'),
+          ),
+          TextButton.icon(
+            onPressed: !hasSelectableMissing
+                ? null
+                : () => setState(() {
+                      for (final f in missing) {
+                        _selected.add(f.filename);
+                      }
+                    }),
+            icon: const Icon(Icons.download_for_offline_outlined, size: 16),
+            label: const Text('Select missing'),
+          ),
+          ...extraActions,
+        ],
       ),
     );
   }
 
-  List<Widget> _buildSeRows(EphemerisScan scan) {
+  List<EpheFile> _collectSeFiles(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
-    // Known SE families + partials whose base name is also an SE file.
-    final installedSe = scan.files
+    final installed = scan.files
         .where((f) =>
             f.family == BodyFamily.planets ||
             f.family == BodyFamily.moon ||
@@ -260,19 +330,14 @@ class _EphemerisManagerScreenState
                 f.filename.endsWith('.se1')))
         .toList()
       ..sort((a, b) => a.filename.compareTo(b.filename));
-
-    final missingSe = seCatalog
+    final missing = seCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing)
         .toList();
-
-    return [
-      for (final f in installedSe) _rowFor(f),
-      for (final f in missingSe) _rowFor(f),
-    ];
+    return [...installed, ...missing];
   }
 
-  List<Widget> _buildJplRows(EphemerisScan scan) {
+  List<EpheFile> _collectJplFiles(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
     final installed = scan.files
         .where((f) =>
@@ -285,10 +350,7 @@ class _EphemerisManagerScreenState
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing)
         .toList();
-    return [
-      for (final f in installed) _rowFor(f),
-      for (final f in missing) _rowFor(f),
-    ];
+    return [...installed, ...missing];
   }
 
   EpheFile _catalogToMissing(CatalogEntry c) => EpheFile(
@@ -304,15 +366,13 @@ class _EphemerisManagerScreenState
         status: EpheFileStatus.missing,
       );
 
-  List<Widget> _buildAsteroidRows(EphemerisScan scan) {
+  List<EpheFile> _collectAsteroidFiles(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
     final installed = scan.files
         .where((f) =>
             f.family == BodyFamily.numberedAsteroid ||
             (f.status == EpheFileStatus.partial &&
-                f.filename.startsWith('se') &&
-                f.filename.endsWith('.se1') &&
-                RegExp(r'^se\d').hasMatch(f.filename)))
+                RegExp(r'^se?\d+s?\.se1$').hasMatch(f.filename)))
         .toList()
       ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
     final missing = asteroidCatalog
@@ -320,10 +380,144 @@ class _EphemerisManagerScreenState
         .map(_catalogToMissing)
         .toList()
       ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
+    return [...installed, ...missing];
+  }
+
+  List<Widget> _asteroidExtraActions() {
     return [
-      for (final f in installed) _rowFor(f),
-      for (final f in missing) _rowFor(f),
+      const SizedBox(width: 8, child: VerticalDivider(width: 8)),
+      TextButton.icon(
+        onPressed: _promptAsteroidRangeDownload,
+        icon: const Icon(Icons.download, size: 16),
+        label: const Text('Download range…'),
+      ),
+      for (final r in const [
+        (1, 999, '1–999'),
+        (1000, 1999, '1000–1999'),
+        (2000, 2999, '2000–2999'),
+        (10000, 10999, '10000–10999'),
+      ])
+        ActionChip(
+          label: Text(r.$3),
+          onPressed: () => _downloadAsteroidRange(r.$1, r.$2),
+        ),
     ];
+  }
+
+  Future<void> _promptAsteroidRangeDownload() async {
+    final fromCtrl = TextEditingController();
+    final toCtrl = TextEditingController();
+    final result = await showDialog<(int, int)>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Download asteroid range'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Downloads every numbered asteroid in [from, to] (inclusive). '
+              'Skips ones already installed. Large ranges may be slow.',
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: fromCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'From'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: toCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'To'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final from = int.tryParse(fromCtrl.text.trim());
+              final to = int.tryParse(toCtrl.text.trim());
+              if (from == null || to == null || from < 1 || to < from) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Enter a valid range (from ≤ to, ≥ 1).')),
+                );
+                return;
+              }
+              Navigator.of(ctx).pop((from, to));
+            },
+            child: const Text('Queue'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    await _downloadAsteroidRange(result.$1, result.$2);
+  }
+
+  Future<void> _downloadAsteroidRange(int from, int to) async {
+    const hardCap = 2000;
+    var effectiveTo = to;
+    if (to - from + 1 > hardCap) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Large range'),
+          content: Text(
+            'You asked for ${to - from + 1} asteroids. '
+            'That is a lot of HTTP requests and disk writes. '
+            'Download the first $hardCap only?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Continue'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+      effectiveTo = from + hardCap - 1;
+    }
+
+    final scan = ref.read(ephemerisScanProvider).valueOrNull;
+    final installedByName = scan == null
+        ? <String, EpheFile>{}
+        : {for (final f in scan.files) f.filename: f};
+    final files = <EpheFile>[];
+    for (var mpc = from; mpc <= effectiveTo; mpc++) {
+      final entry = asteroidCatalogEntryFor(mpc);
+      if (entry == null) continue;
+      if (installedByName.containsKey(entry.filename) &&
+          installedByName[entry.filename]!.status == EpheFileStatus.installed) {
+        continue;
+      }
+      files.add(_catalogToMissing(entry));
+    }
+    if (files.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nothing to download in that range.')),
+      );
+      return;
+    }
+    await _handleBulkDownload(files);
   }
 
   Widget _rowFor(EpheFile f) {
@@ -600,7 +794,11 @@ class _EphemerisManagerScreenState
     if (dir == null) return;
     // Sniff the source before copying so we don't seed the managed dir
     // with an HTML error page or a truncated file a user picked by mistake.
-    final rej = validateEpheFile(File(src));
+    // Numbered-asteroid shorts can be ~14 KB, so skip the size floor for
+    // that family — HTML sniff still runs.
+    final minBytes =
+        f.family == BodyFamily.numberedAsteroid ? 0 : 16 * 1024;
+    final rej = validateEpheFile(File(src), minBytes: minBytes);
     if (rej != null) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

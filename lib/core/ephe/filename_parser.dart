@@ -44,11 +44,12 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
     );
   }
 
-  // Per-asteroid files: seNNNNNs.se1 or seNNNNN.se1. NNNNN is the MPC
-  // number (at least 1 digit, typically 5-6). Trailing 's' marks the
-  // "short" file. We deliberately anchor on the digit run so we don't
-  // collide with sepl/semo/seas (those start with a letter, not a digit).
-  final astMatch = RegExp(r'^se(\d+)(s?)\.se1$').firstMatch(filename);
+  // Per-asteroid files. Two host conventions:
+  //   * `seNNNNN[s].se1` — MPC < 100000 ('se' prefix, 5-digit pad)
+  //   * `sNNNNNN[s].se1` — MPC >= 100000 ('s' prefix, 6-digit pad)
+  // Trailing 's' marks the "short" file. Anchor on the digit run so we
+  // don't collide with sepl/semo/seas (letters after 'se', no digits).
+  final astMatch = RegExp(r'^se?(\d+)(s?)\.se1$').firstMatch(filename);
   if (astMatch != null) {
     final mpc = int.parse(astMatch.group(1)!);
     return EpheFile(
