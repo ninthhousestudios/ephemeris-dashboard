@@ -3,6 +3,8 @@
 /// All calculation tabs read from this shared state by default.
 /// C globals (setSidMode, setEphePath, etc.) are NOT set here —
 /// they are set atomically at each calculation point.
+const Object _sentinel = Object();
+
 class ContextBarState {
   const ContextBarState({
     required this.dateTime,
@@ -17,6 +19,7 @@ class ContextBarState {
     this.eqRef = EqRef.trueEquinox,
     this.ayanamsa = -1, // -1 = none; 0+ = SE_SIDM_* constant (only meaningful when sidereal)
     this.epheSource = EpheSource.moshier,
+    this.jplFilename,
   });
 
   final DateTime dateTime;
@@ -35,6 +38,7 @@ class ContextBarState {
   final EqRef eqRef;
   final int ayanamsa; // SE_SIDM_* constant (when sidereal)
   final EpheSource epheSource;
+  final String? jplFilename; // e.g. 'de440.eph'; only used when epheSource == jpl
 
   ContextBarState copyWith({
     DateTime? dateTime,
@@ -49,6 +53,7 @@ class ContextBarState {
     EqRef? eqRef,
     int? ayanamsa,
     EpheSource? epheSource,
+    Object? jplFilename = _sentinel,
   }) {
     return ContextBarState(
       dateTime: dateTime ?? this.dateTime,
@@ -63,6 +68,9 @@ class ContextBarState {
       eqRef: eqRef ?? this.eqRef,
       ayanamsa: ayanamsa ?? this.ayanamsa,
       epheSource: epheSource ?? this.epheSource,
+      jplFilename: identical(jplFilename, _sentinel)
+          ? this.jplFilename
+          : jplFilename as String?,
     );
   }
 
@@ -81,7 +89,8 @@ class ContextBarState {
           zodiacRef == other.zodiacRef &&
           eqRef == other.eqRef &&
           ayanamsa == other.ayanamsa &&
-          epheSource == other.epheSource;
+          epheSource == other.epheSource &&
+          jplFilename == other.jplFilename;
 
   @override
   int get hashCode => Object.hash(
@@ -97,6 +106,7 @@ class ContextBarState {
         eqRef,
         ayanamsa,
         epheSource,
+        jplFilename,
       );
 }
 

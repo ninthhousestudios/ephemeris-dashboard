@@ -18,7 +18,8 @@ enum AppTab {
   differential('Differential', Icons.difference, hasFlags: true, isMore: true),
   planetocentric('Planetocentric', Icons.language, hasFlags: true, isMore: true),
   math('Math', Icons.functions, hasFlags: false, isMore: true),
-  config('About', Icons.info_outline, hasFlags: false, isMore: true);
+  config('About', Icons.info_outline, hasFlags: false, isMore: true),
+  ephemerisManager('Ephemeris Manager', Icons.folder_special, hasFlags: false, isMore: true);
 
   const AppTab(this.label, this.icon, {required this.hasFlags, this.isMore = false});
 

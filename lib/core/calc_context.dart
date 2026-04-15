@@ -22,6 +22,7 @@ class EffectiveContext {
     required this.eqRef,
     required this.ayanamsa,
     required this.epheSource,
+    this.jplFilename,
   });
 
   final double jdUt;
@@ -34,6 +35,7 @@ class EffectiveContext {
   final EqRef eqRef;
   final int ayanamsa; // -1 = tropical/none
   final EpheSource epheSource;
+  final String? jplFilename;
 
   /// Set C globals atomically and run a calculation.
   ///
@@ -56,6 +58,11 @@ class EffectiveContext {
     if (origin == Origin.topocentric) {
       swe.setTopo(longitude, latitude, altitude);
     }
+
+    // JPL file selection (only meaningful when epheSource == jpl).
+    if (epheSource == EpheSource.jpl && jplFilename != null) {
+      swe.setJplFile(jplFilename!);
+    }
   }
 
   @override
@@ -71,12 +78,13 @@ class EffectiveContext {
           zodiacRef == other.zodiacRef &&
           eqRef == other.eqRef &&
           ayanamsa == other.ayanamsa &&
-          epheSource == other.epheSource;
+          epheSource == other.epheSource &&
+          jplFilename == other.jplFilename;
 
   @override
   int get hashCode => Object.hash(
         jdUt, iflag, latitude, longitude, altitude,
-        origin, zodiacRef, eqRef, ayanamsa, epheSource,
+        origin, zodiacRef, eqRef, ayanamsa, epheSource, jplFilename,
       );
 }
 
@@ -96,5 +104,6 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
     eqRef: ctx.eqRef,
     ayanamsa: ctx.ayanamsa,
     epheSource: ctx.epheSource,
+    jplFilename: ctx.jplFilename,
   );
 });

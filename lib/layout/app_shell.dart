@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
 import 'responsive_layout.dart';
 import '../core/persistence.dart';
+import '../core/swe_service.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
 import '../core/context_provider.dart';
@@ -30,6 +31,7 @@ import '../tabs/table_view/table_view_provider.dart';
 import '../tabs/config/config_tab.dart';
 import '../tabs/planetocentric/planetocentric_tab.dart';
 import '../tabs/planetocentric/planetocentric_provider.dart';
+import '../widgets/ephe_manager/ephe_manager_screen.dart';
 
 final selectedTabProvider = StateProvider<AppTab>((ref) {
   final persistence = ref.read(persistenceProvider);
@@ -51,6 +53,8 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    // Apply resolved ephe path to the C instance before any tab provider runs.
+    ref.read(ephePathApplyProvider);
     // Restore persisted context bar state after the widget tree finishes building.
     Future.microtask(() {
       ref.read(contextBarProvider.notifier).restoreFromPersistence();
@@ -406,6 +410,7 @@ class _TabContent extends StatelessWidget {
       AppTab.tableView => const TableViewTab(),
       AppTab.planetocentric => const PlanetoCentricTab(),
       AppTab.config => const ConfigTab(),
+      AppTab.ephemerisManager => const EphemerisManagerScreen(),
     };
   }
 }

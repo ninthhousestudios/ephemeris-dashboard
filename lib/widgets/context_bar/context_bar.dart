@@ -16,6 +16,7 @@ import 'zodiac_ref_selector.dart';
 import 'eq_ref_selector.dart';
 import 'ayanamsa_selector.dart';
 import 'ephe_source_selector.dart';
+import 'file_in_use_indicator.dart';
 
 /// Persistent top bar with shared global calculation context.
 ///
@@ -605,6 +606,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                 tooltip: 'Open chart file',
                 onPressed: _openChart,
               ),
+              const SizedBox(width: 8),
+              const Flexible(child: FileInUseIndicator()),
               const Spacer(),
               _iconBtn(Icons.update, 'Set to now', () {
                 ref.read(contextBarProvider.notifier).setNow();
@@ -743,6 +746,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                           tooltip: 'Open chart file',
                           onPressed: _openChart,
                         ),
+                        const SizedBox(width: 8),
+                        const Flexible(child: FileInUseIndicator()),
                       ],
                     ),
                     SizedBox(height: _rowGap),

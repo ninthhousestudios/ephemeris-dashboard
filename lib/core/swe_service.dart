@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
+import 'ephe/dir_provider.dart';
+
 // Conditional dart:io import — only used when !kIsWeb.
 import 'swe_service_io.dart'
     if (dart.library.js_interop) 'swe_service_stub.dart' as io;
@@ -37,11 +39,27 @@ Future<void> initSweEphePath() async {
 /// Whether .se1 ephemeris files were found at startup.
 bool get hasEpheFiles => _ephePath != null;
 
+/// Bundled ephe path resolved at startup (null on web / when nothing found).
+/// Consumers (e.g. resolvedEphePathProvider) use this as a fallback when
+/// a user-selected dir is empty or missing.
+String? get bundledEphePath => _ephePath;
+
+/// The SwissEph instance — built once, disposed with the ProviderScope.
+/// Does NOT call setEphePath; that is done by ephePathApplyProvider so the
+/// instance survives directory changes.
 final sweProvider = Provider<SwissEph>((ref) {
   final swe = _preloadedSwe ?? io.createDesktopSwissEph();
-  if (_ephePath != null) {
-    swe.setEphePath(_ephePath!);
-  }
   ref.onDispose(() => swe.close());
   return swe;
+});
+
+/// Imperatively applies the currently-resolved ephe path onto the shared
+/// SwissEph instance. Watched by the scanner and any provider that should
+/// invalidate when the user switches directories. Must be `ref.read` once
+/// at app start (see AppShell) so the initial path is set before any calc.
+final ephePathApplyProvider = Provider<String?>((ref) {
+  final swe = ref.watch(sweProvider);
+  final path = ref.watch(resolvedEphePathProvider);
+  if (path != null) swe.setEphePath(path);
+  return path;
 });
