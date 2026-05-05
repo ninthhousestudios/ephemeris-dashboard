@@ -18,7 +18,7 @@ test/goldens/
 migrate_working_dir/
 release/
 xcode-warnings/
-.codex/
+.codex
 .sutra/
 
 # IntelliJ related
