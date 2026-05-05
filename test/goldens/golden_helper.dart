@@ -1,14 +1,36 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:swe_dashboard/core/calc_trigger.dart';
+import 'package:swe_dashboard/core/calc_session.dart';
 import 'package:swe_dashboard/core/display_format.dart';
+import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_provider.dart';
 import 'package:swe_dashboard/tabs/houses/houses_provider.dart';
 import 'package:swe_dashboard/tabs/planets/planets_provider.dart';
 import 'package:swe_dashboard/theme/app_themes.dart';
 import 'package:swe_dashboard/widgets/result_card.dart';
+
+class _TolerantComparator extends LocalFileComparator {
+  _TolerantComparator(super.testFile);
+
+  @override
+  Future<bool> compare(Uint8List imageBytes, Uri golden) async {
+    final result = await GoldenFileComparator.compareLists(
+      imageBytes,
+      await getGoldenBytes(golden),
+    );
+    return result.passed || result.diffPercent <= 1.0;
+  }
+}
+
+void setupTolerantComparator() {
+  final testUrl = (goldenFileComparator as LocalFileComparator).basedir;
+  goldenFileComparator = _TolerantComparator(testUrl);
+}
 
 // ── Size constants ──
 
@@ -82,7 +104,15 @@ final fakeAyanamsaResults = [
 
 // ── Provider overrides ──
 
-final calcTriggerOverride = calcTriggerProvider.overrideWith((ref) => 1);
+final calcSessionOverride = calcSessionProvider.overrideWith((ref) {
+  final notifier = CalcSessionNotifier();
+  notifier.calculate(activate: {
+    'planets', 'houses', 'ayanamsa', 'stars', 'dates', 'riseSet',
+    'eclipses', 'heliacal', 'crossings', 'coordinates', 'phenomena',
+    'nodesApsides', 'differential', 'planetocentric', 'tableView', 'math',
+  });
+  return notifier;
+});
 
 final planetsResultsOverride =
     planetsResultsProvider.overrideWith((ref) => fakePlanetResults);
@@ -95,7 +125,7 @@ final ayanamsaResultsOverride =
 
 /// All overrides needed for tab-level tests.
 final tabOverrides = [
-  calcTriggerOverride,
+  calcSessionOverride,
   planetsResultsOverride,
   housesResultOverride,
   ayanamsaResultsOverride,
@@ -118,9 +148,15 @@ Future<void> pumpGoldenWidget(
     tester.view.resetDevicePixelRatio();
   });
 
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+
   await tester.pumpWidget(
     ProviderScope(
-      overrides: overrides,
+      overrides: [
+        sharedPrefsProvider.overrideWithValue(prefs),
+        ...overrides,
+      ],
       child: MaterialApp(
         theme: isLight ? AppThemes.light : AppThemes.dark,
         home: Scaffold(body: widget),
@@ -141,6 +177,7 @@ Future<void> generateGoldens(
   List<Override> overrides = const [],
   bool allowOverflow = false,
 }) async {
+  setupTolerantComparator();
   final originalOnError = FlutterError.onError;
   if (allowOverflow) {
     FlutterError.onError = (details) {

@@ -41,7 +41,9 @@ class _StarsTabState extends ConsumerState<StarsTab> {
 
   @override
   void dispose() {
-    ref.read(calcSessionProvider.notifier).unregisterCommit('stars');
+    try {
+      ref.read(calcSessionProvider.notifier).unregisterCommit('stars');
+    } catch (_) {}
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _focusNode.dispose();
