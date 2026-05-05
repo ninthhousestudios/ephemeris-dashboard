@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swisseph/swisseph.dart';
 
 import 'context_provider.dart';
 import 'context_state.dart';
@@ -40,38 +39,6 @@ class EffectiveContext {
   final double userAyanValue;
   final EpheSource epheSource;
   final String? jplFilename;
-
-  /// Set C globals atomically and run a calculation.
-  ///
-  /// This is the ONLY place C globals should be set. Context bar
-  /// never touches them — we set them here right before each call
-  /// to avoid race conditions with per-card overrides.
-  T calculate<T>(SwissEph swe, T Function(SwissEph swe, double jd, int flags) fn) {
-    _applyGlobals(swe);
-    return fn(swe, jdUt, iflag);
-  }
-
-  /// Apply C global state (sidereal mode, topo, ephe path).
-  void _applyGlobals(SwissEph swe) {
-    // Sidereal mode
-    if (zodiacRef == ZodiacRef.sidereal && ayanamsa >= 0) {
-      if (ayanamsa == 255) {
-        swe.setSidMode(ayanamsa, t0: userAyanT0, ayanT0: userAyanValue);
-      } else {
-        swe.setSidMode(ayanamsa);
-      }
-    }
-
-    // Topocentric
-    if (origin == Origin.topocentric) {
-      swe.setTopo(longitude, latitude, altitude);
-    }
-
-    // JPL file selection (only meaningful when epheSource == jpl).
-    if (epheSource == EpheSource.jpl && jplFilename != null) {
-      swe.setJplFile(jplFilename!);
-    }
-  }
 
   @override
   bool operator ==(Object other) =>

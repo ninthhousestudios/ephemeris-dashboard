@@ -4,7 +4,6 @@ import 'tab_definitions.dart';
 import 'responsive_layout.dart';
 import '../core/calc_session.dart';
 import '../core/persistence.dart';
-import '../core/swe_service.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
 import '../core/context_provider.dart';
@@ -54,8 +53,6 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    // Apply resolved ephe path to the C instance before any tab provider runs.
-    ref.read(ephePathApplyProvider);
     // Restore persisted context bar state after the widget tree finishes building.
     Future.microtask(() {
       ref.read(contextBarProvider.notifier).restoreFromPersistence();
