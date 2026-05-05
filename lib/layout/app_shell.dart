@@ -53,10 +53,6 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    // Restore persisted context bar state after the widget tree finishes building.
-    Future.microtask(() {
-      ref.read(contextBarProvider.notifier).restoreFromPersistence();
-    });
 
     final initialTab = ref.read(selectedTabProvider);
     final initialIndex = _allTabs.indexOf(initialTab);

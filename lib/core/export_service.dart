@@ -26,12 +26,14 @@ class ExportService {
   /// Tab-separated values: header row + data rows.
   static String toTsv(List<ExportRow> rows) {
     if (rows.isEmpty) return '';
-    // Use the first row's field labels as column headers.
-    final labels = rows.first.fields.map((f) => f.$1).toList();
+    final labels = _allLabels(rows);
     final buf = StringBuffer();
     buf.writeln(['Name', ...labels].join('\t'));
     for (final row in rows) {
-      buf.writeln([row.header, ...row.fields.map((f) => f.$2)].join('\t'));
+      final valuesByLabel = _fieldMap(row);
+      buf.writeln(
+        [row.header, ...labels.map((l) => valuesByLabel[l] ?? '')].join('\t'),
+      );
     }
     return buf.toString().trimRight();
   }
@@ -62,12 +64,15 @@ class ExportService {
   /// RFC 4180 CSV.
   static String toCsv(List<ExportRow> rows) {
     if (rows.isEmpty) return '';
-    final labels = rows.first.fields.map((f) => f.$1).toList();
+    final labels = _allLabels(rows);
     final buf = StringBuffer();
     buf.writeln(['Name', ...labels].map(_csvEscape).join(','));
     for (final row in rows) {
+      final valuesByLabel = _fieldMap(row);
       buf.writeln(
-        [row.header, ...row.fields.map((f) => f.$2)].map(_csvEscape).join(','),
+        [row.header, ...labels.map((l) => valuesByLabel[l] ?? '')]
+            .map(_csvEscape)
+            .join(','),
       );
     }
     return buf.toString().trimRight();
@@ -135,6 +140,22 @@ class ExportService {
       );
       return 'Downloaded $stem.$ext';
     }
+  }
+
+  /// Union of all field labels across rows, preserving first-appearance order.
+  static List<String> _allLabels(List<ExportRow> rows) {
+    final seen = <String>{};
+    final labels = <String>[];
+    for (final row in rows) {
+      for (final (label, _) in row.fields) {
+        if (seen.add(label)) labels.add(label);
+      }
+    }
+    return labels;
+  }
+
+  static Map<String, String> _fieldMap(ExportRow row) {
+    return {for (final (label, value) in row.fields) label: value};
   }
 
   static String _csvEscape(String value) {

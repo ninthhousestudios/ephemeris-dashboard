@@ -19,20 +19,14 @@ final contextBarProvider =
 class ContextBarNotifier extends StateNotifier<ContextBarState> {
   ContextBarNotifier(SwissEph swe, this._persistence)
       : _jdUtils = JdUtils(swe),
-        super(_initialState(swe, _loadPersisted(swe)));
+        super(_initialState(swe)) {
+    restoreFromPersistence();
+  }
 
   final JdUtils _jdUtils;
   final PersistenceService _persistence;
 
-  static Map<String, dynamic> _loadPersisted(SwissEph swe) {
-    // Can't use ref here, so we defer to a static helper.
-    // The persistence instance is passed via the factory above.
-    return {};
-  }
-
-  /// Build initial state from "now" + persisted overrides.
-  static ContextBarState _initialState(
-      SwissEph swe, Map<String, dynamic> overrides) {
+  static ContextBarState _initialState(SwissEph swe) {
     final now = DateTime.now().toUtc();
     final jdUtils = JdUtils(swe);
     final jd = jdUtils.dateTimeToJd(now);

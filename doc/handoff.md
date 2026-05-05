@@ -15,13 +15,6 @@ All 19 golden tests pass. `flutter analyze` clean. App tested manually.
 
 ## Pick up next
 
-### Remove golden PNGs from git tracking
-
-Run: `git rm --cached test/goldens/*.png && git commit -m "remove golden PNGs from git tracking"`
-
-The PNGs are in `.gitignore` already but were force-added historically.
-They stay on disk but stop bloating the repo.
-
 ### Export header bug
 
 `lib/core/export_service.dart` `toTsv` and `toCsv` use
