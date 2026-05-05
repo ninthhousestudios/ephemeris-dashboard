@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/swe_service.dart';
 import '../../widgets/export_button.dart';
@@ -33,7 +34,6 @@ class HeliacalTab extends ConsumerStatefulWidget {
 }
 
 class _HeliacalTabState extends ConsumerState<HeliacalTab> {
-  bool _hasCalculated = false;
   bool _showAtmospheric = false;
   bool _showStarInput = false;
   List<StarCatalogEntry> _starSuggestions = [];
@@ -132,10 +132,12 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     if (v != null) ref.read(provider.notifier).state = v;
   }
 
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('heliacal')));
+
   void _calculate() {
     _syncProviders();
-    ref.read(heliacalCalcTriggerProvider.notifier).state++;
-    setState(() => _hasCalculated = true);
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'heliacal'});
   }
 
   @override

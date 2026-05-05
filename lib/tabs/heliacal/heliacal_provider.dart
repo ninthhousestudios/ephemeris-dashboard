@@ -2,13 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
+import '../../core/calc_session.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
-
-// ── Calc trigger ─────────────────────────────────────────────────────────────
-
-/// Increment to re-run heliacal calculation.
-final heliacalCalcTriggerProvider = StateProvider<int>((ref) => 0);
 
 // ── Input providers ──────────────────────────────────────────────────────────
 
@@ -75,9 +71,8 @@ class HeliacalCalcResult {
 // ── Result provider ──────────────────────────────────────────────────────────
 
 final heliacalResultProvider = Provider<HeliacalCalcResult?>((ref) {
-  // Only run when triggered.
-  final trigger = ref.watch(heliacalCalcTriggerProvider);
-  if (trigger == 0) return null;
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('heliacal')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
   final swe = ref.read(sweProvider);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
 import 'responsive_layout.dart';
+import '../core/calc_session.dart';
 import '../core/persistence.dart';
 import '../core/swe_service.dart';
 import '../theme/theme_provider.dart';
@@ -72,6 +73,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
       if (!_tabController.indexIsChanging) {
         final tab = _allTabs[_tabController.index];
         ref.read(selectedTabProvider.notifier).state = tab;
+        ref.read(activeTabIdProvider.notifier).state = tab.name;
         ref.read(persistenceProvider).saveTab(tab);
       }
     });

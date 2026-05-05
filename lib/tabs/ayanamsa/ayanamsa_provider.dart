@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/ayanamsa_catalog.dart';
 import '../../core/calc_context.dart';
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
@@ -39,15 +40,13 @@ Map<int, String> ayanamsaModesFor({bool includeUser = true}) {
 /// Selected ayanamsas for compare mode.
 final selectedAyanamsasProvider = StateProvider<List<int>>((ref) => [1]); // Lahiri default
 
-/// Calculation trigger.
-final ayanamsaCalcTriggerProvider = StateProvider<int>((ref) => 0);
-
 /// Compare mode toggle.
 final ayanamsaCompareModeProvider = StateProvider<bool>((ref) => false);
 
 /// Ayanamsa calculation results.
 final ayanamsaResultsProvider = Provider<List<AyanamsaCalcResult>>((ref) {
-  ref.watch(ayanamsaCalcTriggerProvider);
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('ayanamsa')) return const [];
 
   final ectx = ref.watch(effectiveContextProvider);
   final ctx = ref.watch(contextBarProvider);

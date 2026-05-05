@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
+import '../../core/calc_session.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 
@@ -35,7 +36,6 @@ final eclipseFilterProvider = StateProvider<int>((ref) => 0);
 /// How many eclipses to search for in a single Calculate press.
 final eclipseCountProvider = StateProvider<int>((ref) => 5);
 
-final eclipseCalcTriggerProvider = StateProvider<int>((ref) => 0);
 
 // ── Result models ────────────────────────────────────────────────────────────
 
@@ -134,8 +134,8 @@ String _jdToDateStr(SwissEph swe, double jd) {
 String _p(int n) => n.toString().padLeft(2, '0');
 
 final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
-  final trigger = ref.watch(eclipseCalcTriggerProvider);
-  if (trigger == 0) return [];
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('eclipses')) return [];
 
   final ectx = ref.watch(effectiveContextProvider);
   final swe = ref.read(sweProvider);

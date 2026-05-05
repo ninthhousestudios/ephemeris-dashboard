@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/flag_definitions.dart';
 import '../../core/flag_provider.dart';
 import 'flag_group.dart';
@@ -90,7 +90,10 @@ class FlagBar extends ConsumerWidget {
             const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: () {
-                ref.read(calcTriggerProvider.notifier).state++;
+                final activeTab = ref.read(activeTabIdProvider);
+                ref.read(calcSessionProvider.notifier).calculate(
+                  activate: {...kContextOnlyTabs, activeTab},
+                );
               },
               icon: const Icon(Icons.calculate, size: 18),
               label: const Text('Calculate'),

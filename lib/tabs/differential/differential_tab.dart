@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/jd_utils.dart';
@@ -42,7 +42,8 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
 
   JdUtils get _jdUtils => JdUtils(ref.read(sweProvider));
 
-  bool get _hasCalculated => ref.watch(calcTriggerProvider) > 0;
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('differential')));
 
   // ── Date/time helpers (same pattern as DatesTab) ──
 

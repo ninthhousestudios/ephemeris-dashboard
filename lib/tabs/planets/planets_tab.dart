@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../widgets/result_card.dart';
 import 'planets_provider.dart';
@@ -45,7 +45,8 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
     }
   }
 
-  bool get _hasCalculated => ref.watch(calcTriggerProvider) > 0;
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('planets')));
 
   @override
   Widget build(BuildContext context) {

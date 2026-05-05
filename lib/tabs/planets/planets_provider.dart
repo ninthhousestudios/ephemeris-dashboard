@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/context_state.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
@@ -115,8 +115,8 @@ final selectedBodiesProvider = StateProvider<List<int>>(
 
 /// Planets calculation results.
 final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
-  // Watch the global trigger so we recalculate on button press.
-  ref.watch(calcTriggerProvider);
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('planets')) return const [];
 
   final ectx = ref.watch(effectiveContextProvider);
   final swe = ref.read(sweProvider);

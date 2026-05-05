@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../core/swe_service.dart';
 import '../../widgets/result_card.dart';
@@ -26,7 +26,8 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     ref.read(planetocentricBodiesProvider.notifier).state = updated;
   }
 
-  bool get _hasCalculated => ref.watch(calcTriggerProvider) > 0;
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('planetocentric')));
 
   @override
   Widget build(BuildContext context) {

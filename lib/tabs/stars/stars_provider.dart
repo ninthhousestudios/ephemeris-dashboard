@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -167,10 +167,10 @@ class StarResult {
   final int returnFlag;
 }
 
-/// Fixed star calculation result. Recalculates when calcTriggerProvider fires.
+/// Fixed star calculation result.
 final starResultProvider = Provider<StarResult?>((ref) {
-  // Watch trigger so we recalculate on button press.
-  ref.watch(calcTriggerProvider);
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('stars')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
   final swe = ref.read(sweProvider);

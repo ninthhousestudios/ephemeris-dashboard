@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -34,7 +34,8 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
     super.dispose();
   }
 
-  bool get _hasCalculated => ref.watch(calcTriggerProvider) > 0;
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('crossings')));
 
   @override
   Widget build(BuildContext context) {

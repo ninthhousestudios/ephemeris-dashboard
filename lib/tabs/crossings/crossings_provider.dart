@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -76,8 +76,8 @@ String _formatDateResult(DateResult r, double utcOffset) {
 }
 
 final crossingResultProvider = Provider<CrossingResult?>((ref) {
-  // Only run after Calculate has been pressed.
-  if (ref.watch(calcTriggerProvider) == 0) return null;
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('crossings')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
   final swe = ref.read(sweProvider);

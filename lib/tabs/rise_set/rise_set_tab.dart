@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -60,7 +61,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     if (attemp != null) {
       ref.read(riseSetAttempProvider.notifier).state = attemp;
     }
-    ref.read(riseSetCalcTriggerProvider.notifier).update((n) => n + 1);
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'riseSet'});
   }
 
   void _toggleModifier(int bit, bool on) {
@@ -77,7 +78,8 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     ref.read(riseSetModifiersProvider.notifier).state = mods;
   }
 
-  bool _hasCalculated() => ref.watch(riseSetCalcTriggerProvider) > 0;
+  bool _hasCalculated() =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('riseSet')));
 
   @override
   Widget build(BuildContext context) {

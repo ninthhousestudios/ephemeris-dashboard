@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -31,9 +31,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         setState(() => _suggestions = []);
       }
     });
-    // Sync the text field to the provider whenever the global Calculate
-    // button fires, so the provider has the current text at calc time.
-    ref.listenManual(calcTriggerProvider, (_, _) {
+    ref.read(calcSessionProvider.notifier).registerCommit('stars', () {
       final term = _searchController.text.trim();
       if (term.isNotEmpty) {
         ref.read(starSearchProvider.notifier).state = term;
@@ -43,6 +41,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
 
   @override
   void dispose() {
+    ref.read(calcSessionProvider.notifier).unregisterCommit('stars');
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _focusNode.dispose();
@@ -71,7 +70,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
       ref.read(starSearchProvider.notifier).state = term;
     }
     setState(() => _suggestions = []);
-    ref.read(calcTriggerProvider.notifier).state++;
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'stars'});
   }
 
   void _selectSuggestion(StarCatalogEntry entry) {
@@ -89,7 +88,8 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     setState(() => _suggestions = []);
   }
 
-  bool get _hasCalculated => ref.watch(calcTriggerProvider) > 0;
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('stars')));
 
   @override
   Widget build(BuildContext context) {

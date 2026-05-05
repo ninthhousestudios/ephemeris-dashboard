@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
@@ -170,7 +171,7 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
       ref.read(coordAltitudeProvider.notifier).state =
           double.tryParse(_altCtrl.text) ?? 0.0;
     }
-    ref.read(coordCalcTriggerProvider.notifier).state++;
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'coordinates'});
     final result = ref.read(coordResultProvider);
     if (result != null) {
       final fmt = ref.read(coordFormatProvider);
@@ -310,7 +311,7 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
     final epsAbs = (double.tryParse(_epsCtrl.text) ?? 23.4393).abs();
     ref.read(coordEpsProvider.notifier).state =
         _eclToEqu ? epsAbs : -epsAbs;
-    ref.read(coordCalcTriggerProvider.notifier).state++;
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'coordinates'});
     final result = ref.read(coordResultProvider);
     if (result != null) {
       final fmt = ref.read(coordFormatProvider);
@@ -434,7 +435,7 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
         double.tryParse(_atpressCtrl.text) ?? 1013.25;
     ref.read(coordAttempProvider.notifier).state =
         double.tryParse(_attempCtrl.text) ?? 15.0;
-    ref.read(coordCalcTriggerProvider.notifier).state++;
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'coordinates'});
     final result = ref.read(coordResultProvider);
     if (result != null) {
       final fmt = ref.read(coordFormatProvider);

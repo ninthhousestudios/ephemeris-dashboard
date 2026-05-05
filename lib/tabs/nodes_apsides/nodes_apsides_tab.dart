@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../widgets/export_button.dart';
@@ -40,7 +40,8 @@ class NodesApsidesTab extends ConsumerStatefulWidget {
 class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
   bool _showExtraBodies = false;
 
-  bool get _hasCalculated => ref.watch(calcTriggerProvider) > 0;
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('nodesApsides')));
 
   @override
   Widget build(BuildContext context) {

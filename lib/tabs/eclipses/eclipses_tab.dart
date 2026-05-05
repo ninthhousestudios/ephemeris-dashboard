@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
+import '../../core/calc_session.dart';
 import '../../core/swe_service.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -16,7 +17,7 @@ class EclipsesTab extends ConsumerStatefulWidget {
 
 class _EclipsesTabState extends ConsumerState<EclipsesTab> {
   void _calculate() {
-    ref.read(eclipseCalcTriggerProvider.notifier).update((n) => n + 1);
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'eclipses'});
   }
 
   @override
@@ -27,7 +28,8 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     final filter = ref.watch(eclipseFilterProvider);
     final count = ref.watch(eclipseCountProvider);
     final results = ref.watch(eclipseResultsProvider);
-    final triggered = ref.watch(eclipseCalcTriggerProvider) > 0;
+    final triggered = ref.watch(
+        calcSessionProvider.select((s) => s.tabHasRun('eclipses')));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

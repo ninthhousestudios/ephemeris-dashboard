@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
+import '../../core/calc_session.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 
@@ -38,8 +39,6 @@ final riseSetAttempProvider = StateProvider<double>((ref) => 15.0);
 /// Does NOT include the event-type bits (rise/set/transit) — those are fixed.
 final riseSetModifiersProvider = StateProvider<int>((ref) => 0);
 
-/// Local calculate trigger for this tab. Increment to recalculate.
-final riseSetCalcTriggerProvider = StateProvider<int>((ref) => 0);
 
 // ── Result model ──────────────────────────────────────────────────────────────
 
@@ -143,10 +142,10 @@ RiseSetDateTime? _toDateTime(SwissEph swe, double jd) {
   }
 }
 
-/// Rise/set/transit result provider. Watches the local trigger.
+/// Rise/set/transit result provider.
 final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
-  final trigger = ref.watch(riseSetCalcTriggerProvider);
-  if (trigger == 0) return null;
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('riseSet')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
   final swe = ref.read(sweProvider);

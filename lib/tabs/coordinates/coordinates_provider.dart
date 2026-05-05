@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
+import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -26,8 +27,6 @@ final coordOpProvider = StateProvider<CoordOp>((ref) => CoordOp.azAlt);
 final coordFormatProvider =
     StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
 
-// Local trigger: tab commits text field values then increments this.
-final coordCalcTriggerProvider = StateProvider<int>((ref) => 0);
 
 // ── Input providers (committed on Calculate) ───────────────────────────────
 
@@ -88,7 +87,8 @@ class CoordErrorResult extends CoordResult {
 // ── Computation provider ───────────────────────────────────────────────────
 
 final coordResultProvider = Provider<CoordResult?>((ref) {
-  ref.watch(coordCalcTriggerProvider);
+  final session = ref.watch(calcSessionProvider);
+  if (!session.tabHasRun('coordinates')) return null;
 
   final op = ref.watch(coordOpProvider);
   final ectx = ref.watch(effectiveContextProvider);

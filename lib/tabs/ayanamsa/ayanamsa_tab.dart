@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../widgets/export_button.dart';
@@ -15,11 +16,11 @@ class AyanamsaTab extends ConsumerStatefulWidget {
 }
 
 class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
-  bool _hasCalculated = false;
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('ayanamsa')));
 
   void _calculate() {
-    ref.read(ayanamsaCalcTriggerProvider.notifier).state++;
-    setState(() => _hasCalculated = true);
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'ayanamsa'});
   }
 
   void _toggleAyanamsa(int sidMode) {

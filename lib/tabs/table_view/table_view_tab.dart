@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../widgets/export_button.dart';
-import '../../core/calc_trigger.dart';
+import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import 'table_view_provider.dart';
 
@@ -45,7 +45,8 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     final stepUnit = ref.watch(tableViewStepUnitProvider);
     final format = ref.watch(tableViewFormatProvider);
     final results = ref.watch(tableViewResultsProvider);
-    final triggered = ref.watch(calcTriggerProvider) > 0;
+    final triggered = ref.watch(
+        calcSessionProvider.select((s) => s.tabHasRun('tableView')));
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );

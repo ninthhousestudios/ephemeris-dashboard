@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
@@ -17,7 +18,6 @@ class DatesTab extends ConsumerStatefulWidget {
 }
 
 class _DatesTabState extends ConsumerState<DatesTab> {
-  bool _hasCalculated = false;
   bool _isCustom = false;
 
   final _dateCtrl = TextEditingController();
@@ -48,13 +48,15 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   static String _fmtTime(DateTime dt) =>
       '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
 
+  bool get _hasCalculated =>
+      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('dates')));
+
   void _calculate() {
     final jd = double.tryParse(_jdCtrl.text) ?? _parseDateTime();
     if (jd != null) {
       ref.read(datesOverrideJdProvider.notifier).state = jd;
     }
-    ref.read(datesCalcTriggerProvider.notifier).state++;
-    setState(() => _hasCalculated = true);
+    ref.read(calcSessionProvider.notifier).calculate(activate: {'dates'});
   }
 
   double? _parseDateTime() {
