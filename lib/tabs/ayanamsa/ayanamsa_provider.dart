@@ -6,8 +6,8 @@ import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
-import '../../core/swe_service.dart';
 
 /// Display format for Ayanamsa tab (promoted from local state).
 final ayanamsaFormatProvider = StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
@@ -50,7 +50,7 @@ final ayanamsaResultsProvider = Provider<List<AyanamsaCalcResult>>((ref) {
 
   final ectx = ref.watch(effectiveContextProvider);
   final ctx = ref.watch(contextBarProvider);
-  final swe = ref.read(sweProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final selected = ref.watch(selectedAyanamsasProvider);
   final compareMode = ref.watch(ayanamsaCompareModeProvider);
 
@@ -63,13 +63,17 @@ final ayanamsaResultsProvider = Provider<List<AyanamsaCalcResult>>((ref) {
   final results = <AyanamsaCalcResult>[];
   for (final sidMode in modes) {
     try {
-      if (sidMode == ayanamsaUserId) {
-        swe.setSidMode(sidMode,
-            t0: ctx.userAyanT0, ayanT0: ctx.userAyanValue);
-      } else {
-        swe.setSidMode(sidMode);
-      }
-      final value = swe.getAyanamsaUt(ectx.jdUt);
+      final value = runner.runScoped(
+        (eph) {
+          if (sidMode == ayanamsaUserId) {
+            eph.setSidMode(sidMode,
+                t0: ctx.userAyanT0, ayanT0: ctx.userAyanValue);
+          } else {
+            eph.setSidMode(sidMode);
+          }
+        },
+        (eph) => eph.getAyanamsaUt(ectx.jdUt),
+      );
       final name = ayanamsaName(sidMode);
       results.add(AyanamsaCalcResult(sidMode: sidMode, name: name, value: value));
     } on SweException {

@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/persistence.dart';
@@ -82,14 +83,16 @@ final housesResultProvider = Provider<HousesCalcResult?>((ref) {
   if (!session.tabHasRun('houses')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final hsys = ref.watch(selectedHouseSystemProvider);
 
-  // Apply C globals.
-  ectx.calculate(swe, (s, jd, flags) => null);
-
   try {
-    final r = swe.houses(ectx.jdUt, ectx.latitude, ectx.longitude, hsys);
+    final r = runner.run(
+      globals,
+      (eph) => eph.houses(ectx.jdUt, ectx.latitude, ectx.longitude, hsys),
+    );
     final hsysName = swe.houseName(hsys);
     return HousesCalcResult(
       cusps: r.cusps,

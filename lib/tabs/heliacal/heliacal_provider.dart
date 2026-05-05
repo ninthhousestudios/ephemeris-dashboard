@@ -3,8 +3,8 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
-import '../../core/swe_service.dart';
 
 // ── Input providers ──────────────────────────────────────────────────────────
 
@@ -75,7 +75,8 @@ final heliacalResultProvider = Provider<HeliacalCalcResult?>((ref) {
   if (!session.tabHasRun('heliacal')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
-  final swe = ref.read(sweProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
 
   final objectName = ref.watch(heliacalStarProvider).trim();
   final typeEvent = ref.watch(heliacalEventTypeProvider);
@@ -99,11 +100,8 @@ final heliacalResultProvider = Provider<HeliacalCalcResult?>((ref) {
     snellenRatio: snellen,
   );
 
-  // Apply C globals atomically.
-  ectx.calculate(swe, (s, jd, flags) => null);
-
   try {
-    final result = swe.heliacalUt(
+    final result = runner.run(globals, (eph) => eph.heliacalUt(
       ectx.jdUt,
       geolon: ectx.longitude,
       geolat: ectx.latitude,
@@ -112,7 +110,7 @@ final heliacalResultProvider = Provider<HeliacalCalcResult?>((ref) {
       observer: observer,
       objectName: objectName.isEmpty ? 'Venus' : objectName,
       typeEvent: typeEvent,
-    );
+    ));
     return HeliacalCalcResult(
       objectName: objectName.isEmpty ? 'Venus' : objectName,
       eventType: typeEvent,

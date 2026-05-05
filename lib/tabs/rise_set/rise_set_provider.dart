@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 
@@ -148,14 +149,16 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
   if (!session.tabHasRun('riseSet')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final body = ref.watch(riseSetBodyProvider);
   final atpress = ref.watch(riseSetAtpressProvider);
   final attemp = ref.watch(riseSetAttempProvider);
   final modifiers = ref.watch(riseSetModifiersProvider);
 
-  // Apply C globals atomically (ephe path, sidereal mode, etc.)
-  ectx.calculate(swe, (s, jd, flags) => null);
+  // Apply globals once; rise/set uses multiple raw calls below.
+  runner.run(globals, (_) => null);
 
   final jdUt = ectx.jdUt;
   final geolon = ectx.longitude;

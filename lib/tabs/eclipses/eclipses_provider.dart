@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 
@@ -138,13 +139,16 @@ final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
   if (!session.tabHasRun('eclipses')) return [];
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final type = ref.watch(eclipseTypeProvider);
   final scope = ref.watch(eclipseScopeProvider);
   final eclFilter = ref.watch(eclipseFilterProvider);
   final count = ref.watch(eclipseCountProvider);
 
-  ectx.calculate(swe, (s, jd, flags) => null);
+  // Apply globals once; the loop uses raw swe (globals don't change within).
+  runner.run(globals, (_) => null);
 
   final epheflag = ectx.iflag & 0xF;
   final results = <EclipseEvent>[];

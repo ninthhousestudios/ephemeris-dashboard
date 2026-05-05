@@ -5,6 +5,7 @@ import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
 import '../../core/context_state.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 
@@ -119,6 +120,8 @@ final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
   if (!session.tabHasRun('planets')) return const [];
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   var bodies = ref.watch(selectedBodiesProvider);
 
@@ -129,18 +132,14 @@ final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
     bodies = [...bodies, seEarth];
   }
 
-  // Set C globals atomically.
-  ectx.calculate(swe, (s, jd, flags) {
-    // Just applying globals; actual calc below per body.
-    return null;
-  });
-
   final results = <PlanetResult>[];
   for (final body in bodies) {
     try {
-      // Ensure SPEED flag is set for speed values.
       final flags = ectx.iflag | seFlgSpeed;
-      final r = swe.calcUt(ectx.jdUt, body, flags);
+      final r = runner.run(
+        globals,
+        (eph) => eph.calcUt(ectx.jdUt, body, flags),
+      );
       results.add(PlanetResult(
         body: body,
         bodyName: swe.getPlanetName(body),

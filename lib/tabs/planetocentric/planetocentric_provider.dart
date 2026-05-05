@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -73,12 +74,11 @@ final planetocentricResultsProvider =
   if (!session.tabHasRun('planetocentric')) return const [];
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final centerBody = ref.watch(planetocentricCenterProvider);
   final bodies = ref.watch(planetocentricBodiesProvider);
-
-  // Apply C globals (sidereal mode, topo, etc.).
-  ectx.calculate(swe, (s, jd, flags) => null);
 
   // calcPctr takes ET, not UT.
   final jdEt = ectx.jdUt + swe.deltat(ectx.jdUt);
@@ -87,9 +87,10 @@ final planetocentricResultsProvider =
 
   final results = <PlanetoCentricResult>[];
   for (final body in bodies) {
-    if (body == centerBody) continue; // skip self-observation
+    if (body == centerBody) continue;
     try {
-      final r = swe.calcPctr(jdEt, body, centerBody, flags);
+      final r = runner.run(
+        globals, (eph) => eph.calcPctr(jdEt, body, centerBody, flags));
       results.add(PlanetoCentricResult(
         body: body,
         bodyName: swe.getPlanetName(body),

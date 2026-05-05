@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -44,16 +45,18 @@ final phenomenaResultsProvider = Provider<List<PhenomenaResult>>((ref) {
   if (!session.tabHasRun('phenomena')) return const [];
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(phenomenaBodiesProvider);
-
-  // Apply C globals atomically.
-  ectx.calculate(swe, (s, jd, flags) => null);
 
   final results = <PhenomenaResult>[];
   for (final body in bodies) {
     try {
-      final r = swe.phenoUt(ectx.jdUt, body, ectx.iflag);
+      final r = runner.run(
+        globals,
+        (eph) => eph.phenoUt(ectx.jdUt, body, ectx.iflag),
+      );
       results.add(PhenomenaResult(
         body: body,
         bodyName: _safeGetName(swe, body),

@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -173,18 +174,18 @@ final starResultProvider = Provider<StarResult?>((ref) {
   if (!session.tabHasRun('stars')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final searchTerm = ref.watch(starSearchProvider);
 
   final term = searchTerm.trim();
   if (term.isEmpty) return null;
 
-  // Set C globals atomically.
-  ectx.calculate(swe, (s, jd, flags) => null);
-
   try {
     final flags = ectx.iflag | seFlgSpeed;
-    var r = swe.fixstar2Ut(term, ectx.jdUt, flags);
+    var r = runner.run(
+      globals, (eph) => eph.fixstar2Ut(term, ectx.jdUt, flags));
 
     // swisseph silently returns the first star (Aldebaran) when a search
     // doesn't match. Detect this by checking if the resolved name contains
@@ -202,7 +203,8 @@ final starResultProvider = Provider<StarResult?>((ref) {
       // Retry as Bayer designation search.
       if (!term.startsWith(',')) {
         try {
-          r = swe.fixstar2Ut(',$term', ectx.jdUt, flags);
+          r = runner.run(
+            globals, (eph) => eph.fixstar2Ut(',$term', ectx.jdUt, flags));
         } on SweException {
           return null;
         }

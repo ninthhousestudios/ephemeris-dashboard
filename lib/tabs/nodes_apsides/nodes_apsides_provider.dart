@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -48,26 +49,29 @@ final nodesApsResultsProvider = Provider<NodesApsResult?>((ref) {
   if (!session.tabHasRun('nodesApsides')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final body = ref.watch(nodesBodyProvider);
   final method = ref.watch(nodesMethodProvider);
-
-  // Apply C globals atomically.
-  ectx.calculate(swe, (s, jd, flags) => null);
 
   final flags = ectx.iflag | seFlgSpeed;
   final jdUt = ectx.jdUt;
   final jdEt = jdUt + swe.deltat(jdUt);
 
   try {
-    final nar = swe.nodApsUt(jdUt, body, flags, method);
+    final nar = runner.run(
+      globals,
+      (eph) => eph.nodApsUt(jdUt, body, flags, method),
+    );
 
     OrbitalElementsResult? orbEl;
     double? maxDist;
     double? minDist;
 
     try {
-      orbEl = swe.getOrbitalElements(jdEt, body, flags);
+      orbEl = runner.run(
+        globals, (eph) => eph.getOrbitalElements(jdEt, body, flags));
     } on SweException {
       orbEl = null;
     }

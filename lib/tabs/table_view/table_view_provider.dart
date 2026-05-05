@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 import '../../core/display_format.dart';
@@ -78,13 +79,13 @@ final tableViewResultsProvider = Provider<List<EphemerisRow>>((ref) {
   if (!session.tabHasRun('tableView')) return [];
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(tableViewBodiesProvider);
   final stepValue = ref.watch(tableViewStepValueProvider);
   final stepUnit = ref.watch(tableViewStepUnitProvider);
   final stepCount = ref.watch(tableViewStepCountProvider);
-
-  ectx.calculate(swe, (s, jd, flags) => null);
 
   final iflag = ectx.iflag;
   final jdStart = ectx.jdUt;
@@ -98,7 +99,8 @@ final tableViewResultsProvider = Provider<List<EphemerisRow>>((ref) {
 
     for (final body in sortedBodies) {
       try {
-        final result = swe.calcUt(jd, body, iflag);
+        final result = runner.run(
+          globals, (eph) => eph.calcUt(jd, body, iflag));
         bodyValues[body] = (result.longitude, null);
       } catch (e) {
         bodyValues[body] = (null, e.toString());

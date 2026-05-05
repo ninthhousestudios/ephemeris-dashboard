@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/context_provider.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
@@ -80,6 +81,8 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
   if (!session.tabHasRun('crossings')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
   final type = ref.watch(crossingTypeProvider);
   final lon = ref.watch(crossingLonProvider);
@@ -87,13 +90,11 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
   final dir = ref.watch(crossingDirProvider);
   final utcOffset = ref.watch(contextBarProvider).utcOffset;
 
-  // Apply C globals atomically.
-  ectx.calculate(swe, (s, jd, flags) => null);
-
   try {
     switch (type) {
       case CrossingType.sunCross:
-        final jd = swe.solCrossUt(lon, ectx.jdUt, ectx.iflag);
+        final jd = runner.run(
+          globals, (eph) => eph.solCrossUt(lon, ectx.jdUt, ectx.iflag));
         final date = _formatDateResult(swe.revjul(jd), utcOffset);
         return CrossingResult(
           crossingJd: jd,
@@ -103,7 +104,8 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
         );
 
       case CrossingType.moonCross:
-        final jd = swe.moonCrossUt(lon, ectx.jdUt, ectx.iflag);
+        final jd = runner.run(
+          globals, (eph) => eph.moonCrossUt(lon, ectx.jdUt, ectx.iflag));
         final date = _formatDateResult(swe.revjul(jd), utcOffset);
         return CrossingResult(
           crossingJd: jd,
@@ -113,7 +115,8 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
         );
 
       case CrossingType.moonNode:
-        final r = swe.moonCrossNodeUt(ectx.jdUt, ectx.iflag);
+        final r = runner.run(
+          globals, (eph) => eph.moonCrossNodeUt(ectx.jdUt, ectx.iflag));
         final date = _formatDateResult(swe.revjul(r.jdUt), utcOffset);
         return CrossingResult(
           crossingJd: r.jdUt,
@@ -124,8 +127,8 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
 
       case CrossingType.helioCross:
         final bodyName = _safeGetName(swe, helioBody);
-        final jd =
-            swe.helioCrossUt(helioBody, lon, ectx.jdUt, ectx.iflag, dir);
+        final jd = runner.run(globals,
+            (eph) => eph.helioCrossUt(helioBody, lon, ectx.jdUt, ectx.iflag, dir));
         final date = _formatDateResult(swe.revjul(jd), utcOffset);
         return CrossingResult(
           crossingJd: jd,
