@@ -68,3 +68,17 @@ flutter test test/goldens/                    # compare against baselines
 ## Golden Tests
 
 54 golden PNGs across 3 sizes (400x800 mobile, 800x1024 tablet, 1400x900 desktop) x 2 themes (light, dark). ContextBar and AppShell use `allowOverflow: true` because the context bar is intentionally wider than 400px mobile (it horizontal-scrolls).
+
+## Agent skills
+
+### Issue tracker
+
+Yojana (local MCP task graph). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vidhi vocabulary (no overrides). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout. See `docs/agents/domain.md`.
