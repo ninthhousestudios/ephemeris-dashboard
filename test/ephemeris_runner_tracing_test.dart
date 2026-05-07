@@ -169,5 +169,72 @@ void main() {
         'swe_calc_ut',
       ]));
     });
+
+    test('planets-style calc with all setup types in order', () {
+      final globals = AppliedGlobals(
+        ephePath: '/tmp/ephe',
+        sidMode: 1,
+        userAyanT0: 0,
+        userAyanValue: 0,
+        topo: (lon: -0.1278, lat: 51.5074, alt: 0.0),
+        jplFile: 'de441.eph',
+      );
+
+      runner.setTabTag('planets');
+      runner.clearTrace();
+
+      // Simulate planets tab: multiple bodies
+      runner.run(globals, (eph) {
+        eph.calcUt(2460412.5, seSun, seFlgSpeed);
+        eph.calcUt(2460412.5, seMoon, seFlgSpeed);
+        return null;
+      });
+
+      final names = runner.traceEntries.map((e) => e.functionName).toList();
+
+      // Setup calls come first in _apply order, then calc calls
+      expect(names, containsAllInOrder([
+        'swe_set_ephe_path',
+        'swe_set_sid_mode',
+        'swe_set_topo',
+        'swe_set_jpl_file',
+        'swe_calc_ut',
+        'swe_calc_ut',
+      ]));
+
+      // All entries tagged with 'planets'
+      expect(
+        runner.traceEntries.every((e) => e.traceId.startsWith('planets:')),
+        isTrue,
+      );
+    });
+
+    test('values match direct SwissEph calculation', () {
+      final globals = AppliedGlobals(
+        ephePath: null,
+        sidMode: null,
+        userAyanT0: 0,
+        userAyanValue: 0,
+        topo: null,
+        jplFile: null,
+      );
+
+      final traced = runner.run(
+        globals,
+        (eph) => eph.calcUt(2460412.5, seSun, seFlgSwiEph | seFlgSpeed),
+      );
+
+      // Compare with a fresh direct call
+      final direct = SwissEph.find();
+      try {
+        final expected =
+            direct.calcUt(2460412.5, seSun, seFlgSwiEph | seFlgSpeed);
+        expect(traced.longitude, equals(expected.longitude));
+        expect(traced.latitude, equals(expected.latitude));
+        expect(traced.distance, equals(expected.distance));
+      } finally {
+        direct.close();
+      }
+    });
   });
 }

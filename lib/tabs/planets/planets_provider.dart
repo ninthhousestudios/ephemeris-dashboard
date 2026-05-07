@@ -122,6 +122,7 @@ final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('planets');
   final swe = ref.read(sweProvider);
   var bodies = ref.watch(selectedBodiesProvider);
 
