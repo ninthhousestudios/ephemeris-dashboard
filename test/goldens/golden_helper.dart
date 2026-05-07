@@ -218,7 +218,7 @@ ResultCard fakeResultCard({
     title: title,
     subtitle: subtitle,
     flagHex: flagHex,
-    onPin: showActions ? () {} : null,
+    onCode: showActions ? () {} : null,
     fields: const [
       ResultField(label: 'Longitude', value: "4° 35' 00.00\"", rawValue: 4.583),
       ResultField(label: 'Latitude', value: "0° 00' 00.72\"", rawValue: 0.0002),

@@ -4,6 +4,9 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/result_card.dart';
 import 'planets_provider.dart';
 
@@ -276,6 +279,22 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                   title: r.bodyName,
                   subtitle: 'calcUt(${r.body})',
                   flagHex: '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
+                  onCode: () {
+                    final traceId = 'planets:calc_ut:body=${r.body}';
+                    final trace = ref.read(callTraceProvider);
+                    if (trace == null) return;
+                    final slice = trace.sliceByTraceId(traceId);
+                    if (slice.entries.isEmpty) return;
+                    const emitter = CEmitter();
+                    final code = slice.entries
+                        .map(emitter.emitSnippet)
+                        .join('\n');
+                    showCodeModal(
+                      context,
+                      code: code,
+                      languageLabel: emitter.displayName,
+                    );
+                  },
                   fields: r.errorMessage != null
                       ? [
                           ResultField(

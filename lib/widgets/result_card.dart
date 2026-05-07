@@ -25,14 +25,14 @@ class ResultCard extends StatelessWidget {
     this.subtitle,
     this.flagHex,
     required this.fields,
-    this.onPin,
+    this.onCode,
   });
 
   final String title;
   final String? subtitle;
   final String? flagHex;
   final List<ResultField> fields;
-  final VoidCallback? onPin;
+  final VoidCallback? onCode;
 
   @override
   Widget build(BuildContext context) {
@@ -128,9 +128,9 @@ class ResultCard extends StatelessWidget {
                   },
                 ),
                 IconButton(
-                  icon: const Icon(Icons.push_pin_outlined, size: 18),
-                  tooltip: 'Pin result',
-                  onPressed: onPin,
+                  icon: const Icon(Icons.code, size: 18),
+                  tooltip: 'View C code',
+                  onPressed: onCode,
                 ),
               ],
             ),
