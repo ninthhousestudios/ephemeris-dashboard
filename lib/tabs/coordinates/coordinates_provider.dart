@@ -4,8 +4,8 @@ import 'package:swisseph/swisseph.dart';
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
-import '../../core/swe_service.dart';
 import '../../widgets/result_card.dart';
 
 // ── Operation enum ─────────────────────────────────────────────────────────
@@ -92,7 +92,9 @@ final coordResultProvider = Provider<CoordResult?>((ref) {
 
   final op = ref.watch(coordOpProvider);
   final ectx = ref.watch(effectiveContextProvider);
-  final swe = ref.read(sweProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('coordinates');
 
   final lon = ref.watch(coordLonProvider);
   final lat = ref.watch(coordLatProvider);
@@ -104,47 +106,36 @@ final coordResultProvider = Provider<CoordResult?>((ref) {
   final eps = ref.watch(coordEpsProvider);
 
   try {
-    switch (op) {
-      case CoordOp.azAlt:
-        // Use context bar location and JD; body position from local inputs.
-        final r = swe.azAlt(
-          ectx.jdUt,
-          seEcl2hor,
-          geolon: ectx.longitude,
-          geolat: ectx.latitude,
-          geoalt: ectx.altitude,
-          atpress: atpress,
-          attemp: attemp,
-          bodyLon: lon,
-          bodyLat: lat,
-          bodyDist: dist,
-        );
-        return CoordAzAltResult(r.azimuth, r.trueAltitude, r.apparentAltitude);
+    return runner.run(globals, (eph) {
+      switch (op) {
+        case CoordOp.azAlt:
+          final r = eph.azAlt(
+            ectx.jdUt, seEcl2hor,
+            geolon: ectx.longitude, geolat: ectx.latitude, geoalt: ectx.altitude,
+            atpress: atpress, attemp: attemp,
+            bodyLon: lon, bodyLat: lat, bodyDist: dist,
+          );
+          return CoordAzAltResult(r.azimuth, r.trueAltitude, r.apparentAltitude);
 
-      case CoordOp.azAltRev:
-        final r = swe.azAltRev(
-          ectx.jdUt,
-          seHor2ecl,
-          geolon: ectx.longitude,
-          geolat: ectx.latitude,
-          geoalt: ectx.altitude,
-          azimuth: azimuth,
-          altitude: altitude,
-        );
-        return CoordAzAltRevResult(r.lon, r.lat);
+        case CoordOp.azAltRev:
+          final r = eph.azAltRev(
+            ectx.jdUt, seHor2ecl,
+            geolon: ectx.longitude, geolat: ectx.latitude, geoalt: ectx.altitude,
+            azimuth: azimuth, altitude: altitude,
+          );
+          return CoordAzAltRevResult(r.lon, r.lat);
 
-      case CoordOp.cotrans:
-        // eps > 0 = ecliptic→equatorial; eps < 0 = equatorial→ecliptic.
-        final r = swe.cotrans(lon, lat, dist, eps);
-        final dir = eps >= 0 ? 'ecl→equ' : 'equ→ecl';
-        return CoordCoTransResult(r.lon, r.lat, r.dist, dir);
+        case CoordOp.cotrans:
+          final r = eph.cotrans(lon, lat, dist, eps);
+          final dir = eps >= 0 ? 'ecl→equ' : 'equ→ecl';
+          return CoordCoTransResult(r.lon, r.lat, r.dist, dir);
 
-      case CoordOp.refrac:
-        // seTrueToApp: apparent altitude from true altitude.
-        final apparent = swe.refrac(altitude, atpress, attemp, seTrueToApp);
-        return CoordRefracResult(altitude, apparent,
-            'input=${altitude.toStringAsFixed(4)}° true→apparent');
-    }
+        case CoordOp.refrac:
+          final apparent = eph.refrac(altitude, atpress, attemp, seTrueToApp);
+          return CoordRefracResult(altitude, apparent,
+              'input=${altitude.toStringAsFixed(4)}° true→apparent');
+      }
+    });
   } on SweException catch (e) {
     return CoordErrorResult(e.message);
   } catch (e) {

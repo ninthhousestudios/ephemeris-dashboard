@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 
@@ -102,12 +103,15 @@ final datesResultProvider = Provider<DatesResult?>((ref) {
   if (!session.tabHasRun('dates')) return null;
 
   final ectx = ref.watch(effectiveContextProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
+  runner.setTabTag('dates');
   final overrideJd = ref.watch(datesOverrideJdProvider);
   final jdUt = overrideJd ?? ectx.jdUt;
   final geolon = ectx.longitude;
 
-  // ── revjul ────────────────────────────────────────────────────────────────
+  // revjul and dayOfWeek are pure calendar math — no tracing needed.
   int revYear = 0, revMonth = 0, revDay = 0;
   double revHour = 0;
   String? revjulError;
@@ -123,51 +127,47 @@ final datesResultProvider = Provider<DatesResult?>((ref) {
     revjulError = e.toString();
   }
 
-  // ── Day of week ─────────────────────────────────────────────────────────
   int dayOfWeekIndex = 0;
   try {
     dayOfWeekIndex = swe.dayOfWeek(jdUt);
   } catch (_) {}
 
-  // ── Delta-T ───────────────────────────────────────────────────────────────
+  // Traceable calls go through runner.run().
   double deltaT = 0;
   String? deltaTError;
   try {
-    deltaT = swe.deltat(jdUt) * 86400.0; // convert days → seconds
+    deltaT = runner.run(globals, (eph) => eph.deltat(jdUt)) * 86400.0;
   } catch (e) {
     deltaTError = e.toString();
   }
 
-  // ── Sidereal Time ─────────────────────────────────────────────────────────
   double siderealTime = 0;
   String? siderealTimeError;
   try {
-    siderealTime = swe.sidTime(jdUt);
+    siderealTime = runner.run(globals, (eph) => eph.sidTime(jdUt));
   } catch (e) {
     siderealTimeError = e.toString();
   }
 
-  // ── Equation of Time ──────────────────────────────────────────────────────
   double equationOfTime = 0;
   String? equationOfTimeError;
   try {
-    equationOfTime = swe.timeEqu(jdUt); // returns days
+    equationOfTime = runner.run(globals, (eph) => eph.timeEqu(jdUt));
   } catch (e) {
     equationOfTimeError = e.toString();
   }
 
-  // ── LMT ↔ LAT ────────────────────────────────────────────────────────────
   double lmtToLatVal = 0;
   String? lmtToLatError;
   double latToLmtVal = 0;
   String? latToLmtError;
   try {
-    lmtToLatVal = swe.lmtToLat(jdUt, geolon);
+    lmtToLatVal = runner.run(globals, (eph) => eph.lmtToLat(jdUt, geolon));
   } catch (e) {
     lmtToLatError = e.toString();
   }
   try {
-    latToLmtVal = swe.latToLmt(jdUt, geolon);
+    latToLmtVal = runner.run(globals, (eph) => eph.latToLmt(jdUt, geolon));
   } catch (e) {
     latToLmtError = e.toString();
   }

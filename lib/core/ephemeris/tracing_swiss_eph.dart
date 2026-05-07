@@ -529,9 +529,32 @@ class TracingSwissEph implements SwissEph {
 
   @override
   SolarEclipseGlobalResult solEclipseWhenGlob(double jdStart, int flags,
-          {int eclType = 0, bool backward = false}) =>
-      _delegate.solEclipseWhenGlob(jdStart, flags,
+          {int eclType = 0, bool backward = false}) {
+    final traceId = '$_tabTag:sol_eclipse_when_glob';
+    try {
+      final result = _delegate.solEclipseWhenGlob(jdStart, flags,
           eclType: eclType, backward: backward);
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_when_glob',
+        args: {'jdStart': jdStart, 'iflag': flags, 'eclType': eclType,
+               'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_when_glob',
+        args: {'jdStart': jdStart, 'iflag': flags, 'eclType': eclType,
+               'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   SolarEclipseAttrResult solEclipseHow(double jdUt, int flags,
@@ -564,8 +587,29 @@ class TracingSwissEph implements SwissEph {
   }
 
   @override
-  EclipseWhereResult solEclipseWhere(double jdUt, int flags) =>
-      _delegate.solEclipseWhere(jdUt, flags);
+  EclipseWhereResult solEclipseWhere(double jdUt, int flags) {
+    final traceId = '$_tabTag:sol_eclipse_where';
+    try {
+      final result = _delegate.solEclipseWhere(jdUt, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_where',
+        args: {'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_where',
+        args: {'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   LunarEclipseGlobalResult lunEclipseWhen(double jdStart, int flags,
@@ -599,9 +643,32 @@ class TracingSwissEph implements SwissEph {
   @override
   LunarEclipseLocalResult lunEclipseWhenLoc(double jdStart, int flags,
           {required double geolon, required double geolat, double geoalt = 0,
-          bool backward = false}) =>
-      _delegate.lunEclipseWhenLoc(jdStart, flags,
+          bool backward = false}) {
+    final traceId = '$_tabTag:lun_eclipse_when_loc';
+    try {
+      final result = _delegate.lunEclipseWhenLoc(jdStart, flags,
           geolon: geolon, geolat: geolat, geoalt: geoalt, backward: backward);
+      _entries.add(CallEntry(
+        functionName: 'swe_lun_eclipse_when_loc',
+        args: {'jdStart': jdStart, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt, 'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_lun_eclipse_when_loc',
+        args: {'jdStart': jdStart, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt, 'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   LunarEclipseAttrResult lunEclipseHow(double jdUt, int flags,
@@ -665,11 +732,36 @@ class TracingSwissEph implements SwissEph {
     double geoalt = 0,
     double atpress = 1013.25,
     double attemp = 15.0,
-  }) =>
-      _delegate.riseTrans(jdUt, body,
+  }) {
+    final traceId = '$_tabTag:rise_trans:body=$body,rsmi=$rsmi';
+    try {
+      final result = _delegate.riseTrans(jdUt, body,
           starName: starName, epheflag: epheflag, rsmi: rsmi,
           geolon: geolon, geolat: geolat, geoalt: geoalt,
           atpress: atpress, attemp: attemp);
+      _entries.add(CallEntry(
+        functionName: 'swe_rise_trans',
+        args: {'jdUt': jdUt, 'body': body, 'epheflag': epheflag, 'rsmi': rsmi,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_rise_trans',
+        args: {'jdUt': jdUt, 'body': body, 'epheflag': epheflag, 'rsmi': rsmi,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   RiseTransResult riseTransTrueHor(double jdUt, int body, {
@@ -717,23 +809,96 @@ class TracingSwissEph implements SwissEph {
           {required double geolon, required double geolat, double geoalt = 0,
           double atpress = 1013.25, double attemp = 15.0,
           required double bodyLon, required double bodyLat,
-          double bodyDist = 1.0}) =>
-      _delegate.azAlt(jdUt, calcFlag,
+          double bodyDist = 1.0}) {
+    final traceId = '$_tabTag:azalt:flag=$calcFlag';
+    try {
+      final result = _delegate.azAlt(jdUt, calcFlag,
           geolon: geolon, geolat: geolat, geoalt: geoalt,
           atpress: atpress, attemp: attemp,
           bodyLon: bodyLon, bodyLat: bodyLat, bodyDist: bodyDist);
+      _entries.add(CallEntry(
+        functionName: 'swe_azalt',
+        args: {'jdUt': jdUt, 'calcFlag': calcFlag,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp,
+               'bodyLon': bodyLon, 'bodyLat': bodyLat, 'bodyDist': bodyDist},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_azalt',
+        args: {'jdUt': jdUt, 'calcFlag': calcFlag,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp,
+               'bodyLon': bodyLon, 'bodyLat': bodyLat, 'bodyDist': bodyDist},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   AzAltRevResult azAltRev(double jdUt, int calcFlag,
           {required double geolon, required double geolat, double geoalt = 0,
-          required double azimuth, required double altitude}) =>
-      _delegate.azAltRev(jdUt, calcFlag,
+          required double azimuth, required double altitude}) {
+    final traceId = '$_tabTag:azalt_rev:flag=$calcFlag';
+    try {
+      final result = _delegate.azAltRev(jdUt, calcFlag,
           geolon: geolon, geolat: geolat, geoalt: geoalt,
           azimuth: azimuth, altitude: altitude);
+      _entries.add(CallEntry(
+        functionName: 'swe_azalt_rev',
+        args: {'jdUt': jdUt, 'calcFlag': calcFlag,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'azimuth': azimuth, 'altitude': altitude},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_azalt_rev',
+        args: {'jdUt': jdUt, 'calcFlag': calcFlag,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'azimuth': azimuth, 'altitude': altitude},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
-  CoTransResult cotrans(double lon, double lat, double dist, double eps) =>
-      _delegate.cotrans(lon, lat, dist, eps);
+  CoTransResult cotrans(double lon, double lat, double dist, double eps) {
+    final traceId = '$_tabTag:cotrans';
+    try {
+      final result = _delegate.cotrans(lon, lat, dist, eps);
+      _entries.add(CallEntry(
+        functionName: 'swe_cotrans',
+        args: {'lon': lon, 'lat': lat, 'dist': dist, 'eps': eps},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_cotrans',
+        args: {'lon': lon, 'lat': lat, 'dist': dist, 'eps': eps},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   CoTransSpResult cotransSp(double lon, double lat, double dist,
@@ -742,8 +907,19 @@ class TracingSwissEph implements SwissEph {
 
   @override
   double refrac(double altitude, double atpress, double attemp,
-          int calcFlag) =>
-      _delegate.refrac(altitude, atpress, attemp, calcFlag);
+          int calcFlag) {
+    final traceId = '$_tabTag:refrac:flag=$calcFlag';
+    final result = _delegate.refrac(altitude, atpress, attemp, calcFlag);
+    _entries.add(CallEntry(
+      functionName: 'swe_refrac',
+      args: {'altitude': altitude, 'atpress': atpress, 'attemp': attemp,
+             'calcFlag': calcFlag},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
   RefracResult refracExtended(double altitude, double geoalt, double atpress,
@@ -752,13 +928,35 @@ class TracingSwissEph implements SwissEph {
           altitude, geoalt, atpress, attemp, lapseRate, calcFlag);
 
   @override
-  double deltat(double jd) => _delegate.deltat(jd);
+  double deltat(double jd) {
+    final traceId = '$_tabTag:deltat';
+    final result = _delegate.deltat(jd);
+    _entries.add(CallEntry(
+      functionName: 'swe_deltat',
+      args: {'jd': jd},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
   double deltatEx(double jd, int flags) => _delegate.deltatEx(jd, flags);
 
   @override
-  double timeEqu(double jd) => _delegate.timeEqu(jd);
+  double timeEqu(double jd) {
+    final traceId = '$_tabTag:time_equ';
+    final result = _delegate.timeEqu(jd);
+    _entries.add(CallEntry(
+      functionName: 'swe_time_equ',
+      args: {'jd': jd},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
   double sidTime(double jdUt) {
@@ -789,12 +987,32 @@ class TracingSwissEph implements SwissEph {
   }
 
   @override
-  double lmtToLat(double jdLmt, double geolon) =>
-      _delegate.lmtToLat(jdLmt, geolon);
+  double lmtToLat(double jdLmt, double geolon) {
+    final traceId = '$_tabTag:lmt_to_lat';
+    final result = _delegate.lmtToLat(jdLmt, geolon);
+    _entries.add(CallEntry(
+      functionName: 'swe_lmt_to_lat',
+      args: {'jdLmt': jdLmt, 'geolon': geolon},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
-  double latToLmt(double jdLat, double geolon) =>
-      _delegate.latToLmt(jdLat, geolon);
+  double latToLmt(double jdLat, double geolon) {
+    final traceId = '$_tabTag:lat_to_lmt';
+    final result = _delegate.latToLmt(jdLat, geolon);
+    _entries.add(CallEntry(
+      functionName: 'swe_lat_to_lmt',
+      args: {'jdLat': jdLat, 'geolon': geolon},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
   void setDeltaTUserdef(double dt) => _delegate.setDeltaTUserdef(dt);

@@ -5,7 +5,6 @@ import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
-import '../../core/swe_service.dart';
 
 // ── Eclipse search mode ──────────────────────────────────────────────────────
 
@@ -141,14 +140,11 @@ final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
-  final swe = ref.read(sweProvider);
+  runner.setTabTag('eclipses');
   final type = ref.watch(eclipseTypeProvider);
   final scope = ref.watch(eclipseScopeProvider);
   final eclFilter = ref.watch(eclipseFilterProvider);
   final count = ref.watch(eclipseCountProvider);
-
-  // Apply globals once; the loop uses raw swe (globals don't change within).
-  runner.run(globals, (_) => null);
 
   final epheflag = ectx.iflag & 0xF;
   final results = <EclipseEvent>[];
@@ -156,8 +152,8 @@ final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
 
   for (var i = 0; i < count; i++) {
     try {
-      final event = _findNextEclipse(
-        swe: swe,
+      final event = runner.run(globals, (eph) => _findNextEclipse(
+        swe: eph,
         jdStart: searchJd,
         epheflag: epheflag,
         type: type,
@@ -167,9 +163,8 @@ final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
         geolon: ectx.longitude,
         geolat: ectx.latitude,
         geoalt: ectx.altitude,
-      );
+      ));
       results.add(event);
-      // Advance past this eclipse to find the next one.
       if (event.maxEclipseJd != null) {
         searchJd = event.maxEclipseJd! + 1.0;
       } else {

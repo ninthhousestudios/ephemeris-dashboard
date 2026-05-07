@@ -152,13 +152,11 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
   final swe = ref.read(sweProvider);
+  runner.setTabTag('riseSet');
   final body = ref.watch(riseSetBodyProvider);
   final atpress = ref.watch(riseSetAtpressProvider);
   final attemp = ref.watch(riseSetAttempProvider);
   final modifiers = ref.watch(riseSetModifiersProvider);
-
-  // Apply globals once; rise/set uses multiple raw calls below.
-  runner.run(globals, (_) => null);
 
   final jdUt = ectx.jdUt;
   final geolon = ectx.longitude;
@@ -189,17 +187,12 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Rise
   try {
-    final r = swe.riseTrans(
-      jdUt,
-      body,
-      epheflag: epheflag,
-      rsmi: rsCalcRise | modifiers,
-      geolon: geolon,
-      geolat: geolat,
-      geoalt: geoalt,
-      atpress: atpress,
-      attemp: attemp,
-    );
+    final r = runner.run(globals, (eph) => eph.riseTrans(
+      jdUt, body,
+      epheflag: epheflag, rsmi: rsCalcRise | modifiers,
+      geolon: geolon, geolat: geolat, geoalt: geoalt,
+      atpress: atpress, attemp: attemp,
+    ));
     riseJd = r.transitTime;
     riseFlag = r.returnFlag;
     riseDateTime = _toDateTime(swe, r.transitTime);
@@ -209,17 +202,12 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Set
   try {
-    final r = swe.riseTrans(
-      jdUt,
-      body,
-      epheflag: epheflag,
-      rsmi: rsCalcSet | modifiers,
-      geolon: geolon,
-      geolat: geolat,
-      geoalt: geoalt,
-      atpress: atpress,
-      attemp: attemp,
-    );
+    final r = runner.run(globals, (eph) => eph.riseTrans(
+      jdUt, body,
+      epheflag: epheflag, rsmi: rsCalcSet | modifiers,
+      geolon: geolon, geolat: geolat, geoalt: geoalt,
+      atpress: atpress, attemp: attemp,
+    ));
     setJd = r.transitTime;
     setFlag = r.returnFlag;
     setDateTime = _toDateTime(swe, r.transitTime);
@@ -229,17 +217,12 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Upper meridian transit
   try {
-    final r = swe.riseTrans(
-      jdUt,
-      body,
-      epheflag: epheflag,
-      rsmi: rsCalcMtransit | modifiers,
-      geolon: geolon,
-      geolat: geolat,
-      geoalt: geoalt,
-      atpress: atpress,
-      attemp: attemp,
-    );
+    final r = runner.run(globals, (eph) => eph.riseTrans(
+      jdUt, body,
+      epheflag: epheflag, rsmi: rsCalcMtransit | modifiers,
+      geolon: geolon, geolat: geolat, geoalt: geoalt,
+      atpress: atpress, attemp: attemp,
+    ));
     upperTransitJd = r.transitTime;
     upperTransitFlag = r.returnFlag;
     upperTransitDateTime = _toDateTime(swe, r.transitTime);
@@ -249,17 +232,12 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Lower meridian transit
   try {
-    final r = swe.riseTrans(
-      jdUt,
-      body,
-      epheflag: epheflag,
-      rsmi: rsCalcItransit | modifiers,
-      geolon: geolon,
-      geolat: geolat,
-      geoalt: geoalt,
-      atpress: atpress,
-      attemp: attemp,
-    );
+    final r = runner.run(globals, (eph) => eph.riseTrans(
+      jdUt, body,
+      epheflag: epheflag, rsmi: rsCalcItransit | modifiers,
+      geolon: geolon, geolat: geolat, geoalt: geoalt,
+      atpress: atpress, attemp: attemp,
+    ));
     lowerTransitJd = r.transitTime;
     lowerTransitFlag = r.returnFlag;
     lowerTransitDateTime = _toDateTime(swe, r.transitTime);

@@ -72,6 +72,30 @@ class CEmitter implements CodeEmitter {
         return _emitLunEclipseWhen(entry);
       case 'swe_lun_eclipse_how':
         return _emitLunEclipseHow(entry);
+      case 'swe_rise_trans':
+        return _emitRiseTrans(entry);
+      case 'swe_sol_eclipse_when_glob':
+        return _emitSolEclipseWhenGlob(entry);
+      case 'swe_sol_eclipse_where':
+        return _emitSolEclipseWhere(entry);
+      case 'swe_lun_eclipse_when_loc':
+        return _emitLunEclipseWhenLoc(entry);
+      case 'swe_deltat':
+        return _emitDeltat(entry);
+      case 'swe_time_equ':
+        return _emitTimeEqu(entry);
+      case 'swe_lmt_to_lat':
+        return _emitLmtToLat(entry);
+      case 'swe_lat_to_lmt':
+        return _emitLatToLmt(entry);
+      case 'swe_azalt':
+        return _emitAzalt(entry);
+      case 'swe_azalt_rev':
+        return _emitAzaltRev(entry);
+      case 'swe_cotrans':
+        return _emitCotrans(entry);
+      case 'swe_refrac':
+        return _emitRefrac(entry);
       default:
         return '// ${entry.functionName}(...)';
     }
@@ -579,6 +603,252 @@ class CEmitter implements CodeEmitter {
     } else if (entry.result != null) {
       buf.writeln();
       buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitRiseTrans(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final body = entry.args['body'] as int;
+    final epheflag = entry.args['epheflag'] as int;
+    final rsmi = entry.args['rsmi'];
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final atpress = entry.args['atpress'];
+    final attemp = entry.args['attemp'];
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(epheflag);
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double tret;');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_rise_trans($jdUt, $bodyStr, NULL, $flagStr, $rsmi, geopos, $atpress, $attemp, &tret, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: tret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitSolEclipseWhenGlob(CallEntry entry) {
+    final jdStart = entry.args['jdStart'];
+    final iflag = entry.args['iflag'] as int;
+    final eclType = entry.args['eclType'];
+    final backward = entry.args['backward'];
+
+    final flagStr = _formatFlags(iflag);
+    final backwardStr = (backward == true || backward == 1) ? 'TRUE' : 'FALSE';
+    final buf = StringBuffer();
+    buf.writeln('double tret[10];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_sol_eclipse_when_glob($jdStart, $flagStr, $eclType, tret, $backwardStr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitSolEclipseWhere(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double geopos[10];');
+    buf.writeln('double attr[20];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_sol_eclipse_where($jdUt, $flagStr, geopos, attr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitLunEclipseWhenLoc(CallEntry entry) {
+    final jdStart = entry.args['jdStart'];
+    final iflag = entry.args['iflag'] as int;
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final backward = entry.args['backward'];
+
+    final flagStr = _formatFlags(iflag);
+    final backwardStr = (backward == true || backward == 1) ? 'TRUE' : 'FALSE';
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double tret[10];');
+    buf.writeln('double attr[20];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_lun_eclipse_when_loc($jdStart, $flagStr, geopos, tret, attr, $backwardStr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitDeltat(CallEntry entry) {
+    final jd = entry.args['jd'];
+    final buf = StringBuffer();
+    buf.write('double dt = swe_deltat($jd);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: dt = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitTimeEqu(CallEntry entry) {
+    final jd = entry.args['jd'];
+    final buf = StringBuffer();
+    buf.writeln('double e;');
+    buf.writeln('char serr[256];');
+    buf.write('int ret = swe_time_equ($jd, &e, serr);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: e = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitLmtToLat(CallEntry entry) {
+    final jdLmt = entry.args['jdLmt'];
+    final geolon = entry.args['geolon'];
+    final buf = StringBuffer();
+    buf.writeln('double jd_lat;');
+    buf.writeln('char serr[256];');
+    buf.write('int ret = swe_lmt_to_lat($jdLmt, $geolon, &jd_lat, serr);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: jd_lat = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitLatToLmt(CallEntry entry) {
+    final jdLat = entry.args['jdLat'];
+    final geolon = entry.args['geolon'];
+    final buf = StringBuffer();
+    buf.writeln('double jd_lmt;');
+    buf.writeln('char serr[256];');
+    buf.write('int ret = swe_lat_to_lmt($jdLat, $geolon, &jd_lmt, serr);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: jd_lmt = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitAzalt(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final calcFlag = entry.args['calcFlag'];
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final atpress = entry.args['atpress'];
+    final attemp = entry.args['attemp'];
+    final bodyLon = entry.args['bodyLon'];
+    final bodyLat = entry.args['bodyLat'];
+    final bodyDist = entry.args['bodyDist'];
+
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double xin[3] = {$bodyLon, $bodyLat, $bodyDist};');
+    buf.writeln('double xaz[3];');
+    buf.write(
+        'swe_azalt($jdUt, $calcFlag, geopos, $atpress, $attemp, xin, xaz);');
+    if (entry.result != null) {
+      buf.writeln();
+      try {
+        final r = entry.result as dynamic;
+        buf.write('// returns: xaz = {${r.azimuth}, ${r.trueAltitude}, ${r.apparentAltitude}}');
+      } catch (_) {
+        buf.write('// returns: ${entry.result}');
+      }
+    }
+    return buf.toString();
+  }
+
+  String _emitAzaltRev(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final calcFlag = entry.args['calcFlag'];
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final azimuth = entry.args['azimuth'];
+    final altitude = entry.args['altitude'];
+
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double xin[2] = {$azimuth, $altitude};');
+    buf.writeln('double xout[2];');
+    buf.write(
+        'swe_azalt_rev($jdUt, $calcFlag, geopos, xin, xout);');
+    if (entry.result != null) {
+      buf.writeln();
+      try {
+        final r = entry.result as dynamic;
+        buf.write('// returns: xout = {${r.lon}, ${r.lat}}');
+      } catch (_) {
+        buf.write('// returns: ${entry.result}');
+      }
+    }
+    return buf.toString();
+  }
+
+  String _emitCotrans(CallEntry entry) {
+    final lon = entry.args['lon'];
+    final lat = entry.args['lat'];
+    final dist = entry.args['dist'];
+    final eps = entry.args['eps'];
+
+    final buf = StringBuffer();
+    buf.writeln('double xin[3] = {$lon, $lat, $dist};');
+    buf.writeln('double xout[3];');
+    buf.write('swe_cotrans(xin, xout, $eps);');
+    if (entry.result != null) {
+      buf.writeln();
+      try {
+        final r = entry.result as dynamic;
+        buf.write('// returns: xout = {${r.lon}, ${r.lat}, ${r.dist}}');
+      } catch (_) {
+        buf.write('// returns: ${entry.result}');
+      }
+    }
+    return buf.toString();
+  }
+
+  String _emitRefrac(CallEntry entry) {
+    final altitude = entry.args['altitude'];
+    final atpress = entry.args['atpress'];
+    final attemp = entry.args['attemp'];
+    final calcFlag = entry.args['calcFlag'];
+
+    final buf = StringBuffer();
+    buf.write('double alt_out = swe_refrac($altitude, $atpress, $attemp, $calcFlag);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: alt_out = ${entry.result}');
     }
     return buf.toString();
   }
