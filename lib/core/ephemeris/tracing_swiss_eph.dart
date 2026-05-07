@@ -162,12 +162,55 @@ class TracingSwissEph implements SwissEph {
       _delegate.calc(jdEt, body, flags);
 
   @override
-  CalcResult calcPctr(double jdEt, int body, int centerBody, int flags) =>
-      _delegate.calcPctr(jdEt, body, centerBody, flags);
+  CalcResult calcPctr(double jdEt, int body, int centerBody, int flags) {
+    final traceId = '$_tabTag:calc_pctr:body=$body,center=$centerBody';
+    try {
+      final result = _delegate.calcPctr(jdEt, body, centerBody, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_calc_pctr',
+        args: {'jdEt': jdEt, 'body': body, 'centerBody': centerBody, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+        returnFlag: result.returnFlag,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_calc_pctr',
+        args: {'jdEt': jdEt, 'body': body, 'centerBody': centerBody, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
-  HouseResult houses(double jdUt, double geolat, double geolon, int hsys) =>
-      _delegate.houses(jdUt, geolat, geolon, hsys);
+  HouseResult houses(double jdUt, double geolat, double geolon, int hsys) {
+    final traceId = '$_tabTag:houses:hsys=$hsys';
+    try {
+      final result = _delegate.houses(jdUt, geolat, geolon, hsys);
+      _entries.add(CallEntry(
+        functionName: 'swe_houses',
+        args: {'jdUt': jdUt, 'geolat': geolat, 'geolon': geolon, 'hsys': hsys},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_houses',
+        args: {'jdUt': jdUt, 'geolat': geolat, 'geolon': geolon, 'hsys': hsys},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   HouseResult housesEx(
@@ -205,10 +248,35 @@ class TracingSwissEph implements SwissEph {
     double atpress = 1013.25,
     double attemp = 15.0,
     String? starName,
-  }) =>
-      _delegate.gauquelinSector(jdUt, body, flags, method,
+  }) {
+    final traceId = '$_tabTag:gauquelin_sector:body=$body';
+    try {
+      final result = _delegate.gauquelinSector(jdUt, body, flags, method,
           geolon: geolon, geolat: geolat, geoalt: geoalt,
           atpress: atpress, attemp: attemp, starName: starName);
+      _entries.add(CallEntry(
+        functionName: 'swe_gauquelin_sector',
+        args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_gauquelin_sector',
+        args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   double getAyanamsaUt(double jdUt) => _delegate.getAyanamsaUt(jdUt);
@@ -217,8 +285,29 @@ class TracingSwissEph implements SwissEph {
   double getAyanamsa(double jdEt) => _delegate.getAyanamsa(jdEt);
 
   @override
-  AyanamsaResult getAyanamsaExUt(double jdUt, int flags) =>
-      _delegate.getAyanamsaExUt(jdUt, flags);
+  AyanamsaResult getAyanamsaExUt(double jdUt, int flags) {
+    final traceId = '$_tabTag:get_ayanamsa_ex_ut';
+    try {
+      final result = _delegate.getAyanamsaExUt(jdUt, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_get_ayanamsa_ex_ut',
+        args: {'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_get_ayanamsa_ex_ut',
+        args: {'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   AyanamsaResult getAyanamsaEx(double jdEt, int flags) =>
@@ -234,8 +323,30 @@ class TracingSwissEph implements SwissEph {
   String houseName(int hsys) => _delegate.houseName(hsys);
 
   @override
-  FixstarResult fixstar2Ut(String star, double jdUt, int flags) =>
-      _delegate.fixstar2Ut(star, jdUt, flags);
+  FixstarResult fixstar2Ut(String star, double jdUt, int flags) {
+    final traceId = '$_tabTag:fixstar2_ut:star=$star';
+    try {
+      final result = _delegate.fixstar2Ut(star, jdUt, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_fixstar2_ut',
+        args: {'star': star, 'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+        returnFlag: result.returnFlag,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_fixstar2_ut',
+        args: {'star': star, 'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   FixstarResult fixstar2(String star, double jdEt, int flags) =>
@@ -245,24 +356,87 @@ class TracingSwissEph implements SwissEph {
   double fixstar2Mag(String star) => _delegate.fixstar2Mag(star);
 
   @override
-  double solCrossUt(double longitude, double jdUt, int flags) =>
-      _delegate.solCrossUt(longitude, jdUt, flags);
+  double solCrossUt(double longitude, double jdUt, int flags) {
+    final traceId = '$_tabTag:sol_cross_ut:lon=$longitude';
+    try {
+      final result = _delegate.solCrossUt(longitude, jdUt, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_solcross_ut',
+        args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_solcross_ut',
+        args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   double solCross(double longitude, double jdEt, int flags) =>
       _delegate.solCross(longitude, jdEt, flags);
 
   @override
-  double moonCrossUt(double longitude, double jdUt, int flags) =>
-      _delegate.moonCrossUt(longitude, jdUt, flags);
+  double moonCrossUt(double longitude, double jdUt, int flags) {
+    final traceId = '$_tabTag:moon_cross_ut:lon=$longitude';
+    try {
+      final result = _delegate.moonCrossUt(longitude, jdUt, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_mooncross_ut',
+        args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_mooncross_ut',
+        args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   double moonCross(double longitude, double jdEt, int flags) =>
       _delegate.moonCross(longitude, jdEt, flags);
 
   @override
-  MoonNodeCrossResult moonCrossNodeUt(double jdUt, int flags) =>
-      _delegate.moonCrossNodeUt(jdUt, flags);
+  MoonNodeCrossResult moonCrossNodeUt(double jdUt, int flags) {
+    final traceId = '$_tabTag:moon_cross_node_ut';
+    try {
+      final result = _delegate.moonCrossNodeUt(jdUt, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_mooncross_node_ut',
+        args: {'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_mooncross_node_ut',
+        args: {'jdUt': jdUt, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   MoonNodeCrossResult moonCrossNode(double jdEt, int flags) =>
@@ -270,8 +444,31 @@ class TracingSwissEph implements SwissEph {
 
   @override
   double helioCrossUt(
-          int body, double longitude, double jdUt, int flags, int dir) =>
-      _delegate.helioCrossUt(body, longitude, jdUt, flags, dir);
+          int body, double longitude, double jdUt, int flags, int dir) {
+    final traceId = '$_tabTag:helio_cross_ut:body=$body,lon=$longitude';
+    try {
+      final result = _delegate.helioCrossUt(body, longitude, jdUt, flags, dir);
+      _entries.add(CallEntry(
+        functionName: 'swe_heliocross_ut',
+        args: {'body': body, 'longitude': longitude, 'jdUt': jdUt,
+               'iflag': flags, 'dir': dir},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_heliocross_ut',
+        args: {'body': body, 'longitude': longitude, 'jdUt': jdUt,
+               'iflag': flags, 'dir': dir},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   double helioCross(
@@ -303,9 +500,32 @@ class TracingSwissEph implements SwissEph {
   @override
   SolarEclipseLocalResult solEclipseWhenLoc(double jdStart, int flags,
           {required double geolon, required double geolat, double geoalt = 0,
-          bool backward = false}) =>
-      _delegate.solEclipseWhenLoc(jdStart, flags,
+          bool backward = false}) {
+    final traceId = '$_tabTag:sol_eclipse_when_loc';
+    try {
+      final result = _delegate.solEclipseWhenLoc(jdStart, flags,
           geolon: geolon, geolat: geolat, geoalt: geoalt, backward: backward);
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_when_loc',
+        args: {'jdStart': jdStart, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt, 'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_when_loc',
+        args: {'jdStart': jdStart, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt, 'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   SolarEclipseGlobalResult solEclipseWhenGlob(double jdStart, int flags,
@@ -316,9 +536,32 @@ class TracingSwissEph implements SwissEph {
   @override
   SolarEclipseAttrResult solEclipseHow(double jdUt, int flags,
           {required double geolon, required double geolat,
-          double geoalt = 0}) =>
-      _delegate.solEclipseHow(jdUt, flags,
+          double geoalt = 0}) {
+    final traceId = '$_tabTag:sol_eclipse_how';
+    try {
+      final result = _delegate.solEclipseHow(jdUt, flags,
           geolon: geolon, geolat: geolat, geoalt: geoalt);
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_how',
+        args: {'jdUt': jdUt, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_sol_eclipse_how',
+        args: {'jdUt': jdUt, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   EclipseWhereResult solEclipseWhere(double jdUt, int flags) =>
@@ -326,9 +569,32 @@ class TracingSwissEph implements SwissEph {
 
   @override
   LunarEclipseGlobalResult lunEclipseWhen(double jdStart, int flags,
-          {int eclType = 0, bool backward = false}) =>
-      _delegate.lunEclipseWhen(jdStart, flags,
+          {int eclType = 0, bool backward = false}) {
+    final traceId = '$_tabTag:lun_eclipse_when';
+    try {
+      final result = _delegate.lunEclipseWhen(jdStart, flags,
           eclType: eclType, backward: backward);
+      _entries.add(CallEntry(
+        functionName: 'swe_lun_eclipse_when',
+        args: {'jdStart': jdStart, 'iflag': flags, 'eclType': eclType,
+               'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_lun_eclipse_when',
+        args: {'jdStart': jdStart, 'iflag': flags, 'eclType': eclType,
+               'backward': backward},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   LunarEclipseLocalResult lunEclipseWhenLoc(double jdStart, int flags,
@@ -340,9 +606,32 @@ class TracingSwissEph implements SwissEph {
   @override
   LunarEclipseAttrResult lunEclipseHow(double jdUt, int flags,
           {required double geolon, required double geolat,
-          double geoalt = 0}) =>
-      _delegate.lunEclipseHow(jdUt, flags,
+          double geoalt = 0}) {
+    final traceId = '$_tabTag:lun_eclipse_how';
+    try {
+      final result = _delegate.lunEclipseHow(jdUt, flags,
           geolon: geolon, geolat: geolat, geoalt: geoalt);
+      _entries.add(CallEntry(
+        functionName: 'swe_lun_eclipse_how',
+        args: {'jdUt': jdUt, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_lun_eclipse_how',
+        args: {'jdUt': jdUt, 'iflag': flags, 'geolon': geolon,
+               'geolat': geolat, 'geoalt': geoalt},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   SolarEclipseLocalResult lunOccultWhenLoc(double jdStart, int body, int flags,
@@ -390,11 +679,38 @@ class TracingSwissEph implements SwissEph {
     required double geolon, required double geolat,
     double geoalt = 0, double atpress = 1013.25, double attemp = 15.0,
     required double horizonHeight,
-  }) =>
-      _delegate.riseTransTrueHor(jdUt, body,
+  }) {
+    final traceId = '$_tabTag:rise_trans_true_hor:body=$body,rsmi=$rsmi';
+    try {
+      final result = _delegate.riseTransTrueHor(jdUt, body,
           starName: starName, epheflag: epheflag, rsmi: rsmi,
           geolon: geolon, geolat: geolat, geoalt: geoalt,
           atpress: atpress, attemp: attemp, horizonHeight: horizonHeight);
+      _entries.add(CallEntry(
+        functionName: 'swe_rise_trans_true_hor',
+        args: {'jdUt': jdUt, 'body': body, 'epheflag': epheflag, 'rsmi': rsmi,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp,
+               'horizonHeight': horizonHeight},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_rise_trans_true_hor',
+        args: {'jdUt': jdUt, 'body': body, 'epheflag': epheflag, 'rsmi': rsmi,
+               'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt,
+               'atpress': atpress, 'attemp': attemp,
+               'horizonHeight': horizonHeight},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   AzAltResult azAlt(double jdUt, int calcFlag,
@@ -445,11 +761,32 @@ class TracingSwissEph implements SwissEph {
   double timeEqu(double jd) => _delegate.timeEqu(jd);
 
   @override
-  double sidTime(double jdUt) => _delegate.sidTime(jdUt);
+  double sidTime(double jdUt) {
+    final traceId = '$_tabTag:sid_time';
+    final result = _delegate.sidTime(jdUt);
+    _entries.add(CallEntry(
+      functionName: 'swe_sidtime',
+      args: {'jdUt': jdUt},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
-  double sidTime0(double jdUt, double eps, double nut) =>
-      _delegate.sidTime0(jdUt, eps, nut);
+  double sidTime0(double jdUt, double eps, double nut) {
+    final traceId = '$_tabTag:sid_time0';
+    final result = _delegate.sidTime0(jdUt, eps, nut);
+    _entries.add(CallEntry(
+      functionName: 'swe_sidtime0',
+      args: {'jdUt': jdUt, 'eps': eps, 'nut': nut},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
   double lmtToLat(double jdLmt, double geolon) =>
@@ -469,8 +806,29 @@ class TracingSwissEph implements SwissEph {
   void setTidAcc(double tidAcc) => _delegate.setTidAcc(tidAcc);
 
   @override
-  NodeApsResult nodApsUt(double jdUt, int body, int flags, int method) =>
-      _delegate.nodApsUt(jdUt, body, flags, method);
+  NodeApsResult nodApsUt(double jdUt, int body, int flags, int method) {
+    final traceId = '$_tabTag:nod_aps_ut:body=$body';
+    try {
+      final result = _delegate.nodApsUt(jdUt, body, flags, method);
+      _entries.add(CallEntry(
+        functionName: 'swe_nod_aps_ut',
+        args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_nod_aps_ut',
+        args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   NodeApsResult nodAps(double jdEt, int body, int flags, int method) =>
@@ -487,8 +845,29 @@ class TracingSwissEph implements SwissEph {
       _delegate.orbitMaxMinTrueDistance(jdEt, body, flags);
 
   @override
-  PhenoResult phenoUt(double jdUt, int body, int flags) =>
-      _delegate.phenoUt(jdUt, body, flags);
+  PhenoResult phenoUt(double jdUt, int body, int flags) {
+    final traceId = '$_tabTag:pheno_ut:body=$body';
+    try {
+      final result = _delegate.phenoUt(jdUt, body, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_pheno_ut',
+        args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_pheno_ut',
+        args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   PhenoResult pheno(double jdEt, int body, int flags) =>
@@ -499,11 +878,36 @@ class TracingSwissEph implements SwissEph {
     required double geolon, required double geolat, double geoalt = 0,
     required AtmoConditions atmo, required ObserverConditions observer,
     required String objectName, required int typeEvent, int flags = 0,
-  }) =>
-      _delegate.heliacalUt(jdStart,
+  }) {
+    final traceId = '$_tabTag:heliacal_ut:obj=$objectName,event=$typeEvent';
+    try {
+      final result = _delegate.heliacalUt(jdStart,
           geolon: geolon, geolat: geolat, geoalt: geoalt,
           atmo: atmo, observer: observer,
           objectName: objectName, typeEvent: typeEvent, flags: flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_heliacal_ut',
+        args: {'jdStart': jdStart, 'geolon': geolon, 'geolat': geolat,
+               'geoalt': geoalt, 'objectName': objectName,
+               'typeEvent': typeEvent, 'flags': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_heliacal_ut',
+        args: {'jdStart': jdStart, 'geolon': geolon, 'geolat': geolat,
+               'geoalt': geoalt, 'objectName': objectName,
+               'typeEvent': typeEvent, 'flags': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   HeliacalPhenoResult heliacalPhenoUt(double jdUt, {

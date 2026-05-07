@@ -51,6 +51,7 @@ final nodesApsResultsProvider = Provider<NodesApsResult?>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('nodesApsides');
   final swe = ref.read(sweProvider);
   final body = ref.watch(nodesBodyProvider);
   final method = ref.watch(nodesMethodProvider);

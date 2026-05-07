@@ -85,6 +85,7 @@ final housesResultProvider = Provider<HousesCalcResult?>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('houses');
   final swe = ref.read(sweProvider);
   final hsys = ref.watch(selectedHouseSystemProvider);
 

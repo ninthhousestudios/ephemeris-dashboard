@@ -176,6 +176,7 @@ final starResultProvider = Provider<StarResult?>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('stars');
   final swe = ref.read(sweProvider);
   final searchTerm = ref.watch(starSearchProvider);
 

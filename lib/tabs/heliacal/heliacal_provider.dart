@@ -77,6 +77,7 @@ final heliacalResultProvider = Provider<HeliacalCalcResult?>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('heliacal');
 
   final objectName = ref.watch(heliacalStarProvider).trim();
   final typeEvent = ref.watch(heliacalEventTypeProvider);

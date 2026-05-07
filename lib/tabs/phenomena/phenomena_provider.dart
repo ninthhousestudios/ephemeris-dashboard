@@ -47,6 +47,7 @@ final phenomenaResultsProvider = Provider<List<PhenomenaResult>>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('phenomena');
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(phenomenaBodiesProvider);
 

@@ -83,6 +83,7 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('crossings');
   final swe = ref.read(sweProvider);
   final type = ref.watch(crossingTypeProvider);
   final lon = ref.watch(crossingLonProvider);

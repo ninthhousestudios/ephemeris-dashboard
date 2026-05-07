@@ -38,6 +38,40 @@ class CEmitter implements CodeEmitter {
         return _emitSetEphePath(entry);
       case 'swe_set_jpl_file':
         return _emitSetJplFile(entry);
+      case 'swe_houses':
+        return _emitHouses(entry);
+      case 'swe_fixstar2_ut':
+        return _emitFixstar2Ut(entry);
+      case 'swe_nod_aps_ut':
+        return _emitNodApsUt(entry);
+      case 'swe_pheno_ut':
+        return _emitPhenoUt(entry);
+      case 'swe_calc_pctr':
+        return _emitCalcPctr(entry);
+      case 'swe_get_ayanamsa_ex_ut':
+        return _emitGetAyanamsaExUt(entry);
+      case 'swe_gauquelin_sector':
+        return _emitGauquelinSector(entry);
+      case 'swe_solcross_ut':
+        return _emitSolcrossUt(entry);
+      case 'swe_mooncross_ut':
+        return _emitMooncrossUt(entry);
+      case 'swe_mooncross_node_ut':
+        return _emitMooncrossNodeUt(entry);
+      case 'swe_heliocross_ut':
+        return _emitHeliocrossUt(entry);
+      case 'swe_rise_trans_true_hor':
+        return _emitRiseTransTrueHor(entry);
+      case 'swe_heliacal_ut':
+        return _emitHeliacalUt(entry);
+      case 'swe_sol_eclipse_when_loc':
+        return _emitSolEclipseWhenLoc(entry);
+      case 'swe_sol_eclipse_how':
+        return _emitSolEclipseHow(entry);
+      case 'swe_lun_eclipse_when':
+        return _emitLunEclipseWhen(entry);
+      case 'swe_lun_eclipse_how':
+        return _emitLunEclipseHow(entry);
       default:
         return '// ${entry.functionName}(...)';
     }
@@ -146,6 +180,407 @@ class CEmitter implements CodeEmitter {
   String _emitSetJplFile(CallEntry entry) {
     final filename = entry.args['filename'];
     return 'swe_set_jpl_file("$filename");';
+  }
+
+  String _emitHouses(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final geolat = entry.args['geolat'];
+    final geolon = entry.args['geolon'];
+    final hsys = entry.args['hsys'] as int;
+
+    final hsysChar = String.fromCharCode(hsys);
+    final buf = StringBuffer();
+    buf.writeln('double cusps[13];');
+    buf.writeln('double ascmc[10];');
+    buf.write(
+        "int ret = swe_houses($jdUt, $geolat, $geolon, '$hsysChar', cusps, ascmc);");
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitFixstar2Ut(CallEntry entry) {
+    final star = entry.args['star'];
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double xx[6];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_fixstar2_ut("$star", $jdUt, $flagStr, xx, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitNodApsUt(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final body = entry.args['body'] as int;
+    final iflag = entry.args['iflag'] as int;
+    final method = entry.args['method'] as int;
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double xnasc[6], xndsc[6], xperi[6], xaphe[6];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_nod_aps_ut($jdUt, $bodyStr, $flagStr, $method, xnasc, xndsc, xperi, xaphe, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitPhenoUt(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final body = entry.args['body'] as int;
+    final iflag = entry.args['iflag'] as int;
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double attr[20];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_pheno_ut($jdUt, $bodyStr, $flagStr, attr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitCalcPctr(CallEntry entry) {
+    final jdEt = entry.args['jdEt'];
+    final body = entry.args['body'] as int;
+    final centerBody = entry.args['centerBody'] as int;
+    final iflag = entry.args['iflag'] as int;
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final centerStr = SweSymbolCatalog.bodyName(centerBody);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double xxeret[6];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_calc_pctr($jdEt, $bodyStr, $centerStr, $flagStr, xxeret, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitGetAyanamsaExUt(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double daya;');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_get_ayanamsa_ex_ut($jdUt, $flagStr, &daya, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: daya = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitGauquelinSector(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final body = entry.args['body'] as int;
+    final iflag = entry.args['iflag'] as int;
+    final method = entry.args['method'];
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final atpress = entry.args['atpress'];
+    final attemp = entry.args['attemp'];
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double dgsect;');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_gauquelin_sector($jdUt, $bodyStr, NULL, $flagStr, $method, geopos, $atpress, $attemp, &dgsect, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: dgsect = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitSolcrossUt(CallEntry entry) {
+    final longitude = entry.args['longitude'];
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('char serr[256];');
+    buf.write(
+        'double jd_cross = swe_solcross_ut($longitude, $jdUt, $flagStr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: jd_cross = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitMooncrossUt(CallEntry entry) {
+    final longitude = entry.args['longitude'];
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('char serr[256];');
+    buf.write(
+        'double jd_cross = swe_mooncross_ut($longitude, $jdUt, $flagStr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: jd_cross = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitMooncrossNodeUt(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double xlon, xlat;');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'double jd_cross = swe_mooncross_node_ut($jdUt, $flagStr, &xlon, &xlat, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: jd_cross = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitHeliocrossUt(CallEntry entry) {
+    final body = entry.args['body'] as int;
+    final longitude = entry.args['longitude'];
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+    final dir = entry.args['dir'];
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double jd_cross;');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'double ret = swe_heliocross_ut($bodyStr, $longitude, $jdUt, $flagStr, $dir, &jd_cross, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: jd_cross = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitRiseTransTrueHor(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final body = entry.args['body'] as int;
+    final epheflag = entry.args['epheflag'] as int;
+    final rsmi = entry.args['rsmi'];
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final atpress = entry.args['atpress'];
+    final attemp = entry.args['attemp'];
+    final horizonHeight = entry.args['horizonHeight'];
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(epheflag);
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double tret;');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_rise_trans_true_hor($jdUt, $bodyStr, NULL, $flagStr, $rsmi, geopos, $atpress, $attemp, $horizonHeight, &tret, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: tret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitHeliacalUt(CallEntry entry) {
+    final jdStart = entry.args['jdStart'];
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final objectName = entry.args['objectName'];
+    final typeEvent = entry.args['typeEvent'];
+    final flags = entry.args['flags'] as int;
+
+    final flagStr = _formatFlags(flags);
+    final buf = StringBuffer();
+    buf.writeln('double dgeo[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double datm[4] = {0};');
+    buf.writeln('double dobs[6] = {0};');
+    buf.writeln('double dret[50];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_heliacal_ut($jdStart, dgeo, datm, dobs, "$objectName", $typeEvent, $flagStr, dret, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitSolEclipseWhenLoc(CallEntry entry) {
+    final jdStart = entry.args['jdStart'];
+    final iflag = entry.args['iflag'] as int;
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+    final backward = entry.args['backward'];
+
+    final flagStr = _formatFlags(iflag);
+    final backwardStr = (backward == true || backward == 1) ? 'TRUE' : 'FALSE';
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double tret[10];');
+    buf.writeln('double attr[20];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_sol_eclipse_when_loc($jdStart, $flagStr, geopos, tret, attr, $backwardStr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitSolEclipseHow(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double attr[20];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_sol_eclipse_how($jdUt, $flagStr, geopos, attr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitLunEclipseWhen(CallEntry entry) {
+    final jdStart = entry.args['jdStart'];
+    final iflag = entry.args['iflag'] as int;
+    final eclType = entry.args['eclType'];
+    final backward = entry.args['backward'];
+
+    final flagStr = _formatFlags(iflag);
+    final backwardStr = (backward == true || backward == 1) ? 'TRUE' : 'FALSE';
+    final buf = StringBuffer();
+    buf.writeln('double tret[10];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_lun_eclipse_when($jdStart, $flagStr, $eclType, tret, $backwardStr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitLunEclipseHow(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final iflag = entry.args['iflag'] as int;
+    final geolon = entry.args['geolon'];
+    final geolat = entry.args['geolat'];
+    final geoalt = entry.args['geoalt'];
+
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
+    buf.writeln('double attr[20];');
+    buf.writeln('char serr[256];');
+    buf.write(
+        'int32 ret = swe_lun_eclipse_how($jdUt, $flagStr, geopos, attr, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ret = ${entry.result}');
+    }
+    return buf.toString();
   }
 
   String _formatFlags(int flags) {

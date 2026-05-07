@@ -51,6 +51,7 @@ final ayanamsaResultsProvider = Provider<List<AyanamsaCalcResult>>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final ctx = ref.watch(contextBarProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('ayanamsa');
   final selected = ref.watch(selectedAyanamsasProvider);
   final compareMode = ref.watch(ayanamsaCompareModeProvider);
 

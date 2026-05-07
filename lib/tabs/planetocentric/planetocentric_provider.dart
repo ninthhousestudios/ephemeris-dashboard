@@ -76,6 +76,7 @@ final planetocentricResultsProvider =
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('planetocentric');
   final swe = ref.read(sweProvider);
   final centerBody = ref.watch(planetocentricCenterProvider);
   final bodies = ref.watch(planetocentricBodiesProvider);
