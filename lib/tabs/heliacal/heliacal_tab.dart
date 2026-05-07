@@ -4,7 +4,10 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/swe_service.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../stars/stars_provider.dart' show StarCatalogEntry, starCatalog;
@@ -454,6 +457,15 @@ class _ResultsView extends ConsumerWidget {
                 rawValue: double.nan,
               ),
             ],
+            onCode: () {
+              final trace = ref.read(callTraceProvider);
+              if (trace == null) return;
+              final slice = trace.sliceByTab('heliacal');
+              if (slice.entries.isEmpty) return;
+              const emitter = CEmitter();
+              final code = slice.entries.map(emitter.emitSnippet).join('\n');
+              showCodeModal(context, code: code, languageLabel: emitter.displayName);
+            },
           ),
         ),
       );
@@ -473,12 +485,12 @@ class _ResultsView extends ConsumerWidget {
             children: [
               SizedBox(
                 width: cardWidth,
-                child: _buildEventCard(result, ref.read(sweProvider),
+                child: _buildEventCard(context, ref, result, ref.read(sweProvider),
                     ref.read(contextBarProvider).utcOffset),
               ),
               SizedBox(
                 width: cardWidth,
-                child: _buildJdCard(result),
+                child: _buildJdCard(context, ref, result),
               ),
             ],
           ),
@@ -487,7 +499,7 @@ class _ResultsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildEventCard(HeliacalCalcResult r, SwissEph swe, double utcOffset) {
+  Widget _buildEventCard(BuildContext context, WidgetRef ref, HeliacalCalcResult r, SwissEph swe, double utcOffset) {
     return ResultCard(
       title: r.objectName,
       subtitle: HeliacalCalcResult.eventLabel(r.eventType),
@@ -508,10 +520,19 @@ class _ResultsView extends ConsumerWidget {
           rawValue: r.endVisibleJd,
         ),
       ],
+      onCode: () {
+        final trace = ref.read(callTraceProvider);
+        if (trace == null) return;
+        final slice = trace.sliceByTab('heliacal');
+        if (slice.entries.isEmpty) return;
+        const emitter = CEmitter();
+        final code = slice.entries.map(emitter.emitSnippet).join('\n');
+        showCodeModal(context, code: code, languageLabel: emitter.displayName);
+      },
     );
   }
 
-  Widget _buildJdCard(HeliacalCalcResult r) {
+  Widget _buildJdCard(BuildContext context, WidgetRef ref, HeliacalCalcResult r) {
     return ResultCard(
       title: 'Julian Days',
       subtitle: 'heliacalUt result',
@@ -532,6 +553,15 @@ class _ResultsView extends ConsumerWidget {
           rawValue: r.endVisibleJd,
         ),
       ],
+      onCode: () {
+        final trace = ref.read(callTraceProvider);
+        if (trace == null) return;
+        final slice = trace.sliceByTab('heliacal');
+        if (slice.entries.isEmpty) return;
+        const emitter = CEmitter();
+        final code = slice.entries.map(emitter.emitSnippet).join('\n');
+        showCodeModal(context, code: code, languageLabel: emitter.displayName);
+      },
     );
   }
 }

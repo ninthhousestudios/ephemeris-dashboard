@@ -5,6 +5,9 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'crossings_provider.dart';
@@ -236,6 +239,15 @@ class _ResultView extends ConsumerWidget {
               rawValue: result.crossingLongitude,
             ),
         ],
+        onCode: () {
+          final trace = ref.read(callTraceProvider);
+          if (trace == null) return;
+          final slice = trace.sliceByTab('crossings');
+          if (slice.entries.isEmpty) return;
+          const emitter = CEmitter();
+          final code = slice.entries.map(emitter.emitSnippet).join('\n');
+          showCodeModal(context, code: code, languageLabel: emitter.displayName);
+        },
       ),
     );
   }

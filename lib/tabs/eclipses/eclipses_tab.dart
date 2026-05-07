@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/swe_service.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'eclipses_provider.dart';
@@ -188,7 +191,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
             children: events
                 .map((e) => SizedBox(
                       width: cardWidth,
-                      child: _eclipseCard(e, swe),
+                      child: _eclipseCard(context, e, swe),
                     ))
                 .toList(),
           ),
@@ -197,7 +200,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     );
   }
 
-  Widget _eclipseCard(EclipseEvent e, SwissEph swe) {
+  Widget _eclipseCard(BuildContext context, EclipseEvent e, SwissEph swe) {
     final fields = <ResultField>[];
 
     if (e.error != null) {
@@ -269,6 +272,15 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
       subtitle: scopeLabel,
       flagHex: '0x${e.returnFlag.toRadixString(16).toUpperCase()}',
       fields: fields,
+      onCode: () {
+        final trace = ref.read(callTraceProvider);
+        if (trace == null) return;
+        final slice = trace.sliceByTab('eclipses');
+        if (slice.entries.isEmpty) return;
+        const emitter = CEmitter();
+        final code = slice.entries.map(emitter.emitSnippet).join('\n');
+        showCodeModal(context, code: code, languageLabel: emitter.displayName);
+      },
     );
   }
 

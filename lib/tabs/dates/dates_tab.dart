@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'dates_provider.dart';
@@ -303,10 +306,10 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             spacing: 4,
             runSpacing: 4,
             children: [
-              SizedBox(width: cardWidth, child: _buildCalendarCard(result)),
-              SizedBox(width: cardWidth, child: _buildJulianDayCard(result)),
-              SizedBox(width: cardWidth, child: _buildTimeCard(result)),
-              SizedBox(width: cardWidth, child: _buildLocalTimeCard(result)),
+              SizedBox(width: cardWidth, child: _buildCalendarCard(context, result)),
+              SizedBox(width: cardWidth, child: _buildJulianDayCard(context, result)),
+              SizedBox(width: cardWidth, child: _buildTimeCard(context, result)),
+              SizedBox(width: cardWidth, child: _buildLocalTimeCard(context, result)),
             ],
           ),
         );
@@ -314,7 +317,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     );
   }
 
-  Widget _buildCalendarCard(DatesResult r) {
+  Widget _buildCalendarCard(BuildContext context, DatesResult r) {
     final t = r.revjulTime;
     final timeStr = '${t.h.toString().padLeft(2, '0')}:'
         '${t.m.toString().padLeft(2, '0')}:'
@@ -332,10 +335,19 @@ class _DatesTabState extends ConsumerState<DatesTab> {
               ResultField(label: 'Time (UT)', value: timeStr, rawValue: r.revjulHour),
               ResultField(label: 'Day of Week', value: r.dayOfWeekName, rawValue: double.nan),
             ],
+      onCode: () {
+        final trace = ref.read(callTraceProvider);
+        if (trace == null) return;
+        final slice = trace.sliceByTab('dates');
+        if (slice.entries.isEmpty) return;
+        const emitter = CEmitter();
+        final code = slice.entries.map(emitter.emitSnippet).join('\n');
+        showCodeModal(context, code: code, languageLabel: emitter.displayName);
+      },
     );
   }
 
-  Widget _buildJulianDayCard(DatesResult r) {
+  Widget _buildJulianDayCard(BuildContext context, DatesResult r) {
     return ResultCard(
       title: 'Julian Day',
       subtitle: 'JD UT and ET',
@@ -343,10 +355,19 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         ResultField(label: 'JD UT', value: r.jdUt.toStringAsFixed(8), rawValue: r.jdUt),
         ResultField(label: 'JD ET', value: r.jdEt.toStringAsFixed(8), rawValue: r.jdEt),
       ],
+      onCode: () {
+        final trace = ref.read(callTraceProvider);
+        if (trace == null) return;
+        final slice = trace.sliceByTab('dates');
+        if (slice.entries.isEmpty) return;
+        const emitter = CEmitter();
+        final code = slice.entries.map(emitter.emitSnippet).join('\n');
+        showCodeModal(context, code: code, languageLabel: emitter.displayName);
+      },
     );
   }
 
-  Widget _buildTimeCard(DatesResult r) {
+  Widget _buildTimeCard(BuildContext context, DatesResult r) {
     return ResultCard(
       title: 'Time',
       subtitle: 'Delta-T · Sidereal · Equation of Time',
@@ -364,10 +385,19 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         else
           ResultField(label: 'Eq. of Time (min)', value: r.equationOfTimeMinutes.toStringAsFixed(4), rawValue: r.equationOfTimeMinutes),
       ],
+      onCode: () {
+        final trace = ref.read(callTraceProvider);
+        if (trace == null) return;
+        final slice = trace.sliceByTab('dates');
+        if (slice.entries.isEmpty) return;
+        const emitter = CEmitter();
+        final code = slice.entries.map(emitter.emitSnippet).join('\n');
+        showCodeModal(context, code: code, languageLabel: emitter.displayName);
+      },
     );
   }
 
-  Widget _buildLocalTimeCard(DatesResult r) {
+  Widget _buildLocalTimeCard(BuildContext context, DatesResult r) {
     return ResultCard(
       title: 'Local Time',
       subtitle: 'LMT ↔ LAT (by longitude)',
@@ -381,6 +411,15 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         else
           ResultField(label: 'LAT→LMT (JD)', value: r.latToLmt.toStringAsFixed(8), rawValue: r.latToLmt),
       ],
+      onCode: () {
+        final trace = ref.read(callTraceProvider);
+        if (trace == null) return;
+        final slice = trace.sliceByTab('dates');
+        if (slice.entries.isEmpty) return;
+        const emitter = CEmitter();
+        final code = slice.entries.map(emitter.emitSnippet).join('\n');
+        showCodeModal(context, code: code, languageLabel: emitter.displayName);
+      },
     );
   }
 

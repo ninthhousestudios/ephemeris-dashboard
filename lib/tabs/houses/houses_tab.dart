@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/persistence.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/result_card.dart';
 import 'houses_provider.dart';
 
@@ -127,6 +130,15 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                             rawValue: result.cusps[i],
                           ),
                         ],
+                        onCode: () {
+                          final trace = ref.read(callTraceProvider);
+                          if (trace == null) return;
+                          final slice = trace.sliceByTab('houses');
+                          if (slice.entries.isEmpty) return;
+                          const emitter = CEmitter();
+                          final code = slice.entries.map(emitter.emitSnippet).join('\n');
+                          showCodeModal(context, code: code, languageLabel: emitter.displayName);
+                        },
                       ),
                     ),
                 ],
@@ -142,6 +154,15 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                   ResultField(label: 'Vertex', value: formatAngle(result.vertex, format), rawValue: result.vertex),
                   ResultField(label: 'Eq Asc', value: formatAngle(result.equatorialAsc, format), rawValue: result.equatorialAsc),
                 ],
+                onCode: () {
+                  final trace = ref.read(callTraceProvider);
+                  if (trace == null) return;
+                  final slice = trace.sliceByTab('houses');
+                  if (slice.entries.isEmpty) return;
+                  const emitter = CEmitter();
+                  final code = slice.entries.map(emitter.emitSnippet).join('\n');
+                  showCodeModal(context, code: code, languageLabel: emitter.displayName);
+                },
               ),
             ],
           ),
