@@ -60,4 +60,54 @@ void main() {
       expect(tracing.entries, isEmpty);
     });
   });
+
+  group('setup call tracing', () {
+    test('setSidMode records entry with context category', () {
+      tracing.setSidMode(1);
+
+      expect(tracing.entries, hasLength(1));
+      final entry = tracing.entries.first;
+      expect(entry.functionName, equals('swe_set_sid_mode'));
+      expect(entry.args['sidMode'], equals(1));
+      expect(entry.category, equals(CallCategory.context));
+    });
+
+    test('setTopo records entry with context category', () {
+      tracing.setTopo(-0.1278, 51.5074, 0);
+
+      expect(tracing.entries, hasLength(1));
+      final entry = tracing.entries.first;
+      expect(entry.functionName, equals('swe_set_topo'));
+      expect(entry.args['geolon'], equals(-0.1278));
+      expect(entry.args['geolat'], equals(51.5074));
+      expect(entry.category, equals(CallCategory.context));
+    });
+
+    test('setJplFile records entry with context category', () {
+      tracing.setJplFile('de441.eph');
+
+      expect(tracing.entries, hasLength(1));
+      final entry = tracing.entries.first;
+      expect(entry.functionName, equals('swe_set_jpl_file'));
+      expect(entry.args['filename'], equals('de441.eph'));
+      expect(entry.category, equals(CallCategory.context));
+    });
+
+    test('setEphePath records entry with context category', () {
+      tracing.setEphePath('/tmp/ephe');
+
+      expect(tracing.entries, hasLength(1));
+      final entry = tracing.entries.first;
+      expect(entry.functionName, equals('swe_set_ephe_path'));
+      expect(entry.args['path'], equals('/tmp/ephe'));
+      expect(entry.category, equals(CallCategory.context));
+    });
+
+    test('setup entries use tab tag in traceId', () {
+      tracing.setTabTag('planets');
+      tracing.setSidMode(1);
+
+      expect(tracing.entries.first.traceId, equals('planets:set_sid_mode'));
+    });
+  });
 }

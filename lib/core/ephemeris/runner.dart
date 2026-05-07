@@ -5,46 +5,52 @@ import '../calc_context.dart';
 import '../swe_service.dart';
 import '../ephe/dir_provider.dart';
 import 'applied_globals.dart';
+import 'trace_model.dart';
+import 'tracing_swiss_eph.dart';
 
 class EphemerisRunner {
-  EphemerisRunner(this._swe);
+  EphemerisRunner(SwissEph swe) : _tracing = TracingSwissEph(swe);
 
-  final SwissEph _swe;
+  final TracingSwissEph _tracing;
   AppliedGlobals? _last;
+
+  List<CallEntry> get traceEntries => _tracing.entries;
+  void clearTrace() => _tracing.clearEntries();
+  void setTabTag(String tag) => _tracing.setTabTag(tag);
 
   T run<T>(AppliedGlobals globals, T Function(SwissEph eph) body) {
     if (_last != globals) {
       _apply(globals);
       _last = globals;
     }
-    return body(_swe);
+    return body(_tracing);
   }
 
   T runScoped<T>(
     void Function(SwissEph eph) override,
     T Function(SwissEph eph) body,
   ) {
-    override(_swe);
+    override(_tracing);
     try {
-      return body(_swe);
+      return body(_tracing);
     } finally {
       if (_last != null) _apply(_last!);
     }
   }
 
   void _apply(AppliedGlobals g) {
-    if (g.ephePath != null) _swe.setEphePath(g.ephePath!);
+    if (g.ephePath != null) _tracing.setEphePath(g.ephePath!);
     if (g.sidMode != null) {
       if (g.sidMode == 255) {
-        _swe.setSidMode(255, t0: g.userAyanT0, ayanT0: g.userAyanValue);
+        _tracing.setSidMode(255, t0: g.userAyanT0, ayanT0: g.userAyanValue);
       } else {
-        _swe.setSidMode(g.sidMode!);
+        _tracing.setSidMode(g.sidMode!);
       }
     }
     if (g.topo != null) {
-      _swe.setTopo(g.topo!.lon, g.topo!.lat, g.topo!.alt);
+      _tracing.setTopo(g.topo!.lon, g.topo!.lat, g.topo!.alt);
     }
-    if (g.jplFile != null) _swe.setJplFile(g.jplFile!);
+    if (g.jplFile != null) _tracing.setJplFile(g.jplFile!);
   }
 }
 

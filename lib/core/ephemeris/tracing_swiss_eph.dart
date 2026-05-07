@@ -92,18 +92,48 @@ class TracingSwissEph implements SwissEph {
   int dayOfWeek(double jd) => _delegate.dayOfWeek(jd);
 
   @override
-  void setEphePath(String path) => _delegate.setEphePath(path);
+  void setEphePath(String path) {
+    _entries.add(CallEntry(
+      functionName: 'swe_set_ephe_path',
+      args: {'path': path},
+      category: CallCategory.context,
+      traceId: '$_tabTag:set_ephe_path',
+    ));
+    _delegate.setEphePath(path);
+  }
 
   @override
-  void setSidMode(int sidMode, {double t0 = 0, double ayanT0 = 0}) =>
-      _delegate.setSidMode(sidMode, t0: t0, ayanT0: ayanT0);
+  void setSidMode(int sidMode, {double t0 = 0, double ayanT0 = 0}) {
+    _entries.add(CallEntry(
+      functionName: 'swe_set_sid_mode',
+      args: {'sidMode': sidMode, 't0': t0, 'ayanT0': ayanT0},
+      category: CallCategory.context,
+      traceId: '$_tabTag:set_sid_mode',
+    ));
+    _delegate.setSidMode(sidMode, t0: t0, ayanT0: ayanT0);
+  }
 
   @override
-  void setTopo(double geolon, double geolat, double geoalt) =>
-      _delegate.setTopo(geolon, geolat, geoalt);
+  void setTopo(double geolon, double geolat, double geoalt) {
+    _entries.add(CallEntry(
+      functionName: 'swe_set_topo',
+      args: {'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt},
+      category: CallCategory.context,
+      traceId: '$_tabTag:set_topo',
+    ));
+    _delegate.setTopo(geolon, geolat, geoalt);
+  }
 
   @override
-  void setJplFile(String filename) => _delegate.setJplFile(filename);
+  void setJplFile(String filename) {
+    _entries.add(CallEntry(
+      functionName: 'swe_set_jpl_file',
+      args: {'filename': filename},
+      category: CallCategory.context,
+      traceId: '$_tabTag:set_jpl_file',
+    ));
+    _delegate.setJplFile(filename);
+  }
 
   @override
   String getLibraryPath() => _delegate.getLibraryPath();
