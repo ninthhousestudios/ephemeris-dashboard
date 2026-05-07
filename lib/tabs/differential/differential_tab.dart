@@ -6,8 +6,11 @@ import 'package:swisseph/swisseph.dart';
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../../tabs/planets/planets_provider.dart' show defaultBodies, extraBodies, uranianBodies, namedAsteroids, asteroidOffset;
@@ -607,6 +610,21 @@ class _DiffResults extends ConsumerWidget {
         subtitle: 'Differential',
         flagHex: '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
             '0x${result.returnFlagB.toRadixString(16).toUpperCase()}',
+        onCode: () {
+          final trace = ref.read(callTraceProvider);
+          if (trace == null) return;
+          final slice = trace.sliceByTab('differential');
+          if (slice.entries.isEmpty) return;
+          const emitter = CEmitter();
+          final code = slice.entries
+              .map(emitter.emitSnippet)
+              .join('\n');
+          showCodeModal(
+            context,
+            code: code,
+            languageLabel: emitter.displayName,
+          );
+        },
         fields: [
           ResultField(label: 'Lon ${result.nameA}', value: formatAngle(result.lonA, fmt), rawValue: result.lonA),
           ResultField(label: 'Lon ${result.nameB}', value: formatAngle(result.lonB, fmt), rawValue: result.lonB),

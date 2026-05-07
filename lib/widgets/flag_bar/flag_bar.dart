@@ -4,8 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/runner.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/flag_definitions.dart';
 import '../../core/flag_provider.dart';
+import '../code_modal.dart';
 import 'flag_group.dart';
 import 'flag_toggle.dart';
 
@@ -82,6 +86,28 @@ class FlagBar extends ConsumerWidget {
                       color: colors.onSurfaceVariant,
                     ),
               ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.code, size: 18),
+              tooltip: 'Show flag setup code',
+              onPressed: ref.watch(callTraceProvider) == null
+                  ? null
+                  : () {
+                      final trace = ref.read(callTraceProvider);
+                      if (trace == null) return;
+                      final slice =
+                          trace.sliceByCategory(CallCategory.flags);
+                      if (slice.entries.isEmpty) return;
+                      const emitter = CEmitter();
+                      final code = emitter.emitSection(slice.entries);
+                      showCodeModal(
+                        context,
+                        code: code,
+                        languageLabel: emitter.displayName,
+                      );
+                    },
+              visualDensity: VisualDensity.compact,
             ),
             if (trailing != null) ...[
               const SizedBox(width: 8),

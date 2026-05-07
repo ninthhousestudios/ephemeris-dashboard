@@ -60,6 +60,7 @@ final diffResultProvider = Provider<DiffResult?>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('differential');
   final swe = ref.read(sweProvider);
   final bodyA = ref.watch(diffBodyAProvider);
   final bodyB = ref.watch(diffBodyBProvider);

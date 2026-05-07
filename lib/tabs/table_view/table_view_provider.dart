@@ -81,6 +81,7 @@ final tableViewResultsProvider = Provider<List<EphemerisRow>>((ref) {
   final ectx = ref.watch(effectiveContextProvider);
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  runner.setTabTag('tableView');
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(tableViewBodiesProvider);
   final stepValue = ref.watch(tableViewStepValueProvider);
