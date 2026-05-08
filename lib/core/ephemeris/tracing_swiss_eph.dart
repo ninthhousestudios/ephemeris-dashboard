@@ -279,7 +279,18 @@ class TracingSwissEph implements SwissEph {
   }
 
   @override
-  double getAyanamsaUt(double jdUt) => _delegate.getAyanamsaUt(jdUt);
+  double getAyanamsaUt(double jdUt) {
+    final traceId = '$_tabTag:get_ayanamsa_ut';
+    final result = _delegate.getAyanamsaUt(jdUt);
+    _entries.add(CallEntry(
+      functionName: 'swe_get_ayanamsa_ut',
+      args: {'jdUt': jdUt},
+      category: CallCategory.calc,
+      traceId: traceId,
+      result: result,
+    ));
+    return result;
+  }
 
   @override
   double getAyanamsa(double jdEt) => _delegate.getAyanamsa(jdEt);
@@ -1054,13 +1065,55 @@ class TracingSwissEph implements SwissEph {
 
   @override
   OrbitalElementsResult getOrbitalElements(
-          double jdEt, int body, int flags) =>
-      _delegate.getOrbitalElements(jdEt, body, flags);
+          double jdEt, int body, int flags) {
+    final traceId = '$_tabTag:get_orbital_elements:body=$body';
+    try {
+      final result = _delegate.getOrbitalElements(jdEt, body, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_get_orbital_elements',
+        args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_get_orbital_elements',
+        args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   OrbitDistanceResult orbitMaxMinTrueDistance(
-          double jdEt, int body, int flags) =>
-      _delegate.orbitMaxMinTrueDistance(jdEt, body, flags);
+          double jdEt, int body, int flags) {
+    final traceId = '$_tabTag:orbit_max_min_true_distance:body=$body';
+    try {
+      final result = _delegate.orbitMaxMinTrueDistance(jdEt, body, flags);
+      _entries.add(CallEntry(
+        functionName: 'swe_orbit_max_min_true_distance',
+        args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        result: result,
+      ));
+      return result;
+    } catch (e) {
+      _entries.add(CallEntry(
+        functionName: 'swe_orbit_max_min_true_distance',
+        args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+        category: CallCategory.calc,
+        traceId: traceId,
+        errorMessage: e.toString(),
+      ));
+      rethrow;
+    }
+  }
 
   @override
   PhenoResult phenoUt(double jdUt, int body, int flags) {

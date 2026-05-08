@@ -96,6 +96,12 @@ class CEmitter implements CodeEmitter {
         return _emitCotrans(entry);
       case 'swe_refrac':
         return _emitRefrac(entry);
+      case 'swe_get_ayanamsa_ut':
+        return _emitGetAyanamsaUt(entry);
+      case 'swe_get_orbital_elements':
+        return _emitGetOrbitalElements(entry);
+      case 'swe_orbit_max_min_true_distance':
+        return _emitOrbitMaxMinTrueDistance(entry);
       default:
         return '// ${entry.functionName}(...)';
     }
@@ -864,6 +870,56 @@ class CEmitter implements CodeEmitter {
     return buf.toString();
   }
 
+  String _emitGetAyanamsaUt(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final buf = StringBuffer();
+    buf.write('double ayanamsa = swe_get_ayanamsa_ut($jdUt);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ayanamsa = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitGetOrbitalElements(CallEntry entry) {
+    final jdEt = entry.args['jdEt'];
+    final body = entry.args['body'] as int;
+    final iflag = entry.args['iflag'] as int;
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double elem[50];');
+    buf.writeln('char serr[256];');
+    buf.write('int32 ret = swe_get_orbital_elements($jdEt, $bodyStr, $flagStr, elem, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    }
+    return buf.toString();
+  }
+
+  String _emitOrbitMaxMinTrueDistance(CallEntry entry) {
+    final jdEt = entry.args['jdEt'];
+    final body = entry.args['body'] as int;
+    final iflag = entry.args['iflag'] as int;
+
+    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.writeln('double dmax, dmin, dtrue;');
+    buf.writeln('char serr[256];');
+    buf.write('int32 ret = swe_orbit_max_min_true_distance($jdEt, $bodyStr, $flagStr, &dmax, &dmin, &dtrue, serr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ${entry.result}');
+    }
+    return buf.toString();
+  }
+
   String _formatFlags(int flags) {
     final parts = SweSymbolCatalog.flagDecompose(flags);
     if (parts.isEmpty) return '0';
@@ -954,6 +1010,12 @@ class DartEmitter implements CodeEmitter {
         return _emitCotrans(entry);
       case 'swe_refrac':
         return _emitRefrac(entry);
+      case 'swe_get_ayanamsa_ut':
+        return _emitGetAyanamsaUt(entry);
+      case 'swe_get_orbital_elements':
+        return _emitGetOrbitalElements(entry);
+      case 'swe_orbit_max_min_true_distance':
+        return _emitOrbitMaxMinTrueDistance(entry);
       default:
         return '// ${entry.functionName}(...)';
     }
@@ -1661,6 +1723,53 @@ class DartEmitter implements CodeEmitter {
     if (entry.result != null) {
       buf.writeln();
       buf.write('// returns: altOut = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitGetAyanamsaUt(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final buf = StringBuffer();
+    buf.write('final result = swe.getAyanamsaUt($jdUt);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitGetOrbitalElements(CallEntry entry) {
+    final jdEt = entry.args['jdEt'];
+    final body = entry.args['body'] as int;
+    final iflag = entry.args['iflag'] as int;
+
+    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.write('final result = swe.getOrbitalElements($jdEt, $bodyStr, $flagStr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    }
+    return buf.toString();
+  }
+
+  String _emitOrbitMaxMinTrueDistance(CallEntry entry) {
+    final jdEt = entry.args['jdEt'];
+    final body = entry.args['body'] as int;
+    final iflag = entry.args['iflag'] as int;
+
+    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final flagStr = _formatFlags(iflag);
+    final buf = StringBuffer();
+    buf.write(
+        'final result = swe.orbitMaxMinTrueDistance($jdEt, $bodyStr, $flagStr);');
+    if (entry.errorMessage != null) {
+      buf.writeln();
+      buf.write('// Error: ${entry.errorMessage}');
+    } else if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: ${entry.result}');
     }
     return buf.toString();
   }

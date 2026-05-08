@@ -78,7 +78,8 @@ final nodesApsResultsProvider = Provider<NodesApsResult?>((ref) {
     }
 
     try {
-      final od = swe.orbitMaxMinTrueDistance(jdEt, body, flags);
+      final od = runner.run(
+        globals, (eph) => eph.orbitMaxMinTrueDistance(jdEt, body, flags));
       maxDist = od.maxDist;
       minDist = od.minDist;
     } on SweException {
