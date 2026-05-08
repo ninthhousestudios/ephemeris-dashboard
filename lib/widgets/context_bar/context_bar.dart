@@ -7,13 +7,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../chart_formats/chart_io.dart';
 import '../../chart_formats/model/chart_data.dart';
 import '../../core/context_provider.dart';
-import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../chart_file_dialog.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
+import '../code_action_button.dart';
 import '../code_modal.dart';
 import 'origin_selector.dart';
 import 'zodiac_ref_selector.dart';
@@ -613,19 +614,17 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               const SizedBox(width: 4),
               Builder(builder: (context) {
                 final hasTrace = ref.watch(callTraceProvider) != null;
-                return IconButton(
-                  icon: const Icon(Icons.code, size: 14),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-                  tooltip: 'Show context setup code',
-                  onPressed: hasTrace
+                return CodeActionButton(
+                  compact: true,
+                  iconSize: 14,
+                  onCode: hasTrace
                       ? () {
                           final trace = ref.read(callTraceProvider);
                           if (trace == null) return;
                           final slice =
                               trace.sliceByCategory(CallCategory.context);
                           if (slice.entries.isEmpty) return;
-                          const emitter = CEmitter();
+                          final emitter = ref.read(selectedEmitterProvider);
                           final code = emitter.emitSection(slice.entries);
                           showCodeModal(
                             context,
@@ -779,20 +778,17 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         const SizedBox(width: 4),
                         Builder(builder: (context) {
                           final hasTrace = ref.watch(callTraceProvider) != null;
-                          return IconButton(
-                            icon: const Icon(Icons.code, size: 14),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                                minWidth: 24, minHeight: 24),
-                            tooltip: 'Show context setup code',
-                            onPressed: hasTrace
+                          return CodeActionButton(
+                            compact: true,
+                            iconSize: 14,
+                            onCode: hasTrace
                                 ? () {
                                     final trace = ref.read(callTraceProvider);
                                     if (trace == null) return;
                                     final slice = trace.sliceByCategory(
                                         CallCategory.context);
                                     if (slice.entries.isEmpty) return;
-                                    const emitter = CEmitter();
+                                    final emitter = ref.read(selectedEmitterProvider);
                                     final code =
                                         emitter.emitSection(slice.entries);
                                     showCodeModal(

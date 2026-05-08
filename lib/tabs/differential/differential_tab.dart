@@ -6,7 +6,7 @@ import 'package:swisseph/swisseph.dart';
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
@@ -615,7 +615,7 @@ class _DiffResults extends ConsumerWidget {
           if (trace == null) return;
           final slice = trace.sliceByTab('differential');
           if (slice.entries.isEmpty) return;
-          const emitter = CEmitter();
+          final emitter = ref.read(selectedEmitterProvider);
           final code = slice.entries
               .map(emitter.emitSnippet)
               .join('\n');

@@ -4,7 +4,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/code_emitter.dart';
+import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/swe_service.dart';
 import '../../widgets/code_modal.dart';
@@ -220,7 +220,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                     if (trace == null) return;
                     final slice = trace.sliceByTab('planetocentric');
                     if (slice.entries.isEmpty) return;
-                    const emitter = CEmitter();
+                    final emitter = ref.read(selectedEmitterProvider);
                     final code = slice.entries.map(emitter.emitSnippet).join('\n');
                     showCodeModal(context, code: code, languageLabel: emitter.displayName);
                   },

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'code_action_button.dart';
+
 /// A single key-value pair in a result card.
 class ResultField {
   const ResultField({required this.label, required this.value, this.rawValue});
@@ -127,11 +129,7 @@ class ResultCard extends StatelessWidget {
                     }
                   },
                 ),
-                IconButton(
-                  icon: const Icon(Icons.code, size: 18),
-                  tooltip: 'View C code',
-                  onPressed: onCode,
-                ),
+                CodeActionButton(onCode: onCode),
               ],
             ),
           ],

@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
 import 'responsive_layout.dart';
 import '../core/calc_session.dart';
-import '../core/ephemeris/code_emitter.dart';
+import '../core/ephemeris/emitter_provider.dart';
 import '../core/ephemeris/runner.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
+import '../widgets/code_action_button.dart';
 import '../widgets/code_modal.dart';
 import '../widgets/context_bar/context_bar.dart';
 import '../core/context_provider.dart';
@@ -397,7 +398,6 @@ class _TabCodeButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final trace = ref.watch(callTraceProvider);
-    final theme = Theme.of(context);
 
     return AnimatedBuilder(
       animation: controller,
@@ -406,16 +406,16 @@ class _TabCodeButton extends ConsumerWidget {
         final hasTrace = trace != null;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: IconButton(
-            icon: const Icon(Icons.code, size: 16),
-            tooltip: 'Show full C program for ${tab.label}',
-            onPressed: hasTrace
+          child: CodeActionButton(
+            compact: true,
+            iconSize: 16,
+            onCode: hasTrace
                 ? () {
                     final t = ref.read(callTraceProvider);
                     if (t == null) return;
                     final slice = t.sliceByTab(tab.name);
                     if (slice.entries.isEmpty) return;
-                    const emitter = CEmitter();
+                    final emitter = ref.read(selectedEmitterProvider);
                     final code = emitter.emitProgram(slice.entries);
                     showCodeModal(
                       context,
@@ -424,8 +424,6 @@ class _TabCodeButton extends ConsumerWidget {
                     );
                   }
                 : null,
-            visualDensity: VisualDensity.compact,
-            color: theme.colorScheme.onSurfaceVariant,
           ),
         );
       },
