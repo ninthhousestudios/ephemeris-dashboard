@@ -76,7 +76,7 @@ final callTraceProvider = Provider<CallTrace?>((ref) {
   final runner = ref.watch(ephemerisRunnerProvider);
   final ectx = ref.watch(effectiveContextProvider);
   return CallTrace(
-    entries: runner.traceEntries,
+    entries: List.unmodifiable(runner.traceEntries),
     context: ectx,
     capturedAt: session.lastRunAt ?? DateTime.now(),
   );
