@@ -126,10 +126,21 @@ class CEmitter implements CodeEmitter {
     buf.writeln('#include <stdio.h>');
     buf.writeln();
     buf.writeln('int main(void) {');
-    buf.writeln('    double xx[6];');
-    buf.writeln('    char serr[256];');
-    buf.writeln();
-    buf.write(emitSection(entries, metadata: metadata));
+    if (metadata.isNotEmpty) {
+      buf.writeln('    /*');
+      for (final e in metadata.entries) {
+        buf.writeln('     * ${e.key}: ${e.value}');
+      }
+      buf.writeln('     */');
+    }
+    for (final entry in entries) {
+      final snippet = emitSnippet(entry);
+      buf.writeln('    {');
+      for (final line in snippet.split('\n')) {
+        if (line.isNotEmpty) buf.writeln('        $line');
+      }
+      buf.writeln('    }');
+    }
     buf.writeln();
     buf.writeln('    swe_close();');
     buf.writeln('    return 0;');
@@ -973,8 +984,19 @@ class DartEmitter implements CodeEmitter {
     buf.writeln();
     buf.writeln('void main() {');
     buf.writeln('  final swe = SwissEph();');
-    buf.writeln();
-    buf.write(emitSection(entries, metadata: metadata));
+    if (metadata.isNotEmpty) {
+      for (final e in metadata.entries) {
+        buf.writeln('  // ${e.key}: ${e.value}');
+      }
+    }
+    for (final entry in entries) {
+      final snippet = emitSnippet(entry);
+      buf.writeln('  {');
+      for (final line in snippet.split('\n')) {
+        if (line.isNotEmpty) buf.writeln('    $line');
+      }
+      buf.writeln('  }');
+    }
     buf.writeln();
     buf.writeln('  swe.close();');
     buf.writeln('}');
