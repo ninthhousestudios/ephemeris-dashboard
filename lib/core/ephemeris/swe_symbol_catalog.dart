@@ -130,11 +130,127 @@ class SweSymbolCatalog {
     hsysGauquelin: 'Gauquelin Sectors',
   };
 
+  static const _dartBodies = <int, String>{
+    seEclNut: 'seEclNut',
+    seSun: 'seSun',
+    seMoon: 'seMoon',
+    seMercury: 'seMercury',
+    seVenus: 'seVenus',
+    seMars: 'seMars',
+    seJupiter: 'seJupiter',
+    seSaturn: 'seSaturn',
+    seUranus: 'seUranus',
+    seNeptune: 'seNeptune',
+    sePluto: 'sePluto',
+    seMeanNode: 'seMeanNode',
+    seTrueNode: 'seTrueNode',
+    seMeanApog: 'seMeanApog',
+    seOscuApog: 'seOscuApog',
+    seEarth: 'seEarth',
+    seChiron: 'seChiron',
+    sePholus: 'sePholus',
+    seCeres: 'seCeres',
+    sePallas: 'sePallas',
+    seJuno: 'seJuno',
+    seVesta: 'seVesta',
+    seIntpApog: 'seIntpApog',
+    seIntpPerg: 'seIntpPerg',
+    seCupido: 'seCupido',
+    seHades: 'seHades',
+    seZeus: 'seZeus',
+    seKronos: 'seKronos',
+    seApollon: 'seApollon',
+    seAdmetos: 'seAdmetos',
+    seVulkanus: 'seVulkanus',
+    sePoseidon: 'sePoseidon',
+  };
+
+  static const _dartFlags = <int, String>{
+    seFlgJplEph: 'seFlgJplEph',
+    seFlgSwiEph: 'seFlgSwiEph',
+    seFlgMosEph: 'seFlgMosEph',
+    seFlgHelCtr: 'seFlgHelCtr',
+    seFlgTruePos: 'seFlgTruePos',
+    seFlgJ2000: 'seFlgJ2000',
+    seFlgNoNut: 'seFlgNoNut',
+    seFlgSpeed3: 'seFlgSpeed3',
+    seFlgSpeed: 'seFlgSpeed',
+    seFlgNoGdefl: 'seFlgNoGdefl',
+    seFlgNoAberr: 'seFlgNoAberr',
+    seFlgEquatorial: 'seFlgEquatorial',
+    seFlgXyz: 'seFlgXyz',
+    seFlgRadians: 'seFlgRadians',
+    seFlgBaryCtr: 'seFlgBaryCtr',
+    seFlgTopoCtr: 'seFlgTopoCtr',
+    seFlgSidereal: 'seFlgSidereal',
+    seFlgIcrs: 'seFlgIcrs',
+    seFlgJplHor: 'seFlgJplHor',
+    seFlgJplHorApprox: 'seFlgJplHorApprox',
+    seFlgCenterBody: 'seFlgCenterBody',
+  };
+
+  static const _dartSidModes = <int, String>{
+    seSidmFaganBradley: 'seSidmFaganBradley',
+    seSidmLahiri: 'seSidmLahiri',
+    seSidmDeluce: 'seSidmDeluce',
+    seSidmRaman: 'seSidmRaman',
+    seSidmUshashashi: 'seSidmUshashashi',
+    seSidmKrishnamurti: 'seSidmKrishnamurti',
+    seSidmDjwhalKhul: 'seSidmDjwhalKhul',
+    seSidmYukteshwar: 'seSidmYukteshwar',
+    seSidmJnBhasin: 'seSidmJnBhasin',
+    seSidmBabylKugler1: 'seSidmBabylKugler1',
+    seSidmBabylKugler2: 'seSidmBabylKugler2',
+    seSidmBabylKugler3: 'seSidmBabylKugler3',
+    seSidmBabylHuber: 'seSidmBabylHuber',
+    seSidmBabylEtpsc: 'seSidmBabylEtpsc',
+    seSidmAldebaran15tau: 'seSidmAldebaran15tau',
+    seSidmHipparchos: 'seSidmHipparchos',
+    seSidmSassanian: 'seSidmSassanian',
+    seSidmGalcent0sag: 'seSidmGalcent0sag',
+    seSidmJ2000: 'seSidmJ2000',
+    seSidmJ1900: 'seSidmJ1900',
+    seSidmB1950: 'seSidmB1950',
+    seSidmSuryasiddhanta: 'seSidmSuryasiddhanta',
+    seSidmSuryasiddhantaMsun: 'seSidmSuryasiddhantaMsun',
+    seSidmAryabhata: 'seSidmAryabhata',
+    seSidmAryabhataMsun: 'seSidmAryabhataMsun',
+    seSidmSsRevati: 'seSidmSsRevati',
+    seSidmSsCitra: 'seSidmSsCitra',
+    seSidmTrueCitra: 'seSidmTrueCitra',
+    seSidmTrueRevati: 'seSidmTrueRevati',
+    seSidmTruePushya: 'seSidmTruePushya',
+    seSidmGalcentRgilbrand: 'seSidmGalcentRgilbrand',
+    seSidmGalequIau1958: 'seSidmGalequIau1958',
+    seSidmGalequTrue: 'seSidmGalequTrue',
+    seSidmGalequMula: 'seSidmGalequMula',
+    seSidmGalalignMardyks: 'seSidmGalalignMardyks',
+    seSidmTrueMula: 'seSidmTrueMula',
+    seSidmGalcentMulaWilhelm: 'seSidmGalcentMulaWilhelm',
+    seSidmAryabhata522: 'seSidmAryabhata522',
+    seSidmBabylBritton: 'seSidmBabylBritton',
+    seSidmTrueSheoran: 'seSidmTrueSheoran',
+    seSidmGalcentCochrane: 'seSidmGalcentCochrane',
+    seSidmGalequFiorenza: 'seSidmGalequFiorenza',
+    seSidmValensMoon: 'seSidmValensMoon',
+    seSidmLahiri1940: 'seSidmLahiri1940',
+    seSidmLahiriVp285: 'seSidmLahiriVp285',
+    seSidmKrishnamurtiVp291: 'seSidmKrishnamurtiVp291',
+    seSidmLahiriIcrc: 'seSidmLahiriIcrc',
+    seSidmUser: 'seSidmUser',
+  };
+
   static String bodyName(int body) =>
       _bodies[body] ?? body.toString();
 
+  static String bodyNameDart(int body) =>
+      _dartBodies[body] ?? body.toString();
+
   static String sidModeName(int mode) =>
       _sidModes[mode] ?? mode.toString();
+
+  static String sidModeNameDart(int mode) =>
+      _dartSidModes[mode] ?? mode.toString();
 
   static String houseSysName(int hsys) =>
       _houseSystems[hsys] ?? hsys.toString();
@@ -143,6 +259,21 @@ class SweSymbolCatalog {
     final result = <String>[];
     var remainder = flags;
     for (final entry in _flags.entries) {
+      if (remainder & entry.key == entry.key) {
+        result.add(entry.value);
+        remainder &= ~entry.key;
+      }
+    }
+    if (remainder != 0) {
+      result.add(remainder.toString());
+    }
+    return result;
+  }
+
+  static List<String> flagDecomposeDart(int flags) {
+    final result = <String>[];
+    var remainder = flags;
+    for (final entry in _dartFlags.entries) {
       if (remainder & entry.key == entry.key) {
         result.add(entry.value);
         remainder &= ~entry.key;
