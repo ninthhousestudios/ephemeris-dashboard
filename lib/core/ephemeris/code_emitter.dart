@@ -13,6 +13,12 @@ abstract class CodeEmitter {
       {Map<String, Object?> metadata = const {}});
 }
 
+String _escapeC(String s) =>
+    s.replaceAll(r'\', r'\\').replaceAll('"', r'\"').replaceAll('\n', r'\n').replaceAll('\r', r'\r').replaceAll('\t', r'\t');
+
+String _escapeDart(String s) =>
+    s.replaceAll(r'\', r'\\').replaceAll("'", r"\'").replaceAll(r'$', r'\$').replaceAll('\n', r'\n').replaceAll('\r', r'\r').replaceAll('\t', r'\t');
+
 class CEmitter implements CodeEmitter {
   const CEmitter();
 
@@ -214,12 +220,12 @@ class CEmitter implements CodeEmitter {
   }
 
   String _emitSetEphePath(CallEntry entry) {
-    final path = entry.args['path'];
+    final path = _escapeC(entry.args['path'] as String);
     return 'swe_set_ephe_path("$path");';
   }
 
   String _emitSetJplFile(CallEntry entry) {
-    final filename = entry.args['filename'];
+    final filename = _escapeC(entry.args['filename'] as String);
     return 'swe_set_jpl_file("$filename");';
   }
 
@@ -246,7 +252,7 @@ class CEmitter implements CodeEmitter {
   }
 
   String _emitFixstar2Ut(CallEntry entry) {
-    final star = entry.args['star'];
+    final star = _escapeC(entry.args['star'] as String);
     final jdUt = entry.args['jdUt'];
     final iflag = entry.args['iflag'] as int;
 
@@ -515,7 +521,7 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double dret[50];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_heliacal_ut($jdStart, dgeo, datm, dobs, "$objectName", $typeEvent, $flagStr, dret, serr);');
+        'int32 ret = swe_heliacal_ut($jdStart, dgeo, datm, dobs, "${_escapeC(objectName as String)}", $typeEvent, $flagStr, dret, serr);');
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1118,12 +1124,12 @@ class DartEmitter implements CodeEmitter {
   }
 
   String _emitSetEphePath(CallEntry entry) {
-    final path = entry.args['path'];
+    final path = _escapeDart(entry.args['path'] as String);
     return "swe.setEphePath('$path');";
   }
 
   String _emitSetJplFile(CallEntry entry) {
-    final filename = entry.args['filename'];
+    final filename = _escapeDart(entry.args['filename'] as String);
     return "swe.setJplFile('$filename');";
   }
 
@@ -1154,7 +1160,7 @@ class DartEmitter implements CodeEmitter {
 
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
-    buf.write("final result = swe.fixstar2Ut('$star', $jdUt, $flagStr);");
+    buf.write("final result = swe.fixstar2Ut('${_escapeDart(star as String)}', $jdUt, $flagStr);");
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1421,7 +1427,7 @@ class DartEmitter implements CodeEmitter {
     buf.write(
         "final result = swe.heliacalUt($jdStart, "
         "geolon: $geolon, geolat: $geolat, geoalt: $geoalt, "
-        "objectName: '$objectName', typeEvent: $typeEvent, flags: $flagStr);");
+        "objectName: '${_escapeDart(objectName as String)}', typeEvent: $typeEvent, flags: $flagStr);");
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
