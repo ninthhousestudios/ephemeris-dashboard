@@ -10,7 +10,7 @@ class TracingSwissEph implements SwissEph {
   final List<CallEntry> _entries = [];
   String _tabTag = '';
 
-  List<CallEntry> get entries => List.unmodifiable(_entries);
+  List<CallEntry> get entries => _entries;
 
   void setTabTag(String tag) => _tabTag = tag;
 
