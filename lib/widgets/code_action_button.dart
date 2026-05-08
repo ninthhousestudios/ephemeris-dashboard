@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../core/ephemeris/code_emitter.dart';
 import '../core/ephemeris/emitter_provider.dart';
 
 class CodeActionButton extends ConsumerWidget {

@@ -3,12 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
 import 'responsive_layout.dart';
 import '../core/calc_session.dart';
-import '../core/ephemeris/emitter_provider.dart';
-import '../core/ephemeris/runner.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
-import '../widgets/code_action_button.dart';
-import '../widgets/code_modal.dart';
 import '../widgets/context_bar/context_bar.dart';
 import '../core/context_provider.dart';
 import '../core/display_format.dart';
@@ -317,7 +313,7 @@ class _AllTabsBar extends StatelessWidget implements PreferredSizeWidget {
       height: barHeight,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _allTabs.length + 2, // +1 for divider, +1 for code button
+        itemCount: _allTabs.length + 1, // +1 for divider
         itemBuilder: (context, i) {
           // Insert divider at the boundary
           if (i == _dividerIndex) {
@@ -329,10 +325,6 @@ class _AllTabsBar extends StatelessWidget implements PreferredSizeWidget {
                 color: Theme.of(context).dividerColor,
               ),
             );
-          }
-          // Tab-level code button at the end
-          if (i == _allTabs.length + 1) {
-            return _TabCodeButton(controller: controller);
           }
           final tabIndex = i < _dividerIndex ? i : i - 1;
           final tab = _allTabs[tabIndex];
@@ -382,48 +374,6 @@ class _TabButton extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _TabCodeButton extends ConsumerWidget {
-  const _TabCodeButton({required this.controller});
-  final TabController controller;
-
-  static final _allTabs = AppTab.values.toList();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final trace = ref.watch(callTraceProvider);
-
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final tab = _allTabs[controller.index];
-        final hasTrace = trace != null;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: CodeActionButton(
-            compact: true,
-            iconSize: 16,
-            onCode: hasTrace
-                ? () {
-                    final t = ref.read(callTraceProvider);
-                    if (t == null) return;
-                    final slice = t.sliceByTab(tab.name);
-                    if (slice.entries.isEmpty) return;
-                    final emitter = ref.read(selectedEmitterProvider);
-                    final code = emitter.emitProgram(slice.entries);
-                    showCodeModal(
-                      context,
-                      code: code,
-                      languageLabel: emitter.displayName,
-                    );
-                  }
-                : null,
           ),
         );
       },

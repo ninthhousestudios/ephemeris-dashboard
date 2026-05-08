@@ -6,8 +6,6 @@ import 'package:swisseph/swisseph.dart';
 import '../../core/calc_session.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
-import '../../core/ephemeris/trace_model.dart';
-import '../code_action_button.dart';
 import '../../core/flag_definitions.dart';
 import '../../core/flag_provider.dart';
 import '../code_modal.dart';
@@ -89,18 +87,25 @@ class FlagBar extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            CodeActionButton(
-              compact: true,
-              onCode: ref.watch(callTraceProvider) == null
+            if (trailing != null) ...[
+              const SizedBox(width: 8),
+              trailing!,
+            ],
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.code, size: 18),
+              tooltip: 'View tab code',
+              visualDensity: VisualDensity.compact,
+              onPressed: ref.watch(callTraceProvider) == null
                   ? null
                   : () {
                       final trace = ref.read(callTraceProvider);
                       if (trace == null) return;
-                      final slice =
-                          trace.sliceByCategory(CallCategory.flags);
+                      final activeTab = ref.read(activeTabIdProvider);
+                      final slice = trace.sliceByTab(activeTab);
                       if (slice.entries.isEmpty) return;
                       final emitter = ref.read(selectedEmitterProvider);
-                      final code = emitter.emitSection(slice.entries);
+                      final code = emitter.emitProgram(slice.entries);
                       showCodeModal(
                         context,
                         code: code,
@@ -108,10 +113,6 @@ class FlagBar extends ConsumerWidget {
                       );
                     },
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              trailing!,
-            ],
             const SizedBox(width: 8),
             FilledButton.icon(
               onPressed: () {

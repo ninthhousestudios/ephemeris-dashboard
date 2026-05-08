@@ -8,14 +8,10 @@ import '../../chart_formats/chart_io.dart';
 import '../../chart_formats/model/chart_data.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../chart_file_dialog.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
-import '../code_action_button.dart';
-import '../code_modal.dart';
 import 'origin_selector.dart';
 import 'zodiac_ref_selector.dart';
 import 'eq_ref_selector.dart';
@@ -612,27 +608,43 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                 onPressed: _openChart,
               ),
               const SizedBox(width: 4),
-              Builder(builder: (context) {
-                final hasTrace = ref.watch(callTraceProvider) != null;
-                return CodeActionButton(
-                  compact: true,
-                  iconSize: 14,
-                  onCode: hasTrace
-                      ? () {
-                          final trace = ref.read(callTraceProvider);
-                          if (trace == null) return;
-                          final slice =
-                              trace.sliceByCategory(CallCategory.context);
-                          if (slice.entries.isEmpty) return;
-                          final emitter = ref.read(selectedEmitterProvider);
-                          final code = emitter.emitSection(slice.entries);
-                          showCodeModal(
-                            context,
-                            code: code,
-                            languageLabel: emitter.displayName,
-                          );
-                        }
-                      : null,
+              Consumer(builder: (context, ref, _) {
+                final emitter = ref.watch(selectedEmitterProvider);
+                return PopupMenuButton<CodeEmitter>(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minHeight: 24),
+                  tooltip: 'Code language',
+                  onSelected: (e) =>
+                      ref.read(selectedEmitterProvider.notifier).state = e,
+                  itemBuilder: (_) => availableEmitters
+                      .map((e) => PopupMenuItem(
+                            value: e,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (e.languageId == emitter.languageId)
+                                  const Icon(Icons.check, size: 16)
+                                else
+                                  const SizedBox(width: 16),
+                                const SizedBox(width: 8),
+                                Text(e.displayName),
+                              ],
+                            ),
+                          ))
+                      .toList(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.code, size: 14),
+                        const SizedBox(width: 4),
+                        Text(emitter.displayName,
+                            style: Theme.of(context).textTheme.labelSmall),
+                        const Icon(Icons.arrow_drop_down, size: 14),
+                      ],
+                    ),
+                  ),
                 );
               }),
               const SizedBox(width: 8),
@@ -776,28 +788,43 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                           onPressed: _openChart,
                         ),
                         const SizedBox(width: 4),
-                        Builder(builder: (context) {
-                          final hasTrace = ref.watch(callTraceProvider) != null;
-                          return CodeActionButton(
-                            compact: true,
-                            iconSize: 14,
-                            onCode: hasTrace
-                                ? () {
-                                    final trace = ref.read(callTraceProvider);
-                                    if (trace == null) return;
-                                    final slice = trace.sliceByCategory(
-                                        CallCategory.context);
-                                    if (slice.entries.isEmpty) return;
-                                    final emitter = ref.read(selectedEmitterProvider);
-                                    final code =
-                                        emitter.emitSection(slice.entries);
-                                    showCodeModal(
-                                      context,
-                                      code: code,
-                                      languageLabel: emitter.displayName,
-                                    );
-                                  }
-                                : null,
+                        Consumer(builder: (context, ref, _) {
+                          final emitter = ref.watch(selectedEmitterProvider);
+                          return PopupMenuButton<CodeEmitter>(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(minHeight: 24),
+                            tooltip: 'Code language',
+                            onSelected: (e) =>
+                                ref.read(selectedEmitterProvider.notifier).state = e,
+                            itemBuilder: (_) => availableEmitters
+                                .map((e) => PopupMenuItem(
+                                      value: e,
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (e.languageId == emitter.languageId)
+                                            const Icon(Icons.check, size: 16)
+                                          else
+                                            const SizedBox(width: 16),
+                                          const SizedBox(width: 8),
+                                          Text(e.displayName),
+                                        ],
+                                      ),
+                                    ))
+                                .toList(),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.code, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(emitter.displayName,
+                                      style: Theme.of(context).textTheme.labelSmall),
+                                  const Icon(Icons.arrow_drop_down, size: 14),
+                                ],
+                              ),
+                            ),
                           );
                         }),
                         const SizedBox(width: 8),
