@@ -15,8 +15,9 @@ final nodesBodyProvider = StateProvider<int>((ref) => seMoon);
 final nodesMethodProvider = StateProvider<int>((ref) => 0);
 
 /// Display format for this tab.
-final nodesFormatProvider =
-    StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
+final nodesFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 /// Full result for the Nodes & Apsides tab.
 class NodesApsResult {
@@ -72,14 +73,18 @@ final nodesApsResultsProvider = Provider<NodesApsResult?>((ref) {
 
     try {
       orbEl = runner.run(
-        globals, (eph) => eph.getOrbitalElements(jdEt, body, flags));
+        globals,
+        (eph) => eph.getOrbitalElements(jdEt, body, flags),
+      );
     } on SweException {
       orbEl = null;
     }
 
     try {
       final od = runner.run(
-        globals, (eph) => eph.orbitMaxMinTrueDistance(jdEt, body, flags));
+        globals,
+        (eph) => eph.orbitMaxMinTrueDistance(jdEt, body, flags),
+      );
       maxDist = od.maxDist;
       minDist = od.minDist;
     } on SweException {
@@ -103,19 +108,18 @@ final nodesApsResultsProvider = Provider<NodesApsResult?>((ref) {
 });
 
 /// Convert a NodesApsResult to export rows.
-List<ExportRow> nodesApsToExportRows(
-    NodesApsResult result, DisplayFormat fmt) {
+List<ExportRow> nodesApsToExportRows(NodesApsResult result, DisplayFormat fmt) {
   String deg(double v) => formatAngle(v, fmt);
   String raw(double v) => v.toStringAsFixed(8);
 
   List<(String, String)> posFields(CalcResult pos) => [
-        ('Longitude', deg(pos.longitude)),
-        ('Latitude', deg(pos.latitude)),
-        ('Distance (AU)', raw(pos.distance)),
-        ('Speed Lon', deg(pos.longitudeSpeed)),
-        ('Speed Lat', deg(pos.latitudeSpeed)),
-        ('Speed Dist', raw(pos.distanceSpeed)),
-      ];
+    ('Longitude', deg(pos.longitude)),
+    ('Latitude', deg(pos.latitude)),
+    ('Distance (AU)', raw(pos.distance)),
+    ('Speed Lon', deg(pos.longitudeSpeed)),
+    ('Speed Lat', deg(pos.latitudeSpeed)),
+    ('Speed Dist', raw(pos.distanceSpeed)),
+  ];
 
   final rows = <ExportRow>[
     ExportRow(
@@ -138,38 +142,42 @@ List<ExportRow> nodesApsToExportRows(
 
   final el = result.orbitalElements;
   if (el != null) {
-    rows.add(ExportRow(
-      header: '${result.bodyName} — Orbital Elements',
-      fields: [
-        ('Semi-major Axis (AU)', raw(el.semimajorAxis)),
-        ('Eccentricity', raw(el.eccentricity)),
-        ('Inclination', deg(el.inclination)),
-        ('Ascending Node', deg(el.ascendingNode)),
-        ('Arg. Periapsis', deg(el.argPeriapsis)),
-        ('Lon. Periapsis', deg(el.lonPeriapsis)),
-        ('Mean Anomaly (epoch)', deg(el.meanAnomalyEpoch)),
-        ('True Anomaly (epoch)', deg(el.trueAnomalyEpoch)),
-        ('Eccentric Anomaly', deg(el.eccentricAnomalyEpoch)),
-        ('Mean Longitude (epoch)', deg(el.meanLongitudeEpoch)),
-        ('Mean Daily Motion', deg(el.meanDailyMotion)),
-        ('Perihelion Dist (AU)', raw(el.perihelionDistance)),
-        ('Aphelion Dist (AU)', raw(el.aphelionDistance)),
-        ('Sidereal Period (yr)', raw(el.siderealPeriodYears)),
-        ('Tropical Period (yr)', raw(el.tropicalPeriodYears)),
-        ('Synodic Period (days)', raw(el.synodicPeriodDays)),
-        ('Perihelion Passage (JD)', raw(el.perihelionPassage)),
-      ],
-    ));
+    rows.add(
+      ExportRow(
+        header: '${result.bodyName} — Orbital Elements',
+        fields: [
+          ('Semi-major Axis (AU)', raw(el.semimajorAxis)),
+          ('Eccentricity', raw(el.eccentricity)),
+          ('Inclination', deg(el.inclination)),
+          ('Ascending Node', deg(el.ascendingNode)),
+          ('Arg. Periapsis', deg(el.argPeriapsis)),
+          ('Lon. Periapsis', deg(el.lonPeriapsis)),
+          ('Mean Anomaly (epoch)', deg(el.meanAnomalyEpoch)),
+          ('True Anomaly (epoch)', deg(el.trueAnomalyEpoch)),
+          ('Eccentric Anomaly', deg(el.eccentricAnomalyEpoch)),
+          ('Mean Longitude (epoch)', deg(el.meanLongitudeEpoch)),
+          ('Mean Daily Motion', deg(el.meanDailyMotion)),
+          ('Perihelion Dist (AU)', raw(el.perihelionDistance)),
+          ('Aphelion Dist (AU)', raw(el.aphelionDistance)),
+          ('Sidereal Period (yr)', raw(el.siderealPeriodYears)),
+          ('Tropical Period (yr)', raw(el.tropicalPeriodYears)),
+          ('Synodic Period (days)', raw(el.synodicPeriodDays)),
+          ('Perihelion Passage (JD)', raw(el.perihelionPassage)),
+        ],
+      ),
+    );
   }
 
   if (result.maxDist != null && result.minDist != null) {
-    rows.add(ExportRow(
-      header: '${result.bodyName} — Distance Extremes',
-      fields: [
-        ('Max True Distance (AU)', raw(result.maxDist!)),
-        ('Min True Distance (AU)', raw(result.minDist!)),
-      ],
-    ));
+    rows.add(
+      ExportRow(
+        header: '${result.bodyName} — Distance Extremes',
+        fields: [
+          ('Max True Distance (AU)', raw(result.maxDist!)),
+          ('Min True Distance (AU)', raw(result.minDist!)),
+        ],
+      ),
+    );
   }
 
   return rows;

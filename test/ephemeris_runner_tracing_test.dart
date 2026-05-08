@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph/swisseph.dart';
-import 'package:swisseph/src/constants.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
@@ -98,13 +97,10 @@ void main() {
       runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
 
       SwissEph? received;
-      runner.runScoped(
-        (eph) {},
-        (eph) {
-          received = eph;
-          return eph.calcUt(2460412.5, seSun, seFlgSpeed);
-        },
-      );
+      runner.runScoped((eph) {}, (eph) {
+        received = eph;
+        return eph.calcUt(2460412.5, seSun, seFlgSpeed);
+      });
 
       expect(received, isA<TracingSwissEph>());
     });
@@ -163,11 +159,10 @@ void main() {
       runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
 
       final names = runner.traceEntries.map((e) => e.functionName).toList();
-      expect(names, containsAllInOrder([
-        'swe_set_sid_mode',
-        'swe_set_topo',
-        'swe_calc_ut',
-      ]));
+      expect(
+        names,
+        containsAllInOrder(['swe_set_sid_mode', 'swe_set_topo', 'swe_calc_ut']),
+      );
     });
 
     test('planets-style calc with all setup types in order', () {
@@ -193,14 +188,17 @@ void main() {
       final names = runner.traceEntries.map((e) => e.functionName).toList();
 
       // Setup calls come first in _apply order, then calc calls
-      expect(names, containsAllInOrder([
-        'swe_set_ephe_path',
-        'swe_set_sid_mode',
-        'swe_set_topo',
-        'swe_set_jpl_file',
-        'swe_calc_ut',
-        'swe_calc_ut',
-      ]));
+      expect(
+        names,
+        containsAllInOrder([
+          'swe_set_ephe_path',
+          'swe_set_sid_mode',
+          'swe_set_topo',
+          'swe_set_jpl_file',
+          'swe_calc_ut',
+          'swe_calc_ut',
+        ]),
+      );
 
       // All entries tagged with 'planets'
       expect(
@@ -227,8 +225,11 @@ void main() {
       // Compare with a fresh direct call
       final direct = SwissEph.find();
       try {
-        final expected =
-            direct.calcUt(2460412.5, seSun, seFlgSwiEph | seFlgSpeed);
+        final expected = direct.calcUt(
+          2460412.5,
+          seSun,
+          seFlgSwiEph | seFlgSpeed,
+        );
         expect(traced.longitude, equals(expected.longitude));
         expect(traced.latitude, equals(expected.latitude));
         expect(traced.distance, equals(expected.distance));

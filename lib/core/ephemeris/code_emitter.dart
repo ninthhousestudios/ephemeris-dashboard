@@ -7,17 +7,30 @@ abstract class CodeEmitter {
   String get fileExtension;
 
   String emitSnippet(CallEntry entry);
-  String emitSection(List<CallEntry> entries,
-      {Map<String, Object?> metadata = const {}});
-  String emitProgram(List<CallEntry> entries,
-      {Map<String, Object?> metadata = const {}});
+  String emitSection(
+    List<CallEntry> entries, {
+    Map<String, Object?> metadata = const {},
+  });
+  String emitProgram(
+    List<CallEntry> entries, {
+    Map<String, Object?> metadata = const {},
+  });
 }
 
-String _escapeC(String s) =>
-    s.replaceAll(r'\', r'\\').replaceAll('"', r'\"').replaceAll('\n', r'\n').replaceAll('\r', r'\r').replaceAll('\t', r'\t');
+String _escapeC(String s) => s
+    .replaceAll(r'\', r'\\')
+    .replaceAll('"', r'\"')
+    .replaceAll('\n', r'\n')
+    .replaceAll('\r', r'\r')
+    .replaceAll('\t', r'\t');
 
-String _escapeDart(String s) =>
-    s.replaceAll(r'\', r'\\').replaceAll("'", r"\'").replaceAll(r'$', r'\$').replaceAll('\n', r'\n').replaceAll('\r', r'\r').replaceAll('\t', r'\t');
+String _escapeDart(String s) => s
+    .replaceAll(r'\', r'\\')
+    .replaceAll("'", r"\'")
+    .replaceAll(r'$', r'\$')
+    .replaceAll('\n', r'\n')
+    .replaceAll('\r', r'\r')
+    .replaceAll('\t', r'\t');
 
 class CEmitter implements CodeEmitter {
   const CEmitter();
@@ -114,8 +127,10 @@ class CEmitter implements CodeEmitter {
   }
 
   @override
-  String emitSection(List<CallEntry> entries,
-      {Map<String, Object?> metadata = const {}}) {
+  String emitSection(
+    List<CallEntry> entries, {
+    Map<String, Object?> metadata = const {},
+  }) {
     final buf = StringBuffer();
     if (metadata.isNotEmpty) {
       buf.writeln('/*');
@@ -131,8 +146,10 @@ class CEmitter implements CodeEmitter {
   }
 
   @override
-  String emitProgram(List<CallEntry> entries,
-      {Map<String, Object?> metadata = const {}}) {
+  String emitProgram(
+    List<CallEntry> entries, {
+    Map<String, Object?> metadata = const {},
+  }) {
     final buf = StringBuffer();
     buf.writeln('#include "swephexp.h"');
     buf.writeln('#include <stdio.h>');
@@ -240,7 +257,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double cusps[13];');
     buf.writeln('double ascmc[10];');
     buf.write(
-        "int ret = swe_houses($jdUt, $geolat, $geolon, '$hsysChar', cusps, ascmc);");
+      "int ret = swe_houses($jdUt, $geolat, $geolon, '$hsysChar', cusps, ascmc);",
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -261,7 +279,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double xx[6];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_fixstar2_ut("$star", $jdUt, $flagStr, xx, serr);');
+      'int32 ret = swe_fixstar2_ut("$star", $jdUt, $flagStr, xx, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -284,7 +303,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double xnasc[6], xndsc[6], xperi[6], xaphe[6];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_nod_aps_ut($jdUt, $bodyStr, $flagStr, $method, xnasc, xndsc, xperi, xaphe, serr);');
+      'int32 ret = swe_nod_aps_ut($jdUt, $bodyStr, $flagStr, $method, xnasc, xndsc, xperi, xaphe, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -306,7 +326,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double attr[20];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_pheno_ut($jdUt, $bodyStr, $flagStr, attr, serr);');
+      'int32 ret = swe_pheno_ut($jdUt, $bodyStr, $flagStr, attr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -330,7 +351,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double xxeret[6];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_calc_pctr($jdEt, $bodyStr, $centerStr, $flagStr, xxeret, serr);');
+      'int32 ret = swe_calc_pctr($jdEt, $bodyStr, $centerStr, $flagStr, xxeret, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -350,7 +372,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double daya;');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_get_ayanamsa_ex_ut($jdUt, $flagStr, &daya, serr);');
+      'int32 ret = swe_get_ayanamsa_ex_ut($jdUt, $flagStr, &daya, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -379,7 +402,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double dgsect;');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_gauquelin_sector($jdUt, $bodyStr, NULL, $flagStr, $method, geopos, $atpress, $attemp, &dgsect, serr);');
+      'int32 ret = swe_gauquelin_sector($jdUt, $bodyStr, NULL, $flagStr, $method, geopos, $atpress, $attemp, &dgsect, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -399,7 +423,8 @@ class CEmitter implements CodeEmitter {
     final buf = StringBuffer();
     buf.writeln('char serr[256];');
     buf.write(
-        'double jd_cross = swe_solcross_ut($longitude, $jdUt, $flagStr, serr);');
+      'double jd_cross = swe_solcross_ut($longitude, $jdUt, $flagStr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -419,7 +444,8 @@ class CEmitter implements CodeEmitter {
     final buf = StringBuffer();
     buf.writeln('char serr[256];');
     buf.write(
-        'double jd_cross = swe_mooncross_ut($longitude, $jdUt, $flagStr, serr);');
+      'double jd_cross = swe_mooncross_ut($longitude, $jdUt, $flagStr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -439,7 +465,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double xlon, xlat;');
     buf.writeln('char serr[256];');
     buf.write(
-        'double jd_cross = swe_mooncross_node_ut($jdUt, $flagStr, &xlon, &xlat, serr);');
+      'double jd_cross = swe_mooncross_node_ut($jdUt, $flagStr, &xlon, &xlat, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -463,7 +490,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double jd_cross;');
     buf.writeln('char serr[256];');
     buf.write(
-        'double ret = swe_heliocross_ut($bodyStr, $longitude, $jdUt, $flagStr, $dir, &jd_cross, serr);');
+      'double ret = swe_heliocross_ut($bodyStr, $longitude, $jdUt, $flagStr, $dir, &jd_cross, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -493,7 +521,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double tret;');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_rise_trans_true_hor($jdUt, $bodyStr, NULL, $flagStr, $rsmi, geopos, $atpress, $attemp, $horizonHeight, &tret, serr);');
+      'int32 ret = swe_rise_trans_true_hor($jdUt, $bodyStr, NULL, $flagStr, $rsmi, geopos, $atpress, $attemp, $horizonHeight, &tret, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -521,7 +550,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double dret[50];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_heliacal_ut($jdStart, dgeo, datm, dobs, "${_escapeC(objectName as String)}", $typeEvent, $flagStr, dret, serr);');
+      'int32 ret = swe_heliacal_ut($jdStart, dgeo, datm, dobs, "${_escapeC(objectName as String)}", $typeEvent, $flagStr, dret, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -548,7 +578,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double attr[20];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_sol_eclipse_when_loc($jdStart, $flagStr, geopos, tret, attr, $backwardStr, serr);');
+      'int32 ret = swe_sol_eclipse_when_loc($jdStart, $flagStr, geopos, tret, attr, $backwardStr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -572,7 +603,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double attr[20];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_sol_eclipse_how($jdUt, $flagStr, geopos, attr, serr);');
+      'int32 ret = swe_sol_eclipse_how($jdUt, $flagStr, geopos, attr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -595,7 +627,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double tret[10];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_lun_eclipse_when($jdStart, $flagStr, $eclType, tret, $backwardStr, serr);');
+      'int32 ret = swe_lun_eclipse_when($jdStart, $flagStr, $eclType, tret, $backwardStr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -619,7 +652,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double attr[20];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_lun_eclipse_how($jdUt, $flagStr, geopos, attr, serr);');
+      'int32 ret = swe_lun_eclipse_how($jdUt, $flagStr, geopos, attr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -648,7 +682,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double tret;');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_rise_trans($jdUt, $bodyStr, NULL, $flagStr, $rsmi, geopos, $atpress, $attemp, &tret, serr);');
+      'int32 ret = swe_rise_trans($jdUt, $bodyStr, NULL, $flagStr, $rsmi, geopos, $atpress, $attemp, &tret, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -671,7 +706,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double tret[10];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_sol_eclipse_when_glob($jdStart, $flagStr, $eclType, tret, $backwardStr, serr);');
+      'int32 ret = swe_sol_eclipse_when_glob($jdStart, $flagStr, $eclType, tret, $backwardStr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -692,7 +728,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double attr[20];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_sol_eclipse_where($jdUt, $flagStr, geopos, attr, serr);');
+      'int32 ret = swe_sol_eclipse_where($jdUt, $flagStr, geopos, attr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -719,7 +756,8 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double attr[20];');
     buf.writeln('char serr[256];');
     buf.write(
-        'int32 ret = swe_lun_eclipse_when_loc($jdStart, $flagStr, geopos, tret, attr, $backwardStr, serr);');
+      'int32 ret = swe_lun_eclipse_when_loc($jdStart, $flagStr, geopos, tret, attr, $backwardStr, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -799,12 +837,15 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double xin[3] = {$bodyLon, $bodyLat, $bodyDist};');
     buf.writeln('double xaz[3];');
     buf.write(
-        'swe_azalt($jdUt, $calcFlag, geopos, $atpress, $attemp, xin, xaz);');
+      'swe_azalt($jdUt, $calcFlag, geopos, $atpress, $attemp, xin, xaz);',
+    );
     if (entry.result != null) {
       buf.writeln();
       try {
         final r = entry.result as dynamic;
-        buf.write('// returns: xaz = {${r.azimuth}, ${r.trueAltitude}, ${r.apparentAltitude}}');
+        buf.write(
+          '// returns: xaz = {${r.azimuth}, ${r.trueAltitude}, ${r.apparentAltitude}}',
+        );
       } catch (_) {
         buf.write('// returns: ${entry.result}');
       }
@@ -825,8 +866,7 @@ class CEmitter implements CodeEmitter {
     buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
     buf.writeln('double xin[2] = {$azimuth, $altitude};');
     buf.writeln('double xout[2];');
-    buf.write(
-        'swe_azalt_rev($jdUt, $calcFlag, geopos, xin, xout);');
+    buf.write('swe_azalt_rev($jdUt, $calcFlag, geopos, xin, xout);');
     if (entry.result != null) {
       buf.writeln();
       try {
@@ -868,7 +908,9 @@ class CEmitter implements CodeEmitter {
     final calcFlag = entry.args['calcFlag'];
 
     final buf = StringBuffer();
-    buf.write('double alt_out = swe_refrac($altitude, $atpress, $attemp, $calcFlag);');
+    buf.write(
+      'double alt_out = swe_refrac($altitude, $atpress, $attemp, $calcFlag);',
+    );
     if (entry.result != null) {
       buf.writeln();
       buf.write('// returns: alt_out = ${entry.result}');
@@ -897,7 +939,9 @@ class CEmitter implements CodeEmitter {
     final buf = StringBuffer();
     buf.writeln('double elem[50];');
     buf.writeln('char serr[256];');
-    buf.write('int32 ret = swe_get_orbital_elements($jdEt, $bodyStr, $flagStr, elem, serr);');
+    buf.write(
+      'int32 ret = swe_get_orbital_elements($jdEt, $bodyStr, $flagStr, elem, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -915,7 +959,9 @@ class CEmitter implements CodeEmitter {
     final buf = StringBuffer();
     buf.writeln('double dmax, dmin, dtrue;');
     buf.writeln('char serr[256];');
-    buf.write('int32 ret = swe_orbit_max_min_true_distance($jdEt, $bodyStr, $flagStr, &dmax, &dmin, &dtrue, serr);');
+    buf.write(
+      'int32 ret = swe_orbit_max_min_true_distance($jdEt, $bodyStr, $flagStr, &dmax, &dmin, &dtrue, serr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1028,8 +1074,10 @@ class DartEmitter implements CodeEmitter {
   }
 
   @override
-  String emitSection(List<CallEntry> entries,
-      {Map<String, Object?> metadata = const {}}) {
+  String emitSection(
+    List<CallEntry> entries, {
+    Map<String, Object?> metadata = const {},
+  }) {
     final buf = StringBuffer();
     if (metadata.isNotEmpty) {
       buf.writeln('//');
@@ -1045,8 +1093,10 @@ class DartEmitter implements CodeEmitter {
   }
 
   @override
-  String emitProgram(List<CallEntry> entries,
-      {Map<String, Object?> metadata = const {}}) {
+  String emitProgram(
+    List<CallEntry> entries, {
+    Map<String, Object?> metadata = const {},
+  }) {
     final buf = StringBuffer();
     buf.writeln("import 'package:swisseph/swisseph.dart';");
     buf.writeln();
@@ -1091,8 +1141,9 @@ class DartEmitter implements CodeEmitter {
       try {
         final r = entry.result! as dynamic;
         buf.write(
-            'lon=${r.longitude}, lat=${r.latitude}, dist=${r.distance}, '
-            'slon=${r.longitudeSpeed}, slat=${r.latitudeSpeed}, sdist=${r.distanceSpeed}');
+          'lon=${r.longitude}, lat=${r.latitude}, dist=${r.distance}, '
+          'slon=${r.longitudeSpeed}, slat=${r.latitudeSpeed}, sdist=${r.distanceSpeed}',
+        );
       } catch (_) {
         buf.write('...');
       }
@@ -1142,7 +1193,8 @@ class DartEmitter implements CodeEmitter {
     final hsysChar = String.fromCharCode(hsys);
     final buf = StringBuffer();
     buf.write(
-        "final result = swe.houses($jdUt, $geolat, $geolon, '$hsysChar'.codeUnitAt(0));");
+      "final result = swe.houses($jdUt, $geolat, $geolon, '$hsysChar'.codeUnitAt(0));",
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1160,7 +1212,9 @@ class DartEmitter implements CodeEmitter {
 
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
-    buf.write("final result = swe.fixstar2Ut('${_escapeDart(star as String)}', $jdUt, $flagStr);");
+    buf.write(
+      "final result = swe.fixstar2Ut('${_escapeDart(star as String)}', $jdUt, $flagStr);",
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1181,7 +1235,8 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.nodApsUt($jdUt, $bodyStr, $flagStr, $method);');
+      'final result = swe.nodApsUt($jdUt, $bodyStr, $flagStr, $method);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1222,7 +1277,8 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.calcPctr($jdEt, $bodyStr, $centerStr, $flagStr);');
+      'final result = swe.calcPctr($jdEt, $bodyStr, $centerStr, $flagStr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1265,9 +1321,10 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
-        'final sector = swe.gauquelinSector($jdUt, $bodyStr, $flagStr, $method, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
-        'atpress: $atpress, attemp: $attemp);');
+      'final sector = swe.gauquelinSector($jdUt, $bodyStr, $flagStr, $method, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
+      'atpress: $atpress, attemp: $attemp);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1303,8 +1360,7 @@ class DartEmitter implements CodeEmitter {
 
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
-    buf.write(
-        'final jdCross = swe.moonCrossUt($longitude, $jdUt, $flagStr);');
+    buf.write('final jdCross = swe.moonCrossUt($longitude, $jdUt, $flagStr);');
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1343,7 +1399,8 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
-        'final jdCross = swe.helioCrossUt($bodyStr, $longitude, $jdUt, $flagStr, $dir);');
+      'final jdCross = swe.helioCrossUt($bodyStr, $longitude, $jdUt, $flagStr, $dir);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1370,10 +1427,11 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(epheflag);
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.riseTransTrueHor($jdUt, $bodyStr, '
-        'epheflag: $flagStr, rsmi: $rsmi, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
-        'atpress: $atpress, attemp: $attemp, horizonHeight: $horizonHeight);');
+      'final result = swe.riseTransTrueHor($jdUt, $bodyStr, '
+      'epheflag: $flagStr, rsmi: $rsmi, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
+      'atpress: $atpress, attemp: $attemp, horizonHeight: $horizonHeight);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1399,10 +1457,11 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(epheflag);
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.riseTrans($jdUt, $bodyStr, '
-        'epheflag: $flagStr, rsmi: $rsmi, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
-        'atpress: $atpress, attemp: $attemp);');
+      'final result = swe.riseTrans($jdUt, $bodyStr, '
+      'epheflag: $flagStr, rsmi: $rsmi, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
+      'atpress: $atpress, attemp: $attemp);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1425,9 +1484,10 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(flags);
     final buf = StringBuffer();
     buf.write(
-        "final result = swe.heliacalUt($jdStart, "
-        "geolon: $geolon, geolat: $geolat, geoalt: $geoalt, "
-        "objectName: '${_escapeDart(objectName as String)}', typeEvent: $typeEvent, flags: $flagStr);");
+      "final result = swe.heliacalUt($jdStart, "
+      "geolon: $geolon, geolat: $geolat, geoalt: $geoalt, "
+      "objectName: '${_escapeDart(objectName as String)}', typeEvent: $typeEvent, flags: $flagStr);",
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1450,9 +1510,10 @@ class DartEmitter implements CodeEmitter {
     final backwardStr = (backward == true || backward == 1) ? 'true' : 'false';
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.solEclipseWhenLoc($jdStart, $flagStr, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
-        'backward: $backwardStr);');
+      'final result = swe.solEclipseWhenLoc($jdStart, $flagStr, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
+      'backward: $backwardStr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1473,8 +1534,9 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.solEclipseHow($jdUt, $flagStr, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt);');
+      'final result = swe.solEclipseHow($jdUt, $flagStr, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1495,8 +1557,9 @@ class DartEmitter implements CodeEmitter {
     final backwardStr = (backward == true || backward == 1) ? 'true' : 'false';
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.lunEclipseWhen($jdStart, $flagStr, '
-        'eclType: $eclType, backward: $backwardStr);');
+      'final result = swe.lunEclipseWhen($jdStart, $flagStr, '
+      'eclType: $eclType, backward: $backwardStr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1517,8 +1580,9 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.lunEclipseHow($jdUt, $flagStr, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt);');
+      'final result = swe.lunEclipseHow($jdUt, $flagStr, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1539,8 +1603,9 @@ class DartEmitter implements CodeEmitter {
     final backwardStr = (backward == true || backward == 1) ? 'true' : 'false';
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.solEclipseWhenGlob($jdStart, $flagStr, '
-        'eclType: $eclType, backward: $backwardStr);');
+      'final result = swe.solEclipseWhenGlob($jdStart, $flagStr, '
+      'eclType: $eclType, backward: $backwardStr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1580,9 +1645,10 @@ class DartEmitter implements CodeEmitter {
     final backwardStr = (backward == true || backward == 1) ? 'true' : 'false';
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.lunEclipseWhenLoc($jdStart, $flagStr, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
-        'backward: $backwardStr);');
+      'final result = swe.lunEclipseWhenLoc($jdStart, $flagStr, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
+      'backward: $backwardStr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1653,16 +1719,18 @@ class DartEmitter implements CodeEmitter {
 
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.azAlt($jdUt, $calcFlag, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
-        'atpress: $atpress, attemp: $attemp, '
-        'bodyLon: $bodyLon, bodyLat: $bodyLat, bodyDist: $bodyDist);');
+      'final result = swe.azAlt($jdUt, $calcFlag, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
+      'atpress: $atpress, attemp: $attemp, '
+      'bodyLon: $bodyLon, bodyLat: $bodyLat, bodyDist: $bodyDist);',
+    );
     if (entry.result != null) {
       buf.writeln();
       try {
         final r = entry.result as dynamic;
         buf.write(
-            '// returns: azimuth=${r.azimuth}, trueAlt=${r.trueAltitude}, apparentAlt=${r.apparentAltitude}');
+          '// returns: azimuth=${r.azimuth}, trueAlt=${r.trueAltitude}, apparentAlt=${r.apparentAltitude}',
+        );
       } catch (_) {
         buf.write('// returns: ${entry.result}');
       }
@@ -1681,9 +1749,10 @@ class DartEmitter implements CodeEmitter {
 
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.azAltRev($jdUt, $calcFlag, '
-        'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
-        'azimuth: $azimuth, altitude: $altitude);');
+      'final result = swe.azAltRev($jdUt, $calcFlag, '
+      'geolon: $geolon, geolat: $geolat, geoalt: $geoalt, '
+      'azimuth: $azimuth, altitude: $altitude);',
+    );
     if (entry.result != null) {
       buf.writeln();
       try {
@@ -1708,8 +1777,7 @@ class DartEmitter implements CodeEmitter {
       buf.writeln();
       try {
         final r = entry.result as dynamic;
-        buf.write(
-            '// returns: lon=${r.lon}, lat=${r.lat}, dist=${r.dist}');
+        buf.write('// returns: lon=${r.lon}, lat=${r.lat}, dist=${r.dist}');
       } catch (_) {
         buf.write('// returns: ${entry.result}');
       }
@@ -1725,7 +1793,8 @@ class DartEmitter implements CodeEmitter {
 
     final buf = StringBuffer();
     buf.write(
-        'final altOut = swe.refrac($altitude, $atpress, $attemp, $calcFlag);');
+      'final altOut = swe.refrac($altitude, $atpress, $attemp, $calcFlag);',
+    );
     if (entry.result != null) {
       buf.writeln();
       buf.write('// returns: altOut = ${entry.result}');
@@ -1752,7 +1821,9 @@ class DartEmitter implements CodeEmitter {
     final bodyStr = SweSymbolCatalog.bodyNameDart(body);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
-    buf.write('final result = swe.getOrbitalElements($jdEt, $bodyStr, $flagStr);');
+    buf.write(
+      'final result = swe.getOrbitalElements($jdEt, $bodyStr, $flagStr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');
@@ -1769,7 +1840,8 @@ class DartEmitter implements CodeEmitter {
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
-        'final result = swe.orbitMaxMinTrueDistance($jdEt, $bodyStr, $flagStr);');
+      'final result = swe.orbitMaxMinTrueDistance($jdEt, $bodyStr, $flagStr);',
+    );
     if (entry.errorMessage != null) {
       buf.writeln();
       buf.write('// Error: ${entry.errorMessage}');

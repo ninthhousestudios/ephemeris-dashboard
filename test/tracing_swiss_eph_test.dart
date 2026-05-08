@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph/swisseph.dart';
-import 'package:swisseph/src/constants.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/tracing_swiss_eph.dart';
 
