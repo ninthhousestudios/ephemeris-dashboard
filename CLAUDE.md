@@ -82,3 +82,10 @@ Default vidhi vocabulary (no overrides). See `docs/agents/triage-labels.md`.
 ### Domain docs
 
 Single-context layout. See `docs/agents/domain.md`.
+
+## SwissEph state & frames
+
+SwissEph config is process-wide C globals that drift across await points and
+Android resume, and longitude frames (tropical/sidereal, ecliptic/equatorial)
+are easy to confuse across engine bridges. Before touching ephemeris-adjacent
+code, read ~/soft/manas/docs/lessons/swisseph-state-discipline.md.
