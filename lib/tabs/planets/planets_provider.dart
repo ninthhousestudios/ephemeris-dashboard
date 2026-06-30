@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/ephemeris.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 
 /// Result for a single planet calculation.
@@ -147,65 +150,75 @@ final selectedBodiesProvider = StateProvider<List<int>>(
   (ref) => [seSun, seMoon, seMercury, seVenus, seMars, seJupiter, seSaturn],
 );
 
-/// Planets calculation results.
-final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('planets')) return const [];
-
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('planets');
-  final swe = ref.read(sweProvider);
-  var bodies = ref.watch(selectedBodiesProvider);
-
-  // Auto-add Earth for heliocentric/barycentric calculations.
-  if ((ectx.origin == Origin.heliocentric ||
-          ectx.origin == Origin.barycentric) &&
+/// Pure compute step: runs calcUt for each body, capturing per-body
+/// SweExceptions as an `errorMessage` instead of failing the whole batch.
+List<PlanetResult> computePlanets({
+  required Ephemeris eph,
+  required double jdUt,
+  required int iflag,
+  required Origin origin,
+  required List<int> bodies,
+  required String Function(int body) getName,
+}) {
+  var effectiveBodies = bodies;
+  if ((origin == Origin.heliocentric || origin == Origin.barycentric) &&
       !bodies.contains(seEarth)) {
-    bodies = [...bodies, seEarth];
+    effectiveBodies = [...bodies, seEarth];
   }
 
-  final results = <PlanetResult>[];
-  for (final body in bodies) {
+  return effectiveBodies.map((body) {
     try {
-      final flags = ectx.iflag | seFlgSpeed;
-      final r = runner.run(
-        globals,
-        (eph) => eph.calcUt(ectx.jdUt, body, flags),
-      );
-      results.add(
-        PlanetResult(
-          body: body,
-          bodyName: swe.getPlanetName(body),
-          longitude: r.longitude,
-          latitude: r.latitude,
-          distance: r.distance,
-          speedLon: r.longitudeSpeed,
-          speedLat: r.latitudeSpeed,
-          speedDist: r.distanceSpeed,
-          returnFlag: r.returnFlag,
-        ),
+      final r = eph.calcUt(jdUt, body, iflag | seFlgSpeed);
+      return PlanetResult(
+        body: body,
+        bodyName: getName(body),
+        longitude: r.longitude,
+        latitude: r.latitude,
+        distance: r.distance,
+        speedLon: r.longitudeSpeed,
+        speedLat: r.latitudeSpeed,
+        speedDist: r.distanceSpeed,
+        returnFlag: r.returnFlag,
       );
     } on SweException catch (e) {
-      results.add(
-        PlanetResult(
-          body: body,
-          bodyName: _safeGetName(swe, body),
-          longitude: double.nan,
-          latitude: double.nan,
-          distance: double.nan,
-          speedLon: double.nan,
-          speedLat: double.nan,
-          speedDist: double.nan,
-          returnFlag: -1,
-          errorMessage: _describeBodyError(body, e.message),
-        ),
+      return PlanetResult(
+        body: body,
+        bodyName: getName(body),
+        longitude: double.nan,
+        latitude: double.nan,
+        distance: double.nan,
+        speedLon: double.nan,
+        speedLat: double.nan,
+        speedDist: double.nan,
+        returnFlag: -1,
+        errorMessage: _describeBodyError(body, e.message),
       );
     }
-  }
+  }).toList();
+}
 
-  return results;
+/// Planets calculation results.
+final planetsResultsProvider = Provider<CalcOutcome<List<PlanetResult>>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
+  final swe = ref.read(sweProvider);
+  final bodies = ref.watch(selectedBodiesProvider);
+
+  return runTabCalc(
+    runner: runner,
+    globals: globals,
+    tabTag: 'planets',
+    compute: (eph) => computePlanets(
+      eph: eph,
+      jdUt: ctx.jdUt,
+      iflag: flags.iflag,
+      origin: ctx.origin,
+      bodies: bodies,
+      getName: (body) => _safeGetName(swe, body),
+    ),
+  );
 });
 
 /// Convert planet results to export rows.

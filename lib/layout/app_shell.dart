@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
 import 'responsive_layout.dart';
 import '../core/calc_session.dart';
+import '../core/calculation/calc_outcome.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
@@ -191,7 +192,11 @@ class _AppShellState extends ConsumerState<AppShell>
         return Consumer(
           builder: (context, ref, _) {
             final format = ref.watch(planetsFormatProvider);
-            final results = ref.watch(planetsResultsProvider);
+            final outcome = ref.watch(planetsResultsProvider);
+            final results = switch (outcome) {
+              CalcOk(value: final v) => v,
+              CalcSweError() => const <PlanetResult>[],
+            };
             final jd = ref.watch(contextBarProvider).jdUt;
             return Row(
               mainAxisSize: MainAxisSize.min,

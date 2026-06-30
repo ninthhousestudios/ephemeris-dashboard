@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:swe_dashboard/core/calc_session.dart';
+import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
 import 'package:swe_dashboard/core/display_format.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_provider.dart';
@@ -152,7 +153,7 @@ final calcSessionOverride = calcSessionProvider.overrideWith((ref) {
 });
 
 final planetsResultsOverride = planetsResultsProvider.overrideWith(
-  (ref) => fakePlanetResults,
+  (ref) => CalcOk(fakePlanetResults),
 );
 
 final housesResultOverride = housesResultProvider.overrideWith(

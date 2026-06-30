@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
@@ -48,9 +48,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
       ref.read(selectedBodiesProvider.notifier).state = [...current, bodyId];
     }
   }
-
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('planets')));
 
   @override
   Widget build(BuildContext context) {
@@ -242,12 +239,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         const SizedBox(height: 4),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
       ],
     );
   }
@@ -261,18 +253,22 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
     }
   }
 
-  Widget _buildPlaceholder() {
-    return const Center(child: Text('Select bodies and press Calculate'));
-  }
-
   Widget _buildResults() {
     final format = ref.watch(planetsFormatProvider);
-    final results = ref.watch(planetsResultsProvider);
+    final outcome = ref.watch(planetsResultsProvider);
 
-    if (results.isEmpty) {
-      return const Center(child: Text('No bodies selected'));
-    }
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
+      ),
+      CalcOk(value: final results) =>
+        results.isEmpty
+            ? const Center(child: Text('No bodies selected'))
+            : _buildResultCards(results, format),
+    };
+  }
 
+  Widget _buildResultCards(List<PlanetResult> results, DisplayFormat format) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 1200
