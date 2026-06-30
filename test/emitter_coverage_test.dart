@@ -42,7 +42,23 @@ const _defaultArgs = <String, Object>{
   'flags': 258,
   'objectName': 'Sun',
   'horizonHeight': 0.0,
+  'longitude': 15.5,
+  'dir': 1,
+  'eclType': 0,
+  'bodyLon': 10.0,
+  'bodyLat': 0.0,
+  'bodyDist': 1.0,
+  'azimuth': 180.0,
+  'altitude': 45.0,
+  'dist': 1.0,
 };
+
+/// The literal call-site text each emitter writes for [fn] — e.g. `swe_calc_ut(`
+/// for C, `.calcUt(` for Dart. Matching on the call form (name immediately
+/// followed by `(`) rather than a bare substring distinguishes functions whose
+/// names are prefixes of one another (`swe_sidtime` / `swe_sidtime0`).
+String _expectedCall(TracedFunction fn, CodeEmitter emitter) =>
+    emitter is CEmitter ? '${fn.cName}(' : '.${fn.dartMethodName}(';
 
 void main() {
   test('TracedFunction covers all 39 traced methods', () {
@@ -61,10 +77,20 @@ void main() {
           traceId: 'test:coverage',
         );
         final snippet = emitter.emitSnippet(entry);
+        final expectedCall = _expectedCall(fn, emitter);
         expect(
           snippet,
-          isNot(startsWith('//')),
-          reason: '${fn.cName} must render real code, not a comment stub',
+          contains(expectedCall),
+          reason:
+              '${fn.cName} must render a call to $expectedCall on '
+              '${emitter.displayName}, not a stub or a different function',
+        );
+        expect(
+          snippet,
+          isNot(contains('null')),
+          reason:
+              '${fn.cName} on ${emitter.displayName} rendered a null '
+              'argument — _defaultArgs is missing a key this emit method reads',
         );
       });
     }
