@@ -1,0 +1,113 @@
+# .sutra/rules.toml — Architectural constraints for the Ephemeris Dashboard
+#
+# Seeded as part of the deep-module refactor (yojana swe-dashboard/4).
+# Vocabulary: CONTEXT.md. Decisions: docs/adr/. Routing of record:
+# docs/enforcement-ledger.md.
+#
+# Severity levels:
+#   blocking      — guard denies edits that introduce these
+#   advisory      — warning in review, agent proceeds
+#   informational — tracked in review output, silent otherwise
+#
+# Staging model: constraints that current debt violates are written ADVISORY
+# now (they document the debt and create pressure) and flip to BLOCKING when
+# the slice that establishes the seam lands. The flip trigger is recorded both
+# here and in the enforcement ledger.
+
+# ═══════════════════════════════════════════════════════════════════
+# Ephemeris seam (PRD module ①)
+# ═══════════════════════════════════════════════════════════════════
+# SwissEph is the engine. Tabs and widgets must reach it through the
+# `Ephemeris` interface, never the FFI package directly — that is what makes
+# every Calculation testable behind a fake. Today ~24 tab/widget files import
+# `package:swisseph` directly; this is the coupling the refactor removes.
+
+[[constraint]]
+kind = "confined_external"
+crates = ["swisseph"]
+allowed_in = ["lib/core/**"]
+name = "swisseph-behind-ephemeris-seam"
+severity = "advisory"  # FLIP TO BLOCKING at swe-dashboard/15 (all tabs migrated)
+provenance = "CONTEXT.md §Ephemeris; yojana:swe-dashboard/4 §Implementation ①"
+
+# ═══════════════════════════════════════════════════════════════════
+# Calculation kernel chokepoint (PRD module ②)
+# ═══════════════════════════════════════════════════════════════════
+# Tab providers obtain a configured Ephemeris from the Calculation kernel; they
+# must not reach the EphemerisRunner (the Applied Globals setter) directly.
+
+[[constraint]]
+kind = "forbidden_dep"
+from = "lib/tabs/**"
+to = "lib/core/ephemeris/runner.dart"
+name = "tabs-use-kernel-not-runner"
+severity = "advisory"  # FLIP TO BLOCKING at swe-dashboard/11 (foundation review)
+provenance = "yojana:swe-dashboard/4 §Implementation ②"
+
+# ═══════════════════════════════════════════════════════════════════
+# Tab independence
+# ═══════════════════════════════════════════════════════════════════
+# Tabs are independent surfaces. The co-change coupling is hidden (no static
+# edges today), so this guards against NEW static cross-tab coupling.
+
+[[constraint]]
+kind = "no_cycles"
+scope = "lib/tabs"
+name = "tabs-acyclic"
+severity = "blocking"  # already clean — locked now
+provenance = "CONTEXT.md §Result; yojana:swe-dashboard/4 §Problem"
+
+# ═══════════════════════════════════════════════════════════════════
+# Context bar (PRD module ⑥)
+# ═══════════════════════════════════════════════════════════════════
+# One real cycle exists today: app_shell ↔ context_bar ↔ file_in_use_indicator.
+# The ContextBar decomposition breaks it.
+
+[[constraint]]
+kind = "no_cycles"
+scope = "lib/widgets/context_bar"
+name = "context-bar-acyclic"
+severity = "advisory"  # FLIP TO BLOCKING at swe-dashboard/17 (ContextBar decomposition)
+provenance = "yojana:swe-dashboard/4 §Implementation ⑥"
+
+# ═══════════════════════════════════════════════════════════════════
+# DEFERRED — scope does not exist yet; uncomment + bind at the trigger
+# ═══════════════════════════════════════════════════════════════════
+
+# TRIGGER: at swe-dashboard/7 (kernel lands) — fix scope to the kernel dir and uncomment.
+# The Calculation kernel must stay acyclic.
+# [[constraint]]
+# kind = "no_cycles"
+# scope = "lib/core/calc"   # <-- set to the real kernel directory
+# name = "calc-kernel-acyclic"
+# severity = "blocking"
+# provenance = "yojana:swe-dashboard/4 §Implementation ②"
+
+# TRIGGER: at swe-dashboard/11 (first tend / R1) — set thresholds from real fan-in and uncomment.
+# The kernel and Ephemeris interface must not become god-hubs.
+# [[constraint]]
+# kind = "max_fan_in"
+# target = "lib/core/calc/kernel.dart"   # <-- real path
+# threshold = 30                          # <-- ~30% above measured fan-in
+# name = "kernel-fan-in-guard"
+# severity = "advisory"
+# provenance = "vidhi-sutra-tend (R1)"
+
+# TRIGGER: at swe-dashboard/9 (in-tree chart_formats deleted) — uncomment.
+# Chart parsing lives in the charts_dart package, not in-tree. The dashboard
+# touches it only where Charts are loaded.
+# [[constraint]]
+# kind = "confined_external"
+# crates = ["charts_dart"]
+# allowed_in = ["lib/widgets/context_bar/**", "lib/core/**"]
+# name = "charts-dart-at-load-sites-only"
+# severity = "blocking"
+# provenance = "CONTEXT.md §Chart; yojana:swe-dashboard/4 §Implementation ③"
+
+# ═══════════════════════════════════════════════════════════════════
+# Conventions
+# ═══════════════════════════════════════════════════════════════════
+# Convention triage is DEFERRED to the first review checkpoint (R1,
+# swe-dashboard/11) via vidhi-sutra-tend. Promoting conventions now would lock
+# patterns the refactor is about to delete. No suppressions yet — FCA will have
+# settled data after the foundation lands.

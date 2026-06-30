@@ -51,11 +51,36 @@ This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must 
 
 ## Key Architecture Decisions
 
-1. **Explicit Calculate button** — calculations run on demand, not on every state change
-2. **EffectiveContext** merges global context + flags + per-card overrides; C globals are set atomically at calculation time
-3. **Auto-managed flags** — sidereal, topocentric, helio, bary, ephe source flags are locked by the context bar (shown as disabled chips with lock icon)
+1. **Reactive projection (ADR-0001)** — Results are a pure function of the Context and Flags, recomputed on change. No explicit Calculate button, no staleness. (The legacy button + activation gate are being removed in `swe-dashboard/15`; until then the old gate still exists in `calc_session.dart`.)
+2. **Applied Globals** — the Context is set into the process-wide SwissEph C state at calculation time, atomically and synchronously (see invariants below)
+3. **Locked Flags** (formerly "auto-managed flags") — sidereal, topocentric, helio, bary, ephe-source flags are a pure function of the Context; the context bar owns them (shown as disabled chips with lock icon)
 4. **Flag bar uses `ref.listen`** (not `ref.watch` in notifier) for auto-linking to avoid infinite loops
 5. **swisseph from pub.dev** — not a local path dependency
+
+## Architecture refactor (in progress)
+
+The app is being refactored into deep, testable modules. Vocabulary: `CONTEXT.md`.
+Decisions: `docs/adr/`. Plan: `docs/prd/deep-module-refactor.md` (yojana `swe-dashboard/4`).
+Use `CONTEXT.md` terms in code, tests, and commits (Context, Moment, Ephemeris vs
+Ephemeris Source, Calculation/Result, Locked/Toggle Flag, Chart, Symbol Catalog,
+Call Trace, Emitter).
+
+### Governed invariants
+
+These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
+(guarded by `sutra-guard` on Edit/Write); routing of record is
+`docs/enforcement-ledger.md`. The behavioral ones below are not graph-expressible
+— honor them:
+
+- **Synchronous Applied Globals** — each recompute is synchronous; never set the
+  SwissEph C globals across an `await` (they drift). (ADR-0001)
+- **JD is canonical** — the Moment is a Julian Day; civil date/time/offset is a
+  derived, advisory view. Editing a civil field computes a new Moment.
+- **Locked Flags are a pure function of the Context** — one source of truth, not a
+  hand-maintained set.
+- **SwissEph behind the Ephemeris seam** — reach the engine through the `Ephemeris`
+  interface; `package:swisseph` is confined to `lib/core/**` (forbidden in
+  `lib/tabs/` and `lib/widgets/` — advisory until `swe-dashboard/15`, then blocking).
 
 ## Running
 

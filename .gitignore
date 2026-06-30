@@ -19,7 +19,13 @@ migrate_working_dir/
 release/
 xcode-warnings/
 .codex
-.sutra/
+
+# sutra: ignore workspace state, track committed config
+.sutra/*/
+.sutra/acks/
+!.sutra/rules.toml
+!.sutra/aliases.toml
+!.sutra/owners.toml
 
 # IntelliJ related
 *.iml
