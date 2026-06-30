@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph/src/constants.dart';
+import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/code_emitter.dart';
 
@@ -18,7 +19,7 @@ void main() {
 
     test('emits swe_calc_ut with symbolic body and flags', () {
       final entry = CallEntry(
-        functionName: 'swe_calc_ut',
+        functionName: TracedFunction.sweCalcUt,
         args: {
           'jdUt': 2460412.5,
           'body': seSun,
@@ -52,7 +53,7 @@ void main() {
 
     test('uses symbolic flag decomposition with pipe', () {
       final entry = CallEntry(
-        functionName: 'swe_calc_ut',
+        functionName: TracedFunction.sweCalcUt,
         args: {
           'jdUt': 2460412.5,
           'body': seSun,
@@ -69,7 +70,7 @@ void main() {
 
     test('includes // returns: annotation with result values', () {
       final entry = CallEntry(
-        functionName: 'swe_calc_ut',
+        functionName: TracedFunction.sweCalcUt,
         args: {
           'jdUt': 2460412.5,
           'body': seSun,
@@ -95,7 +96,7 @@ void main() {
 
     test('emits // Error: for errored calls', () {
       final entry = CallEntry(
-        functionName: 'swe_calc_ut',
+        functionName: TracedFunction.sweCalcUt,
         args: {'jdUt': 2460412.5, 'body': -99, 'iflag': seFlgSwiEph},
         category: CallCategory.calc,
         traceId: 'planets:calc_ut:body=-99',
@@ -109,7 +110,7 @@ void main() {
 
     test('emits setup calls as C function calls', () {
       final entry = CallEntry(
-        functionName: 'swe_set_sid_mode',
+        functionName: TracedFunction.sweSetSidMode,
         args: {'sidMode': seSidmLahiri, 't0': 0.0, 'ayanT0': 0.0},
         category: CallCategory.context,
         traceId: 'planets:set_sid_mode',
@@ -122,7 +123,7 @@ void main() {
 
     test('emits swe_set_topo with coordinate values', () {
       final entry = CallEntry(
-        functionName: 'swe_set_topo',
+        functionName: TracedFunction.sweSetTopo,
         args: {'geolon': -0.1278, 'geolat': 51.5074, 'geoalt': 0.0},
         category: CallCategory.context,
         traceId: 'planets:set_topo',
@@ -136,7 +137,7 @@ void main() {
 
     test('falls back to numeric when body unknown', () {
       final entry = CallEntry(
-        functionName: 'swe_calc_ut',
+        functionName: TracedFunction.sweCalcUt,
         args: {
           'jdUt': 2460412.5,
           'body': 10099,
@@ -159,13 +160,13 @@ void main() {
     test('includes header comment with metadata', () {
       final entries = [
         CallEntry(
-          functionName: 'swe_set_sid_mode',
+          functionName: TracedFunction.sweSetSidMode,
           args: {'sidMode': seSidmLahiri, 't0': 0.0, 'ayanT0': 0.0},
           category: CallCategory.context,
           traceId: 'planets:set_sid_mode',
         ),
         CallEntry(
-          functionName: 'swe_calc_ut',
+          functionName: TracedFunction.sweCalcUt,
           args: {
             'jdUt': 2460412.5,
             'body': seSun,

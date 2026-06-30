@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph/swisseph.dart';
+import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/tracing_swiss_eph.dart';
 
@@ -22,7 +23,7 @@ void main() {
 
       expect(tracing.entries, hasLength(1));
       final entry = tracing.entries.first;
-      expect(entry.functionName, equals('swe_calc_ut'));
+      expect(entry.functionName, equals(TracedFunction.sweCalcUt));
       expect(entry.args['jdUt'], equals(2460412.5));
       expect(entry.args['body'], equals(seSun));
       expect(entry.args['iflag'], equals(seFlgSwiEph | seFlgSpeed));
@@ -58,7 +59,7 @@ void main() {
 
       expect(tracing.entries, hasLength(1));
       final entry = tracing.entries.first;
-      expect(entry.functionName, equals('swe_set_sid_mode'));
+      expect(entry.functionName, equals(TracedFunction.sweSetSidMode));
       expect(entry.args['sidMode'], equals(1));
       expect(entry.category, equals(CallCategory.context));
     });
@@ -68,7 +69,7 @@ void main() {
 
       expect(tracing.entries, hasLength(1));
       final entry = tracing.entries.first;
-      expect(entry.functionName, equals('swe_set_topo'));
+      expect(entry.functionName, equals(TracedFunction.sweSetTopo));
       expect(entry.args['geolon'], equals(-0.1278));
       expect(entry.args['geolat'], equals(51.5074));
       expect(entry.category, equals(CallCategory.context));
@@ -79,7 +80,7 @@ void main() {
 
       expect(tracing.entries, hasLength(1));
       final entry = tracing.entries.first;
-      expect(entry.functionName, equals('swe_set_jpl_file'));
+      expect(entry.functionName, equals(TracedFunction.sweSetJplFile));
       expect(entry.args['filename'], equals('de441.eph'));
       expect(entry.category, equals(CallCategory.context));
     });
@@ -89,7 +90,7 @@ void main() {
 
       expect(tracing.entries, hasLength(1));
       final entry = tracing.entries.first;
-      expect(entry.functionName, equals('swe_set_ephe_path'));
+      expect(entry.functionName, equals(TracedFunction.sweSetEphePath));
       expect(entry.args['path'], equals('/tmp/ephe'));
       expect(entry.category, equals(CallCategory.context));
     });

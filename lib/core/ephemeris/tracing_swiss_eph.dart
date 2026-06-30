@@ -1,6 +1,7 @@
 import 'package:swisseph/swisseph.dart';
 
 import 'ephemeris.dart';
+import 'swe_symbol_catalog.dart';
 import 'trace_model.dart';
 
 class TracingSwissEph implements Ephemeris {
@@ -22,7 +23,7 @@ class TracingSwissEph implements Ephemeris {
   void setEphePath(String path) {
     _entries.add(
       CallEntry(
-        functionName: 'swe_set_ephe_path',
+        functionName: TracedFunction.sweSetEphePath,
         args: {'path': path},
         category: CallCategory.context,
         traceId: '$_tabTag:set_ephe_path',
@@ -35,7 +36,7 @@ class TracingSwissEph implements Ephemeris {
   void setSidMode(int sidMode, {double t0 = 0, double ayanT0 = 0}) {
     _entries.add(
       CallEntry(
-        functionName: 'swe_set_sid_mode',
+        functionName: TracedFunction.sweSetSidMode,
         args: {'sidMode': sidMode, 't0': t0, 'ayanT0': ayanT0},
         category: CallCategory.context,
         traceId: '$_tabTag:set_sid_mode',
@@ -48,7 +49,7 @@ class TracingSwissEph implements Ephemeris {
   void setTopo(double geolon, double geolat, double geoalt) {
     _entries.add(
       CallEntry(
-        functionName: 'swe_set_topo',
+        functionName: TracedFunction.sweSetTopo,
         args: {'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt},
         category: CallCategory.context,
         traceId: '$_tabTag:set_topo',
@@ -61,7 +62,7 @@ class TracingSwissEph implements Ephemeris {
   void setJplFile(String filename) {
     _entries.add(
       CallEntry(
-        functionName: 'swe_set_jpl_file',
+        functionName: TracedFunction.sweSetJplFile,
         args: {'filename': filename},
         category: CallCategory.context,
         traceId: '$_tabTag:set_jpl_file',
@@ -80,7 +81,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.calcUt(jdUt, body, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_calc_ut',
+          functionName: TracedFunction.sweCalcUt,
           args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -93,7 +94,7 @@ class TracingSwissEph implements Ephemeris {
       errorMessage = e.toString();
       _entries.add(
         CallEntry(
-          functionName: 'swe_calc_ut',
+          functionName: TracedFunction.sweCalcUt,
           args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -111,7 +112,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.calcPctr(jdEt, body, centerBody, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_calc_pctr',
+          functionName: TracedFunction.sweCalcPctr,
           args: {
             'jdEt': jdEt,
             'body': body,
@@ -128,7 +129,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_calc_pctr',
+          functionName: TracedFunction.sweCalcPctr,
           args: {
             'jdEt': jdEt,
             'body': body,
@@ -151,7 +152,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.houses(jdUt, geolat, geolon, hsys);
       _entries.add(
         CallEntry(
-          functionName: 'swe_houses',
+          functionName: TracedFunction.sweHouses,
           args: {
             'jdUt': jdUt,
             'geolat': geolat,
@@ -167,7 +168,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_houses',
+          functionName: TracedFunction.sweHouses,
           args: {
             'jdUt': jdUt,
             'geolat': geolat,
@@ -212,7 +213,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_gauquelin_sector',
+          functionName: TracedFunction.sweGauquelinSector,
           args: {
             'jdUt': jdUt,
             'body': body,
@@ -233,7 +234,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_gauquelin_sector',
+          functionName: TracedFunction.sweGauquelinSector,
           args: {
             'jdUt': jdUt,
             'body': body,
@@ -260,7 +261,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.getAyanamsaUt(jdUt);
     _entries.add(
       CallEntry(
-        functionName: 'swe_get_ayanamsa_ut',
+        functionName: TracedFunction.sweGetAyanamsaUt,
         args: {'jdUt': jdUt},
         category: CallCategory.calc,
         traceId: traceId,
@@ -277,7 +278,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.getAyanamsaExUt(jdUt, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_get_ayanamsa_ex_ut',
+          functionName: TracedFunction.sweGetAyanamsaExUt,
           args: {'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -288,7 +289,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_get_ayanamsa_ex_ut',
+          functionName: TracedFunction.sweGetAyanamsaExUt,
           args: {'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -306,7 +307,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.fixstar2Ut(star, jdUt, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_fixstar2_ut',
+          functionName: TracedFunction.sweFixstar2Ut,
           args: {'star': star, 'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -318,7 +319,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_fixstar2_ut',
+          functionName: TracedFunction.sweFixstar2Ut,
           args: {'star': star, 'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -336,7 +337,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.solCrossUt(longitude, jdUt, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_solcross_ut',
+          functionName: TracedFunction.sweSolcrossUt,
           args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -347,7 +348,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_solcross_ut',
+          functionName: TracedFunction.sweSolcrossUt,
           args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -365,7 +366,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.moonCrossUt(longitude, jdUt, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_mooncross_ut',
+          functionName: TracedFunction.sweMooncrossUt,
           args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -376,7 +377,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_mooncross_ut',
+          functionName: TracedFunction.sweMooncrossUt,
           args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -394,7 +395,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.moonCrossNodeUt(jdUt, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_mooncross_node_ut',
+          functionName: TracedFunction.sweMooncrossNodeUt,
           args: {'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -405,7 +406,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_mooncross_node_ut',
+          functionName: TracedFunction.sweMooncrossNodeUt,
           args: {'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -429,7 +430,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.helioCrossUt(body, longitude, jdUt, flags, dir);
       _entries.add(
         CallEntry(
-          functionName: 'swe_heliocross_ut',
+          functionName: TracedFunction.sweHeliocrossUt,
           args: {
             'body': body,
             'longitude': longitude,
@@ -446,7 +447,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_heliocross_ut',
+          functionName: TracedFunction.sweHeliocrossUt,
           args: {
             'body': body,
             'longitude': longitude,
@@ -484,7 +485,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_when_loc',
+          functionName: TracedFunction.sweSolEclipseWhenLoc,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -502,7 +503,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_when_loc',
+          functionName: TracedFunction.sweSolEclipseWhenLoc,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -537,7 +538,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_when_glob',
+          functionName: TracedFunction.sweSolEclipseWhenGlob,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -553,7 +554,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_when_glob',
+          functionName: TracedFunction.sweSolEclipseWhenGlob,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -588,7 +589,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_how',
+          functionName: TracedFunction.sweSolEclipseHow,
           args: {
             'jdUt': jdUt,
             'iflag': flags,
@@ -605,7 +606,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_how',
+          functionName: TracedFunction.sweSolEclipseHow,
           args: {
             'jdUt': jdUt,
             'iflag': flags,
@@ -629,7 +630,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.solEclipseWhere(jdUt, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_where',
+          functionName: TracedFunction.sweSolEclipseWhere,
           args: {'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -640,7 +641,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_sol_eclipse_where',
+          functionName: TracedFunction.sweSolEclipseWhere,
           args: {'jdUt': jdUt, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -668,7 +669,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_lun_eclipse_when',
+          functionName: TracedFunction.sweLunEclipseWhen,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -684,7 +685,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_lun_eclipse_when',
+          functionName: TracedFunction.sweLunEclipseWhen,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -721,7 +722,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_lun_eclipse_when_loc',
+          functionName: TracedFunction.sweLunEclipseWhenLoc,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -739,7 +740,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_lun_eclipse_when_loc',
+          functionName: TracedFunction.sweLunEclipseWhenLoc,
           args: {
             'jdStart': jdStart,
             'iflag': flags,
@@ -776,7 +777,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_lun_eclipse_how',
+          functionName: TracedFunction.sweLunEclipseHow,
           args: {
             'jdUt': jdUt,
             'iflag': flags,
@@ -793,7 +794,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_lun_eclipse_how',
+          functionName: TracedFunction.sweLunEclipseHow,
           args: {
             'jdUt': jdUt,
             'iflag': flags,
@@ -839,7 +840,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_rise_trans',
+          functionName: TracedFunction.sweRiseTrans,
           args: {
             'jdUt': jdUt,
             'body': body,
@@ -860,7 +861,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_rise_trans',
+          functionName: TracedFunction.sweRiseTrans,
           args: {
             'jdUt': jdUt,
             'body': body,
@@ -912,7 +913,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_rise_trans_true_hor',
+          functionName: TracedFunction.sweRiseTransTrueHor,
           args: {
             'jdUt': jdUt,
             'body': body,
@@ -934,7 +935,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_rise_trans_true_hor',
+          functionName: TracedFunction.sweRiseTransTrueHor,
           args: {
             'jdUt': jdUt,
             'body': body,
@@ -985,7 +986,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_azalt',
+          functionName: TracedFunction.sweAzalt,
           args: {
             'jdUt': jdUt,
             'calcFlag': calcFlag,
@@ -1007,7 +1008,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_azalt',
+          functionName: TracedFunction.sweAzalt,
           args: {
             'jdUt': jdUt,
             'calcFlag': calcFlag,
@@ -1052,7 +1053,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_azalt_rev',
+          functionName: TracedFunction.sweAzaltRev,
           args: {
             'jdUt': jdUt,
             'calcFlag': calcFlag,
@@ -1071,7 +1072,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_azalt_rev',
+          functionName: TracedFunction.sweAzaltRev,
           args: {
             'jdUt': jdUt,
             'calcFlag': calcFlag,
@@ -1097,7 +1098,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.cotrans(lon, lat, dist, eps);
       _entries.add(
         CallEntry(
-          functionName: 'swe_cotrans',
+          functionName: TracedFunction.sweCotrans,
           args: {'lon': lon, 'lat': lat, 'dist': dist, 'eps': eps},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1108,7 +1109,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_cotrans',
+          functionName: TracedFunction.sweCotrans,
           args: {'lon': lon, 'lat': lat, 'dist': dist, 'eps': eps},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1125,7 +1126,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.refrac(altitude, atpress, attemp, calcFlag);
     _entries.add(
       CallEntry(
-        functionName: 'swe_refrac',
+        functionName: TracedFunction.sweRefrac,
         args: {
           'altitude': altitude,
           'atpress': atpress,
@@ -1146,7 +1147,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.deltat(jd);
     _entries.add(
       CallEntry(
-        functionName: 'swe_deltat',
+        functionName: TracedFunction.sweDeltat,
         args: {'jd': jd},
         category: CallCategory.calc,
         traceId: traceId,
@@ -1162,7 +1163,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.timeEqu(jd);
     _entries.add(
       CallEntry(
-        functionName: 'swe_time_equ',
+        functionName: TracedFunction.sweTimeEqu,
         args: {'jd': jd},
         category: CallCategory.calc,
         traceId: traceId,
@@ -1178,7 +1179,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.sidTime(jdUt);
     _entries.add(
       CallEntry(
-        functionName: 'swe_sidtime',
+        functionName: TracedFunction.sweSidtime,
         args: {'jdUt': jdUt},
         category: CallCategory.calc,
         traceId: traceId,
@@ -1194,7 +1195,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.sidTime0(jdUt, eps, nut);
     _entries.add(
       CallEntry(
-        functionName: 'swe_sidtime0',
+        functionName: TracedFunction.sweSidtime0,
         args: {'jdUt': jdUt, 'eps': eps, 'nut': nut},
         category: CallCategory.calc,
         traceId: traceId,
@@ -1210,7 +1211,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.lmtToLat(jdLmt, geolon);
     _entries.add(
       CallEntry(
-        functionName: 'swe_lmt_to_lat',
+        functionName: TracedFunction.sweLmtToLat,
         args: {'jdLmt': jdLmt, 'geolon': geolon},
         category: CallCategory.calc,
         traceId: traceId,
@@ -1226,7 +1227,7 @@ class TracingSwissEph implements Ephemeris {
     final result = _delegate.latToLmt(jdLat, geolon);
     _entries.add(
       CallEntry(
-        functionName: 'swe_lat_to_lmt',
+        functionName: TracedFunction.sweLatToLmt,
         args: {'jdLat': jdLat, 'geolon': geolon},
         category: CallCategory.calc,
         traceId: traceId,
@@ -1243,7 +1244,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.nodApsUt(jdUt, body, flags, method);
       _entries.add(
         CallEntry(
-          functionName: 'swe_nod_aps_ut',
+          functionName: TracedFunction.sweNodApsUt,
           args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1254,7 +1255,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_nod_aps_ut',
+          functionName: TracedFunction.sweNodApsUt,
           args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1272,7 +1273,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.getOrbitalElements(jdEt, body, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_get_orbital_elements',
+          functionName: TracedFunction.sweGetOrbitalElements,
           args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1283,7 +1284,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_get_orbital_elements',
+          functionName: TracedFunction.sweGetOrbitalElements,
           args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1305,7 +1306,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.orbitMaxMinTrueDistance(jdEt, body, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_orbit_max_min_true_distance',
+          functionName: TracedFunction.sweOrbitMaxMinTrueDistance,
           args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1316,7 +1317,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_orbit_max_min_true_distance',
+          functionName: TracedFunction.sweOrbitMaxMinTrueDistance,
           args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1334,7 +1335,7 @@ class TracingSwissEph implements Ephemeris {
       final result = _delegate.phenoUt(jdUt, body, flags);
       _entries.add(
         CallEntry(
-          functionName: 'swe_pheno_ut',
+          functionName: TracedFunction.swePhenoUt,
           args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1345,7 +1346,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_pheno_ut',
+          functionName: TracedFunction.swePhenoUt,
           args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
           category: CallCategory.calc,
           traceId: traceId,
@@ -1383,7 +1384,7 @@ class TracingSwissEph implements Ephemeris {
       );
       _entries.add(
         CallEntry(
-          functionName: 'swe_heliacal_ut',
+          functionName: TracedFunction.sweHeliacalUt,
           args: {
             'jdStart': jdStart,
             'geolon': geolon,
@@ -1402,7 +1403,7 @@ class TracingSwissEph implements Ephemeris {
     } catch (e) {
       _entries.add(
         CallEntry(
-          functionName: 'swe_heliacal_ut',
+          functionName: TracedFunction.sweHeliacalUt,
           args: {
             'jdStart': jdStart,
             'geolon': geolon,

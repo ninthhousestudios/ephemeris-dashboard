@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph/src/constants.dart';
+import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/code_emitter.dart';
 
@@ -18,7 +19,7 @@ void main() {
 
     test('emits calcUt with Dart method name and symbolic constants', () {
       final entry = CallEntry(
-        functionName: 'swe_calc_ut',
+        functionName: TracedFunction.sweCalcUt,
         args: {
           'jdUt': 2460412.5,
           'body': seSun,
@@ -52,7 +53,7 @@ void main() {
 
     test('emits setSidMode with Dart constant names', () {
       final entry = CallEntry(
-        functionName: 'swe_set_sid_mode',
+        functionName: TracedFunction.sweSetSidMode,
         args: {'sidMode': seSidmLahiri, 't0': 0.0, 'ayanT0': 0.0},
         category: CallCategory.context,
         traceId: 'planets:set_sid_mode',
@@ -66,7 +67,7 @@ void main() {
 
     test('emits setTopo with Dart method name', () {
       final entry = CallEntry(
-        functionName: 'swe_set_topo',
+        functionName: TracedFunction.sweSetTopo,
         args: {'geolon': -0.1278, 'geolat': 51.5074, 'geoalt': 0.0},
         category: CallCategory.context,
         traceId: 'planets:set_topo',
@@ -80,7 +81,7 @@ void main() {
 
     test('emits setEphePath with Dart method name', () {
       final entry = CallEntry(
-        functionName: 'swe_set_ephe_path',
+        functionName: TracedFunction.sweSetEphePath,
         args: {'path': '/usr/share/ephe'},
         category: CallCategory.context,
         traceId: 'planets:set_ephe_path',
@@ -93,7 +94,7 @@ void main() {
 
     test('emits houses with Dart method name', () {
       final entry = CallEntry(
-        functionName: 'swe_houses',
+        functionName: TracedFunction.sweHouses,
         args: {
           'jdUt': 2460412.5,
           'geolat': 51.5074,
@@ -111,7 +112,7 @@ void main() {
 
     test('emits fixstar2Ut with Dart method name', () {
       final entry = CallEntry(
-        functionName: 'swe_fixstar2_ut',
+        functionName: TracedFunction.sweFixstar2Ut,
         args: {
           'star': 'Aldebaran',
           'jdUt': 2460412.5,
@@ -128,7 +129,7 @@ void main() {
 
     test('emits error annotation', () {
       final entry = CallEntry(
-        functionName: 'swe_calc_ut',
+        functionName: TracedFunction.sweCalcUt,
         args: {'jdUt': 2460412.5, 'body': -99, 'iflag': seFlgSwiEph},
         category: CallCategory.calc,
         traceId: 'planets:calc_ut:body=-99',
@@ -147,13 +148,13 @@ void main() {
     test('includes header comment with metadata', () {
       final entries = [
         CallEntry(
-          functionName: 'swe_set_sid_mode',
+          functionName: TracedFunction.sweSetSidMode,
           args: {'sidMode': seSidmLahiri, 't0': 0.0, 'ayanT0': 0.0},
           category: CallCategory.context,
           traceId: 'planets:set_sid_mode',
         ),
         CallEntry(
-          functionName: 'swe_calc_ut',
+          functionName: TracedFunction.sweCalcUt,
           args: {
             'jdUt': 2460412.5,
             'body': seSun,
@@ -183,13 +184,13 @@ void main() {
     test('produces a standalone Dart program', () {
       final entries = [
         CallEntry(
-          functionName: 'swe_set_ephe_path',
+          functionName: TracedFunction.sweSetEphePath,
           args: {'path': '/usr/share/ephe'},
           category: CallCategory.context,
           traceId: 'planets:set_ephe_path',
         ),
         CallEntry(
-          functionName: 'swe_calc_ut',
+          functionName: TracedFunction.sweCalcUt,
           args: {
             'jdUt': 2460412.5,
             'body': seSun,

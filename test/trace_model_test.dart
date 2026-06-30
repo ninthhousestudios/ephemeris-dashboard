@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/calc_context.dart';
 import 'package:swe_dashboard/core/context_state.dart';
+import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 
 final _testContext = EffectiveContext(
@@ -17,7 +18,7 @@ final _testContext = EffectiveContext(
 );
 
 CallEntry _entry({
-  String functionName = 'swe_calc_ut',
+  TracedFunction functionName = TracedFunction.sweCalcUt,
   Map<String, Object?> args = const {},
   CallCategory category = CallCategory.calc,
   String traceId = 'planets:calc_ut:body=0',
@@ -35,7 +36,7 @@ void main() {
     test('stores function name, args, category, and traceId', () {
       final entry = _entry(args: {'jdUt': 2460412.5, 'body': 0, 'iflag': 258});
 
-      expect(entry.functionName, equals('swe_calc_ut'));
+      expect(entry.functionName, equals(TracedFunction.sweCalcUt));
       expect(entry.args['body'], equals(0));
       expect(entry.category, equals(CallCategory.calc));
       expect(entry.traceId, equals('planets:calc_ut:body=0'));
@@ -49,12 +50,18 @@ void main() {
     test('holds entries and context', () {
       final entries = [
         _entry(
-          functionName: 'swe_set_topo',
+          functionName: TracedFunction.sweSetTopo,
           category: CallCategory.context,
           traceId: 'ctx:set_topo',
         ),
-        _entry(functionName: 'swe_calc_ut', traceId: 'planets:calc_ut:body=0'),
-        _entry(functionName: 'swe_calc_ut', traceId: 'planets:calc_ut:body=1'),
+        _entry(
+          functionName: TracedFunction.sweCalcUt,
+          traceId: 'planets:calc_ut:body=0',
+        ),
+        _entry(
+          functionName: TracedFunction.sweCalcUt,
+          traceId: 'planets:calc_ut:body=1',
+        ),
       ];
       final now = DateTime.now();
       final trace = CallTrace(
@@ -76,37 +83,37 @@ void main() {
       trace = CallTrace(
         entries: [
           _entry(
-            functionName: 'swe_set_ephe_path',
+            functionName: TracedFunction.sweSetEphePath,
             category: CallCategory.flags,
             traceId: 'ctx:set_ephe_path',
           ),
           _entry(
-            functionName: 'swe_set_sid_mode',
+            functionName: TracedFunction.sweSetSidMode,
             category: CallCategory.context,
             traceId: 'ctx:set_sid_mode',
           ),
           _entry(
-            functionName: 'swe_set_topo',
+            functionName: TracedFunction.sweSetTopo,
             category: CallCategory.context,
             traceId: 'ctx:set_topo',
           ),
           _entry(
-            functionName: 'swe_calc_ut',
+            functionName: TracedFunction.sweCalcUt,
             category: CallCategory.calc,
             traceId: 'planets:calc_ut:body=0',
           ),
           _entry(
-            functionName: 'swe_calc_ut',
+            functionName: TracedFunction.sweCalcUt,
             category: CallCategory.calc,
             traceId: 'planets:calc_ut:body=1',
           ),
           _entry(
-            functionName: 'swe_calc_ut',
+            functionName: TracedFunction.sweCalcUt,
             category: CallCategory.calc,
             traceId: 'houses:calc_ut:body=0',
           ),
           _entry(
-            functionName: 'swe_close',
+            functionName: TracedFunction.sweDeltat,
             category: CallCategory.teardown,
             traceId: 'ctx:close',
           ),

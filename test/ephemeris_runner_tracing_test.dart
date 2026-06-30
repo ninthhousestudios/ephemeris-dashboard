@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 import 'package:swe_dashboard/core/ephemeris/ephemeris.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
+import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/tracing_swiss_eph.dart';
 
@@ -34,11 +35,11 @@ void main() {
 
       final entries = runner.traceEntries;
       expect(
-        entries.where((e) => e.functionName == 'swe_set_sid_mode'),
+        entries.where((e) => e.functionName == TracedFunction.sweSetSidMode),
         hasLength(1),
       );
       final setup = entries.firstWhere(
-        (e) => e.functionName == 'swe_set_sid_mode',
+        (e) => e.functionName == TracedFunction.sweSetSidMode,
       );
       expect(setup.category, equals(CallCategory.context));
       expect(setup.args['sidMode'], equals(1));
@@ -58,7 +59,7 @@ void main() {
 
       final entries = runner.traceEntries;
       expect(
-        entries.where((e) => e.functionName == 'swe_set_topo'),
+        entries.where((e) => e.functionName == TracedFunction.sweSetTopo),
         hasLength(1),
       );
     });
@@ -139,7 +140,7 @@ void main() {
       runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
 
       final calcEntry = runner.traceEntries.firstWhere(
-        (e) => e.functionName == 'swe_calc_ut',
+        (e) => e.functionName == TracedFunction.sweCalcUt,
       );
       expect(calcEntry.traceId, startsWith('planets:'));
     });
@@ -162,7 +163,11 @@ void main() {
       final names = runner.traceEntries.map((e) => e.functionName).toList();
       expect(
         names,
-        containsAllInOrder(['swe_set_sid_mode', 'swe_set_topo', 'swe_calc_ut']),
+        containsAllInOrder([
+          TracedFunction.sweSetSidMode,
+          TracedFunction.sweSetTopo,
+          TracedFunction.sweCalcUt,
+        ]),
       );
     });
 
@@ -192,12 +197,12 @@ void main() {
       expect(
         names,
         containsAllInOrder([
-          'swe_set_ephe_path',
-          'swe_set_sid_mode',
-          'swe_set_topo',
-          'swe_set_jpl_file',
-          'swe_calc_ut',
-          'swe_calc_ut',
+          TracedFunction.sweSetEphePath,
+          TracedFunction.sweSetSidMode,
+          TracedFunction.sweSetTopo,
+          TracedFunction.sweSetJplFile,
+          TracedFunction.sweCalcUt,
+          TracedFunction.sweCalcUt,
         ]),
       );
 

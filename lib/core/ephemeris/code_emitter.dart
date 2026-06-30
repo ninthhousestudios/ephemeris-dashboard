@@ -45,86 +45,49 @@ class CEmitter implements CodeEmitter {
   String get fileExtension => '.c';
 
   @override
-  String emitSnippet(CallEntry entry) {
-    switch (entry.functionName) {
-      case 'swe_calc_ut':
-        return _emitCalcUt(entry);
-      case 'swe_set_sid_mode':
-        return _emitSetSidMode(entry);
-      case 'swe_set_topo':
-        return _emitSetTopo(entry);
-      case 'swe_set_ephe_path':
-        return _emitSetEphePath(entry);
-      case 'swe_set_jpl_file':
-        return _emitSetJplFile(entry);
-      case 'swe_houses':
-        return _emitHouses(entry);
-      case 'swe_fixstar2_ut':
-        return _emitFixstar2Ut(entry);
-      case 'swe_nod_aps_ut':
-        return _emitNodApsUt(entry);
-      case 'swe_pheno_ut':
-        return _emitPhenoUt(entry);
-      case 'swe_calc_pctr':
-        return _emitCalcPctr(entry);
-      case 'swe_get_ayanamsa_ex_ut':
-        return _emitGetAyanamsaExUt(entry);
-      case 'swe_gauquelin_sector':
-        return _emitGauquelinSector(entry);
-      case 'swe_solcross_ut':
-        return _emitSolcrossUt(entry);
-      case 'swe_mooncross_ut':
-        return _emitMooncrossUt(entry);
-      case 'swe_mooncross_node_ut':
-        return _emitMooncrossNodeUt(entry);
-      case 'swe_heliocross_ut':
-        return _emitHeliocrossUt(entry);
-      case 'swe_rise_trans_true_hor':
-        return _emitRiseTransTrueHor(entry);
-      case 'swe_heliacal_ut':
-        return _emitHeliacalUt(entry);
-      case 'swe_sol_eclipse_when_loc':
-        return _emitSolEclipseWhenLoc(entry);
-      case 'swe_sol_eclipse_how':
-        return _emitSolEclipseHow(entry);
-      case 'swe_lun_eclipse_when':
-        return _emitLunEclipseWhen(entry);
-      case 'swe_lun_eclipse_how':
-        return _emitLunEclipseHow(entry);
-      case 'swe_rise_trans':
-        return _emitRiseTrans(entry);
-      case 'swe_sol_eclipse_when_glob':
-        return _emitSolEclipseWhenGlob(entry);
-      case 'swe_sol_eclipse_where':
-        return _emitSolEclipseWhere(entry);
-      case 'swe_lun_eclipse_when_loc':
-        return _emitLunEclipseWhenLoc(entry);
-      case 'swe_deltat':
-        return _emitDeltat(entry);
-      case 'swe_time_equ':
-        return _emitTimeEqu(entry);
-      case 'swe_lmt_to_lat':
-        return _emitLmtToLat(entry);
-      case 'swe_lat_to_lmt':
-        return _emitLatToLmt(entry);
-      case 'swe_azalt':
-        return _emitAzalt(entry);
-      case 'swe_azalt_rev':
-        return _emitAzaltRev(entry);
-      case 'swe_cotrans':
-        return _emitCotrans(entry);
-      case 'swe_refrac':
-        return _emitRefrac(entry);
-      case 'swe_get_ayanamsa_ut':
-        return _emitGetAyanamsaUt(entry);
-      case 'swe_get_orbital_elements':
-        return _emitGetOrbitalElements(entry);
-      case 'swe_orbit_max_min_true_distance':
-        return _emitOrbitMaxMinTrueDistance(entry);
-      default:
-        return '// ${entry.functionName}(...)';
-    }
-  }
+  String emitSnippet(CallEntry entry) => switch (entry.functionName) {
+    TracedFunction.sweCalcUt => _emitCalcUt(entry),
+    TracedFunction.sweSetSidMode => _emitSetSidMode(entry),
+    TracedFunction.sweSetTopo => _emitSetTopo(entry),
+    TracedFunction.sweSetEphePath => _emitSetEphePath(entry),
+    TracedFunction.sweSetJplFile => _emitSetJplFile(entry),
+    TracedFunction.sweHouses => _emitHouses(entry),
+    TracedFunction.sweFixstar2Ut => _emitFixstar2Ut(entry),
+    TracedFunction.sweNodApsUt => _emitNodApsUt(entry),
+    TracedFunction.swePhenoUt => _emitPhenoUt(entry),
+    TracedFunction.sweCalcPctr => _emitCalcPctr(entry),
+    TracedFunction.sweGetAyanamsaExUt => _emitGetAyanamsaExUt(entry),
+    TracedFunction.sweGauquelinSector => _emitGauquelinSector(entry),
+    TracedFunction.sweSolcrossUt => _emitSolcrossUt(entry),
+    TracedFunction.sweMooncrossUt => _emitMooncrossUt(entry),
+    TracedFunction.sweMooncrossNodeUt => _emitMooncrossNodeUt(entry),
+    TracedFunction.sweHeliocrossUt => _emitHeliocrossUt(entry),
+    TracedFunction.sweRiseTransTrueHor => _emitRiseTransTrueHor(entry),
+    TracedFunction.sweHeliacalUt => _emitHeliacalUt(entry),
+    TracedFunction.sweSolEclipseWhenLoc => _emitSolEclipseWhenLoc(entry),
+    TracedFunction.sweSolEclipseHow => _emitSolEclipseHow(entry),
+    TracedFunction.sweLunEclipseWhen => _emitLunEclipseWhen(entry),
+    TracedFunction.sweLunEclipseHow => _emitLunEclipseHow(entry),
+    TracedFunction.sweRiseTrans => _emitRiseTrans(entry),
+    TracedFunction.sweSolEclipseWhenGlob => _emitSolEclipseWhenGlob(entry),
+    TracedFunction.sweSolEclipseWhere => _emitSolEclipseWhere(entry),
+    TracedFunction.sweLunEclipseWhenLoc => _emitLunEclipseWhenLoc(entry),
+    TracedFunction.sweDeltat => _emitDeltat(entry),
+    TracedFunction.sweTimeEqu => _emitTimeEqu(entry),
+    TracedFunction.sweLmtToLat => _emitLmtToLat(entry),
+    TracedFunction.sweLatToLmt => _emitLatToLmt(entry),
+    TracedFunction.sweAzalt => _emitAzalt(entry),
+    TracedFunction.sweAzaltRev => _emitAzaltRev(entry),
+    TracedFunction.sweCotrans => _emitCotrans(entry),
+    TracedFunction.sweRefrac => _emitRefrac(entry),
+    TracedFunction.sweGetAyanamsaUt => _emitGetAyanamsaUt(entry),
+    TracedFunction.sweGetOrbitalElements => _emitGetOrbitalElements(entry),
+    TracedFunction.sweOrbitMaxMinTrueDistance => _emitOrbitMaxMinTrueDistance(
+      entry,
+    ),
+    TracedFunction.sweSidtime => _emitSidtime(entry),
+    TracedFunction.sweSidtime0 => _emitSidtime0(entry),
+  };
 
   @override
   String emitSection(
@@ -182,7 +145,7 @@ class CEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
 
     final buf = StringBuffer();
@@ -222,7 +185,7 @@ class CEmitter implements CodeEmitter {
     final t0 = entry.args['t0'] ?? 0;
     final ayanT0 = entry.args['ayanT0'] ?? 0;
 
-    final modeStr = SweSymbolCatalog.sidModeName(sidMode);
+    final modeStr = SweSymbolCatalog.sidModeName(sidMode, CodeTarget.c);
     if (t0 == 0 && ayanT0 == 0) {
       return 'swe_set_sid_mode($modeStr, 0, 0);';
     }
@@ -297,7 +260,7 @@ class CEmitter implements CodeEmitter {
     final iflag = entry.args['iflag'] as int;
     final method = entry.args['method'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.writeln('double xnasc[6], xndsc[6], xperi[6], xaphe[6];');
@@ -320,7 +283,7 @@ class CEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.writeln('double attr[20];');
@@ -344,8 +307,8 @@ class CEmitter implements CodeEmitter {
     final centerBody = entry.args['centerBody'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
-    final centerStr = SweSymbolCatalog.bodyName(centerBody);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
+    final centerStr = SweSymbolCatalog.bodyName(centerBody, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.writeln('double xxeret[6];');
@@ -395,7 +358,7 @@ class CEmitter implements CodeEmitter {
     final atpress = entry.args['atpress'];
     final attemp = entry.args['attemp'];
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
@@ -484,7 +447,7 @@ class CEmitter implements CodeEmitter {
     final iflag = entry.args['iflag'] as int;
     final dir = entry.args['dir'];
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.writeln('double jd_cross;');
@@ -514,7 +477,7 @@ class CEmitter implements CodeEmitter {
     final attemp = entry.args['attemp'];
     final horizonHeight = entry.args['horizonHeight'];
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(epheflag);
     final buf = StringBuffer();
     buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
@@ -675,7 +638,7 @@ class CEmitter implements CodeEmitter {
     final atpress = entry.args['atpress'];
     final attemp = entry.args['attemp'];
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(epheflag);
     final buf = StringBuffer();
     buf.writeln('double geopos[3] = {$geolon, $geolat, $geoalt};');
@@ -934,7 +897,7 @@ class CEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.writeln('double elem[50];');
@@ -954,7 +917,7 @@ class CEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyName(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.c);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.writeln('double dmax, dmin, dtrue;');
@@ -972,8 +935,32 @@ class CEmitter implements CodeEmitter {
     return buf.toString();
   }
 
+  String _emitSidtime(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final buf = StringBuffer();
+    buf.write('double tsid = swe_sidtime($jdUt);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: tsid = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitSidtime0(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final eps = entry.args['eps'];
+    final nut = entry.args['nut'];
+    final buf = StringBuffer();
+    buf.write('double tsid = swe_sidtime0($jdUt, $eps, $nut);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: tsid = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
   String _formatFlags(int flags) {
-    final parts = SweSymbolCatalog.flagDecompose(flags);
+    final parts = SweSymbolCatalog.flagDecompose(flags, CodeTarget.c);
     if (parts.isEmpty) return '0';
     return parts.join(' | ');
   }
@@ -992,86 +979,49 @@ class DartEmitter implements CodeEmitter {
   String get fileExtension => '.dart';
 
   @override
-  String emitSnippet(CallEntry entry) {
-    switch (entry.functionName) {
-      case 'swe_calc_ut':
-        return _emitCalcUt(entry);
-      case 'swe_set_sid_mode':
-        return _emitSetSidMode(entry);
-      case 'swe_set_topo':
-        return _emitSetTopo(entry);
-      case 'swe_set_ephe_path':
-        return _emitSetEphePath(entry);
-      case 'swe_set_jpl_file':
-        return _emitSetJplFile(entry);
-      case 'swe_houses':
-        return _emitHouses(entry);
-      case 'swe_fixstar2_ut':
-        return _emitFixstar2Ut(entry);
-      case 'swe_nod_aps_ut':
-        return _emitNodApsUt(entry);
-      case 'swe_pheno_ut':
-        return _emitPhenoUt(entry);
-      case 'swe_calc_pctr':
-        return _emitCalcPctr(entry);
-      case 'swe_get_ayanamsa_ex_ut':
-        return _emitGetAyanamsaExUt(entry);
-      case 'swe_gauquelin_sector':
-        return _emitGauquelinSector(entry);
-      case 'swe_solcross_ut':
-        return _emitSolcrossUt(entry);
-      case 'swe_mooncross_ut':
-        return _emitMooncrossUt(entry);
-      case 'swe_mooncross_node_ut':
-        return _emitMooncrossNodeUt(entry);
-      case 'swe_heliocross_ut':
-        return _emitHeliocrossUt(entry);
-      case 'swe_rise_trans_true_hor':
-        return _emitRiseTransTrueHor(entry);
-      case 'swe_rise_trans':
-        return _emitRiseTrans(entry);
-      case 'swe_heliacal_ut':
-        return _emitHeliacalUt(entry);
-      case 'swe_sol_eclipse_when_loc':
-        return _emitSolEclipseWhenLoc(entry);
-      case 'swe_sol_eclipse_how':
-        return _emitSolEclipseHow(entry);
-      case 'swe_lun_eclipse_when':
-        return _emitLunEclipseWhen(entry);
-      case 'swe_lun_eclipse_how':
-        return _emitLunEclipseHow(entry);
-      case 'swe_sol_eclipse_when_glob':
-        return _emitSolEclipseWhenGlob(entry);
-      case 'swe_sol_eclipse_where':
-        return _emitSolEclipseWhere(entry);
-      case 'swe_lun_eclipse_when_loc':
-        return _emitLunEclipseWhenLoc(entry);
-      case 'swe_deltat':
-        return _emitDeltat(entry);
-      case 'swe_time_equ':
-        return _emitTimeEqu(entry);
-      case 'swe_lmt_to_lat':
-        return _emitLmtToLat(entry);
-      case 'swe_lat_to_lmt':
-        return _emitLatToLmt(entry);
-      case 'swe_azalt':
-        return _emitAzalt(entry);
-      case 'swe_azalt_rev':
-        return _emitAzaltRev(entry);
-      case 'swe_cotrans':
-        return _emitCotrans(entry);
-      case 'swe_refrac':
-        return _emitRefrac(entry);
-      case 'swe_get_ayanamsa_ut':
-        return _emitGetAyanamsaUt(entry);
-      case 'swe_get_orbital_elements':
-        return _emitGetOrbitalElements(entry);
-      case 'swe_orbit_max_min_true_distance':
-        return _emitOrbitMaxMinTrueDistance(entry);
-      default:
-        return '// ${entry.functionName}(...)';
-    }
-  }
+  String emitSnippet(CallEntry entry) => switch (entry.functionName) {
+    TracedFunction.sweCalcUt => _emitCalcUt(entry),
+    TracedFunction.sweSetSidMode => _emitSetSidMode(entry),
+    TracedFunction.sweSetTopo => _emitSetTopo(entry),
+    TracedFunction.sweSetEphePath => _emitSetEphePath(entry),
+    TracedFunction.sweSetJplFile => _emitSetJplFile(entry),
+    TracedFunction.sweHouses => _emitHouses(entry),
+    TracedFunction.sweFixstar2Ut => _emitFixstar2Ut(entry),
+    TracedFunction.sweNodApsUt => _emitNodApsUt(entry),
+    TracedFunction.swePhenoUt => _emitPhenoUt(entry),
+    TracedFunction.sweCalcPctr => _emitCalcPctr(entry),
+    TracedFunction.sweGetAyanamsaExUt => _emitGetAyanamsaExUt(entry),
+    TracedFunction.sweGauquelinSector => _emitGauquelinSector(entry),
+    TracedFunction.sweSolcrossUt => _emitSolcrossUt(entry),
+    TracedFunction.sweMooncrossUt => _emitMooncrossUt(entry),
+    TracedFunction.sweMooncrossNodeUt => _emitMooncrossNodeUt(entry),
+    TracedFunction.sweHeliocrossUt => _emitHeliocrossUt(entry),
+    TracedFunction.sweRiseTransTrueHor => _emitRiseTransTrueHor(entry),
+    TracedFunction.sweHeliacalUt => _emitHeliacalUt(entry),
+    TracedFunction.sweSolEclipseWhenLoc => _emitSolEclipseWhenLoc(entry),
+    TracedFunction.sweSolEclipseHow => _emitSolEclipseHow(entry),
+    TracedFunction.sweLunEclipseWhen => _emitLunEclipseWhen(entry),
+    TracedFunction.sweLunEclipseHow => _emitLunEclipseHow(entry),
+    TracedFunction.sweRiseTrans => _emitRiseTrans(entry),
+    TracedFunction.sweSolEclipseWhenGlob => _emitSolEclipseWhenGlob(entry),
+    TracedFunction.sweSolEclipseWhere => _emitSolEclipseWhere(entry),
+    TracedFunction.sweLunEclipseWhenLoc => _emitLunEclipseWhenLoc(entry),
+    TracedFunction.sweDeltat => _emitDeltat(entry),
+    TracedFunction.sweTimeEqu => _emitTimeEqu(entry),
+    TracedFunction.sweLmtToLat => _emitLmtToLat(entry),
+    TracedFunction.sweLatToLmt => _emitLatToLmt(entry),
+    TracedFunction.sweAzalt => _emitAzalt(entry),
+    TracedFunction.sweAzaltRev => _emitAzaltRev(entry),
+    TracedFunction.sweCotrans => _emitCotrans(entry),
+    TracedFunction.sweRefrac => _emitRefrac(entry),
+    TracedFunction.sweGetAyanamsaUt => _emitGetAyanamsaUt(entry),
+    TracedFunction.sweGetOrbitalElements => _emitGetOrbitalElements(entry),
+    TracedFunction.sweOrbitMaxMinTrueDistance => _emitOrbitMaxMinTrueDistance(
+      entry,
+    ),
+    TracedFunction.sweSidtime => _emitSidtime(entry),
+    TracedFunction.sweSidtime0 => _emitSidtime0(entry),
+  };
 
   @override
   String emitSection(
@@ -1126,7 +1076,7 @@ class DartEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
 
     final buf = StringBuffer();
@@ -1160,7 +1110,7 @@ class DartEmitter implements CodeEmitter {
     final t0 = entry.args['t0'] ?? 0;
     final ayanT0 = entry.args['ayanT0'] ?? 0;
 
-    final modeStr = SweSymbolCatalog.sidModeNameDart(sidMode);
+    final modeStr = SweSymbolCatalog.sidModeName(sidMode, CodeTarget.dart);
     if (t0 == 0 && ayanT0 == 0) {
       return 'swe.setSidMode($modeStr);';
     }
@@ -1231,7 +1181,7 @@ class DartEmitter implements CodeEmitter {
     final iflag = entry.args['iflag'] as int;
     final method = entry.args['method'];
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
@@ -1252,7 +1202,7 @@ class DartEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write('final result = swe.phenoUt($jdUt, $bodyStr, $flagStr);');
@@ -1272,8 +1222,8 @@ class DartEmitter implements CodeEmitter {
     final centerBody = entry.args['centerBody'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
-    final centerStr = SweSymbolCatalog.bodyNameDart(centerBody);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
+    final centerStr = SweSymbolCatalog.bodyName(centerBody, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
@@ -1317,7 +1267,7 @@ class DartEmitter implements CodeEmitter {
     final atpress = entry.args['atpress'];
     final attemp = entry.args['attemp'];
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
@@ -1395,7 +1345,7 @@ class DartEmitter implements CodeEmitter {
     final iflag = entry.args['iflag'] as int;
     final dir = entry.args['dir'];
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
@@ -1423,7 +1373,7 @@ class DartEmitter implements CodeEmitter {
     final attemp = entry.args['attemp'];
     final horizonHeight = entry.args['horizonHeight'];
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(epheflag);
     final buf = StringBuffer();
     buf.write(
@@ -1453,7 +1403,7 @@ class DartEmitter implements CodeEmitter {
     final atpress = entry.args['atpress'];
     final attemp = entry.args['attemp'];
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(epheflag);
     final buf = StringBuffer();
     buf.write(
@@ -1818,7 +1768,7 @@ class DartEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
@@ -1836,7 +1786,7 @@ class DartEmitter implements CodeEmitter {
     final body = entry.args['body'] as int;
     final iflag = entry.args['iflag'] as int;
 
-    final bodyStr = SweSymbolCatalog.bodyNameDart(body);
+    final bodyStr = SweSymbolCatalog.bodyName(body, CodeTarget.dart);
     final flagStr = _formatFlags(iflag);
     final buf = StringBuffer();
     buf.write(
@@ -1852,8 +1802,32 @@ class DartEmitter implements CodeEmitter {
     return buf.toString();
   }
 
+  String _emitSidtime(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final buf = StringBuffer();
+    buf.write('final tsid = swe.sidTime($jdUt);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: tsid = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
+  String _emitSidtime0(CallEntry entry) {
+    final jdUt = entry.args['jdUt'];
+    final eps = entry.args['eps'];
+    final nut = entry.args['nut'];
+    final buf = StringBuffer();
+    buf.write('final tsid = swe.sidTime0($jdUt, $eps, $nut);');
+    if (entry.result != null) {
+      buf.writeln();
+      buf.write('// returns: tsid = ${entry.result}');
+    }
+    return buf.toString();
+  }
+
   String _formatFlags(int flags) {
-    final parts = SweSymbolCatalog.flagDecomposeDart(flags);
+    final parts = SweSymbolCatalog.flagDecompose(flags, CodeTarget.dart);
     if (parts.isEmpty) return '0';
     return parts.join(' | ');
   }

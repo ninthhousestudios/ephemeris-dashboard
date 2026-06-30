@@ -1,4 +1,5 @@
 import '../calc_context.dart';
+import 'swe_symbol_catalog.dart';
 
 enum CallCategory { context, flags, calc, teardown }
 
@@ -13,7 +14,7 @@ class CallEntry {
     this.errorMessage,
   });
 
-  final String functionName;
+  final TracedFunction functionName;
   final Map<String, Object?> args;
   final Object? result;
   final int? returnFlag;
