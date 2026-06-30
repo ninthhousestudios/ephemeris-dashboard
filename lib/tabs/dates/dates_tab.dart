@@ -28,7 +28,18 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   final _jdCtrl = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    ref
+        .read(calcSessionProvider.notifier)
+        .registerCommit('dates', _commitFields);
+  }
+
+  @override
   void dispose() {
+    try {
+      ref.read(calcSessionProvider.notifier).unregisterCommit('dates');
+    } catch (_) {}
     _dateCtrl.dispose();
     _timeCtrl.dispose();
     _jdCtrl.dispose();
@@ -54,11 +65,15 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   bool get _hasCalculated =>
       ref.watch(calcSessionProvider.select((s) => s.tabHasRun('dates')));
 
-  void _calculate() {
+  void _commitFields() {
     final jd = double.tryParse(_jdCtrl.text) ?? _parseDateTime();
     if (jd != null) {
       ref.read(datesOverrideJdProvider.notifier).state = jd;
     }
+  }
+
+  void _calculate() {
+    _commitFields();
     ref.read(calcSessionProvider.notifier).calculate(activate: {'dates'});
   }
 
@@ -73,7 +88,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       final hour = tParts.isNotEmpty ? int.tryParse(tParts[0]) ?? 0 : 0;
       final min = tParts.length > 1 ? int.tryParse(tParts[1]) ?? 0 : 0;
       final sec = tParts.length > 2 ? int.tryParse(tParts[2]) ?? 0 : 0;
-      return _jdUtils.dateTimeToJd(DateTime.utc(year, month, day, hour, min, sec));
+      return _jdUtils.dateTimeToJd(
+        DateTime.utc(year, month, day, hour, min, sec),
+      );
     } catch (_) {
       return null;
     }
@@ -130,7 +147,11 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   DateTime? _parseDateFromCtrl() {
     try {
       final parts = _dateCtrl.text.split('-');
-      return DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      return DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
     } catch (_) {
       return null;
     }
@@ -180,7 +201,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                       controller: _dateCtrl,
                       style: theme.textTheme.bodySmall,
                       decoration: _deco('YYYY-MM-DD'),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d-]'))],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
+                      ],
                       onChanged: (_) => setState(() => _isCustom = true),
                       onSubmitted: (_) => _calculate(),
                     ),
@@ -194,7 +217,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                       controller: _timeCtrl,
                       style: theme.textTheme.bodySmall,
                       decoration: _deco('HH:MM:SS'),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d:]'))],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
+                      ],
                       onChanged: (_) => setState(() => _isCustom = true),
                       onSubmitted: (_) => _calculate(),
                     ),
@@ -208,7 +233,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                       controller: _jdCtrl,
                       style: theme.textTheme.bodySmall,
                       decoration: _deco('2460000.0'),
-                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                      ],
                       onChanged: (_) => setState(() => _isCustom = true),
                       onSubmitted: (_) => _calculate(),
                     ),
@@ -221,12 +248,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    FilledButton.icon(
-                      onPressed: _calculate,
-                      icon: const Icon(Icons.calendar_today, size: 18),
-                      label: const Text('Calculate'),
-                    ),
-                    const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: _setNow,
                       icon: const Icon(Icons.update, size: 18),
@@ -241,16 +262,18 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                       ),
                     ],
                     const SizedBox(width: 8),
-                    Consumer(builder: (context, ref, _) {
-                      final result = ref.watch(datesResultProvider);
-                      final jd = ref.watch(contextBarProvider).jdUt;
-                      return ExportButton(
-                        hasResults: _hasCalculated && result != null,
-                        getRows: () =>
-                            result != null ? datesToExportRows(result) : [],
-                        filenameStem: 'swe_dates_${jd.toStringAsFixed(4)}',
-                      );
-                    }),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final result = ref.watch(datesResultProvider);
+                        final jd = ref.watch(contextBarProvider).jdUt;
+                        return ExportButton(
+                          hasResults: _hasCalculated && result != null,
+                          getRows: () =>
+                              result != null ? datesToExportRows(result) : [],
+                          filenameStem: 'swe_dates_${jd.toStringAsFixed(4)}',
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -259,19 +282,17 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-        ),
+        Expanded(child: _hasCalculated ? _buildResults() : _buildPlaceholder()),
       ],
     );
   }
 
   static InputDecoration _deco(String hint) => InputDecoration(
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        hintText: hint,
-        border: const OutlineInputBorder(),
-      );
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    hintText: hint,
+    border: const OutlineInputBorder(),
+  );
 
   Widget _iconBtn(IconData icon, String tooltip, VoidCallback onPressed) {
     return IconButton(
@@ -306,10 +327,22 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             spacing: 4,
             runSpacing: 4,
             children: [
-              SizedBox(width: cardWidth, child: _buildCalendarCard(context, result)),
-              SizedBox(width: cardWidth, child: _buildJulianDayCard(context, result)),
-              SizedBox(width: cardWidth, child: _buildTimeCard(context, result)),
-              SizedBox(width: cardWidth, child: _buildLocalTimeCard(context, result)),
+              SizedBox(
+                width: cardWidth,
+                child: _buildCalendarCard(context, result),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _buildJulianDayCard(context, result),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _buildTimeCard(context, result),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _buildLocalTimeCard(context, result),
+              ),
             ],
           ),
         );
@@ -319,7 +352,8 @@ class _DatesTabState extends ConsumerState<DatesTab> {
 
   Widget _buildCalendarCard(BuildContext context, DatesResult r) {
     final t = r.revjulTime;
-    final timeStr = '${t.h.toString().padLeft(2, '0')}:'
+    final timeStr =
+        '${t.h.toString().padLeft(2, '0')}:'
         '${t.m.toString().padLeft(2, '0')}:'
         '${t.s.toStringAsFixed(2).padLeft(5, '0')}';
 
@@ -327,13 +361,39 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       title: 'Calendar',
       subtitle: 'revjul(JD UT)',
       fields: r.revjulError != null
-          ? [ResultField(label: 'Error', value: r.revjulError!, rawValue: double.nan)]
+          ? [
+              ResultField(
+                label: 'Error',
+                value: r.revjulError!,
+                rawValue: double.nan,
+              ),
+            ]
           : [
-              ResultField(label: 'Year', value: r.revjulYear.toString(), rawValue: r.revjulYear.toDouble()),
-              ResultField(label: 'Month', value: _monthName(r.revjulMonth), rawValue: r.revjulMonth.toDouble()),
-              ResultField(label: 'Day', value: r.revjulDay.toString(), rawValue: r.revjulDay.toDouble()),
-              ResultField(label: 'Time (UT)', value: timeStr, rawValue: r.revjulHour),
-              ResultField(label: 'Day of Week', value: r.dayOfWeekName, rawValue: double.nan),
+              ResultField(
+                label: 'Year',
+                value: r.revjulYear.toString(),
+                rawValue: r.revjulYear.toDouble(),
+              ),
+              ResultField(
+                label: 'Month',
+                value: _monthName(r.revjulMonth),
+                rawValue: r.revjulMonth.toDouble(),
+              ),
+              ResultField(
+                label: 'Day',
+                value: r.revjulDay.toString(),
+                rawValue: r.revjulDay.toDouble(),
+              ),
+              ResultField(
+                label: 'Time (UT)',
+                value: timeStr,
+                rawValue: r.revjulHour,
+              ),
+              ResultField(
+                label: 'Day of Week',
+                value: r.dayOfWeekName,
+                rawValue: double.nan,
+              ),
             ],
       onCode: () {
         final trace = ref.read(callTraceProvider);
@@ -352,8 +412,16 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       title: 'Julian Day',
       subtitle: 'JD UT and ET',
       fields: [
-        ResultField(label: 'JD UT', value: r.jdUt.toStringAsFixed(8), rawValue: r.jdUt),
-        ResultField(label: 'JD ET', value: r.jdEt.toStringAsFixed(8), rawValue: r.jdEt),
+        ResultField(
+          label: 'JD UT',
+          value: r.jdUt.toStringAsFixed(8),
+          rawValue: r.jdUt,
+        ),
+        ResultField(
+          label: 'JD ET',
+          value: r.jdEt.toStringAsFixed(8),
+          rawValue: r.jdEt,
+        ),
       ],
       onCode: () {
         final trace = ref.read(callTraceProvider);
@@ -373,17 +441,41 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       subtitle: 'Delta-T · Sidereal · Equation of Time',
       fields: [
         if (r.deltaTError != null)
-          ResultField(label: 'Delta-T Error', value: r.deltaTError!, rawValue: double.nan)
+          ResultField(
+            label: 'Delta-T Error',
+            value: r.deltaTError!,
+            rawValue: double.nan,
+          )
         else
-          ResultField(label: 'Delta-T (s)', value: r.deltaT.toStringAsFixed(3), rawValue: r.deltaT),
+          ResultField(
+            label: 'Delta-T (s)',
+            value: r.deltaT.toStringAsFixed(3),
+            rawValue: r.deltaT,
+          ),
         if (r.siderealTimeError != null)
-          ResultField(label: 'GMST Error', value: r.siderealTimeError!, rawValue: double.nan)
+          ResultField(
+            label: 'GMST Error',
+            value: r.siderealTimeError!,
+            rawValue: double.nan,
+          )
         else
-          ResultField(label: 'Sidereal (h)', value: _formatHours(r.siderealTime), rawValue: r.siderealTime),
+          ResultField(
+            label: 'Sidereal (h)',
+            value: _formatHours(r.siderealTime),
+            rawValue: r.siderealTime,
+          ),
         if (r.equationOfTimeError != null)
-          ResultField(label: 'EqT Error', value: r.equationOfTimeError!, rawValue: double.nan)
+          ResultField(
+            label: 'EqT Error',
+            value: r.equationOfTimeError!,
+            rawValue: double.nan,
+          )
         else
-          ResultField(label: 'Eq. of Time (min)', value: r.equationOfTimeMinutes.toStringAsFixed(4), rawValue: r.equationOfTimeMinutes),
+          ResultField(
+            label: 'Eq. of Time (min)',
+            value: r.equationOfTimeMinutes.toStringAsFixed(4),
+            rawValue: r.equationOfTimeMinutes,
+          ),
       ],
       onCode: () {
         final trace = ref.read(callTraceProvider);
@@ -403,13 +495,29 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       subtitle: 'LMT ↔ LAT (by longitude)',
       fields: [
         if (r.lmtToLatError != null)
-          ResultField(label: 'LMT→LAT Error', value: r.lmtToLatError!, rawValue: double.nan)
+          ResultField(
+            label: 'LMT→LAT Error',
+            value: r.lmtToLatError!,
+            rawValue: double.nan,
+          )
         else
-          ResultField(label: 'LMT→LAT (JD)', value: r.lmtToLat.toStringAsFixed(8), rawValue: r.lmtToLat),
+          ResultField(
+            label: 'LMT→LAT (JD)',
+            value: r.lmtToLat.toStringAsFixed(8),
+            rawValue: r.lmtToLat,
+          ),
         if (r.latToLmtError != null)
-          ResultField(label: 'LAT→LMT Error', value: r.latToLmtError!, rawValue: double.nan)
+          ResultField(
+            label: 'LAT→LMT Error',
+            value: r.latToLmtError!,
+            rawValue: double.nan,
+          )
         else
-          ResultField(label: 'LAT→LMT (JD)', value: r.latToLmt.toStringAsFixed(8), rawValue: r.latToLmt),
+          ResultField(
+            label: 'LAT→LMT (JD)',
+            value: r.latToLmt.toStringAsFixed(8),
+            rawValue: r.latToLmt,
+          ),
       ],
       onCode: () {
         final trace = ref.read(callTraceProvider);
@@ -437,12 +545,19 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) {
-          final spinnerStyle =
-              Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
-          final colonStyle =
-              Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
+          final spinnerStyle = Theme.of(
+            ctx,
+          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
+          final colonStyle = Theme.of(
+            ctx,
+          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
 
-          Widget spinner(String label, int value, int max, ValueChanged<int> onChanged) {
+          Widget spinner(
+            String label,
+            int value,
+            int max,
+            ValueChanged<int> onChanged,
+          ) {
             return IntrinsicWidth(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -451,15 +566,21 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                   const SizedBox(height: 4),
                   IconButton(
                     icon: const Icon(Icons.arrow_drop_up),
-                    onPressed: () => setState(() => onChanged((value + 1) % (max + 1))),
+                    onPressed: () =>
+                        setState(() => onChanged((value + 1) % (max + 1))),
                   ),
                   TextField(
-                    controller: TextEditingController(text: value.toString().padLeft(2, '0')),
+                    controller: TextEditingController(
+                      text: value.toString().padLeft(2, '0'),
+                    ),
                     textAlign: TextAlign.center,
                     style: spinnerStyle,
                     decoration: const InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
@@ -474,8 +595,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.arrow_drop_down),
-                    onPressed: () =>
-                        setState(() => onChanged((value - 1 + max + 1) % (max + 1))),
+                    onPressed: () => setState(
+                      () => onChanged((value - 1 + max + 1) % (max + 1)),
+                    ),
                   ),
                 ],
               ),
@@ -521,8 +643,19 @@ class _DatesTabState extends ConsumerState<DatesTab> {
 
 String _monthName(int month) {
   const names = [
-    '', 'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
   if (month < 1 || month > 12) return month.toString();
   return '${names[month]} ($month)';

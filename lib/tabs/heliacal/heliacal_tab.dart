@@ -23,9 +23,15 @@ const _eventTypes = [
 /// Bodies available for heliacal events, matching the Planets tab default set.
 /// The heliacalUt API takes a string name, so we map body ID → name.
 const _heliacalBodies = [
-  (seSun, 'Sun'), (seMoon, 'Moon'), (seMercury, 'Mercury'),
-  (seVenus, 'Venus'), (seMars, 'Mars'), (seJupiter, 'Jupiter'),
-  (seSaturn, 'Saturn'), (seUranus, 'Uranus'), (seNeptune, 'Neptune'),
+  (seSun, 'Sun'),
+  (seMoon, 'Moon'),
+  (seMercury, 'Mercury'),
+  (seVenus, 'Venus'),
+  (seMars, 'Mars'),
+  (seJupiter, 'Jupiter'),
+  (seSaturn, 'Saturn'),
+  (seUranus, 'Uranus'),
+  (seNeptune, 'Neptune'),
   (sePluto, 'Pluto'),
 ];
 
@@ -66,10 +72,16 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _extinctionController = TextEditingController(text: '0.2');
     _ageController = TextEditingController(text: '36.0');
     _snellenController = TextEditingController(text: '1.0');
+    ref
+        .read(calcSessionProvider.notifier)
+        .registerCommit('heliacal', _syncProviders);
   }
 
   @override
   void dispose() {
+    try {
+      ref.read(calcSessionProvider.notifier).unregisterCommit('heliacal');
+    } catch (_) {}
     _starController.removeListener(_onStarChanged);
     _starController.dispose();
     _starFocusNode.dispose();
@@ -127,10 +139,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _syncDouble(_snellenController, heliacalSnellenRatioProvider);
   }
 
-  void _syncDouble(
-    TextEditingController ctrl,
-    StateProvider<double> provider,
-  ) {
+  void _syncDouble(TextEditingController ctrl, StateProvider<double> provider) {
     final v = double.tryParse(ctrl.text);
     if (v != null) ref.read(provider.notifier).state = v;
   }
@@ -165,15 +174,17 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
               children: [
                 Text('Body ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._heliacalBodies.map((b) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(b.$2),
-                        selected: selectedStar == b.$2,
-                        onSelected: (_) => _selectBody(b.$2),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ..._heliacalBodies.map(
+                  (b) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(b.$2),
+                      selected: selectedStar == b.$2,
+                      onSelected: (_) => _selectBody(b.$2),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -185,23 +196,22 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InkWell(
-                onTap: () =>
-                    setState(() => _showStarInput = !_showStarInput),
+                onTap: () => setState(() => _showStarInput = !_showStarInput),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _showStarInput
-                          ? Icons.expand_less
-                          : Icons.expand_more,
+                      _showStarInput ? Icons.expand_less : Icons.expand_more,
                       size: 18,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
-                    Text('Fixed Star by Name',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        )),
+                    Text(
+                      'Fixed Star by Name',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -224,7 +234,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                               hintText:
                                   'Star name or Bayer designation (e.g. Spica, alVir)',
                               contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               border: OutlineInputBorder(),
                             ),
                             onSubmitted: (v) {
@@ -239,8 +251,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                             Material(
                               elevation: 4,
                               child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxHeight: 200),
+                                constraints: const BoxConstraints(
+                                  maxHeight: 200,
+                                ),
                                 child: ListView.builder(
                                   padding: EdgeInsets.zero,
                                   shrinkWrap: true,
@@ -254,12 +267,12 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                                         entry.bayerDesig,
                                         style: theme.textTheme.bodySmall
                                             ?.copyWith(
-                                          color: theme
-                                              .colorScheme.onSurfaceVariant,
-                                        ),
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
                                       ),
-                                      onTap: () =>
-                                          _selectStarSuggestion(entry),
+                                      onTap: () => _selectStarSuggestion(entry),
                                     );
                                   },
                                 ),
@@ -284,36 +297,34 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
               children: [
                 Text('Event ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._eventTypes.map((e) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(e.$2),
-                        selected: eventType == e.$1,
-                        onSelected: (_) => ref
-                            .read(heliacalEventTypeProvider.notifier)
-                            .state = e.$1,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: _calculate,
-                  icon: const Icon(Icons.visibility, size: 16),
-                  label: const Text('Calculate'),
+                ..._eventTypes.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(e.$2),
+                      selected: eventType == e.$1,
+                      onSelected: (_) =>
+                          ref.read(heliacalEventTypeProvider.notifier).state =
+                              e.$1,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Consumer(builder: (context, ref, _) {
-                  final result = ref.watch(heliacalResultProvider);
-                  final jd = ref.watch(contextBarProvider).jdUt;
-                  return ExportButton(
-                    hasResults:
-                        _hasCalculated && result != null && !result.hasError,
-                    getRows: () => result != null
-                        ? heliacalToExportRows(result, ref.read(sweProvider))
-                        : [],
-                    filenameStem: 'swe_heliacal_${jd.toStringAsFixed(4)}',
-                  );
-                }),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final result = ref.watch(heliacalResultProvider);
+                    final jd = ref.watch(contextBarProvider).jdUt;
+                    return ExportButton(
+                      hasResults:
+                          _hasCalculated && result != null && !result.hasError,
+                      getRows: () => result != null
+                          ? heliacalToExportRows(result, ref.read(sweProvider))
+                          : [],
+                      filenameStem: 'swe_heliacal_${jd.toStringAsFixed(4)}',
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -331,16 +342,17 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _showAtmospheric
-                          ? Icons.expand_less
-                          : Icons.expand_more,
+                      _showAtmospheric ? Icons.expand_less : Icons.expand_more,
                       size: 18,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
                     Flexible(
-                      child: Text('Atmospheric & Observer Conditions',
-                          style: labelStyle, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        'Atmospheric & Observer Conditions',
+                        style: labelStyle,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -348,36 +360,61 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
               if (_showAtmospheric) ...[
                 const SizedBox(height: 8),
                 // Atmosphere row
-                Text('ATMOSPHERE',
-                    style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.2,
-                        color: theme.colorScheme.onSurfaceVariant)),
-                const SizedBox(height: 4),
-                _paramRow('Pressure (mbar)', _pressureController, theme,
-                    labelStyle),
-                const SizedBox(height: 4),
-                _paramRow('Temperature (°C)', _temperatureController, theme,
-                    labelStyle),
+                Text(
+                  'ATMOSPHERE',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 _paramRow(
-                    'Humidity (%)', _humidityController, theme, labelStyle),
+                  'Pressure (mbar)',
+                  _pressureController,
+                  theme,
+                  labelStyle,
+                ),
                 const SizedBox(height: 4),
-                _paramRow('Extinction coeff.', _extinctionController, theme,
-                    labelStyle),
+                _paramRow(
+                  'Temperature (°C)',
+                  _temperatureController,
+                  theme,
+                  labelStyle,
+                ),
+                const SizedBox(height: 4),
+                _paramRow(
+                  'Humidity (%)',
+                  _humidityController,
+                  theme,
+                  labelStyle,
+                ),
+                const SizedBox(height: 4),
+                _paramRow(
+                  'Extinction coeff.',
+                  _extinctionController,
+                  theme,
+                  labelStyle,
+                ),
                 const SizedBox(height: 8),
                 // Observer row
-                Text('OBSERVER',
-                    style: TextStyle(
-                        fontSize: 11,
-                        letterSpacing: 1.2,
-                        color: theme.colorScheme.onSurfaceVariant)),
+                Text(
+                  'OBSERVER',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _paramRow('Age (years)', _ageController, theme, labelStyle),
                 const SizedBox(height: 4),
                 _paramRow(
-                    'Age (years)', _ageController, theme, labelStyle),
-                const SizedBox(height: 4),
-                _paramRow('Snellen ratio', _snellenController, theme,
-                    labelStyle),
+                  'Snellen ratio',
+                  _snellenController,
+                  theme,
+                  labelStyle,
+                ),
                 const SizedBox(height: 4),
               ],
             ],
@@ -386,15 +423,18 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
         const Divider(height: 1),
         // ── Results ──
         Expanded(
-          child:
-              _hasCalculated ? const _ResultsView() : const _Placeholder(),
+          child: _hasCalculated ? const _ResultsView() : const _Placeholder(),
         ),
       ],
     );
   }
 
-  Widget _paramRow(String label, TextEditingController ctrl, ThemeData theme,
-      TextStyle? labelStyle) {
+  Widget _paramRow(
+    String label,
+    TextEditingController ctrl,
+    ThemeData theme,
+    TextStyle? labelStyle,
+  ) {
     return Row(
       children: [
         Text(label, style: labelStyle),
@@ -404,12 +444,13 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
             controller: ctrl,
             style: theme.textTheme.bodySmall,
             keyboardType: const TextInputType.numberWithOptions(
-                decimal: true, signed: true),
+              decimal: true,
+              signed: true,
+            ),
             decoration: const InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
           ),
         ),
@@ -464,7 +505,11 @@ class _ResultsView extends ConsumerWidget {
               if (slice.entries.isEmpty) return;
               final emitter = ref.read(selectedEmitterProvider);
               final code = slice.entries.map(emitter.emitSnippet).join('\n');
-              showCodeModal(context, code: code, languageLabel: emitter.displayName);
+              showCodeModal(
+                context,
+                code: code,
+                languageLabel: emitter.displayName,
+              );
             },
           ),
         ),
@@ -474,8 +519,7 @@ class _ResultsView extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 900 ? 2 : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -485,8 +529,13 @@ class _ResultsView extends ConsumerWidget {
             children: [
               SizedBox(
                 width: cardWidth,
-                child: _buildEventCard(context, ref, result, ref.read(sweProvider),
-                    ref.read(contextBarProvider).utcOffset),
+                child: _buildEventCard(
+                  context,
+                  ref,
+                  result,
+                  ref.read(sweProvider),
+                  ref.read(contextBarProvider).utcOffset,
+                ),
               ),
               SizedBox(
                 width: cardWidth,
@@ -499,7 +548,13 @@ class _ResultsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildEventCard(BuildContext context, WidgetRef ref, HeliacalCalcResult r, SwissEph swe, double utcOffset) {
+  Widget _buildEventCard(
+    BuildContext context,
+    WidgetRef ref,
+    HeliacalCalcResult r,
+    SwissEph swe,
+    double utcOffset,
+  ) {
     return ResultCard(
       title: r.objectName,
       subtitle: HeliacalCalcResult.eventLabel(r.eventType),
@@ -532,7 +587,11 @@ class _ResultsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildJdCard(BuildContext context, WidgetRef ref, HeliacalCalcResult r) {
+  Widget _buildJdCard(
+    BuildContext context,
+    WidgetRef ref,
+    HeliacalCalcResult r,
+  ) {
     return ResultCard(
       title: 'Julian Days',
       subtitle: 'heliacalUt result',
@@ -578,7 +637,8 @@ String _jdToDateStr(double jd, SwissEph swe, double utcOffset) {
     // Handle midnight carry: swisseph can return hour == 24.0
     var utcDt = DateTime.utc(r.year, r.month, r.day);
     utcDt = utcDt.add(Duration(hours: h, minutes: m));
-    final utStr = '${utcDt.year}-${utcDt.month.toString().padLeft(2, '0')}-'
+    final utStr =
+        '${utcDt.year}-${utcDt.month.toString().padLeft(2, '0')}-'
         '${utcDt.day.toString().padLeft(2, '0')} '
         '${utcDt.hour.toString().padLeft(2, '0')}:'
         '${utcDt.minute.toString().padLeft(2, '0')} UT';

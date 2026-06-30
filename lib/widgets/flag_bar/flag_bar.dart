@@ -60,11 +60,13 @@ class FlagBar extends ConsumerWidget {
               spacing: 4,
               runSpacing: 4,
               children: [
-                ...flagToggles.map((def) => FlagToggle(
-                      def: def,
-                      active: flagState.toggles.contains(def.value),
-                      onToggle: () => notifier.toggleFlag(def.value),
-                    )),
+                ...flagToggles.map(
+                  (def) => FlagToggle(
+                    def: def,
+                    active: flagState.toggles.contains(def.value),
+                    onToggle: () => notifier.toggleFlag(def.value),
+                  ),
+                ),
                 // Show locked flags as disabled informational chips
                 if (flagState.lockedFlags != 0)
                   ..._lockedChips(context, flagState.lockedFlags),
@@ -81,16 +83,13 @@ class FlagBar extends ConsumerWidget {
               child: Text(
                 flagState.hexDisplay,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      fontFamily: 'monospace',
-                      color: colors.onSurfaceVariant,
-                    ),
+                  fontFamily: 'monospace',
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ),
             const SizedBox(width: 8),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              trailing!,
-            ],
+            if (trailing != null) ...[const SizedBox(width: 8), trailing!],
             const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.code, size: 18),
@@ -113,17 +112,6 @@ class FlagBar extends ConsumerWidget {
                       );
                     },
             ),
-            const SizedBox(width: 8),
-            FilledButton.icon(
-              onPressed: () {
-                final activeTab = ref.read(activeTabIdProvider);
-                ref.read(calcSessionProvider.notifier).calculate(
-                  activate: {...kContextOnlyTabs, activeTab},
-                );
-              },
-              icon: const Icon(Icons.calculate, size: 18),
-              label: const Text('Calculate'),
-            ),
           ],
         ),
       ),
@@ -134,19 +122,21 @@ class FlagBar extends ConsumerWidget {
     final chips = <Widget>[];
     for (final entry in _lockedFlagLabels.entries) {
       if (lockedFlags & entry.key != 0) {
-        chips.add(Tooltip(
-          message: 'Auto-set by context bar',
-          child: InputChip(
-            label: Text(entry.value),
-            isEnabled: false,
-            visualDensity: VisualDensity.compact,
-            avatar: Icon(
-              Icons.lock,
-              size: 14,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+        chips.add(
+          Tooltip(
+            message: 'Auto-set by context bar',
+            child: InputChip(
+              label: Text(entry.value),
+              isEnabled: false,
+              visualDensity: VisualDensity.compact,
+              avatar: Icon(
+                Icons.lock,
+                size: 14,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-        ));
+        );
       }
     }
     return chips;

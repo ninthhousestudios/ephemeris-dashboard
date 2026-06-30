@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../chart_formats/chart_io.dart';
 import '../../chart_formats/model/chart_data.dart';
+import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../chart_file_dialog.dart';
@@ -35,6 +36,13 @@ class ContextBar extends ConsumerStatefulWidget {
 
 class _ContextBarState extends ConsumerState<ContextBar> {
   bool _mobileExpanded = true;
+
+  void _calculate() {
+    final activeTab = ref.read(activeTabIdProvider);
+    ref
+        .read(calcSessionProvider.notifier)
+        .calculate(activate: {...kContextOnlyTabs, activeTab});
+  }
 
   // Controllers and focus nodes for all text fields
   final _date = TextEditingController();
@@ -93,10 +101,12 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     final ctx = ref.read(contextBarProvider);
     final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
     if (!_dateFocus.hasFocus) {
-      _date.text = '${_p(local.year, 4)}-${_p(local.month, 2)}-${_p(local.day, 2)}';
+      _date.text =
+          '${_p(local.year, 4)}-${_p(local.month, 2)}-${_p(local.day, 2)}';
     }
     if (!_timeFocus.hasFocus) {
-      _time.text = '${_p(local.hour, 2)}:${_p(local.minute, 2)}:${_p(local.second, 2)}';
+      _time.text =
+          '${_p(local.hour, 2)}:${_p(local.minute, 2)}:${_p(local.second, 2)}';
     }
     if (!_utcFocus.hasFocus) {
       _utc.text = _fmtOffset(ctx.utcOffset);
@@ -134,7 +144,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     final s = v.toStringAsFixed(4);
     if (!s.contains('.')) return s;
     var trimmed = s.replaceAll(RegExp(r'0+$'), '');
-    if (trimmed.endsWith('.')) trimmed = trimmed.substring(0, trimmed.length - 1);
+    if (trimmed.endsWith('.'))
+      trimmed = trimmed.substring(0, trimmed.length - 1);
     return trimmed;
   }
 
@@ -147,7 +158,14 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     if (y == null || mo == null || d == null) return;
     final ctx = ref.read(contextBarProvider);
     final oldDt = ctx.dateTime;
-    final newDt = DateTime.utc(y, mo, d, oldDt.hour, oldDt.minute, oldDt.second);
+    final newDt = DateTime.utc(
+      y,
+      mo,
+      d,
+      oldDt.hour,
+      oldDt.minute,
+      oldDt.second,
+    );
     final ut = _jdUtils.removeUtcOffset(newDt, ctx.utcOffset);
     _selfUpdate = true;
     ref.read(contextBarProvider.notifier).setDateTime(ut);
@@ -162,7 +180,14 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     if (h == null || m == null) return;
     final ctx = ref.read(contextBarProvider);
     final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    final newLocal = DateTime.utc(local.year, local.month, local.day, h, m, s ?? 0);
+    final newLocal = DateTime.utc(
+      local.year,
+      local.month,
+      local.day,
+      h,
+      m,
+      s ?? 0,
+    );
     final ut = _jdUtils.removeUtcOffset(newLocal, ctx.utcOffset);
     _selfUpdate = true;
     ref.read(contextBarProvider.notifier).setDateTime(ut);
@@ -189,12 +214,14 @@ class _ContextBarState extends ConsumerState<ContextBar> {
 
   void _commitLocation() {
     _selfUpdate = true;
-    ref.read(contextBarProvider.notifier).setLocation(
-      latitude: double.tryParse(_lat.text) ?? 0,
-      longitude: double.tryParse(_lon.text) ?? 0,
-      altitude: double.tryParse(_alt.text) ?? 0,
-      cityLabel: _city.text,
-    );
+    ref
+        .read(contextBarProvider.notifier)
+        .setLocation(
+          latitude: double.tryParse(_lat.text) ?? 0,
+          longitude: double.tryParse(_lon.text) ?? 0,
+          altitude: double.tryParse(_alt.text) ?? 0,
+          cityLabel: _city.text,
+        );
   }
 
   Future<void> _pickDate() async {
@@ -208,10 +235,15 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     );
     if (picked == null) return;
     final newLocal = DateTime.utc(
-      picked.year, picked.month, picked.day,
-      local.hour, local.minute, local.second,
+      picked.year,
+      picked.month,
+      picked.day,
+      local.hour,
+      local.minute,
+      local.second,
     );
-    ref.read(contextBarProvider.notifier)
+    ref
+        .read(contextBarProvider.notifier)
         .setDateTime(_jdUtils.removeUtcOffset(newLocal, ctx.utcOffset));
   }
 
@@ -226,10 +258,15 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     );
     if (picked == null) return;
     final newLocal = DateTime.utc(
-      local.year, local.month, local.day,
-      picked.$1, picked.$2, picked.$3,
+      local.year,
+      local.month,
+      local.day,
+      picked.$1,
+      picked.$2,
+      picked.$3,
     );
-    ref.read(contextBarProvider.notifier)
+    ref
+        .read(contextBarProvider.notifier)
         .setDateTime(_jdUtils.removeUtcOffset(newLocal, ctx.utcOffset));
   }
 
@@ -250,7 +287,9 @@ class _ContextBarState extends ConsumerState<ContextBar> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) {
-          final spinnerStyle = Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
+          final spinnerStyle = Theme.of(
+            ctx,
+          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
 
           void updateCtrl(TextEditingController ctrl, int value) {
             final text = value.toString().padLeft(2, '0');
@@ -259,11 +298,18 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               ctrl.selection = TextSelection.collapsed(offset: text.length);
             }
           }
+
           updateCtrl(hCtrl, h);
           updateCtrl(mCtrl, m);
           updateCtrl(sCtrl, s);
 
-          Widget spinner(String label, int value, int max, ValueChanged<int> onChanged, TextEditingController ctrl) {
+          Widget spinner(
+            String label,
+            int value,
+            int max,
+            ValueChanged<int> onChanged,
+            TextEditingController ctrl,
+          ) {
             return IntrinsicWidth(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -272,7 +318,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                   const SizedBox(height: 4),
                   IconButton(
                     icon: const Icon(Icons.arrow_drop_up),
-                    onPressed: () => setState(() => onChanged((value + 1) % (max + 1))),
+                    onPressed: () =>
+                        setState(() => onChanged((value + 1) % (max + 1))),
                   ),
                   TextField(
                     controller: ctrl,
@@ -280,7 +327,10 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                     style: spinnerStyle,
                     decoration: const InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
@@ -297,7 +347,9 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.arrow_drop_down),
-                    onPressed: () => setState(() => onChanged((value - 1 + max + 1) % (max + 1))),
+                    onPressed: () => setState(
+                      () => onChanged((value - 1 + max + 1) % (max + 1)),
+                    ),
                   ),
                 ],
               ),
@@ -358,7 +410,9 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             focusNode: _utcFocus,
             style: _fieldStyle,
             decoration: _deco('+00:00'),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d:+-]'))],
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[\d:+-]')),
+            ],
             onSubmitted: (_) => _commitUtc(),
             onEditingComplete: _commitUtc,
           ),
@@ -368,11 +422,15 @@ class _ContextBarState extends ConsumerState<ContextBar> {
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
           tooltip: 'Select UTC offset',
-          itemBuilder: (_) => _utcOffsets.map((o) => PopupMenuItem(
-                value: o,
-                height: 32,
-                child: Text(_offsetLabel(o), style: _fieldStyle),
-              )).toList(),
+          itemBuilder: (_) => _utcOffsets
+              .map(
+                (o) => PopupMenuItem(
+                  value: o,
+                  height: 32,
+                  child: Text(_offsetLabel(o), style: _fieldStyle),
+                ),
+              )
+              .toList(),
           onSelected: (offset) {
             ref.read(contextBarProvider.notifier).setUtcOffset(offset);
           },
@@ -386,9 +444,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
   static const _colGap = 12.0;
   static const _rowGap = 6.0;
 
-  TextStyle? get _labelStyle => Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
-      );
+  TextStyle? get _labelStyle => Theme.of(context).textTheme.labelSmall
+      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
 
   TextStyle? get _fieldStyle {
     final isMobile = MediaQuery.sizeOf(context).width < 600;
@@ -398,11 +455,11 @@ class _ContextBarState extends ConsumerState<ContextBar> {
   }
 
   InputDecoration _deco(String hint) => InputDecoration(
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        hintText: hint,
-        border: const OutlineInputBorder(),
-      );
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    hintText: hint,
+    border: const OutlineInputBorder(),
+  );
 
   /// A labeled text field: [64px label] [expanding field] [optional icon]
   Widget _labeled(
@@ -448,7 +505,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
   bool _selfUpdate = false;
 
   Future<void> _openChart() async {
-    final useFilePicker = kIsWeb || ResponsiveLayout.of(context) == ScreenSize.mobile;
+    final useFilePicker =
+        kIsWeb || ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     if (useFilePicker) {
       await _openChartWithPicker();
@@ -464,15 +522,15 @@ class _ContextBarState extends ConsumerState<ContextBar> {
       final chart = ChartIO.read(path);
       ref.read(contextBarProvider.notifier).loadFromChart(chart);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Loaded: ${chart.name}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Loaded: ${chart.name}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading chart: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading chart: $e')));
       }
     }
   }
@@ -500,15 +558,15 @@ class _ContextBarState extends ConsumerState<ContextBar> {
       }
       ref.read(contextBarProvider.notifier).loadFromChart(chart);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Loaded: ${chart.name}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Loaded: ${chart.name}')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading chart: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading chart: $e')));
       }
     }
   }
@@ -548,26 +606,42 @@ class _ContextBarState extends ConsumerState<ContextBar> {
 
     if (!_mobileExpanded) {
       // ── Collapsed: single-line summary ──
-      return InkWell(
-        onTap: () => setState(() => _mobileExpanded = true),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: [
-              Icon(Icons.expand_more, size: 18, color: theme.colorScheme.onSurfaceVariant),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  '${_p(local.year, 4)}-${_p(local.month, 2)}-${_p(local.day, 2)}  '
-                  '${_p(local.hour, 2)}:${_p(local.minute, 2)}:${_p(local.second, 2)}  '
-                  '${_fmtOffset(ctx.utcOffset)}  '
-                  '${_fmtCoord(ctx.latitude)}, ${_fmtCoord(ctx.longitude)}',
-                  style: summaryStyle,
-                  overflow: TextOverflow.ellipsis,
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() => _mobileExpanded = true),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.expand_more,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        '${_p(local.year, 4)}-${_p(local.month, 2)}-${_p(local.day, 2)}  '
+                        '${_p(local.hour, 2)}:${_p(local.minute, 2)}:${_p(local.second, 2)}  '
+                        '${_fmtOffset(ctx.utcOffset)}  '
+                        '${_fmtCoord(ctx.latitude)}, ${_fmtCoord(ctx.longitude)}',
+                        style: summaryStyle,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              onPressed: _calculate,
+              icon: const Icon(Icons.calculate, size: 18),
+              label: const Text('Calculate'),
+            ),
+          ],
         ),
       );
     }
@@ -575,10 +649,10 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     // ── Expanded: full editing layout ──
     final numFmt = FilteringTextInputFormatter.allow(RegExp(r'[\d.+-]'));
     final sectionLabel = theme.textTheme.labelSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        );
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+    );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -593,7 +667,11 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.expand_less, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                    Icon(
+                      Icons.expand_less,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                     const SizedBox(width: 4),
                     Text('TIME & PLACE', style: sectionLabel),
                   ],
@@ -608,16 +686,18 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                 onPressed: _openChart,
               ),
               const SizedBox(width: 4),
-              Consumer(builder: (context, ref, _) {
-                final emitter = ref.watch(selectedEmitterProvider);
-                return PopupMenuButton<CodeEmitter>(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minHeight: 24),
-                  tooltip: 'Code language',
-                  onSelected: (e) =>
-                      ref.read(selectedEmitterProvider.notifier).state = e,
-                  itemBuilder: (_) => availableEmitters
-                      .map((e) => PopupMenuItem(
+              Consumer(
+                builder: (context, ref, _) {
+                  final emitter = ref.watch(selectedEmitterProvider);
+                  return PopupMenuButton<CodeEmitter>(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minHeight: 24),
+                    tooltip: 'Code language',
+                    onSelected: (e) =>
+                        ref.read(selectedEmitterProvider.notifier).state = e,
+                    itemBuilder: (_) => availableEmitters
+                        .map(
+                          (e) => PopupMenuItem(
                             value: e,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -630,25 +710,39 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                                 Text(e.displayName),
                               ],
                             ),
-                          ))
-                      .toList(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.code, size: 14),
-                        const SizedBox(width: 4),
-                        Text(emitter.displayName,
-                            style: Theme.of(context).textTheme.labelSmall),
-                        const Icon(Icons.arrow_drop_down, size: 14),
-                      ],
+                          ),
+                        )
+                        .toList(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.code, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            emitter.displayName,
+                            style: Theme.of(context).textTheme.labelSmall,
+                          ),
+                          const Icon(Icons.arrow_drop_down, size: 14),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                },
+              ),
               const SizedBox(width: 8),
               const Flexible(child: FileInUseIndicator()),
+              const SizedBox(width: 8),
+              FilledButton.icon(
+                onPressed: _calculate,
+                icon: const Icon(Icons.calculate, size: 16),
+                label: const Text('Calculate'),
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+              ),
               const Spacer(),
               _iconBtn(Icons.update, 'Set to now', () {
                 ref.read(contextBarProvider.notifier).setNow();
@@ -660,19 +754,35 @@ class _ContextBarState extends ConsumerState<ContextBar> {
           Row(
             children: [
               Expanded(
-                child: _labeled('Date', _date, _dateFocus,
-                    hint: 'YYYY-MM-DD',
-                    onCommit: _commitDate,
-                    formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d-]'))],
-                    trailing: _iconBtn(Icons.calendar_today, 'Pick date', _pickDate)),
+                child: _labeled(
+                  'Date',
+                  _date,
+                  _dateFocus,
+                  hint: 'YYYY-MM-DD',
+                  onCommit: _commitDate,
+                  formatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
+                  ],
+                  trailing: _iconBtn(
+                    Icons.calendar_today,
+                    'Pick date',
+                    _pickDate,
+                  ),
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _labeled('Time', _time, _timeFocus,
-                    hint: 'HH:MM:SS',
-                    onCommit: _commitTime,
-                    formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d:]'))],
-                    trailing: _iconBtn(Icons.access_time, 'Pick time', _pickTime)),
+                child: _labeled(
+                  'Time',
+                  _time,
+                  _timeFocus,
+                  hint: 'HH:MM:SS',
+                  onCommit: _commitTime,
+                  formatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
+                  ],
+                  trailing: _iconBtn(Icons.access_time, 'Pick time', _pickTime),
+                ),
               ),
             ],
           ),
@@ -683,10 +793,16 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               Expanded(child: _utcOffsetField()),
               const SizedBox(width: 8),
               Expanded(
-                child: _labeled('JD (UT)', _jd, _jdFocus,
-                    hint: '2460000.0',
-                    onCommit: _commitJd,
-                    formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]),
+                child: _labeled(
+                  'JD (UT)',
+                  _jd,
+                  _jdFocus,
+                  hint: '2460000.0',
+                  onCommit: _commitJd,
+                  formatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                  ],
+                ),
               ),
             ],
           ),
@@ -695,13 +811,25 @@ class _ContextBarState extends ConsumerState<ContextBar> {
           Row(
             children: [
               Expanded(
-                child: _labeled('Lat', _lat, _latFocus,
-                    hint: '0', onCommit: _commitLocation, formatters: [numFmt]),
+                child: _labeled(
+                  'Lat',
+                  _lat,
+                  _latFocus,
+                  hint: '0',
+                  onCommit: _commitLocation,
+                  formatters: [numFmt],
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _labeled('Lon', _lon, _lonFocus,
-                    hint: '0', onCommit: _commitLocation, formatters: [numFmt]),
+                child: _labeled(
+                  'Lon',
+                  _lon,
+                  _lonFocus,
+                  hint: '0',
+                  onCommit: _commitLocation,
+                  formatters: [numFmt],
+                ),
               ),
             ],
           ),
@@ -710,13 +838,24 @@ class _ContextBarState extends ConsumerState<ContextBar> {
           Row(
             children: [
               Expanded(
-                child: _labeled('Alt', _alt, _altFocus,
-                    hint: '0', onCommit: _commitLocation, formatters: [numFmt]),
+                child: _labeled(
+                  'Alt',
+                  _alt,
+                  _altFocus,
+                  hint: '0',
+                  onCommit: _commitLocation,
+                  formatters: [numFmt],
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _labeled('City', _city, _cityFocus,
-                    hint: 'City', onCommit: _commitLocation),
+                child: _labeled(
+                  'City',
+                  _city,
+                  _cityFocus,
+                  hint: 'City',
+                  onCommit: _commitLocation,
+                ),
               ),
             ],
           ),
@@ -755,10 +894,10 @@ class _ContextBarState extends ConsumerState<ContextBar> {
   Widget _buildDesktopLayout(double screenWidth) {
     final numFmt = FilteringTextInputFormatter.allow(RegExp(r'[\d.+-]'));
     final sectionLabel = Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.5,
-        );
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.5,
+    );
     final minBarWidth = 1000.0 * MediaQuery.textScalerOf(context).scale(1.0);
 
     return SingleChildScrollView(
@@ -783,26 +922,36 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                           icon: const Icon(Icons.folder_open, size: 14),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(
-                              minWidth: 24, minHeight: 24),
+                            minWidth: 24,
+                            minHeight: 24,
+                          ),
                           tooltip: 'Open chart file',
                           onPressed: _openChart,
                         ),
                         const SizedBox(width: 4),
-                        Consumer(builder: (context, ref, _) {
-                          final emitter = ref.watch(selectedEmitterProvider);
-                          return PopupMenuButton<CodeEmitter>(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(minHeight: 24),
-                            tooltip: 'Code language',
-                            onSelected: (e) =>
-                                ref.read(selectedEmitterProvider.notifier).state = e,
-                            itemBuilder: (_) => availableEmitters
-                                .map((e) => PopupMenuItem(
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final emitter = ref.watch(selectedEmitterProvider);
+                            return PopupMenuButton<CodeEmitter>(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(minHeight: 24),
+                              tooltip: 'Code language',
+                              onSelected: (e) =>
+                                  ref
+                                          .read(
+                                            selectedEmitterProvider.notifier,
+                                          )
+                                          .state =
+                                      e,
+                              itemBuilder: (_) => availableEmitters
+                                  .map(
+                                    (e) => PopupMenuItem(
                                       value: e,
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          if (e.languageId == emitter.languageId)
+                                          if (e.languageId ==
+                                              emitter.languageId)
                                             const Icon(Icons.check, size: 16)
                                           else
                                             const SizedBox(width: 16),
@@ -810,23 +959,32 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                                           Text(e.displayName),
                                         ],
                                       ),
-                                    ))
-                                .toList(),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.code, size: 14),
-                                  const SizedBox(width: 4),
-                                  Text(emitter.displayName,
-                                      style: Theme.of(context).textTheme.labelSmall),
-                                  const Icon(Icons.arrow_drop_down, size: 14),
-                                ],
+                                    ),
+                                  )
+                                  .toList(),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 2,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.code, size: 14),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      emitter.displayName,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.labelSmall,
+                                    ),
+                                    const Icon(Icons.arrow_drop_down, size: 14),
+                                  ],
+                                ),
                               ),
-                            ),
-                          );
-                        }),
+                            );
+                          },
+                        ),
                         const SizedBox(width: 8),
                         const Flexible(child: FileInUseIndicator()),
                       ],
@@ -836,38 +994,70 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                     Row(
                       children: [
                         Expanded(
-                          child: _labeled('Date', _date, _dateFocus,
-                              hint: 'YYYY-MM-DD',
-                              onCommit: _commitDate,
-                              formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d-]'))],
-                              trailing: _iconBtn(Icons.calendar_today, 'Pick date', _pickDate)),
+                          child: _labeled(
+                            'Date',
+                            _date,
+                            _dateFocus,
+                            hint: 'YYYY-MM-DD',
+                            onCommit: _commitDate,
+                            formatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[\d-]'),
+                              ),
+                            ],
+                            trailing: _iconBtn(
+                              Icons.calendar_today,
+                              'Pick date',
+                              _pickDate,
+                            ),
+                          ),
                         ),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled('Time', _time, _timeFocus,
-                              hint: 'HH:MM:SS',
-                              onCommit: _commitTime,
-                              formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d:]'))],
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _iconBtn(Icons.update, 'Set to now', () {
-                                    ref.read(contextBarProvider.notifier).setNow();
-                                  }),
-                                  _iconBtn(Icons.access_time, 'Pick time', _pickTime),
-                                ],
-                              )),
+                          child: _labeled(
+                            'Time',
+                            _time,
+                            _timeFocus,
+                            hint: 'HH:MM:SS',
+                            onCommit: _commitTime,
+                            formatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[\d:]'),
+                              ),
+                            ],
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _iconBtn(Icons.update, 'Set to now', () {
+                                  ref
+                                      .read(contextBarProvider.notifier)
+                                      .setNow();
+                                }),
+                                _iconBtn(
+                                  Icons.access_time,
+                                  'Pick time',
+                                  _pickTime,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                         SizedBox(width: _colGap),
-                        Expanded(
-                          child: _utcOffsetField(),
-                        ),
+                        Expanded(child: _utcOffsetField()),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled('JD (UT)', _jd, _jdFocus,
-                              hint: '2460000.0',
-                              onCommit: _commitJd,
-                              formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))]),
+                          child: _labeled(
+                            'JD (UT)',
+                            _jd,
+                            _jdFocus,
+                            hint: '2460000.0',
+                            onCommit: _commitJd,
+                            formatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'[\d.]'),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -876,23 +1066,46 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                     Row(
                       children: [
                         Expanded(
-                          child: _labeled('Lat', _lat, _latFocus,
-                              hint: '0', onCommit: _commitLocation, formatters: [numFmt]),
+                          child: _labeled(
+                            'Lat',
+                            _lat,
+                            _latFocus,
+                            hint: '0',
+                            onCommit: _commitLocation,
+                            formatters: [numFmt],
+                          ),
                         ),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled('Lon', _lon, _lonFocus,
-                              hint: '0', onCommit: _commitLocation, formatters: [numFmt]),
+                          child: _labeled(
+                            'Lon',
+                            _lon,
+                            _lonFocus,
+                            hint: '0',
+                            onCommit: _commitLocation,
+                            formatters: [numFmt],
+                          ),
                         ),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled('Alt', _alt, _altFocus,
-                              hint: '0', onCommit: _commitLocation, formatters: [numFmt]),
+                          child: _labeled(
+                            'Alt',
+                            _alt,
+                            _altFocus,
+                            hint: '0',
+                            onCommit: _commitLocation,
+                            formatters: [numFmt],
+                          ),
                         ),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled('City', _city, _cityFocus,
-                              hint: 'City', onCommit: _commitLocation),
+                          child: _labeled(
+                            'City',
+                            _city,
+                            _cityFocus,
+                            hint: 'City',
+                            onCommit: _commitLocation,
+                          ),
                         ),
                       ],
                     ),

@@ -14,9 +14,15 @@ import 'rise_set_provider.dart';
 // ── Body list ─────────────────────────────────────────────────────────────────
 
 const _bodies = [
-  (seSun, 'Sun'), (seMoon, 'Moon'), (seMercury, 'Mercury'),
-  (seVenus, 'Venus'), (seMars, 'Mars'), (seJupiter, 'Jupiter'),
-  (seSaturn, 'Saturn'), (seUranus, 'Uranus'), (seNeptune, 'Neptune'),
+  (seSun, 'Sun'),
+  (seMoon, 'Moon'),
+  (seMercury, 'Mercury'),
+  (seVenus, 'Venus'),
+  (seMars, 'Mars'),
+  (seJupiter, 'Jupiter'),
+  (seSaturn, 'Saturn'),
+  (seUranus, 'Uranus'),
+  (seNeptune, 'Neptune'),
   (sePluto, 'Pluto'),
 ];
 
@@ -49,13 +55,24 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   final _attempController = TextEditingController(text: '15.0');
 
   @override
+  void initState() {
+    super.initState();
+    ref
+        .read(calcSessionProvider.notifier)
+        .registerCommit('riseSet', _commitFields);
+  }
+
+  @override
   void dispose() {
+    try {
+      ref.read(calcSessionProvider.notifier).unregisterCommit('riseSet');
+    } catch (_) {}
     _atpressController.dispose();
     _attempController.dispose();
     super.dispose();
   }
 
-  void _calculate() {
+  void _commitFields() {
     final atpress = double.tryParse(_atpressController.text);
     if (atpress != null) {
       ref.read(riseSetAtpressProvider.notifier).state = atpress;
@@ -64,13 +81,13 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     if (attemp != null) {
       ref.read(riseSetAttempProvider.notifier).state = attemp;
     }
-    ref.read(calcSessionProvider.notifier).calculate(activate: {'riseSet'});
   }
 
   void _toggleModifier(int bit, bool on) {
     final current = ref.read(riseSetModifiersProvider);
-    ref.read(riseSetModifiersProvider.notifier).state =
-        on ? (current | bit) : (current & ~bit);
+    ref.read(riseSetModifiersProvider.notifier).state = on
+        ? (current | bit)
+        : (current & ~bit);
   }
 
   void _setTwilightMode(_TwilightMode mode) {
@@ -106,17 +123,18 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
               children: [
                 Text('Body ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._bodies.map((b) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(b.$2),
-                        selected: body == b.$1,
-                        onSelected: (_) =>
-                            ref.read(riseSetBodyProvider.notifier).state =
-                                b.$1,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ..._bodies.map(
+                  (b) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(b.$2),
+                      selected: body == b.$1,
+                      onSelected: (_) =>
+                          ref.read(riseSetBodyProvider.notifier).state = b.$1,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -129,29 +147,31 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             child: Row(
               children: [
                 _ModifierChip(
-                  label: 'Disc Center', bit: rsBitDiscCenter,
-                  modifiers: modifiers, onToggle: _toggleModifier,
+                  label: 'Disc Center',
+                  bit: rsBitDiscCenter,
+                  modifiers: modifiers,
+                  onToggle: _toggleModifier,
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(
-                  label: 'Disc Bottom', bit: rsBitDiscBottom,
-                  modifiers: modifiers, onToggle: _toggleModifier,
+                  label: 'Disc Bottom',
+                  bit: rsBitDiscBottom,
+                  modifiers: modifiers,
+                  onToggle: _toggleModifier,
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(
-                  label: 'No Refraction', bit: rsBitNoRefraction,
-                  modifiers: modifiers, onToggle: _toggleModifier,
+                  label: 'No Refraction',
+                  bit: rsBitNoRefraction,
+                  modifiers: modifiers,
+                  onToggle: _toggleModifier,
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(
-                  label: 'Hindu Rising', bit: rsBitHinduRising,
-                  modifiers: modifiers, onToggle: _toggleModifier,
-                ),
-                const SizedBox(width: 12),
-                FilledButton.icon(
-                  onPressed: _calculate,
-                  icon: const Icon(Icons.calculate, size: 16),
-                  label: const Text('Calculate'),
+                  label: 'Hindu Rising',
+                  bit: rsBitHinduRising,
+                  modifiers: modifiers,
+                  onToggle: _toggleModifier,
                 ),
                 const SizedBox(width: 4),
                 ExportButton(
@@ -177,16 +197,17 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _showAtmospheric
-                          ? Icons.expand_less
-                          : Icons.expand_more,
+                      _showAtmospheric ? Icons.expand_less : Icons.expand_more,
                       size: 18,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
                     Flexible(
-                      child: Text('Twilight & Atmospheric Parameters',
-                          style: labelStyle, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        'Twilight & Atmospheric Parameters',
+                        style: labelStyle,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
@@ -196,13 +217,13 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                 // Twilight selector
                 SegmentedButton<_TwilightMode>(
                   segments: _TwilightMode.values
-                      .map(
-                          (m) => ButtonSegment(value: m, label: Text(m.label)))
+                      .map((m) => ButtonSegment(value: m, label: Text(m.label)))
                       .toList(),
                   selected: {_twilightMode},
                   onSelectionChanged: (s) => _setTwilightMode(s.first),
                   style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 // Atmospheric params with Expanded fields
@@ -216,11 +237,14 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                         decoration: const InputDecoration(
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 6),
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
+                          decimal: true,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -232,11 +256,15 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                         decoration: const InputDecoration(
                           isDense: true,
                           contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 6),
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true, signed: true),
+                          decimal: true,
+                          signed: true,
+                        ),
                       ),
                     ),
                   ],
@@ -249,18 +277,14 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
         const Divider(height: 1),
         // ── Results ──
         Expanded(
-          child: _hasCalculated()
-              ? _buildResults(result)
-              : _buildPlaceholder(),
+          child: _hasCalculated() ? _buildResults(result) : _buildPlaceholder(),
         ),
       ],
     );
   }
 
   Widget _buildPlaceholder() {
-    return const Center(
-      child: Text('Select a body and press Calculate'),
-    );
+    return const Center(child: Text('Select a body and press Calculate'));
   }
 
   Widget _buildResults(RiseSetResult? result) {
@@ -273,10 +297,9 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
         final cols = constraints.maxWidth > 900
             ? 4
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -284,16 +307,38 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             spacing: 4,
             runSpacing: 4,
             children: [
-              _eventCard('Rise', result.riseJd, result.riseDateTime,
-                  result.riseFlag, result.riseError, cardWidth),
-              _eventCard('Set', result.setJd, result.setDateTime,
-                  result.setFlag, result.setError, cardWidth),
-              _eventCard('Upper Transit', result.upperTransitJd,
-                  result.upperTransitDateTime, result.upperTransitFlag,
-                  result.upperTransitError, cardWidth),
-              _eventCard('Lower Transit', result.lowerTransitJd,
-                  result.lowerTransitDateTime, result.lowerTransitFlag,
-                  result.lowerTransitError, cardWidth),
+              _eventCard(
+                'Rise',
+                result.riseJd,
+                result.riseDateTime,
+                result.riseFlag,
+                result.riseError,
+                cardWidth,
+              ),
+              _eventCard(
+                'Set',
+                result.setJd,
+                result.setDateTime,
+                result.setFlag,
+                result.setError,
+                cardWidth,
+              ),
+              _eventCard(
+                'Upper Transit',
+                result.upperTransitJd,
+                result.upperTransitDateTime,
+                result.upperTransitFlag,
+                result.upperTransitError,
+                cardWidth,
+              ),
+              _eventCard(
+                'Lower Transit',
+                result.lowerTransitJd,
+                result.lowerTransitDateTime,
+                result.lowerTransitFlag,
+                result.lowerTransitError,
+                cardWidth,
+              ),
             ],
           ),
         );
@@ -315,15 +360,19 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     if (error != null) {
       fields.add(ResultField(label: 'Error', value: error));
     } else {
-      fields.add(ResultField(
-        label: 'JD',
-        value: jd != null ? jd.toStringAsFixed(8) : '—',
-        rawValue: jd,
-      ));
-      fields.add(ResultField(
-        label: 'Date/Time',
-        value: dt?.formattedWithLocal(utcOffset) ?? '—',
-      ));
+      fields.add(
+        ResultField(
+          label: 'JD',
+          value: jd != null ? jd.toStringAsFixed(8) : '—',
+          rawValue: jd,
+        ),
+      );
+      fields.add(
+        ResultField(
+          label: 'Date/Time',
+          value: dt?.formattedWithLocal(utcOffset) ?? '—',
+        ),
+      );
     }
 
     return SizedBox(
@@ -342,7 +391,11 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
           if (slice.entries.isEmpty) return;
           final emitter = ref.read(selectedEmitterProvider);
           final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(context, code: code, languageLabel: emitter.displayName);
+          showCodeModal(
+            context,
+            code: code,
+            languageLabel: emitter.displayName,
+          );
         },
       ),
     );

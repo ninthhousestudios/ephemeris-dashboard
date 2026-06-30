@@ -19,10 +19,6 @@ class EclipsesTab extends ConsumerStatefulWidget {
 }
 
 class _EclipsesTabState extends ConsumerState<EclipsesTab> {
-  void _calculate() {
-    ref.read(calcSessionProvider.notifier).calculate(activate: {'eclipses'});
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -32,7 +28,8 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     final count = ref.watch(eclipseCountProvider);
     final results = ref.watch(eclipseResultsProvider);
     final triggered = ref.watch(
-        calcSessionProvider.select((s) => s.tabHasRun('eclipses')));
+      calcSessionProvider.select((s) => s.tabHasRun('eclipses')),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,18 +46,18 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                 ChoiceChip(
                   label: const Text('Solar'),
                   selected: eclType == EclipseType.solar,
-                  onSelected: (_) => ref
-                      .read(eclipseTypeProvider.notifier)
-                      .state = EclipseType.solar,
+                  onSelected: (_) =>
+                      ref.read(eclipseTypeProvider.notifier).state =
+                          EclipseType.solar,
                   visualDensity: VisualDensity.compact,
                 ),
                 const SizedBox(width: 4),
                 ChoiceChip(
                   label: const Text('Lunar'),
                   selected: eclType == EclipseType.lunar,
-                  onSelected: (_) => ref
-                      .read(eclipseTypeProvider.notifier)
-                      .state = EclipseType.lunar,
+                  onSelected: (_) =>
+                      ref.read(eclipseTypeProvider.notifier).state =
+                          EclipseType.lunar,
                   visualDensity: VisualDensity.compact,
                 ),
                 const SizedBox(width: 16),
@@ -69,18 +66,18 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                 ChoiceChip(
                   label: const Text('Global'),
                   selected: scope == EclipseScope.global,
-                  onSelected: (_) => ref
-                      .read(eclipseScopeProvider.notifier)
-                      .state = EclipseScope.global,
+                  onSelected: (_) =>
+                      ref.read(eclipseScopeProvider.notifier).state =
+                          EclipseScope.global,
                   visualDensity: VisualDensity.compact,
                 ),
                 const SizedBox(width: 4),
                 ChoiceChip(
                   label: const Text('Local'),
                   selected: scope == EclipseScope.local,
-                  onSelected: (_) => ref
-                      .read(eclipseScopeProvider.notifier)
-                      .state = EclipseScope.local,
+                  onSelected: (_) =>
+                      ref.read(eclipseScopeProvider.notifier).state =
+                          EclipseScope.local,
                   visualDensity: VisualDensity.compact,
                 ),
               ],
@@ -110,44 +107,40 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                       }
                       return true;
                     })
-                    .map((f) => Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: ChoiceChip(
-                            label: Text(f.$1),
-                            selected: filter == f.$2,
-                            onSelected: (_) => ref
-                                .read(eclipseFilterProvider.notifier)
-                                .state = f.$2,
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        )),
+                    .map(
+                      (f) => Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: ChoiceChip(
+                          label: Text(f.$1),
+                          selected: filter == f.$2,
+                          onSelected: (_) =>
+                              ref.read(eclipseFilterProvider.notifier).state =
+                                  f.$2,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
                 const SizedBox(width: 12),
                 Text('Count ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ...([1, 3, 5, 10]).map((n) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text('$n'),
-                        selected: count == n,
-                        onSelected: (_) =>
-                            ref.read(eclipseCountProvider.notifier).state = n,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
-                const SizedBox(width: 12),
-                FilledButton.icon(
-                  onPressed: _calculate,
-                  icon: const Icon(Icons.calculate, size: 16),
-                  label: const Text('Calculate'),
+                ...([1, 3, 5, 10]).map(
+                  (n) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text('$n'),
+                      selected: count == n,
+                      onSelected: (_) =>
+                          ref.read(eclipseCountProvider.notifier).state = n,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 4),
                 ExportButton(
                   hasResults: triggered && results.isNotEmpty,
                   filenameStem: 'eclipses',
-                  getRows: () => eclipsesToExportRows(
-                    results,
-                    ref.read(sweProvider),
-                  ),
+                  getRows: () =>
+                      eclipsesToExportRows(results, ref.read(sweProvider)),
                 ),
               ],
             ),
@@ -178,10 +171,9 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
         final cols = constraints.maxWidth > 1000
             ? 3
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -189,10 +181,12 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
             spacing: 4,
             runSpacing: 4,
             children: events
-                .map((e) => SizedBox(
-                      width: cardWidth,
-                      child: _eclipseCard(context, e, swe),
-                    ))
+                .map(
+                  (e) => SizedBox(
+                    width: cardWidth,
+                    child: _eclipseCard(context, e, swe),
+                  ),
+                )
                 .toList(),
           ),
         );
@@ -209,15 +203,19 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
       fields.add(ResultField(label: 'Type', value: e.eclipseTypeLabel));
 
       if (e.maxEclipseJd != null) {
-        fields.add(ResultField(
-          label: 'Max Eclipse',
-          value: _jdToDateStr(swe, e.maxEclipseJd!),
-        ));
-        fields.add(ResultField(
-          label: 'Max JD',
-          value: e.maxEclipseJd!.toStringAsFixed(8),
-          rawValue: e.maxEclipseJd,
-        ));
+        fields.add(
+          ResultField(
+            label: 'Max Eclipse',
+            value: _jdToDateStr(swe, e.maxEclipseJd!),
+          ),
+        );
+        fields.add(
+          ResultField(
+            label: 'Max JD',
+            value: e.maxEclipseJd!.toStringAsFixed(8),
+            rawValue: e.maxEclipseJd,
+          ),
+        );
       }
 
       // Timing fields
@@ -235,32 +233,40 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
 
       // Attributes
       if (e.magnitude != null) {
-        fields.add(ResultField(
-          label: 'Magnitude',
-          value: e.magnitude!.toStringAsFixed(4),
-          rawValue: e.magnitude,
-        ));
+        fields.add(
+          ResultField(
+            label: 'Magnitude',
+            value: e.magnitude!.toStringAsFixed(4),
+            rawValue: e.magnitude,
+          ),
+        );
       }
       if (e.obscuration != null) {
-        fields.add(ResultField(
-          label: 'Obscuration',
-          value: '${(e.obscuration! * 100).toStringAsFixed(2)}%',
-          rawValue: e.obscuration,
-        ));
+        fields.add(
+          ResultField(
+            label: 'Obscuration',
+            value: '${(e.obscuration! * 100).toStringAsFixed(2)}%',
+            rawValue: e.obscuration,
+          ),
+        );
       }
       if (e.centralLat != null && e.centralLon != null) {
-        fields.add(ResultField(
-          label: 'Central Line',
-          value:
-              '${e.centralLat!.toStringAsFixed(4)}° / ${e.centralLon!.toStringAsFixed(4)}°',
-        ));
+        fields.add(
+          ResultField(
+            label: 'Central Line',
+            value:
+                '${e.centralLat!.toStringAsFixed(4)}° / ${e.centralLon!.toStringAsFixed(4)}°',
+          ),
+        );
       }
       if (e.sarosSeries != null) {
-        fields.add(ResultField(
-          label: 'Saros',
-          value:
-              '${e.sarosSeries!.round()} / ${e.sarosMember?.round() ?? "?"}',
-        ));
+        fields.add(
+          ResultField(
+            label: 'Saros',
+            value:
+                '${e.sarosSeries!.round()} / ${e.sarosMember?.round() ?? "?"}',
+          ),
+        );
       }
     }
 
@@ -291,10 +297,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     SwissEph swe,
   ) {
     if (jd == null) return;
-    fields.add(ResultField(
-      label: label,
-      value: _jdToDateStr(swe, jd),
-    ));
+    fields.add(ResultField(label: label, value: _jdToDateStr(swe, jd)));
   }
 }
 

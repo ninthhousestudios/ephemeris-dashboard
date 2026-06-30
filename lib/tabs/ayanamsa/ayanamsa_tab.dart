@@ -22,10 +22,6 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
   bool get _hasCalculated =>
       ref.watch(calcSessionProvider.select((s) => s.tabHasRun('ayanamsa')));
 
-  void _calculate() {
-    ref.read(calcSessionProvider.notifier).calculate(activate: {'ayanamsa'});
-  }
-
   void _toggleAyanamsa(int sidMode) {
     final current = ref.read(selectedAyanamsasProvider);
     final updated = current.contains(sidMode)
@@ -61,79 +57,89 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                       ],
                       selected: {compareMode},
                       onSelectionChanged: (s) =>
-                          ref.read(ayanamsaCompareModeProvider.notifier).state = s.first,
-                      style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                          ref.read(ayanamsaCompareModeProvider.notifier).state =
+                              s.first,
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                      ),
                     ),
                     const SizedBox(width: 12),
-                    Consumer(builder: (context, ref, _) {
-                      final fmt = ref.watch(ayanamsaFormatProvider);
-                      return SegmentedButton<DisplayFormat>(
-                        segments: DisplayFormat.values
-                            .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                            .toList(),
-                        selected: {fmt},
-                        onSelectionChanged: (s) =>
-                            ref.read(ayanamsaFormatProvider.notifier).state = s.first,
-                        style: const ButtonStyle(visualDensity: VisualDensity.compact),
-                      );
-                    }),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: _calculate,
-                      icon: const Icon(Icons.calculate, size: 18),
-                      label: const Text('Calculate'),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final fmt = ref.watch(ayanamsaFormatProvider);
+                        return SegmentedButton<DisplayFormat>(
+                          segments: DisplayFormat.values
+                              .map(
+                                (f) => ButtonSegment(
+                                  value: f,
+                                  label: Text(f.label),
+                                ),
+                              )
+                              .toList(),
+                          selected: {fmt},
+                          onSelectionChanged: (s) =>
+                              ref.read(ayanamsaFormatProvider.notifier).state =
+                                  s.first,
+                          style: const ButtonStyle(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(width: 8),
-                    Consumer(builder: (context, ref, _) {
-                      final results = ref.watch(ayanamsaResultsProvider);
-                      final fmt = ref.watch(ayanamsaFormatProvider);
-                      final jd = ref.watch(contextBarProvider).jdUt;
-                      return ExportButton(
-                        hasResults: _hasCalculated && results.isNotEmpty,
-                        getRows: () => ayanamsaToExportRows(results, fmt),
-                        filenameStem: 'swe_ayanamsa_${jd.toStringAsFixed(4)}',
-                      );
-                    }),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final results = ref.watch(ayanamsaResultsProvider);
+                        final fmt = ref.watch(ayanamsaFormatProvider);
+                        final jd = ref.watch(contextBarProvider).jdUt;
+                        return ExportButton(
+                          hasResults: _hasCalculated && results.isNotEmpty,
+                          getRows: () => ayanamsaToExportRows(results, fmt),
+                          filenameStem: 'swe_ayanamsa_${jd.toStringAsFixed(4)}',
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
               if (!compareMode) ...[
                 const SizedBox(height: 6),
                 // Ayanamsa selector chips — scrollable with constrained height
-                Consumer(builder: (context, ref, _) {
-                  final ctx = ref.watch(contextBarProvider);
-                  final hasUserParams =
-                      ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
-                  final modes =
-                      ayanamsaModesFor(includeUser: hasUserParams);
-                  return ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 160),
-                    child: SingleChildScrollView(
-                      child: Wrap(
-                        spacing: 4,
-                        runSpacing: 4,
-                        children: modes.entries.map((e) {
-                          return FilterChip(
-                            label: Text(e.value,
-                                style: theme.textTheme.labelSmall),
-                            selected: selected.contains(e.key),
-                            onSelected: (_) => _toggleAyanamsa(e.key),
-                            visualDensity: VisualDensity.compact,
-                          );
-                        }).toList(),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final ctx = ref.watch(contextBarProvider);
+                    final hasUserParams =
+                        ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
+                    final modes = ayanamsaModesFor(includeUser: hasUserParams);
+                    return ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 160),
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: modes.entries.map((e) {
+                            return FilterChip(
+                              label: Text(
+                                e.value,
+                                style: theme.textTheme.labelSmall,
+                              ),
+                              selected: selected.contains(e.key),
+                              onSelected: (_) => _toggleAyanamsa(e.key),
+                              visualDensity: VisualDensity.compact,
+                            );
+                          }).toList(),
+                        ),
                       ),
-                    ),
-                  );
-                }),
+                    );
+                  },
+                ),
               ],
             ],
           ),
         ),
         const Divider(height: 1),
         // Results
-        Expanded(
-          child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-        ),
+        Expanded(child: _hasCalculated ? _buildResults() : _buildPlaceholder()),
       ],
     );
   }
@@ -164,10 +170,9 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
         final cols = constraints.maxWidth > 1200
             ? 3
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -193,8 +198,14 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                     final slice = trace.sliceByTab('ayanamsa');
                     if (slice.entries.isEmpty) return;
                     final emitter = ref.read(selectedEmitterProvider);
-                    final code = slice.entries.map(emitter.emitSnippet).join('\n');
-                    showCodeModal(context, code: code, languageLabel: emitter.displayName);
+                    final code = slice.entries
+                        .map(emitter.emitSnippet)
+                        .join('\n');
+                    showCodeModal(
+                      context,
+                      code: code,
+                      languageLabel: emitter.displayName,
+                    );
                   },
                 ),
               );
@@ -222,14 +233,20 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
           DataColumn(label: Text('Value'), numeric: true),
         ],
         rows: results.map((r) {
-          return DataRow(cells: [
-            DataCell(Text('${r.sidMode}', style: theme.textTheme.bodySmall)),
-            DataCell(Text(r.name, style: theme.textTheme.bodySmall)),
-            DataCell(SelectableText(
-              formatAngle(r.value, format),
-              style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace'),
-            )),
-          ]);
+          return DataRow(
+            cells: [
+              DataCell(Text('${r.sidMode}', style: theme.textTheme.bodySmall)),
+              DataCell(Text(r.name, style: theme.textTheme.bodySmall)),
+              DataCell(
+                SelectableText(
+                  formatAngle(r.value, format),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+            ],
+          );
         }).toList(),
       ),
     );
