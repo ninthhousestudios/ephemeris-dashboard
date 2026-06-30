@@ -987,6 +987,19 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         ),
                         const SizedBox(width: 8),
                         const Flexible(child: FileInUseIndicator()),
+                        const SizedBox(width: 8),
+                        FilledButton.icon(
+                          onPressed: _calculate,
+                          icon: const Icon(Icons.calculate, size: 16),
+                          label: const Text('Calculate'),
+                          style: const ButtonStyle(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        _iconBtn(Icons.update, 'Set to now', () {
+                          ref.read(contextBarProvider.notifier).setNow();
+                        }),
                       ],
                     ),
                     SizedBox(height: _rowGap),
