@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
+import '../../core/ephemeris/ephemeris.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
 
@@ -192,7 +193,7 @@ final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
 });
 
 EclipseEvent _findNextEclipse({
-  required SwissEph swe,
+  required Ephemeris swe,
   required double jdStart,
   required int epheflag,
   required EclipseType type,
@@ -231,7 +232,7 @@ EclipseEvent _findNextEclipse({
 }
 
 EclipseEvent _findSolarEclipse({
-  required SwissEph swe,
+  required Ephemeris swe,
   required double jdStart,
   required int epheflag,
   required EclipseScope scope,
@@ -296,7 +297,7 @@ EclipseEvent _findSolarEclipse({
 }
 
 EclipseEvent _findLunarEclipse({
-  required SwissEph swe,
+  required Ephemeris swe,
   required double jdStart,
   required int epheflag,
   required EclipseScope scope,

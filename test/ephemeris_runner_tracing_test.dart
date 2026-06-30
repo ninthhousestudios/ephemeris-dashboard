@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph/swisseph.dart';
+import 'package:swe_dashboard/core/ephemeris/ephemeris.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
@@ -74,7 +75,7 @@ void main() {
         jplFile: null,
       );
 
-      SwissEph? received;
+      Ephemeris? received;
       runner.run(globals, (eph) {
         received = eph;
         return eph.calcUt(2460412.5, seSun, seFlgSpeed);
@@ -96,7 +97,7 @@ void main() {
       // Need to run once first so _last is set for the finally block
       runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
 
-      SwissEph? received;
+      Ephemeris? received;
       runner.runScoped((eph) {}, (eph) {
         received = eph;
         return eph.calcUt(2460412.5, seSun, seFlgSpeed);

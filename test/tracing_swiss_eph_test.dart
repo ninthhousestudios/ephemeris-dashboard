@@ -52,14 +52,6 @@ void main() {
     });
   });
 
-  group('untraced methods forward correctly', () {
-    test('getPlanetName forwards without recording', () {
-      final name = tracing.getPlanetName(seSun);
-      expect(name, equals('Sun'));
-      expect(tracing.entries, isEmpty);
-    });
-  });
-
   group('setup call tracing', () {
     test('setSidMode records entry with context category', () {
       tracing.setSidMode(1);

@@ -6,6 +6,7 @@ import '../calc_session.dart';
 import '../swe_service.dart';
 import '../ephe/dir_provider.dart';
 import 'applied_globals.dart';
+import 'ephemeris.dart';
 import 'trace_model.dart';
 import 'tracing_swiss_eph.dart';
 
@@ -19,7 +20,7 @@ class EphemerisRunner {
   void clearTrace() => _tracing.clearEntries();
   void setTabTag(String tag) => _tracing.setTabTag(tag);
 
-  T run<T>(AppliedGlobals globals, T Function(SwissEph eph) body) {
+  T run<T>(AppliedGlobals globals, T Function(Ephemeris eph) body) {
     if (_last != globals) {
       _apply(globals);
       _last = globals;
@@ -28,8 +29,8 @@ class EphemerisRunner {
   }
 
   T runScoped<T>(
-    void Function(SwissEph eph) override,
-    T Function(SwissEph eph) body,
+    void Function(Ephemeris eph) override,
+    T Function(Ephemeris eph) body,
   ) {
     override(_tracing);
     try {
