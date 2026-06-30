@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
-  swisseph: ^0.4.7
+  swisseph: ^0.5.1
   toml: ^0.18.0
   path: ^1.9.0
   cupertino_icons: ^1.0.8

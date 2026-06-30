@@ -52,22 +52,20 @@ class RiseSetTab extends ConsumerStatefulWidget {
 class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   _TwilightMode _twilightMode = _TwilightMode.none;
   bool _showAtmospheric = false;
+  late final CalcSessionNotifier _calcNotifier;
   final _atpressController = TextEditingController(text: '1013.25');
   final _attempController = TextEditingController(text: '15.0');
 
   @override
   void initState() {
     super.initState();
-    ref
-        .read(calcSessionProvider.notifier)
-        .registerCommit('riseSet', _commitFields);
+    _calcNotifier = ref.read(calcSessionProvider.notifier);
+    _calcNotifier.registerCommit('riseSet', _commitFields);
   }
 
   @override
   void dispose() {
-    try {
-      ref.read(calcSessionProvider.notifier).unregisterCommit('riseSet');
-    } catch (_) {}
+    _calcNotifier.unregisterCommit('riseSet');
     _atpressController.dispose();
     _attempController.dispose();
     super.dispose();

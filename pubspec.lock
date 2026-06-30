@@ -505,10 +505,10 @@ packages:
     dependency: "direct main"
     description:
       name: swisseph
-      sha256: "19f105e78da21947071b16fbea9e9ead6cfe5872bde88c55252b7604eef57c87"
+      sha256: "457822becdce652a94568ffc60f027b7cd5a43307a5e466d947b0522d3df68be"
       url: "https://pub.dev"
     source: hosted
-    version: "0.4.7"
+    version: "0.5.1"
   term_glyph:
     dependency: transitive
     description:

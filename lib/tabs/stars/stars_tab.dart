@@ -20,12 +20,14 @@ class StarsTab extends ConsumerStatefulWidget {
 
 class _StarsTabState extends ConsumerState<StarsTab> {
   late final TextEditingController _searchController;
+  late final CalcSessionNotifier _calcNotifier;
   final _focusNode = FocusNode();
   List<StarCatalogEntry> _suggestions = [];
 
   @override
   void initState() {
     super.initState();
+    _calcNotifier = ref.read(calcSessionProvider.notifier);
     _searchController = TextEditingController(
       text: ref.read(starSearchProvider),
     );
@@ -35,7 +37,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         setState(() => _suggestions = []);
       }
     });
-    ref.read(calcSessionProvider.notifier).registerCommit('stars', () {
+    _calcNotifier.registerCommit('stars', () {
       final term = _searchController.text.trim();
       if (term.isNotEmpty) {
         ref.read(starSearchProvider.notifier).state = term;
@@ -45,9 +47,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
 
   @override
   void dispose() {
-    try {
-      ref.read(calcSessionProvider.notifier).unregisterCommit('stars');
-    } catch (_) {}
+    _calcNotifier.unregisterCommit('stars');
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _focusNode.dispose();

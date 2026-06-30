@@ -23,6 +23,7 @@ class DatesTab extends ConsumerStatefulWidget {
 
 class _DatesTabState extends ConsumerState<DatesTab> {
   bool _isCustom = false;
+  late final CalcSessionNotifier _calcNotifier;
 
   final _dateCtrl = TextEditingController();
   final _timeCtrl = TextEditingController();
@@ -31,16 +32,13 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   @override
   void initState() {
     super.initState();
-    ref
-        .read(calcSessionProvider.notifier)
-        .registerCommit('dates', _commitFields);
+    _calcNotifier = ref.read(calcSessionProvider.notifier);
+    _calcNotifier.registerCommit('dates', _commitFields);
   }
 
   @override
   void dispose() {
-    try {
-      ref.read(calcSessionProvider.notifier).unregisterCommit('dates');
-    } catch (_) {}
+    _calcNotifier.unregisterCommit('dates');
     _dateCtrl.dispose();
     _timeCtrl.dispose();
     _jdCtrl.dispose();

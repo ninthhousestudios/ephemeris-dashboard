@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:swisseph/swisseph.dart';
 
 import 'trace_model.dart';
@@ -164,6 +166,10 @@ class TracingSwissEph implements SwissEph {
     );
     _delegate.setJplFile(filename);
   }
+
+  @override
+  void loadEpheFile(String filename, Uint8List bytes) =>
+      _delegate.loadEpheFile(filename, bytes);
 
   @override
   String getLibraryPath() => _delegate.getLibraryPath();

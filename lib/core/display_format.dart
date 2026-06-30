@@ -52,6 +52,8 @@ String formatSpeed(double value, DisplayFormat format) {
 
 /// Convert decimal degrees to DMS string.
 String _toDms(double degrees) {
+  if (degrees.isNaN) return 'NaN';
+  if (degrees.isInfinite) return '${degrees.isNegative ? '-' : ''}Inf';
   final negative = degrees < 0;
   var d = degrees.abs();
   final deg = d.truncate();

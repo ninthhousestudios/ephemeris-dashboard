@@ -57,9 +57,12 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   late final TextEditingController _ageController;
   late final TextEditingController _snellenController;
 
+  late final CalcSessionNotifier _calcNotifier;
+
   @override
   void initState() {
     super.initState();
+    _calcNotifier = ref.read(calcSessionProvider.notifier);
     _starController = TextEditingController();
     _starController.addListener(_onStarChanged);
     _starFocusNode.addListener(() {
@@ -73,16 +76,12 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _extinctionController = TextEditingController(text: '0.2');
     _ageController = TextEditingController(text: '36.0');
     _snellenController = TextEditingController(text: '1.0');
-    ref
-        .read(calcSessionProvider.notifier)
-        .registerCommit('heliacal', _syncProviders);
+    _calcNotifier.registerCommit('heliacal', _syncProviders);
   }
 
   @override
   void dispose() {
-    try {
-      ref.read(calcSessionProvider.notifier).unregisterCommit('heliacal');
-    } catch (_) {}
+    _calcNotifier.unregisterCommit('heliacal');
     _starController.removeListener(_onStarChanged);
     _starController.dispose();
     _starFocusNode.dispose();

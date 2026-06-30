@@ -659,7 +659,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header with collapse toggle ──
+          // ── Header row: collapse toggle + actions ──
           Row(
             children: [
               InkWell(
@@ -685,7 +685,22 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                 tooltip: 'Open chart file',
                 onPressed: _openChart,
               ),
+              const Spacer(),
+              _iconBtn(Icons.update, 'Set to now', () {
+                ref.read(contextBarProvider.notifier).setNow();
+              }),
               const SizedBox(width: 4),
+              FilledButton.icon(
+                onPressed: _calculate,
+                icon: const Icon(Icons.calculate, size: 16),
+                label: const Text('Calculate'),
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+              ),
+            ],
+          ),
+          // ── Secondary: code language, ephemeris badge ──
+          Row(
+            children: [
               Consumer(
                 builder: (context, ref, _) {
                   final emitter = ref.watch(selectedEmitterProvider);
@@ -736,17 +751,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               ),
               const SizedBox(width: 8),
               const Flexible(child: FileInUseIndicator()),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: _calculate,
-                icon: const Icon(Icons.calculate, size: 16),
-                label: const Text('Calculate'),
-                style: const ButtonStyle(visualDensity: VisualDensity.compact),
-              ),
-              const Spacer(),
-              _iconBtn(Icons.update, 'Set to now', () {
-                ref.read(contextBarProvider.notifier).setNow();
-              }),
             ],
           ),
           const SizedBox(height: 4),
