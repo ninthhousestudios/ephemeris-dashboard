@@ -45,7 +45,8 @@ class AppShell extends ConsumerStatefulWidget {
   ConsumerState<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMixin {
+class _AppShellState extends ConsumerState<AppShell>
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   static final _allTabs = AppTab.values.toList();
@@ -85,7 +86,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SWE Dashboard'),
+        title: const Text('Ephemeris Dashboard'),
         actions: [
           // Zoom controls
           IconButton(
@@ -93,19 +94,21 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
             tooltip: 'Zoom out (Ctrl+-)',
             onPressed: () => zoomOut(ref),
           ),
-          Builder(builder: (context) {
-            final scale = ref.watch(scaleFactorProvider);
-            return InkWell(
-              onTap: () => zoomReset(ref),
-              child: Tooltip(
-                message: 'Reset zoom (Ctrl+0)',
-                child: Text(
-                  '${(scale * 100).round()}%',
-                  style: Theme.of(context).textTheme.labelSmall,
+          Builder(
+            builder: (context) {
+              final scale = ref.watch(scaleFactorProvider);
+              return InkWell(
+                onTap: () => zoomReset(ref),
+                child: Tooltip(
+                  message: 'Reset zoom (Ctrl+0)',
+                  child: Text(
+                    '${(scale * 100).round()}%',
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add, size: 18),
             tooltip: 'Zoom in (Ctrl+=)',
@@ -137,21 +140,26 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
                 child: _AllTabsBar(controller: _tabController),
               ),
       ),
-      body: Column(
-        children: [
-          // Context bar
-          const ContextBar(),
-          // Flag bar (shown only for tabs with flags)
-          if (selectedTab.hasFlags)
-            FlagBar(
-              trailing: _buildFlagBarTrailing(selectedTab),
+      body: screenSize == ScreenSize.mobile
+          ? SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const ContextBar(),
+                  if (selectedTab.hasFlags)
+                    FlagBar(trailing: _buildFlagBarTrailing(selectedTab)),
+                  _TabContent(tab: selectedTab),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                const ContextBar(),
+                if (selectedTab.hasFlags)
+                  FlagBar(trailing: _buildFlagBarTrailing(selectedTab)),
+                Expanded(child: _TabContent(tab: selectedTab)),
+              ],
             ),
-          // Tab content
-          Expanded(
-            child: _TabContent(tab: selectedTab),
-          ),
-        ],
-      ),
       // Mobile bottom navigation
       bottomNavigationBar: screenSize == ScreenSize.mobile
           ? _MobileTabBar(
@@ -171,8 +179,7 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
     final formatStyle = ButtonStyle(
       visualDensity: VisualDensity.compact,
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      textStyle: WidgetStatePropertyAll(
-          Theme.of(context).textTheme.labelSmall),
+      textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.labelSmall),
       padding: const WidgetStatePropertyAll(
         EdgeInsets.symmetric(horizontal: 4),
       ),
@@ -181,112 +188,120 @@ class _AppShellState extends ConsumerState<AppShell> with TickerProviderStateMix
 
     switch (tab) {
       case AppTab.planets:
-        return Consumer(builder: (context, ref, _) {
-          final format = ref.watch(planetsFormatProvider);
-          final results = ref.watch(planetsResultsProvider);
-          final jd = ref.watch(contextBarProvider).jdUt;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SegmentedButton<DisplayFormat>(
-                segments: DisplayFormat.values
-                    .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                    .toList(),
-                selected: {format},
-                onSelectionChanged: (s) =>
-                    ref.read(planetsFormatProvider.notifier).state = s.first,
-                style: formatStyle,
-              ),
-              const SizedBox(width: 8),
-              ExportButton(
-                hasResults: results.isNotEmpty,
-                getRows: () => planetsToExportRows(results, format),
-                filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',
-              ),
-            ],
-          );
-        });
+        return Consumer(
+          builder: (context, ref, _) {
+            final format = ref.watch(planetsFormatProvider);
+            final results = ref.watch(planetsResultsProvider);
+            final jd = ref.watch(contextBarProvider).jdUt;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<DisplayFormat>(
+                  segments: DisplayFormat.values
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
+                      .toList(),
+                  selected: {format},
+                  onSelectionChanged: (s) =>
+                      ref.read(planetsFormatProvider.notifier).state = s.first,
+                  style: formatStyle,
+                ),
+                const SizedBox(width: 8),
+                ExportButton(
+                  hasResults: results.isNotEmpty,
+                  getRows: () => planetsToExportRows(results, format),
+                  filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',
+                ),
+              ],
+            );
+          },
+        );
       case AppTab.houses:
-        return Consumer(builder: (context, ref, _) {
-          final format = ref.watch(housesFormatProvider);
-          final result = ref.watch(housesResultProvider);
-          final jd = ref.watch(contextBarProvider).jdUt;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SegmentedButton<DisplayFormat>(
-                segments: DisplayFormat.values
-                    .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                    .toList(),
-                selected: {format},
-                onSelectionChanged: (s) =>
-                    ref.read(housesFormatProvider.notifier).state = s.first,
-                style: formatStyle,
-              ),
-              const SizedBox(width: 8),
-              ExportButton(
-                hasResults: result != null,
-                getRows: () => result != null
-                    ? housesToExportRows(result, format)
-                    : [],
-                filenameStem: 'swe_houses_${jd.toStringAsFixed(4)}',
-              ),
-            ],
-          );
-        });
+        return Consumer(
+          builder: (context, ref, _) {
+            final format = ref.watch(housesFormatProvider);
+            final result = ref.watch(housesResultProvider);
+            final jd = ref.watch(contextBarProvider).jdUt;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<DisplayFormat>(
+                  segments: DisplayFormat.values
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
+                      .toList(),
+                  selected: {format},
+                  onSelectionChanged: (s) =>
+                      ref.read(housesFormatProvider.notifier).state = s.first,
+                  style: formatStyle,
+                ),
+                const SizedBox(width: 8),
+                ExportButton(
+                  hasResults: result != null,
+                  getRows: () =>
+                      result != null ? housesToExportRows(result, format) : [],
+                  filenameStem: 'swe_houses_${jd.toStringAsFixed(4)}',
+                ),
+              ],
+            );
+          },
+        );
       case AppTab.tableView:
-        return Consumer(builder: (context, ref, _) {
-          final format = ref.watch(tableViewFormatProvider);
-          final results = ref.watch(tableViewResultsProvider);
-          final bodies = ref.watch(tableViewBodiesProvider);
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SegmentedButton<DisplayFormat>(
-                segments: DisplayFormat.values
-                    .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                    .toList(),
-                selected: {format},
-                onSelectionChanged: (s) =>
-                    ref.read(tableViewFormatProvider.notifier).state = s.first,
-                style: formatStyle,
-              ),
-              const SizedBox(width: 8),
-              ExportButton(
-                hasResults: results.isNotEmpty,
-                getRows: () =>
-                    tableViewToExportRows(results, bodies, format),
-                filenameStem: 'swe_table',
-              ),
-            ],
-          );
-        });
+        return Consumer(
+          builder: (context, ref, _) {
+            final format = ref.watch(tableViewFormatProvider);
+            final results = ref.watch(tableViewResultsProvider);
+            final bodies = ref.watch(tableViewBodiesProvider);
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<DisplayFormat>(
+                  segments: DisplayFormat.values
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
+                      .toList(),
+                  selected: {format},
+                  onSelectionChanged: (s) =>
+                      ref.read(tableViewFormatProvider.notifier).state =
+                          s.first,
+                  style: formatStyle,
+                ),
+                const SizedBox(width: 8),
+                ExportButton(
+                  hasResults: results.isNotEmpty,
+                  getRows: () => tableViewToExportRows(results, bodies, format),
+                  filenameStem: 'swe_table',
+                ),
+              ],
+            );
+          },
+        );
       case AppTab.planetocentric:
-        return Consumer(builder: (context, ref, _) {
-          final format = ref.watch(planetocentricFormatProvider);
-          final results = ref.watch(planetocentricResultsProvider);
-          final jd = ref.watch(contextBarProvider).jdUt;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SegmentedButton<DisplayFormat>(
-                segments: DisplayFormat.values
-                    .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                    .toList(),
-                selected: {format},
-                onSelectionChanged: (s) =>
-                    ref.read(planetocentricFormatProvider.notifier).state = s.first,
-                style: formatStyle,
-              ),
-              const SizedBox(width: 8),
-              ExportButton(
-                hasResults: results.isNotEmpty,
-                getRows: () => planetocentricToExportRows(results, format),
-                filenameStem: 'swe_planetocentric_${jd.toStringAsFixed(4)}',
-              ),
-            ],
-          );
-        });
+        return Consumer(
+          builder: (context, ref, _) {
+            final format = ref.watch(planetocentricFormatProvider);
+            final results = ref.watch(planetocentricResultsProvider);
+            final jd = ref.watch(contextBarProvider).jdUt;
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SegmentedButton<DisplayFormat>(
+                  segments: DisplayFormat.values
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
+                      .toList(),
+                  selected: {format},
+                  onSelectionChanged: (s) =>
+                      ref.read(planetocentricFormatProvider.notifier).state =
+                          s.first,
+                  style: formatStyle,
+                ),
+                const SizedBox(width: 8),
+                ExportButton(
+                  hasResults: results.isNotEmpty,
+                  getRows: () => planetocentricToExportRows(results, format),
+                  filenameStem: 'swe_planetocentric_${jd.toStringAsFixed(4)}',
+                ),
+              ],
+            );
+          },
+        );
       default:
         return null;
     }
@@ -318,7 +333,10 @@ class _AllTabsBar extends StatelessWidget implements PreferredSizeWidget {
           // Insert divider at the boundary
           if (i == _dividerIndex) {
             return Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4, vertical: barHeight * 0.2),
+              padding: EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: barHeight * 0.2,
+              ),
               child: VerticalDivider(
                 width: 1,
                 thickness: 1,
@@ -328,11 +346,7 @@ class _AllTabsBar extends StatelessWidget implements PreferredSizeWidget {
           }
           final tabIndex = i < _dividerIndex ? i : i - 1;
           final tab = _allTabs[tabIndex];
-          return _TabButton(
-            tab: tab,
-            index: tabIndex,
-            controller: controller,
-          );
+          return _TabButton(tab: tab, index: tabIndex, controller: controller);
         },
       ),
     );
@@ -410,7 +424,6 @@ class _TabContent extends StatelessWidget {
   }
 }
 
-
 class _MobileTabBar extends StatefulWidget {
   const _MobileTabBar({required this.selectedTab, required this.onSelected});
   final AppTab selectedTab;
@@ -445,10 +458,15 @@ class _MobileTabBarState extends State<_MobileTabBar> {
     final scale = MediaQuery.textScalerOf(context).scale(1.0);
     final itemWidth = 72.0 * scale;
     final viewWidth = _scrollController.position.viewportDimension;
-    final target = (idx * itemWidth - viewWidth / 2 + itemWidth / 2)
-        .clamp(0.0, _scrollController.position.maxScrollExtent);
-    _scrollController.animateTo(target,
-        duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+    final target = (idx * itemWidth - viewWidth / 2 + itemWidth / 2).clamp(
+      0.0,
+      _scrollController.position.maxScrollExtent,
+    );
+    _scrollController.animateTo(
+      target,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -479,7 +497,10 @@ class _MobileTabBarState extends State<_MobileTabBar> {
             itemBuilder: (context, i) {
               if (i == dividerIndex) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 12,
+                  ),
                   child: VerticalDivider(
                     width: 1,
                     thickness: 1,

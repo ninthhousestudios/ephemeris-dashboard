@@ -8,6 +8,7 @@ import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -182,6 +183,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -282,7 +284,12 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(child: _hasCalculated ? _buildResults() : _buildPlaceholder()),
+        if (isMobile)
+          _hasCalculated ? _buildResults() : _buildPlaceholder()
+        else
+          Expanded(
+            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
+          ),
       ],
     );
   }

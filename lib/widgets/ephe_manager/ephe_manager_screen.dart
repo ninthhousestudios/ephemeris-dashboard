@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ephe/catalog.dart';
 import '../../core/ephe/dir_provider.dart';
+import '../../layout/responsive_layout.dart';
 import '../../core/ephe/downloader.dart';
 import '../../core/ephe/scanner.dart';
 import '../../core/ephe/types.dart';
@@ -69,34 +70,38 @@ class _EphemerisManagerScreenState
         final allFiles = [..._buildAllFiles(scan)];
         // Drop stale selection IDs (files that no longer exist in the view).
         _selected.retainAll(allFiles.map((f) => f.filename).toSet());
+        final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
+        final listView = Builder(
+          builder: (_) {
+            final seFiles = _collectSeFiles(scan);
+            final jplFiles = _collectJplFiles(scan);
+            final astFiles = _collectAsteroidFiles(scan);
+            return ListView(
+              shrinkWrap: isMobile,
+              physics: isMobile ? const NeverScrollableScrollPhysics() : null,
+              children: [
+                _buildDirectoryHeader(settings, resolved ?? ''),
+                const Divider(height: 1),
+                _sectionHeader('Swiss Ephemeris', seFiles),
+                for (final f in seFiles) _rowFor(f),
+                const Divider(height: 1),
+                _sectionHeader('JPL', jplFiles),
+                for (final f in jplFiles) _rowFor(f),
+                const Divider(height: 1),
+                _sectionHeader(
+                  'Asteroids',
+                  astFiles,
+                  extraActions: _asteroidExtraActions(),
+                ),
+                for (final f in astFiles) _rowFor(f),
+              ],
+            );
+          },
+        );
         return Column(
           children: [
             if (_selected.isNotEmpty) _buildSelectionToolbar(allFiles),
-            Expanded(
-              child: Builder(builder: (_) {
-                final seFiles = _collectSeFiles(scan);
-                final jplFiles = _collectJplFiles(scan);
-                final astFiles = _collectAsteroidFiles(scan);
-                return ListView(
-                  children: [
-                    _buildDirectoryHeader(settings, resolved ?? ''),
-                    const Divider(height: 1),
-                    _sectionHeader('Swiss Ephemeris', seFiles),
-                    for (final f in seFiles) _rowFor(f),
-                    const Divider(height: 1),
-                    _sectionHeader('JPL', jplFiles),
-                    for (final f in jplFiles) _rowFor(f),
-                    const Divider(height: 1),
-                    _sectionHeader(
-                      'Asteroids',
-                      astFiles,
-                      extraActions: _asteroidExtraActions(),
-                    ),
-                    for (final f in astFiles) _rowFor(f),
-                  ],
-                );
-              }),
-            ),
+            if (isMobile) listView else Expanded(child: listView),
           ],
         );
       },
@@ -105,13 +110,15 @@ class _EphemerisManagerScreenState
 
   Iterable<EpheFile> _buildAllFiles(EphemerisScan scan) sync* {
     final installedByName = {for (final f in scan.files) f.filename: f};
-    yield* scan.files.where((f) =>
-        f.family == BodyFamily.planets ||
-        f.family == BodyFamily.moon ||
-        f.family == BodyFamily.mainAsteroids ||
-        f.family == BodyFamily.numberedAsteroid ||
-        f.family == BodyFamily.fixedStars ||
-        f.family == BodyFamily.jpl);
+    yield* scan.files.where(
+      (f) =>
+          f.family == BodyFamily.planets ||
+          f.family == BodyFamily.moon ||
+          f.family == BodyFamily.mainAsteroids ||
+          f.family == BodyFamily.numberedAsteroid ||
+          f.family == BodyFamily.fixedStars ||
+          f.family == BodyFamily.jpl,
+    );
     yield* seCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing);
@@ -124,21 +131,25 @@ class _EphemerisManagerScreenState
   }
 
   Widget _buildSelectionToolbar(List<EpheFile> allFiles) {
-    final selectedFiles =
-        allFiles.where((f) => _selected.contains(f.filename)).toList();
-    EpheFileStatus statusOf(EpheFile f) =>
-        _liveStatus[f.filename] ?? f.status;
+    final selectedFiles = allFiles
+        .where((f) => _selected.contains(f.filename))
+        .toList();
+    EpheFileStatus statusOf(EpheFile f) => _liveStatus[f.filename] ?? f.status;
     final deletable = selectedFiles
-        .where((f) =>
-            statusOf(f) == EpheFileStatus.installed ||
-            statusOf(f) == EpheFileStatus.corrupt ||
-            statusOf(f) == EpheFileStatus.partial)
+        .where(
+          (f) =>
+              statusOf(f) == EpheFileStatus.installed ||
+              statusOf(f) == EpheFileStatus.corrupt ||
+              statusOf(f) == EpheFileStatus.partial,
+        )
         .toList();
     final downloadable = selectedFiles
-        .where((f) =>
-            (statusOf(f) == EpheFileStatus.missing ||
-                statusOf(f) == EpheFileStatus.partial) &&
-            catalogEntryFor(f.filename) != null)
+        .where(
+          (f) =>
+              (statusOf(f) == EpheFileStatus.missing ||
+                  statusOf(f) == EpheFileStatus.partial) &&
+              catalogEntryFor(f.filename) != null,
+        )
         .toList();
 
     return Material(
@@ -165,8 +176,9 @@ class _EphemerisManagerScreenState
               FilledButton.icon(
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.errorContainer,
-                  foregroundColor:
-                      Theme.of(context).colorScheme.onErrorContainer,
+                  foregroundColor: Theme.of(
+                    context,
+                  ).colorScheme.onErrorContainer,
                 ),
                 onPressed: () => _handleBulkDelete(deletable),
                 icon: const Icon(Icons.delete_outline, size: 16),
@@ -189,8 +201,10 @@ class _EphemerisManagerScreenState
         children: [
           Row(
             children: [
-              Text('Current directory',
-                  style: Theme.of(context).textTheme.labelMedium),
+              Text(
+                'Current directory',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
               const Spacer(),
               IconButton(
                 tooltip: 'Rescan',
@@ -210,15 +224,17 @@ class _EphemerisManagerScreenState
             runSpacing: 8,
             children: [
               FilterChip(
-                label: Text(settings.managedPath == null
-                    ? 'Managed (unavailable — using bundled)'
-                    : 'Managed'),
+                label: Text(
+                  settings.managedPath == null
+                      ? 'Managed (unavailable — using bundled)'
+                      : 'Managed',
+                ),
                 tooltip: settings.managedPath == null
                     ? 'Could not resolve the app-support directory at '
-                        'startup. The resolver is falling back to the '
-                        'read-only bundled ephe path; deletes and '
-                        'downloads will still be attempted against the '
-                        'bundle.'
+                          'startup. The resolver is falling back to the '
+                          'read-only bundled ephe path; deletes and '
+                          'downloads will still be attempted against the '
+                          'bundle.'
                     : null,
                 selected: settings.useManaged,
                 onSelected: (_) =>
@@ -234,9 +250,7 @@ class _EphemerisManagerScreenState
                 onSelected: (_) async {
                   final path = await FilePicker.platform.getDirectoryPath();
                   if (path == null || !mounted) return;
-                  ref
-                      .read(ephemerisDirectoryProvider.notifier)
-                      .useCustom(path);
+                  ref.read(ephemerisDirectoryProvider.notifier).useCustom(path);
                 },
               ),
             ],
@@ -251,18 +265,20 @@ class _EphemerisManagerScreenState
     List<EpheFile> files, {
     List<Widget> extraActions = const [],
   }) {
-    EpheFileStatus statusOf(EpheFile f) =>
-        _liveStatus[f.filename] ?? f.status;
+    EpheFileStatus statusOf(EpheFile f) => _liveStatus[f.filename] ?? f.status;
     final selectable = files
         .where((f) => statusOf(f) != EpheFileStatus.downloading)
         .toList();
     final missing = selectable
-        .where((f) =>
-            statusOf(f) == EpheFileStatus.missing ||
-            statusOf(f) == EpheFileStatus.partial)
+        .where(
+          (f) =>
+              statusOf(f) == EpheFileStatus.missing ||
+              statusOf(f) == EpheFileStatus.partial,
+        )
         .toList();
     final hasSelectableMissing = missing.isNotEmpty;
-    final allSelectedHere = selectable.isNotEmpty &&
+    final allSelectedHere =
+        selectable.isNotEmpty &&
         selectable.every((f) => _selected.contains(f.filename));
 
     return Padding(
@@ -274,25 +290,22 @@ class _EphemerisManagerScreenState
         children: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            child: Text(label, style: Theme.of(context).textTheme.titleMedium),
           ),
           TextButton.icon(
             onPressed: selectable.isEmpty
                 ? null
                 : () => setState(() {
-                      if (allSelectedHere) {
-                        for (final f in selectable) {
-                          _selected.remove(f.filename);
-                        }
-                      } else {
-                        for (final f in selectable) {
-                          _selected.add(f.filename);
-                        }
+                    if (allSelectedHere) {
+                      for (final f in selectable) {
+                        _selected.remove(f.filename);
                       }
-                    }),
+                    } else {
+                      for (final f in selectable) {
+                        _selected.add(f.filename);
+                      }
+                    }
+                  }),
             icon: Icon(
               allSelectedHere
                   ? Icons.check_box_outlined
@@ -305,10 +318,10 @@ class _EphemerisManagerScreenState
             onPressed: !hasSelectableMissing
                 ? null
                 : () => setState(() {
-                      for (final f in missing) {
-                        _selected.add(f.filename);
-                      }
-                    }),
+                    for (final f in missing) {
+                      _selected.add(f.filename);
+                    }
+                  }),
             icon: const Icon(Icons.download_for_offline_outlined, size: 16),
             label: const Text('Select missing'),
           ),
@@ -320,16 +333,19 @@ class _EphemerisManagerScreenState
 
   List<EpheFile> _collectSeFiles(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
-    final installed = scan.files
-        .where((f) =>
-            f.family == BodyFamily.planets ||
-            f.family == BodyFamily.moon ||
-            f.family == BodyFamily.mainAsteroids ||
-            f.family == BodyFamily.fixedStars ||
-            (f.status == EpheFileStatus.partial &&
-                f.filename.endsWith('.se1')))
-        .toList()
-      ..sort((a, b) => a.filename.compareTo(b.filename));
+    final installed =
+        scan.files
+            .where(
+              (f) =>
+                  f.family == BodyFamily.planets ||
+                  f.family == BodyFamily.moon ||
+                  f.family == BodyFamily.mainAsteroids ||
+                  f.family == BodyFamily.fixedStars ||
+                  (f.status == EpheFileStatus.partial &&
+                      f.filename.endsWith('.se1')),
+            )
+            .toList()
+          ..sort((a, b) => a.filename.compareTo(b.filename));
     final missing = seCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing)
@@ -339,13 +355,16 @@ class _EphemerisManagerScreenState
 
   List<EpheFile> _collectJplFiles(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
-    final installed = scan.files
-        .where((f) =>
-            f.family == BodyFamily.jpl ||
-            (f.status == EpheFileStatus.partial &&
-                f.filename.endsWith('.eph')))
-        .toList()
-      ..sort((a, b) => a.filename.compareTo(b.filename));
+    final installed =
+        scan.files
+            .where(
+              (f) =>
+                  f.family == BodyFamily.jpl ||
+                  (f.status == EpheFileStatus.partial &&
+                      f.filename.endsWith('.eph')),
+            )
+            .toList()
+          ..sort((a, b) => a.filename.compareTo(b.filename));
     final missing = jplCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing)
@@ -354,32 +373,36 @@ class _EphemerisManagerScreenState
   }
 
   EpheFile _catalogToMissing(CatalogEntry c) => EpheFile(
-        filename: c.filename,
-        family: c.family,
-        startJd: 0,
-        endJd: 0,
-        startYear: c.startYear,
-        endYear: c.endYear,
-        subdir: c.subdir,
-        mpcNumber: c.mpcNumber,
-        sizeBytes: c.sizeBytes ?? 0,
-        status: EpheFileStatus.missing,
-      );
+    filename: c.filename,
+    family: c.family,
+    startJd: 0,
+    endJd: 0,
+    startYear: c.startYear,
+    endYear: c.endYear,
+    subdir: c.subdir,
+    mpcNumber: c.mpcNumber,
+    sizeBytes: c.sizeBytes ?? 0,
+    status: EpheFileStatus.missing,
+  );
 
   List<EpheFile> _collectAsteroidFiles(EphemerisScan scan) {
     final installedByName = {for (final f in scan.files) f.filename: f};
-    final installed = scan.files
-        .where((f) =>
-            f.family == BodyFamily.numberedAsteroid ||
-            (f.status == EpheFileStatus.partial &&
-                RegExp(r'^se?\d+s?\.se1$').hasMatch(f.filename)))
-        .toList()
-      ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
-    final missing = asteroidCatalog
-        .where((c) => !installedByName.containsKey(c.filename))
-        .map(_catalogToMissing)
-        .toList()
-      ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
+    final installed =
+        scan.files
+            .where(
+              (f) =>
+                  f.family == BodyFamily.numberedAsteroid ||
+                  (f.status == EpheFileStatus.partial &&
+                      RegExp(r'^se?\d+s?\.se1$').hasMatch(f.filename)),
+            )
+            .toList()
+          ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
+    final missing =
+        asteroidCatalog
+            .where((c) => !installedByName.containsKey(c.filename))
+            .map(_catalogToMissing)
+            .toList()
+          ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
     return [...installed, ...missing];
   }
 
@@ -452,7 +475,9 @@ class _EphemerisManagerScreenState
               final to = int.tryParse(toCtrl.text.trim());
               if (from == null || to == null || from < 1 || to < from) {
                 ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('Enter a valid range (from ≤ to, ≥ 1).')),
+                  const SnackBar(
+                    content: Text('Enter a valid range (from ≤ to, ≥ 1).'),
+                  ),
                 );
                 return;
               }
@@ -531,7 +556,8 @@ class _EphemerisManagerScreenState
     final isPartial = effective.status == EpheFileStatus.partial;
     return EpheFileRow(
       file: effective,
-      onDelete: effective.status == EpheFileStatus.installed ||
+      onDelete:
+          effective.status == EpheFileStatus.installed ||
               effective.status == EpheFileStatus.corrupt ||
               isPartial
           ? () => _handleDelete(effective)
@@ -548,12 +574,12 @@ class _EphemerisManagerScreenState
       selected: _selected.contains(f.filename),
       onSelectedChanged: selectable
           ? (v) => setState(() {
-                if (v == true) {
-                  _selected.add(f.filename);
-                } else {
-                  _selected.remove(f.filename);
-                }
-              })
+              if (v == true) {
+                _selected.add(f.filename);
+              } else {
+                _selected.remove(f.filename);
+              }
+            })
           : null,
     );
   }
@@ -643,9 +669,9 @@ class _EphemerisManagerScreenState
       ref.invalidate(ephemerisScanProvider);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Delete failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
     }
   }
 
@@ -742,7 +768,9 @@ class _EphemerisManagerScreenState
       if (part.existsSync()) {
         try {
           part.deleteSync();
-        } catch (_) {/* best-effort */}
+        } catch (_) {
+          /* best-effort */
+        }
       }
     }
   }
@@ -796,8 +824,7 @@ class _EphemerisManagerScreenState
     // with an HTML error page or a truncated file a user picked by mistake.
     // Numbered-asteroid shorts can be ~14 KB, so skip the size floor for
     // that family — HTML sniff still runs.
-    final minBytes =
-        f.family == BodyFamily.numberedAsteroid ? 0 : 16 * 1024;
+    final minBytes = f.family == BodyFamily.numberedAsteroid ? 0 : 16 * 1024;
     final rej = validateEpheFile(File(src), minBytes: minBytes);
     if (rej != null) {
       if (!mounted) return;
@@ -816,9 +843,9 @@ class _EphemerisManagerScreenState
       ref.invalidate(ephemerisScanProvider);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Copy failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Copy failed: $e')));
     }
   }
 }

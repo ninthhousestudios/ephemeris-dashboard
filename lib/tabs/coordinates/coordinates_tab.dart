@@ -5,6 +5,7 @@ import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'coordinates_provider.dart';
@@ -24,6 +25,7 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
     final fmt = ref.watch(coordFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
     final theme = Theme.of(context);
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -34,29 +36,34 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Text('Coordinate Transforms',
-                    style: theme.textTheme.titleSmall),
+                Text(
+                  'Coordinate Transforms',
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(width: 16),
                 SegmentedButton<DisplayFormat>(
                   segments: DisplayFormat.values
-                      .map((f) =>
-                          ButtonSegment(value: f, label: Text(f.label)))
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
                       .toList(),
                   selected: {fmt},
                   onSelectionChanged: (s) =>
                       ref.read(coordFormatProvider.notifier).state = s.first,
-                  style:
-                      const ButtonStyle(visualDensity: VisualDensity.compact),
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
                   hasResults: _allResults.isNotEmpty,
                   getRows: () => _allResults.entries
-                      .map((e) => ExportRow(
-                            header: e.key,
-                            fields:
-                                e.value.map((f) => (f.label, f.value)).toList(),
-                          ))
+                      .map(
+                        (e) => ExportRow(
+                          header: e.key,
+                          fields: e.value
+                              .map((f) => (f.label, f.value))
+                              .toList(),
+                        ),
+                      )
                       .toList(),
                   filenameStem: 'swe_coordinates_${jd.toStringAsFixed(4)}',
                 ),
@@ -66,54 +73,55 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
         ),
         const Divider(height: 1),
         // ── Cards grid ──
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final cols = constraints.maxWidth > 1200
-                  ? 3
-                  : constraints.maxWidth > 600
-                      ? 2
-                      : 1;
-              final cardWidth =
-                  (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(8),
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: [
-                    SizedBox(
-                      width: cardWidth,
-                      child: _AzAltCard(
-                        onResult: (fields) => setState(() {
-                          if (fields != null) _allResults['Az/Alt'] = fields;
-                        }),
-                      ),
-                    ),
-                    SizedBox(
-                      width: cardWidth,
-                      child: _CoTransCard(
-                        onResult: (fields) => setState(() {
-                          if (fields != null) _allResults['CoTrans'] = fields;
-                        }),
-                      ),
-                    ),
-                    SizedBox(
-                      width: cardWidth,
-                      child: _RefracCard(
-                        onResult: (fields) => setState(() {
-                          if (fields != null) _allResults['Refraction'] = fields;
-                        }),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
+        if (isMobile) _buildCardsGrid() else Expanded(child: _buildCardsGrid()),
       ],
+    );
+  }
+
+  Widget _buildCardsGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth > 1200
+            ? 3
+            : constraints.maxWidth > 600
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(8),
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: [
+              SizedBox(
+                width: cardWidth,
+                child: _AzAltCard(
+                  onResult: (fields) => setState(() {
+                    if (fields != null) _allResults['Az/Alt'] = fields;
+                  }),
+                ),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _CoTransCard(
+                  onResult: (fields) => setState(() {
+                    if (fields != null) _allResults['CoTrans'] = fields;
+                  }),
+                ),
+              ),
+              SizedBox(
+                width: cardWidth,
+                child: _RefracCard(
+                  onResult: (fields) => setState(() {
+                    if (fields != null) _allResults['Refraction'] = fields;
+                  }),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -195,9 +203,12 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Az/Alt', style: theme.textTheme.titleSmall),
-            Text('Horizontal ↔ Ecliptic',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant)),
+            Text(
+              'Horizontal ↔ Ecliptic',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 8),
             // Direction toggle
             SegmentedButton<bool>(
@@ -206,8 +217,7 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
                 ButtonSegment(value: false, label: Text('Hor → Ecl')),
               ],
               selected: {_forward},
-              onSelectionChanged: (s) =>
-                  setState(() => _forward = s.first),
+              onSelectionChanged: (s) => setState(() => _forward = s.first),
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
             ),
             const SizedBox(height: 8),
@@ -257,12 +267,13 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
           child: TextField(
             controller: ctrl,
             keyboardType: const TextInputType.numberWithOptions(
-                signed: true, decimal: true),
+              signed: true,
+              decimal: true,
+            ),
             decoration: const InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
             onSubmitted: (_) => _calculate(),
           ),
@@ -309,8 +320,7 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
         double.tryParse(_distCtrl.text) ?? 1.0;
     // Sign of eps controls direction: positive = ecl→equ, negative = equ→ecl
     final epsAbs = (double.tryParse(_epsCtrl.text) ?? 23.4393).abs();
-    ref.read(coordEpsProvider.notifier).state =
-        _eclToEqu ? epsAbs : -epsAbs;
+    ref.read(coordEpsProvider.notifier).state = _eclToEqu ? epsAbs : -epsAbs;
     ref.read(calcSessionProvider.notifier).calculate(activate: {'coordinates'});
     final result = ref.read(coordResultProvider);
     if (result != null) {
@@ -335,9 +345,12 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('CoTrans', style: theme.textTheme.titleSmall),
-            Text('Ecliptic ↔ Equatorial',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant)),
+            Text(
+              'Ecliptic ↔ Equatorial',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 8),
             // Direction toggle
             SegmentedButton<bool>(
@@ -346,8 +359,7 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
                 ButtonSegment(value: false, label: Text('Equ → Ecl')),
               ],
               selected: {_eclToEqu},
-              onSelectionChanged: (s) =>
-                  setState(() => _eclToEqu = s.first),
+              onSelectionChanged: (s) => setState(() => _eclToEqu = s.first),
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
             ),
             const SizedBox(height: 8),
@@ -388,12 +400,13 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
           child: TextField(
             controller: ctrl,
             keyboardType: const TextInputType.numberWithOptions(
-                signed: true, decimal: true),
+              signed: true,
+              decimal: true,
+            ),
             decoration: const InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
             onSubmitted: (_) => _calculate(),
           ),
@@ -459,9 +472,12 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text('Refraction', style: theme.textTheme.titleSmall),
-            Text('Atmospheric refraction',
-                style: theme.textTheme.bodySmall
-                    ?.copyWith(color: colorScheme.onSurfaceVariant)),
+            Text(
+              'Atmospheric refraction',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 8),
             _buildInput('Altitude (°)', _altCtrl),
             const SizedBox(height: 4),
@@ -498,12 +514,13 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
           child: TextField(
             controller: ctrl,
             keyboardType: const TextInputType.numberWithOptions(
-                signed: true, decimal: true),
+              signed: true,
+              decimal: true,
+            ),
             decoration: const InputDecoration(
               isDense: true,
               border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
             onSubmitted: (_) => _calculate(),
           ),
@@ -520,14 +537,20 @@ Widget _resultRow(ResultField f, ThemeData theme, ColorScheme colorScheme) {
     padding: const EdgeInsets.symmetric(vertical: 2),
     child: Row(
       children: [
-        Text(f.label,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: colorScheme.onSurfaceVariant)),
+        Text(
+          f.label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(width: 8),
         Expanded(
-          child: SelectableText(f.value,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(fontFamily: 'monospace')),
+          child: SelectableText(
+            f.value,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontFamily: 'monospace',
+            ),
+          ),
         ),
       ],
     ),

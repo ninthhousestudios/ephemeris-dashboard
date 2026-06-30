@@ -6,6 +6,7 @@ import '../../core/calc_session.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/swe_service.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -30,6 +31,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     final triggered = ref.watch(
       calcSessionProvider.select((s) => s.tabHasRun('eclipses')),
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -148,13 +150,20 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: triggered
+        if (isMobile)
+          triggered
               ? _buildResults(results)
               : const Center(
                   child: Text('Configure search and press Calculate'),
-                ),
-        ),
+                )
+        else
+          Expanded(
+            child: triggered
+                ? _buildResults(results)
+                : const Center(
+                    child: Text('Configure search and press Calculate'),
+                  ),
+          ),
       ],
     );
   }

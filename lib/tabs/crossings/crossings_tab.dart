@@ -7,6 +7,7 @@ import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -52,16 +53,28 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
 
     final showLon = type != CrossingType.moonNode;
     final showHelio = type == CrossingType.helioCross;
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     const helioBodies = [
-      seMercury, seVenus, seMars, seJupiter, seSaturn,
-      seUranus, seNeptune, sePluto,
+      seMercury,
+      seVenus,
+      seMars,
+      seJupiter,
+      seSaturn,
+      seUranus,
+      seNeptune,
+      sePluto,
     ];
 
     const bodyLabels = {
-      seMercury: 'Mercury', seVenus: 'Venus', seMars: 'Mars',
-      seJupiter: 'Jupiter', seSaturn: 'Saturn', seUranus: 'Uranus',
-      seNeptune: 'Neptune', sePluto: 'Pluto',
+      seMercury: 'Mercury',
+      seVenus: 'Venus',
+      seMars: 'Mars',
+      seJupiter: 'Jupiter',
+      seSaturn: 'Saturn',
+      seUranus: 'Uranus',
+      seNeptune: 'Neptune',
+      sePluto: 'Pluto',
     };
 
     return Column(
@@ -76,16 +89,18 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
               children: [
                 Text('Type ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ...CrossingType.values.map((t) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(t.label),
-                        selected: type == t,
-                        onSelected: (_) =>
-                            ref.read(crossingTypeProvider.notifier).state = t,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ...CrossingType.values.map(
+                  (t) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(t.label),
+                      selected: type == t,
+                      onSelected: (_) =>
+                          ref.read(crossingTypeProvider.notifier).state = t,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -106,10 +121,13 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                       suffixText: '°',
                       border: const OutlineInputBorder(),
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                      decimal: true,
+                    ),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
                     ],
@@ -132,7 +150,8 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                     onSelectionChanged: (s) =>
                         ref.read(crossingDirProvider.notifier).state = s.first,
                     style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact),
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ),
                 ],
               ],
@@ -148,17 +167,19 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                 children: [
                   Text('Body ', style: theme.textTheme.labelLarge),
                   const SizedBox(width: 4),
-                  ...helioBodies.map((b) => Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: ChoiceChip(
-                          label: Text(bodyLabels[b] ?? 'Body $b'),
-                          selected: helioBody == b,
-                          onSelected: (_) => ref
-                              .read(crossingHelioBodyProvider.notifier)
-                              .state = b,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      )),
+                  ...helioBodies.map(
+                    (b) => Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: ChoiceChip(
+                        label: Text(bodyLabels[b] ?? 'Body $b'),
+                        selected: helioBody == b,
+                        onSelected: (_) =>
+                            ref.read(crossingHelioBodyProvider.notifier).state =
+                                b,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -169,24 +190,29 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
           child: Row(
             children: [
               const Spacer(),
-              Consumer(builder: (context, ref, _) {
-                final result = ref.watch(crossingResultProvider);
-                final jd = ref.watch(contextBarProvider).jdUt;
-                return ExportButton(
-                  hasResults: _hasCalculated && result != null,
-                  getRows: () =>
-                      result != null ? crossingToExportRows(result) : [],
-                  filenameStem: 'swe_crossings_${jd.toStringAsFixed(4)}',
-                );
-              }),
+              Consumer(
+                builder: (context, ref, _) {
+                  final result = ref.watch(crossingResultProvider);
+                  final jd = ref.watch(contextBarProvider).jdUt;
+                  return ExportButton(
+                    hasResults: _hasCalculated && result != null,
+                    getRows: () =>
+                        result != null ? crossingToExportRows(result) : [],
+                    filenameStem: 'swe_crossings_${jd.toStringAsFixed(4)}',
+                  );
+                },
+              ),
             ],
           ),
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? const _ResultView() : const _Placeholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? const _ResultView() : const _Placeholder()
+        else
+          Expanded(
+            child: _hasCalculated ? const _ResultView() : const _Placeholder(),
+          ),
       ],
     );
   }
@@ -246,7 +272,11 @@ class _ResultView extends ConsumerWidget {
           if (slice.entries.isEmpty) return;
           final emitter = ref.read(selectedEmitterProvider);
           final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(context, code: code, languageLabel: emitter.displayName);
+          showCodeModal(
+            context,
+            code: code,
+            languageLabel: emitter.displayName,
+          );
         },
       ),
     );

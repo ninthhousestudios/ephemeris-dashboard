@@ -6,6 +6,7 @@ import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/result_card.dart';
 import 'planets_provider.dart';
@@ -55,6 +56,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
   Widget build(BuildContext context) {
     final selectedBodies = ref.watch(selectedBodiesProvider);
     final theme = Theme.of(context);
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -65,14 +67,16 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                ...bodyPresets.map((p) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ActionChip(
-                        label: Text(p.label),
-                        onPressed: () => _applyPreset(p),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ...bodyPresets.map(
+                  (p) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ActionChip(
+                      label: Text(p.label),
+                      onPressed: () => _applyPreset(p),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
                 SizedBox(
                   height: 24,
                   child: VerticalDivider(width: 16, color: theme.dividerColor),
@@ -100,7 +104,8 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
             children: [
               const SizedBox(height: 4),
               InkWell(
-                onTap: () => setState(() => _showExtraBodies = !_showExtraBodies),
+                onTap: () =>
+                    setState(() => _showExtraBodies = !_showExtraBodies),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -110,10 +115,12 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
-                    Text('More bodies',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        )),
+                    Text(
+                      'More bodies',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -134,9 +141,12 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                 ),
                 const SizedBox(height: 4),
                 // Uranian section
-                Text('Uranian', style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                )),
+                Text(
+                  'Uranian',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Wrap(
                   spacing: 4,
@@ -163,10 +173,12 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
-                      Text('Asteroids (by MPC number)',
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          )),
+                      Text(
+                        'Asteroids (by MPC number)',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -203,7 +215,10 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                           decoration: const InputDecoration(
                             hintText: 'MPC #',
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
                             border: OutlineInputBorder(),
                           ),
                           keyboardType: TextInputType.number,
@@ -227,9 +242,12 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         const SizedBox(height: 4),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? _buildResults() : _buildPlaceholder()
+        else
+          Expanded(
+            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
+          ),
       ],
     );
   }
@@ -244,9 +262,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
   }
 
   Widget _buildPlaceholder() {
-    return const Center(
-      child: Text('Select bodies and press Calculate'),
-    );
+    return const Center(child: Text('Select bodies and press Calculate'));
   }
 
   Widget _buildResults() {
@@ -262,10 +278,9 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         final cols = constraints.maxWidth > 1200
             ? 3
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -296,12 +311,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                     );
                   },
                   fields: r.errorMessage != null
-                      ? [
-                          ResultField(
-                            label: 'Error',
-                            value: r.errorMessage!,
-                          ),
-                        ]
+                      ? [ResultField(label: 'Error', value: r.errorMessage!)]
                       : [
                           ResultField(
                             label: 'Longitude',
@@ -347,16 +357,37 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
 /// Short label for a body constant.
 String _bodyLabel(int body) {
   const names = {
-    seSun: 'Sun', seMoon: 'Moon', seMercury: 'Mercury', seVenus: 'Venus',
-    seMars: 'Mars', seJupiter: 'Jupiter', seSaturn: 'Saturn',
-    seUranus: 'Uranus', seNeptune: 'Neptune', sePluto: 'Pluto',
-    seMeanNode: 'M.Node', seTrueNode: 'T.Node',
-    seMeanApog: 'M.Lilith', seOscuApog: 'O.Lilith',
-    seEarth: 'Earth', seChiron: 'Chiron', sePholus: 'Pholus',
-    seCeres: 'Ceres', sePallas: 'Pallas', seJuno: 'Juno', seVesta: 'Vesta',
-    seIntpApog: 'I.Apogee', seIntpPerg: 'I.Perigee',
-    seCupido: 'Cupido', seHades: 'Hades', seZeus: 'Zeus', seKronos: 'Kronos',
-    seApollon: 'Apollon', seAdmetos: 'Admetos', seVulkanus: 'Vulkanus', sePoseidon: 'Poseidon',
+    seSun: 'Sun',
+    seMoon: 'Moon',
+    seMercury: 'Mercury',
+    seVenus: 'Venus',
+    seMars: 'Mars',
+    seJupiter: 'Jupiter',
+    seSaturn: 'Saturn',
+    seUranus: 'Uranus',
+    seNeptune: 'Neptune',
+    sePluto: 'Pluto',
+    seMeanNode: 'M.Node',
+    seTrueNode: 'T.Node',
+    seMeanApog: 'M.Lilith',
+    seOscuApog: 'O.Lilith',
+    seEarth: 'Earth',
+    seChiron: 'Chiron',
+    sePholus: 'Pholus',
+    seCeres: 'Ceres',
+    sePallas: 'Pallas',
+    seJuno: 'Juno',
+    seVesta: 'Vesta',
+    seIntpApog: 'I.Apogee',
+    seIntpPerg: 'I.Perigee',
+    seCupido: 'Cupido',
+    seHades: 'Hades',
+    seZeus: 'Zeus',
+    seKronos: 'Kronos',
+    seApollon: 'Apollon',
+    seAdmetos: 'Admetos',
+    seVulkanus: 'Vulkanus',
+    sePoseidon: 'Poseidon',
   };
   if (names.containsKey(body)) return names[body]!;
   // Asteroid by MPC number?

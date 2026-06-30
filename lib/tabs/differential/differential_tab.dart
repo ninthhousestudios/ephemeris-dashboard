@@ -10,10 +10,17 @@ import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
-import '../../tabs/planets/planets_provider.dart' show defaultBodies, extraBodies, uranianBodies, namedAsteroids, asteroidOffset;
+import '../../tabs/planets/planets_provider.dart'
+    show
+        defaultBodies,
+        extraBodies,
+        uranianBodies,
+        namedAsteroids,
+        asteroidOffset;
 import 'differential_provider.dart';
 
 class DifferentialTab extends ConsumerStatefulWidget {
@@ -75,7 +82,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
       final hour = tParts.isNotEmpty ? int.tryParse(tParts[0]) ?? 0 : 0;
       final min = tParts.length > 1 ? int.tryParse(tParts[1]) ?? 0 : 0;
       final sec = tParts.length > 2 ? int.tryParse(tParts[2]) ?? 0 : 0;
-      return _jdUtils.dateTimeToJd(DateTime.utc(year, month, day, hour, min, sec));
+      return _jdUtils.dateTimeToJd(
+        DateTime.utc(year, month, day, hour, min, sec),
+      );
     } catch (_) {
       return null;
     }
@@ -113,7 +122,11 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
     DateTime? current;
     try {
       final parts = _dateCtrl.text.split('-');
-      current = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      current = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
     } catch (_) {}
     final picked = await showDatePicker(
       context: context,
@@ -134,7 +147,10 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
     final m = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
     final s = parts.length > 2 ? int.tryParse(parts[2]) ?? 0 : 0;
     final picked = await _showPreciseTimePicker(
-      context: context, initialHour: h, initialMinute: m, initialSecond: s,
+      context: context,
+      initialHour: h,
+      initialMinute: m,
+      initialSecond: s,
     );
     if (picked == null) return;
     _timeCtrl.text =
@@ -187,6 +203,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -202,7 +219,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   controller: _dateCtrl,
                   style: theme.textTheme.bodySmall,
                   decoration: _deco('YYYY-MM-DD'),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d-]'))],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
+                  ],
                   onChanged: (_) {
                     setState(() => _isCustomTime = true);
                     _syncJdFromDateTimeFields();
@@ -218,7 +237,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   controller: _timeCtrl,
                   style: theme.textTheme.bodySmall,
                   decoration: _deco('HH:MM:SS'),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d:]'))],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
+                  ],
                   onChanged: (_) {
                     setState(() => _isCustomTime = true);
                     _syncJdFromDateTimeFields();
@@ -234,7 +255,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   controller: _jdCtrl,
                   style: theme.textTheme.bodySmall,
                   decoration: _deco('2460000.0'),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+                  ],
                   onChanged: (_) {
                     setState(() => _isCustomTime = true);
                     _commitTimeOverride();
@@ -250,9 +273,23 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
           ),
         ),
         // ── Body A chip row ──
-        _buildBodyRow('Body A', bodyA, _setBodyA, _asteroidCtrlA, _addAsteroidA, theme),
+        _buildBodyRow(
+          'Body A',
+          bodyA,
+          _setBodyA,
+          _asteroidCtrlA,
+          _addAsteroidA,
+          theme,
+        ),
         // ── Body B chip row ──
-        _buildBodyRow('Body B', bodyB, _setBodyB, _asteroidCtrlB, _addAsteroidB, theme),
+        _buildBodyRow(
+          'Body B',
+          bodyB,
+          _setBodyB,
+          _asteroidCtrlB,
+          _addAsteroidB,
+          theme,
+        ),
         // ── Progressive disclosure ──
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -260,13 +297,15 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InkWell(
-                onTap: () => setState(() => _showExtraBodies = !_showExtraBodies),
+                onTap: () =>
+                    setState(() => _showExtraBodies = !_showExtraBodies),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       _showExtraBodies ? Icons.expand_less : Icons.expand_more,
-                      size: 18, color: theme.colorScheme.onSurfaceVariant,
+                      size: 18,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
                     Text('More bodies', style: labelStyle),
@@ -294,7 +333,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   selected: {fmt},
                   onSelectionChanged: (s) =>
                       ref.read(diffFormatProvider.notifier).state = s.first,
-                  style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
@@ -302,7 +343,10 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   getRows: () {
                     final result = ref.read(diffResultProvider);
                     if (result == null) return [];
-                    return diffToExportRows(result, ref.read(diffFormatProvider));
+                    return diffToExportRows(
+                      result,
+                      ref.read(diffFormatProvider),
+                    );
                   },
                   filenameStem: 'swe_differential_${jd.toStringAsFixed(4)}',
                 ),
@@ -312,9 +356,12 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? _DiffResults() : const _Placeholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? _DiffResults() : const _Placeholder()
+        else
+          Expanded(
+            child: _hasCalculated ? _DiffResults() : const _Placeholder(),
+          ),
       ],
     );
   }
@@ -336,15 +383,17 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
           children: [
             Text('$label ', style: theme.textTheme.labelLarge),
             const SizedBox(width: 4),
-            ...defaultBodies.map((body) => Padding(
-                  padding: const EdgeInsets.only(right: 4),
-                  child: ChoiceChip(
-                    label: Text(_bodyLabel(body)),
-                    selected: selected == body,
-                    onSelected: (_) => onSelect(body),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                )),
+            ...defaultBodies.map(
+              (body) => Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: ChoiceChip(
+                  label: Text(_bodyLabel(body)),
+                  selected: selected == body,
+                  onSelected: (_) => onSelect(body),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -366,7 +415,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         Wrap(
           spacing: 4,
           runSpacing: 4,
-          children: extraBodies.map((body) => _dualSelectChip(body, bodyA, bodyB, theme)).toList(),
+          children: extraBodies
+              .map((body) => _dualSelectChip(body, bodyA, bodyB, theme))
+              .toList(),
         ),
         const SizedBox(height: 4),
         Text('Uranian', style: labelStyle),
@@ -374,7 +425,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         Wrap(
           spacing: 4,
           runSpacing: 4,
-          children: uranianBodies.map((body) => _dualSelectChip(body, bodyA, bodyB, theme)).toList(),
+          children: uranianBodies
+              .map((body) => _dualSelectChip(body, bodyA, bodyB, theme))
+              .toList(),
         ),
         const SizedBox(height: 4),
         // Asteroids disclosure
@@ -385,7 +438,8 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
             children: [
               Icon(
                 _showAsteroids ? Icons.expand_less : Icons.expand_more,
-                size: 18, color: theme.colorScheme.onSurfaceVariant,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 4),
               Text('Asteroids (by MPC number)', style: labelStyle),
@@ -399,7 +453,13 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
             runSpacing: 4,
             children: namedAsteroids.entries.map((e) {
               final bodyId = asteroidOffset + e.key;
-              return _dualSelectChip(bodyId, bodyA, bodyB, theme, label: e.value);
+              return _dualSelectChip(
+                bodyId,
+                bodyA,
+                bodyB,
+                theme,
+                label: e.value,
+              );
             }).toList(),
           ),
           const SizedBox(height: 4),
@@ -413,7 +473,10 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   decoration: const InputDecoration(
                     hintText: 'MPC #',
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
@@ -435,7 +498,10 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   decoration: const InputDecoration(
                     hintText: 'MPC #',
                     isDense: true,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
                     border: OutlineInputBorder(),
                   ),
                   keyboardType: TextInputType.number,
@@ -457,7 +523,13 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
 
   /// A chip that sets Body A on tap, Body B on long-press.
   /// Highlighted if it matches either selection.
-  Widget _dualSelectChip(int body, int bodyA, int bodyB, ThemeData theme, {String? label}) {
+  Widget _dualSelectChip(
+    int body,
+    int bodyA,
+    int bodyB,
+    ThemeData theme, {
+    String? label,
+  }) {
     final isA = body == bodyA;
     final isB = body == bodyB;
     final chipLabel = label ?? _bodyLabel(body);
@@ -469,17 +541,17 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
           isA && isB
               ? '$chipLabel (A+B)'
               : isA
-                  ? '$chipLabel (A)'
-                  : isB
-                      ? '$chipLabel (B)'
-                      : chipLabel,
+              ? '$chipLabel (A)'
+              : isB
+              ? '$chipLabel (B)'
+              : chipLabel,
         ),
         selected: isA || isB,
         selectedColor: isA && isB
             ? theme.colorScheme.tertiary.withValues(alpha: 0.3)
             : isA
-                ? theme.colorScheme.primary.withValues(alpha: 0.2)
-                : theme.colorScheme.secondary.withValues(alpha: 0.2),
+            ? theme.colorScheme.primary.withValues(alpha: 0.2)
+            : theme.colorScheme.secondary.withValues(alpha: 0.2),
         onSelected: (_) => _setBodyA(body),
         visualDensity: VisualDensity.compact,
       ),
@@ -487,11 +559,11 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   }
 
   static InputDecoration _deco(String hint) => InputDecoration(
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        hintText: hint,
-        border: const OutlineInputBorder(),
-      );
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+    hintText: hint,
+    border: const OutlineInputBorder(),
+  );
 
   Widget _iconBtn(IconData icon, String tooltip, VoidCallback onPressed) {
     return IconButton(
@@ -517,10 +589,19 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setState) {
-          final spinnerStyle = Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
-          final colonStyle = Theme.of(ctx).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
+          final spinnerStyle = Theme.of(
+            ctx,
+          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
+          final colonStyle = Theme.of(
+            ctx,
+          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
 
-          Widget spinner(String label, int value, int max, ValueChanged<int> onChanged) {
+          Widget spinner(
+            String label,
+            int value,
+            int max,
+            ValueChanged<int> onChanged,
+          ) {
             return IntrinsicWidth(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -529,15 +610,21 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   const SizedBox(height: 4),
                   IconButton(
                     icon: const Icon(Icons.arrow_drop_up),
-                    onPressed: () => setState(() => onChanged((value + 1) % (max + 1))),
+                    onPressed: () =>
+                        setState(() => onChanged((value + 1) % (max + 1))),
                   ),
                   TextField(
-                    controller: TextEditingController(text: value.toString().padLeft(2, '0')),
+                    controller: TextEditingController(
+                      text: value.toString().padLeft(2, '0'),
+                    ),
                     textAlign: TextAlign.center,
                     style: spinnerStyle,
                     decoration: const InputDecoration(
                       isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
@@ -552,7 +639,9 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.arrow_drop_down),
-                    onPressed: () => setState(() => onChanged((value - 1 + max + 1) % (max + 1))),
+                    onPressed: () => setState(
+                      () => onChanged((value - 1 + max + 1) % (max + 1)),
+                    ),
                   ),
                 ],
               ),
@@ -565,15 +654,27 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 spinner('Hour', h, 23, (v) => h = v),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Text(':', style: colonStyle)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(':', style: colonStyle),
+                ),
                 spinner('Min', m, 59, (v) => m = v),
-                Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Text(':', style: colonStyle)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(':', style: colonStyle),
+                ),
                 spinner('Sec', s, 59, (v) => s = v),
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
-              FilledButton(onPressed: () => Navigator.of(ctx).pop((h, m, s)), child: const Text('OK')),
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop((h, m, s)),
+                child: const Text('OK'),
+              ),
             ],
           );
         },
@@ -587,9 +688,7 @@ class _Placeholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Select two bodies and press Calculate'),
-    );
+    return const Center(child: Text('Select two bodies and press Calculate'));
   }
 }
 
@@ -600,7 +699,9 @@ class _DiffResults extends ConsumerWidget {
     final fmt = ref.watch(diffFormatProvider);
 
     if (result == null) {
-      return const Center(child: Text('Calculation failed — check body selection'));
+      return const Center(
+        child: Text('Calculation failed — check body selection'),
+      );
     }
 
     return SingleChildScrollView(
@@ -608,7 +709,8 @@ class _DiffResults extends ConsumerWidget {
       child: ResultCard(
         title: '${result.nameA} — ${result.nameB}',
         subtitle: 'Differential',
-        flagHex: '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
+        flagHex:
+            '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
             '0x${result.returnFlagB.toRadixString(16).toUpperCase()}',
         onCode: () {
           final trace = ref.read(callTraceProvider);
@@ -616,9 +718,7 @@ class _DiffResults extends ConsumerWidget {
           final slice = trace.sliceByTab('differential');
           if (slice.entries.isEmpty) return;
           final emitter = ref.read(selectedEmitterProvider);
-          final code = slice.entries
-              .map(emitter.emitSnippet)
-              .join('\n');
+          final code = slice.entries.map(emitter.emitSnippet).join('\n');
           showCodeModal(
             context,
             code: code,
@@ -626,11 +726,31 @@ class _DiffResults extends ConsumerWidget {
           );
         },
         fields: [
-          ResultField(label: 'Lon ${result.nameA}', value: formatAngle(result.lonA, fmt), rawValue: result.lonA),
-          ResultField(label: 'Lon ${result.nameB}', value: formatAngle(result.lonB, fmt), rawValue: result.lonB),
-          ResultField(label: 'Difference', value: formatAngle(result.difference, fmt), rawValue: result.difference),
-          ResultField(label: 'Complement', value: formatAngle(result.complement, fmt), rawValue: result.complement),
-          ResultField(label: 'Midpoint', value: formatAngle(result.midpoint, fmt), rawValue: result.midpoint),
+          ResultField(
+            label: 'Lon ${result.nameA}',
+            value: formatAngle(result.lonA, fmt),
+            rawValue: result.lonA,
+          ),
+          ResultField(
+            label: 'Lon ${result.nameB}',
+            value: formatAngle(result.lonB, fmt),
+            rawValue: result.lonB,
+          ),
+          ResultField(
+            label: 'Difference',
+            value: formatAngle(result.difference, fmt),
+            rawValue: result.difference,
+          ),
+          ResultField(
+            label: 'Complement',
+            value: formatAngle(result.complement, fmt),
+            rawValue: result.complement,
+          ),
+          ResultField(
+            label: 'Midpoint',
+            value: formatAngle(result.midpoint, fmt),
+            rawValue: result.midpoint,
+          ),
         ],
       ),
     );
@@ -640,16 +760,37 @@ class _DiffResults extends ConsumerWidget {
 /// Short label for a body constant.
 String _bodyLabel(int body) {
   const names = {
-    seSun: 'Sun', seMoon: 'Moon', seMercury: 'Mercury', seVenus: 'Venus',
-    seMars: 'Mars', seJupiter: 'Jupiter', seSaturn: 'Saturn',
-    seUranus: 'Uranus', seNeptune: 'Neptune', sePluto: 'Pluto',
-    seMeanNode: 'M.Node', seTrueNode: 'T.Node',
-    seMeanApog: 'M.Lilith', seOscuApog: 'O.Lilith',
-    seEarth: 'Earth', seChiron: 'Chiron', sePholus: 'Pholus',
-    seCeres: 'Ceres', sePallas: 'Pallas', seJuno: 'Juno', seVesta: 'Vesta',
-    seIntpApog: 'I.Apogee', seIntpPerg: 'I.Perigee',
-    seCupido: 'Cupido', seHades: 'Hades', seZeus: 'Zeus', seKronos: 'Kronos',
-    seApollon: 'Apollon', seAdmetos: 'Admetos', seVulkanus: 'Vulkanus', sePoseidon: 'Poseidon',
+    seSun: 'Sun',
+    seMoon: 'Moon',
+    seMercury: 'Mercury',
+    seVenus: 'Venus',
+    seMars: 'Mars',
+    seJupiter: 'Jupiter',
+    seSaturn: 'Saturn',
+    seUranus: 'Uranus',
+    seNeptune: 'Neptune',
+    sePluto: 'Pluto',
+    seMeanNode: 'M.Node',
+    seTrueNode: 'T.Node',
+    seMeanApog: 'M.Lilith',
+    seOscuApog: 'O.Lilith',
+    seEarth: 'Earth',
+    seChiron: 'Chiron',
+    sePholus: 'Pholus',
+    seCeres: 'Ceres',
+    sePallas: 'Pallas',
+    seJuno: 'Juno',
+    seVesta: 'Vesta',
+    seIntpApog: 'I.Apogee',
+    seIntpPerg: 'I.Perigee',
+    seCupido: 'Cupido',
+    seHades: 'Hades',
+    seZeus: 'Zeus',
+    seKronos: 'Kronos',
+    seApollon: 'Apollon',
+    seAdmetos: 'Admetos',
+    seVulkanus: 'Vulkanus',
+    sePoseidon: 'Poseidon',
   };
   if (names.containsKey(body)) return names[body]!;
   if (body >= seAstOffset) return '#${body - seAstOffset}';

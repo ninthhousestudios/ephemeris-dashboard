@@ -7,6 +7,7 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/swe_service.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/result_card.dart';
 import 'planetocentric_provider.dart';
@@ -29,8 +30,9 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     ref.read(planetocentricBodiesProvider.notifier).state = updated;
   }
 
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('planetocentric')));
+  bool get _hasCalculated => ref.watch(
+    calcSessionProvider.select((s) => s.tabHasRun('planetocentric')),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +40,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     final center = ref.watch(planetocentricCenterProvider);
     final swe = ref.read(sweProvider);
     final theme = Theme.of(context);
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -48,9 +51,12 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Text('Center:', style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                )),
+                Text(
+                  'Center:',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 ...centerBodies.map((body) {
                   return Padding(
@@ -58,9 +64,11 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                     child: ChoiceChip(
                       label: Text(_bodyLabel(swe, body)),
                       selected: center == body,
-                      onSelected: (_) => ref
-                          .read(planetocentricCenterProvider.notifier)
-                          .state = body,
+                      onSelected: (_) =>
+                          ref
+                                  .read(planetocentricCenterProvider.notifier)
+                                  .state =
+                              body,
                       visualDensity: VisualDensity.compact,
                     ),
                   );
@@ -76,9 +84,12 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Text('Targets:', style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                )),
+                Text(
+                  'Targets:',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 ...defaultTargetBodies.map((body) {
                   return Padding(
@@ -102,7 +113,8 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               InkWell(
-                onTap: () => setState(() => _showExtraBodies = !_showExtraBodies),
+                onTap: () =>
+                    setState(() => _showExtraBodies = !_showExtraBodies),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -112,10 +124,12 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
-                    Text('More targets',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        )),
+                    Text(
+                      'More targets',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -140,9 +154,12 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         const SizedBox(height: 4),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? _buildResults() : _buildPlaceholder()
+        else
+          Expanded(
+            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
+          ),
       ],
     );
   }
@@ -166,10 +183,9 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         final cols = constraints.maxWidth > 1200
             ? 3
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -221,8 +237,14 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                     final slice = trace.sliceByTab('planetocentric');
                     if (slice.entries.isEmpty) return;
                     final emitter = ref.read(selectedEmitterProvider);
-                    final code = slice.entries.map(emitter.emitSnippet).join('\n');
-                    showCodeModal(context, code: code, languageLabel: emitter.displayName);
+                    final code = slice.entries
+                        .map(emitter.emitSnippet)
+                        .join('\n');
+                    showCodeModal(
+                      context,
+                      code: code,
+                      languageLabel: emitter.displayName,
+                    );
                   },
                 ),
               );

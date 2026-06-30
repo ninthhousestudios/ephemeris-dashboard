@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/context_provider.dart';
 import '../../core/swe_service.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'math_provider.dart';
@@ -20,6 +21,7 @@ class _MathTabState extends ConsumerState<MathTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
     return Column(
       children: [
         // Export bar
@@ -27,8 +29,10 @@ class _MathTabState extends ConsumerState<MathTab> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
-              Text('Math Functions',
-                  style: Theme.of(context).textTheme.titleSmall),
+              Text(
+                'Math Functions',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
               const Spacer(),
               ExportButton(
                 hasResults: _allResults.isNotEmpty,
@@ -41,43 +45,46 @@ class _MathTabState extends ConsumerState<MathTab> {
         ),
         const Divider(height: 1),
         // Cards grid
-        Expanded(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final cols = constraints.maxWidth > 1200
-                  ? 3
-                  : constraints.maxWidth > 600
-                      ? 2
-                      : 1;
-              final cardWidth =
-                  (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.all(8),
-                child: Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: MathOp.values
-                      .map((op) => SizedBox(
-                            width: cardWidth,
-                            child: _MathOpCard(
-                              op: op,
-                              onResult: (fields) {
-                                setState(() {
-                                  if (fields != null) {
-                                    _allResults[op] = fields;
-                                  }
-                                });
-                              },
-                            ),
-                          ))
-                      .toList(),
-                ),
-              );
-            },
-          ),
-        ),
+        if (isMobile) _buildMathGrid() else Expanded(child: _buildMathGrid()),
       ],
+    );
+  }
+
+  Widget _buildMathGrid() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth > 1200
+            ? 3
+            : constraints.maxWidth > 600
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(8),
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: MathOp.values
+                .map(
+                  (op) => SizedBox(
+                    width: cardWidth,
+                    child: _MathOpCard(
+                      op: op,
+                      onResult: (fields) {
+                        setState(() {
+                          if (fields != null) {
+                            _allResults[op] = fields;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        );
+      },
     );
   }
 }
@@ -129,13 +136,18 @@ class _MathOpCardState extends ConsumerState<_MathOpCard> {
           children: [
             // Title
             Text(widget.op.label, style: theme.textTheme.titleSmall),
-            Text(widget.op.id,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                )),
+            Text(
+              widget.op.id,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 8),
             // Inputs
-            _buildInput('Input${widget.op.inputCount > 1 ? ' A' : ''}:', _ctrl1),
+            _buildInput(
+              'Input${widget.op.inputCount > 1 ? ' A' : ''}:',
+              _ctrl1,
+            ),
             if (widget.op.inputCount > 1) ...[
               const SizedBox(height: 4),
               _buildInput('Input B:', _ctrl2),
@@ -155,27 +167,32 @@ class _MathOpCardState extends ConsumerState<_MathOpCard> {
               const SizedBox(height: 8),
               const Divider(height: 1),
               const SizedBox(height: 8),
-              ..._result!.map((f) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width:
-                              80 * MediaQuery.textScalerOf(context).scale(1.0),
-                          child: Text(f.label,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              )),
+              ..._result!.map(
+                (f) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 80 * MediaQuery.textScalerOf(context).scale(1.0),
+                        child: Text(
+                          f.label,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                        Expanded(
-                          child: SelectableText(f.value,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontFamily: 'monospace',
-                              )),
+                      ),
+                      Expanded(
+                        child: SelectableText(
+                          f.value,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontFamily: 'monospace',
+                          ),
                         ),
-                      ],
-                    ),
-                  )),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ],
         ),

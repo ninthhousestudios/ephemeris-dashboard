@@ -5,6 +5,7 @@ import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -100,6 +101,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final fmt = ref.watch(starsFormatProvider);
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -122,8 +124,10 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                       decoration: const InputDecoration(
                         hintText:
                             'Star name or Bayer designation (e.g. Spica, alVir)',
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         border: OutlineInputBorder(),
                       ),
                       onSubmitted: (_) => _calculate(),
@@ -169,27 +173,29 @@ class _StarsTabState extends ConsumerState<StarsTab> {
               children: [
                 SegmentedButton<DisplayFormat>(
                   segments: DisplayFormat.values
-                      .map((f) =>
-                          ButtonSegment(value: f, label: Text(f.label)))
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
                       .toList(),
                   selected: {fmt},
                   onSelectionChanged: (s) =>
                       ref.read(starsFormatProvider.notifier).state = s.first,
                   style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Consumer(builder: (context, ref, _) {
-                  final result = ref.watch(starResultProvider);
-                  final fmt2 = ref.watch(starsFormatProvider);
-                  return ExportButton(
-                    hasResults: _hasCalculated && result != null,
-                    getRows: () =>
-                        result != null ? starToExportRows(result, fmt2) : [],
-                    filenameStem:
-                        'swe_star_${result?.resolvedName ?? 'unknown'}',
-                  );
-                }),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final result = ref.watch(starResultProvider);
+                    final fmt2 = ref.watch(starsFormatProvider);
+                    return ExportButton(
+                      hasResults: _hasCalculated && result != null,
+                      getRows: () =>
+                          result != null ? starToExportRows(result, fmt2) : [],
+                      filenameStem:
+                          'swe_star_${result?.resolvedName ?? 'unknown'}',
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -215,9 +221,12 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? _buildResults(theme) : _buildPlaceholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? _buildResults(theme) : _buildPlaceholder()
+        else
+          Expanded(
+            child: _hasCalculated ? _buildResults(theme) : _buildPlaceholder(),
+          ),
       ],
     );
   }
@@ -293,7 +302,11 @@ class _StarsTabState extends ConsumerState<StarsTab> {
           if (slice.entries.isEmpty) return;
           final emitter = ref.read(selectedEmitterProvider);
           final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(context, code: code, languageLabel: emitter.displayName);
+          showCodeModal(
+            context,
+            code: code,
+            languageLabel: emitter.displayName,
+          );
         },
       ),
     );

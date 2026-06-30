@@ -7,20 +7,28 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'phenomena_provider.dart';
 
 const _standardBodies = [
-  (seSun, 'Sun'), (seMoon, 'Moon'), (seMercury, 'Mercury'),
-  (seVenus, 'Venus'), (seMars, 'Mars'), (seJupiter, 'Jupiter'),
+  (seSun, 'Sun'),
+  (seMoon, 'Moon'),
+  (seMercury, 'Mercury'),
+  (seVenus, 'Venus'),
+  (seMars, 'Mars'),
+  (seJupiter, 'Jupiter'),
   (seSaturn, 'Saturn'),
 ];
 
 const _outerBodies = [
-  (seUranus, 'Uranus'), (seNeptune, 'Neptune'), (sePluto, 'Pluto'),
-  (seChiron, 'Chiron'), (seCeres, 'Ceres'),
+  (seUranus, 'Uranus'),
+  (seNeptune, 'Neptune'),
+  (sePluto, 'Pluto'),
+  (seChiron, 'Chiron'),
+  (seCeres, 'Ceres'),
 ];
 
 class PhenomenaTab extends ConsumerStatefulWidget {
@@ -52,6 +60,7 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -65,15 +74,17 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
               children: [
                 Text('Bodies ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._standardBodies.map((b) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: FilterChip(
-                        label: Text(b.$2),
-                        selected: selectedBodies.contains(b.$1),
-                        onSelected: (_) => _toggleBody(b.$1),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ..._standardBodies.map(
+                  (b) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: FilterChip(
+                      label: Text(b.$2),
+                      selected: selectedBodies.contains(b.$1),
+                      onSelected: (_) => _toggleBody(b.$1),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -105,12 +116,14 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
                   spacing: 4,
                   runSpacing: 4,
                   children: _outerBodies
-                      .map((b) => FilterChip(
-                            label: Text(b.$2),
-                            selected: selectedBodies.contains(b.$1),
-                            onSelected: (_) => _toggleBody(b.$1),
-                            visualDensity: VisualDensity.compact,
-                          ))
+                      .map(
+                        (b) => FilterChip(
+                          label: Text(b.$2),
+                          selected: selectedBodies.contains(b.$1),
+                          onSelected: (_) => _toggleBody(b.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -126,36 +139,41 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
               children: [
                 SegmentedButton<DisplayFormat>(
                   segments: DisplayFormat.values
-                      .map((f) =>
-                          ButtonSegment(value: f, label: Text(f.label)))
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
                       .toList(),
                   selected: {fmt},
                   onSelectionChanged: (s) =>
                       ref.read(phenomenaFormatProvider.notifier).state =
                           s.first,
                   style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                Consumer(builder: (context, ref, _) {
-                  final results = ref.watch(phenomenaResultsProvider);
-                  final format = ref.watch(phenomenaFormatProvider);
-                  final jd = ref.watch(contextBarProvider).jdUt;
-                  return ExportButton(
-                    hasResults: _hasCalculated && results.isNotEmpty,
-                    getRows: () => phenomenaToExportRows(results, format),
-                    filenameStem: 'swe_phenomena_${jd.toStringAsFixed(4)}',
-                  );
-                }),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final results = ref.watch(phenomenaResultsProvider);
+                    final format = ref.watch(phenomenaFormatProvider);
+                    final jd = ref.watch(contextBarProvider).jdUt;
+                    return ExportButton(
+                      hasResults: _hasCalculated && results.isNotEmpty,
+                      getRows: () => phenomenaToExportRows(results, format),
+                      filenameStem: 'swe_phenomena_${jd.toStringAsFixed(4)}',
+                    );
+                  },
+                ),
               ],
             ),
           ),
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? const _ResultsView() : const _Placeholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? const _ResultsView() : const _Placeholder()
+        else
+          Expanded(
+            child: _hasCalculated ? const _ResultsView() : const _Placeholder(),
+          ),
       ],
     );
   }
@@ -166,9 +184,7 @@ class _Placeholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Select bodies and press Calculate'),
-    );
+    return const Center(child: Text('Select bodies and press Calculate'));
   }
 }
 
@@ -189,10 +205,9 @@ class _ResultsView extends ConsumerWidget {
         final cols = constraints.maxWidth > 1200
             ? 3
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -223,9 +238,7 @@ class _ResultsView extends ConsumerWidget {
                     ),
                     ResultField(
                       label: 'Phase (Illum.)',
-                      value: r.phase.isNaN
-                          ? 'NaN'
-                          : r.phase.toStringAsFixed(6),
+                      value: r.phase.isNaN ? 'NaN' : r.phase.toStringAsFixed(6),
                       rawValue: r.phase,
                     ),
                     ResultField(
@@ -242,8 +255,14 @@ class _ResultsView extends ConsumerWidget {
                     final slice = trace.sliceByTab('phenomena');
                     if (slice.entries.isEmpty) return;
                     final emitter = ref.read(selectedEmitterProvider);
-                    final code = slice.entries.map(emitter.emitSnippet).join('\n');
-                    showCodeModal(context, code: code, languageLabel: emitter.displayName);
+                    final code = slice.entries
+                        .map(emitter.emitSnippet)
+                        .join('\n');
+                    showCodeModal(
+                      context,
+                      code: code,
+                      languageLabel: emitter.displayName,
+                    );
                   },
                 ),
               );

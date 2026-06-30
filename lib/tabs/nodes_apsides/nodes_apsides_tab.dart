@@ -7,23 +7,36 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'nodes_apsides_provider.dart';
 
 const _defaultBodies = <(int, String)>[
-  (seSun, 'Sun'), (seMoon, 'Moon'), (seMercury, 'Mercury'),
-  (seVenus, 'Venus'), (seMars, 'Mars'), (seJupiter, 'Jupiter'),
-  (seSaturn, 'Saturn'), (seUranus, 'Uranus'), (seNeptune, 'Neptune'),
+  (seSun, 'Sun'),
+  (seMoon, 'Moon'),
+  (seMercury, 'Mercury'),
+  (seVenus, 'Venus'),
+  (seMars, 'Mars'),
+  (seJupiter, 'Jupiter'),
+  (seSaturn, 'Saturn'),
+  (seUranus, 'Uranus'),
+  (seNeptune, 'Neptune'),
   (sePluto, 'Pluto'),
 ];
 
 const _extraBodies = <(int, String)>[
-  (seMeanNode, 'M.Node'), (seTrueNode, 'T.Node'),
-  (seMeanApog, 'M.Lilith'), (seOscuApog, 'O.Lilith'),
-  (seEarth, 'Earth'), (seChiron, 'Chiron'), (sePholus, 'Pholus'),
-  (seCeres, 'Ceres'), (sePallas, 'Pallas'), (seJuno, 'Juno'),
+  (seMeanNode, 'M.Node'),
+  (seTrueNode, 'T.Node'),
+  (seMeanApog, 'M.Lilith'),
+  (seOscuApog, 'O.Lilith'),
+  (seEarth, 'Earth'),
+  (seChiron, 'Chiron'),
+  (sePholus, 'Pholus'),
+  (seCeres, 'Ceres'),
+  (sePallas, 'Pallas'),
+  (seJuno, 'Juno'),
   (seVesta, 'Vesta'),
 ];
 
@@ -56,6 +69,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -69,16 +83,18 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
               children: [
                 Text('Body ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._defaultBodies.map((b) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(b.$2),
-                        selected: body == b.$1,
-                        onSelected: (_) =>
-                            ref.read(nodesBodyProvider.notifier).state = b.$1,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ..._defaultBodies.map(
+                  (b) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(b.$2),
+                      selected: body == b.$1,
+                      onSelected: (_) =>
+                          ref.read(nodesBodyProvider.notifier).state = b.$1,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -96,9 +112,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _showExtraBodies
-                          ? Icons.expand_less
-                          : Icons.expand_more,
+                      _showExtraBodies ? Icons.expand_less : Icons.expand_more,
                       size: 18,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -113,14 +127,15 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                   spacing: 4,
                   runSpacing: 4,
                   children: _extraBodies
-                      .map((b) => ChoiceChip(
-                            label: Text(b.$2),
-                            selected: body == b.$1,
-                            onSelected: (_) => ref
-                                .read(nodesBodyProvider.notifier)
-                                .state = b.$1,
-                            visualDensity: VisualDensity.compact,
-                          ))
+                      .map(
+                        (b) => ChoiceChip(
+                          label: Text(b.$2),
+                          selected: body == b.$1,
+                          onSelected: (_) =>
+                              ref.read(nodesBodyProvider.notifier).state = b.$1,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      )
                       .toList(),
                 ),
               ],
@@ -136,28 +151,29 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
               children: [
                 Text('Method ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._methodOptions.map((m) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(m.$2),
-                        selected: method == m.$1,
-                        onSelected: (_) =>
-                            ref.read(nodesMethodProvider.notifier).state =
-                                m.$1,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ..._methodOptions.map(
+                  (m) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(m.$2),
+                      selected: method == m.$1,
+                      onSelected: (_) =>
+                          ref.read(nodesMethodProvider.notifier).state = m.$1,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 SegmentedButton<DisplayFormat>(
                   segments: DisplayFormat.values
-                      .map((f) =>
-                          ButtonSegment(value: f, label: Text(f.label)))
+                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
                       .toList(),
                   selected: {fmt},
                   onSelectionChanged: (s) =>
                       ref.read(nodesFormatProvider.notifier).state = s.first,
                   style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
@@ -166,10 +182,11 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                     final result = ref.read(nodesApsResultsProvider);
                     if (result == null) return [];
                     return nodesApsToExportRows(
-                        result, ref.read(nodesFormatProvider));
+                      result,
+                      ref.read(nodesFormatProvider),
+                    );
                   },
-                  filenameStem:
-                      'swe_nodes_apsides_${jd.toStringAsFixed(4)}',
+                  filenameStem: 'swe_nodes_apsides_${jd.toStringAsFixed(4)}',
                 ),
               ],
             ),
@@ -177,11 +194,14 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated
-              ? const _NodesResults()
-              : const _Placeholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? const _NodesResults() : const _Placeholder()
+        else
+          Expanded(
+            child: _hasCalculated
+                ? const _NodesResults()
+                : const _Placeholder(),
+          ),
       ],
     );
   }
@@ -208,48 +228,54 @@ class _NodesResults extends ConsumerWidget {
 
     if (result == null) {
       return const Center(
-          child: Text('Calculation failed — check body selection'));
+        child: Text('Calculation failed — check body selection'),
+      );
     }
 
     String deg(double v) => formatAngle(v, fmt);
     String raw(double v) => v.toStringAsFixed(8);
 
     List<ResultField> posFields(CalcResult pos) => [
-          ResultField(
-              label: 'Longitude',
-              value: deg(pos.longitude),
-              rawValue: pos.longitude),
-          ResultField(
-              label: 'Latitude',
-              value: deg(pos.latitude),
-              rawValue: pos.latitude),
-          ResultField(
-              label: 'Distance (AU)',
-              value: raw(pos.distance),
-              rawValue: pos.distance),
-          ResultField(
-              label: 'Speed Lon',
-              value: deg(pos.longitudeSpeed),
-              rawValue: pos.longitudeSpeed),
-          ResultField(
-              label: 'Speed Lat',
-              value: deg(pos.latitudeSpeed),
-              rawValue: pos.latitudeSpeed),
-          ResultField(
-              label: 'Speed Dist',
-              value: raw(pos.distanceSpeed),
-              rawValue: pos.distanceSpeed),
-        ];
+      ResultField(
+        label: 'Longitude',
+        value: deg(pos.longitude),
+        rawValue: pos.longitude,
+      ),
+      ResultField(
+        label: 'Latitude',
+        value: deg(pos.latitude),
+        rawValue: pos.latitude,
+      ),
+      ResultField(
+        label: 'Distance (AU)',
+        value: raw(pos.distance),
+        rawValue: pos.distance,
+      ),
+      ResultField(
+        label: 'Speed Lon',
+        value: deg(pos.longitudeSpeed),
+        rawValue: pos.longitudeSpeed,
+      ),
+      ResultField(
+        label: 'Speed Lat',
+        value: deg(pos.latitudeSpeed),
+        rawValue: pos.latitudeSpeed,
+      ),
+      ResultField(
+        label: 'Speed Dist',
+        value: raw(pos.distanceSpeed),
+        rawValue: pos.distanceSpeed,
+      ),
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 1200
             ? 3
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         void onCode() {
           final trace = ref.read(callTraceProvider);
@@ -258,7 +284,11 @@ class _NodesResults extends ConsumerWidget {
           if (slice.entries.isEmpty) return;
           final emitter = ref.read(selectedEmitterProvider);
           final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(context, code: code, languageLabel: emitter.displayName);
+          showCodeModal(
+            context,
+            code: code,
+            languageLabel: emitter.displayName,
+          );
         }
 
         final cards = <Widget>[
@@ -306,112 +336,131 @@ class _NodesResults extends ConsumerWidget {
 
         final el = result.orbitalElements;
         if (el != null) {
-          cards.add(SizedBox(
-            width: cardWidth,
-            child: ResultCard(
-              title: '${result.bodyName} — Orbital Elements',
-              onCode: onCode,
-              fields: [
-                ResultField(
+          cards.add(
+            SizedBox(
+              width: cardWidth,
+              child: ResultCard(
+                title: '${result.bodyName} — Orbital Elements',
+                onCode: onCode,
+                fields: [
+                  ResultField(
                     label: 'Semi-major Axis (AU)',
                     value: raw(el.semimajorAxis),
-                    rawValue: el.semimajorAxis),
-                ResultField(
+                    rawValue: el.semimajorAxis,
+                  ),
+                  ResultField(
                     label: 'Eccentricity',
                     value: raw(el.eccentricity),
-                    rawValue: el.eccentricity),
-                ResultField(
+                    rawValue: el.eccentricity,
+                  ),
+                  ResultField(
                     label: 'Inclination',
                     value: deg(el.inclination),
-                    rawValue: el.inclination),
-                ResultField(
+                    rawValue: el.inclination,
+                  ),
+                  ResultField(
                     label: 'Ascending Node',
                     value: deg(el.ascendingNode),
-                    rawValue: el.ascendingNode),
-                ResultField(
+                    rawValue: el.ascendingNode,
+                  ),
+                  ResultField(
                     label: 'Arg. Periapsis',
                     value: deg(el.argPeriapsis),
-                    rawValue: el.argPeriapsis),
-                ResultField(
+                    rawValue: el.argPeriapsis,
+                  ),
+                  ResultField(
                     label: 'Lon. Periapsis',
                     value: deg(el.lonPeriapsis),
-                    rawValue: el.lonPeriapsis),
-                ResultField(
+                    rawValue: el.lonPeriapsis,
+                  ),
+                  ResultField(
                     label: 'Mean Anomaly (epoch)',
                     value: deg(el.meanAnomalyEpoch),
-                    rawValue: el.meanAnomalyEpoch),
-                ResultField(
+                    rawValue: el.meanAnomalyEpoch,
+                  ),
+                  ResultField(
                     label: 'True Anomaly (epoch)',
                     value: deg(el.trueAnomalyEpoch),
-                    rawValue: el.trueAnomalyEpoch),
-                ResultField(
+                    rawValue: el.trueAnomalyEpoch,
+                  ),
+                  ResultField(
                     label: 'Eccentric Anomaly',
                     value: deg(el.eccentricAnomalyEpoch),
-                    rawValue: el.eccentricAnomalyEpoch),
-                ResultField(
+                    rawValue: el.eccentricAnomalyEpoch,
+                  ),
+                  ResultField(
                     label: 'Mean Longitude (epoch)',
                     value: deg(el.meanLongitudeEpoch),
-                    rawValue: el.meanLongitudeEpoch),
-                ResultField(
+                    rawValue: el.meanLongitudeEpoch,
+                  ),
+                  ResultField(
                     label: 'Mean Daily Motion',
                     value: deg(el.meanDailyMotion),
-                    rawValue: el.meanDailyMotion),
-                ResultField(
+                    rawValue: el.meanDailyMotion,
+                  ),
+                  ResultField(
                     label: 'Perihelion Dist (AU)',
                     value: raw(el.perihelionDistance),
-                    rawValue: el.perihelionDistance),
-                ResultField(
+                    rawValue: el.perihelionDistance,
+                  ),
+                  ResultField(
                     label: 'Aphelion Dist (AU)',
                     value: raw(el.aphelionDistance),
-                    rawValue: el.aphelionDistance),
-                ResultField(
+                    rawValue: el.aphelionDistance,
+                  ),
+                  ResultField(
                     label: 'Sidereal Period (yr)',
                     value: raw(el.siderealPeriodYears),
-                    rawValue: el.siderealPeriodYears),
-                ResultField(
+                    rawValue: el.siderealPeriodYears,
+                  ),
+                  ResultField(
                     label: 'Tropical Period (yr)',
                     value: raw(el.tropicalPeriodYears),
-                    rawValue: el.tropicalPeriodYears),
-                ResultField(
+                    rawValue: el.tropicalPeriodYears,
+                  ),
+                  ResultField(
                     label: 'Synodic Period (days)',
                     value: raw(el.synodicPeriodDays),
-                    rawValue: el.synodicPeriodDays),
-                ResultField(
+                    rawValue: el.synodicPeriodDays,
+                  ),
+                  ResultField(
                     label: 'Perihelion Passage (JD)',
                     value: raw(el.perihelionPassage),
-                    rawValue: el.perihelionPassage),
-              ],
+                    rawValue: el.perihelionPassage,
+                  ),
+                ],
+              ),
             ),
-          ));
+          );
         }
 
         if (result.maxDist != null && result.minDist != null) {
-          cards.add(SizedBox(
-            width: cardWidth,
-            child: ResultCard(
-              title: '${result.bodyName} — Distance Extremes',
-              onCode: onCode,
-              fields: [
-                ResultField(
+          cards.add(
+            SizedBox(
+              width: cardWidth,
+              child: ResultCard(
+                title: '${result.bodyName} — Distance Extremes',
+                onCode: onCode,
+                fields: [
+                  ResultField(
                     label: 'Max True Distance (AU)',
                     value: raw(result.maxDist!),
-                    rawValue: result.maxDist!),
-                ResultField(
+                    rawValue: result.maxDist!,
+                  ),
+                  ResultField(
                     label: 'Min True Distance (AU)',
                     value: raw(result.minDist!),
-                    rawValue: result.minDist!),
-              ],
+                    rawValue: result.minDist!,
+                  ),
+                ],
+              ),
             ),
-          ));
+          );
         }
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: cards,
-          ),
+          child: Wrap(spacing: 4, runSpacing: 4, children: cards),
         );
       },
     );

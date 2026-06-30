@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
@@ -46,10 +47,12 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     final format = ref.watch(tableViewFormatProvider);
     final results = ref.watch(tableViewResultsProvider);
     final triggered = ref.watch(
-        calcSessionProvider.select((s) => s.tabHasRun('tableView')));
+      calcSessionProvider.select((s) => s.tabHasRun('tableView')),
+    );
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -63,27 +66,31 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
               children: [
                 Text('Bodies ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ...tableViewBodies.map((b) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: FilterChip(
-                        label: Text(b.$2),
-                        selected: selectedBodies.contains(b.$1),
-                        onSelected: (on) {
-                          final current =
-                              ref.read(tableViewBodiesProvider.notifier).state;
-                          if (on) {
-                            ref
-                                .read(tableViewBodiesProvider.notifier)
-                                .state = {...current, b.$1};
-                          } else if (current.length > 1) {
-                            ref
-                                .read(tableViewBodiesProvider.notifier)
-                                .state = {...current}..remove(b.$1);
-                          }
-                        },
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ...tableViewBodies.map(
+                  (b) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: FilterChip(
+                      label: Text(b.$2),
+                      selected: selectedBodies.contains(b.$1),
+                      onSelected: (on) {
+                        final current = ref
+                            .read(tableViewBodiesProvider.notifier)
+                            .state;
+                        if (on) {
+                          ref.read(tableViewBodiesProvider.notifier).state = {
+                            ...current,
+                            b.$1,
+                          };
+                        } else if (current.length > 1) {
+                          ref.read(tableViewBodiesProvider.notifier).state = {
+                            ...current,
+                          }..remove(b.$1);
+                        }
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -105,26 +112,31 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                     style: theme.textTheme.bodySmall,
                     decoration: const InputDecoration(
                       isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true),
+                      decimal: true,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
-                ...StepUnit.values.map((u) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(u.label),
-                        selected: stepUnit == u,
-                        onSelected: (_) => ref
-                            .read(tableViewStepUnitProvider.notifier)
-                            .state = u,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    )),
+                ...StepUnit.values.map(
+                  (u) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(u.label),
+                      selected: stepUnit == u,
+                      onSelected: (_) =>
+                          ref.read(tableViewStepUnitProvider.notifier).state =
+                              u,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 8),
                 Text('Rows ', style: labelStyle),
                 const SizedBox(width: 4),
@@ -136,8 +148,10 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                     style: theme.textTheme.bodySmall,
                     decoration: const InputDecoration(
                       isDense: true,
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 6,
+                      ),
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
@@ -159,13 +173,22 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
         ),
         const Divider(height: 1),
         // ── Data table ──
-        Expanded(
-          child: triggered
+        if (isMobile)
+          triggered
               ? _buildTable(results, selectedBodies, format)
               : const Center(
                   child: Text('Select bodies, configure step, press Calculate'),
-                ),
-        ),
+                )
+        else
+          Expanded(
+            child: triggered
+                ? _buildTable(results, selectedBodies, format)
+                : const Center(
+                    child: Text(
+                      'Select bodies, configure step, press Calculate',
+                    ),
+                  ),
+          ),
       ],
     );
   }
@@ -181,8 +204,9 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
 
     final sortedBodies = bodies.toList()..sort();
     final theme = Theme.of(context);
-    final headerStyle = theme.textTheme.labelSmall
-        ?.copyWith(fontWeight: FontWeight.bold);
+    final headerStyle = theme.textTheme.labelSmall?.copyWith(
+      fontWeight: FontWeight.bold,
+    );
     final cellStyle = theme.textTheme.bodySmall;
 
     return SingleChildScrollView(
@@ -195,32 +219,29 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
           dataRowMinHeight: 28,
           dataRowMaxHeight: 32,
           columns: [
-            DataColumn(
-              label: Text('Date/Time (UT)', style: headerStyle),
+            DataColumn(label: Text('Date/Time (UT)', style: headerStyle)),
+            DataColumn(label: Text('JD', style: headerStyle)),
+            ...sortedBodies.map(
+              (b) => DataColumn(label: Text(bodyName(b), style: headerStyle)),
             ),
-            DataColumn(
-              label: Text('JD', style: headerStyle),
-            ),
-            ...sortedBodies.map((b) => DataColumn(
-                  label: Text(bodyName(b), style: headerStyle),
-                )),
           ],
           rows: rows.map((row) {
-            return DataRow(cells: [
-              DataCell(Text(row.dateStr, style: cellStyle)),
-              DataCell(Text(row.jd.toStringAsFixed(4), style: cellStyle)),
-              ...sortedBodies.map((b) {
-                final val = row.bodyValues[b];
-                if (val == null) {
-                  return DataCell(Text('—', style: cellStyle));
-                }
-                final (lon, err) = val;
-                return DataCell(Text(
-                  err ?? formatAngle(lon!, format),
-                  style: cellStyle,
-                ));
-              }),
-            ]);
+            return DataRow(
+              cells: [
+                DataCell(Text(row.dateStr, style: cellStyle)),
+                DataCell(Text(row.jd.toStringAsFixed(4), style: cellStyle)),
+                ...sortedBodies.map((b) {
+                  final val = row.bodyValues[b];
+                  if (val == null) {
+                    return DataCell(Text('—', style: cellStyle));
+                  }
+                  final (lon, err) = val;
+                  return DataCell(
+                    Text(err ?? formatAngle(lon!, format), style: cellStyle),
+                  );
+                }),
+              ],
+            );
           }).toList(),
         ),
       ),

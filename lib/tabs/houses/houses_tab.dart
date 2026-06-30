@@ -6,6 +6,7 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/persistence.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/result_card.dart';
 import 'houses_provider.dart';
@@ -25,6 +26,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
   Widget build(BuildContext context) {
     final hsys = ref.watch(selectedHouseSystemProvider);
     final theme = Theme.of(context);
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -48,20 +50,28 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                       isDense: true,
                       isExpanded: true,
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         border: OutlineInputBorder(),
                       ),
                       items: houseSystems
-                          .map((h) => DropdownMenuItem(
-                                value: h.code,
-                                child: Text('${h.char} — ${h.label}',
-                                    style: theme.textTheme.bodySmall,
-                                    overflow: TextOverflow.ellipsis),
-                              ))
+                          .map(
+                            (h) => DropdownMenuItem(
+                              value: h.code,
+                              child: Text(
+                                '${h.char} — ${h.label}',
+                                style: theme.textTheme.bodySmall,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
                           .toList(),
                       onChanged: (v) {
                         if (v != null) {
-                          ref.read(selectedHouseSystemProvider.notifier).state = v;
+                          ref.read(selectedHouseSystemProvider.notifier).state =
+                              v;
                           ref.read(persistenceProvider).saveHouseSystem(v);
                         }
                       },
@@ -74,9 +84,12 @@ class _HousesTabState extends ConsumerState<HousesTab> {
         ),
         const Divider(height: 1),
         // Results
-        Expanded(
-          child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? _buildResults() : _buildPlaceholder()
+        else
+          Expanded(
+            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
+          ),
       ],
     );
   }
@@ -100,12 +113,13 @@ class _HousesTabState extends ConsumerState<HousesTab> {
         final cols = constraints.maxWidth > 1200
             ? 3
             : constraints.maxWidth > 600
-                ? 2
-                : 1;
-        final cardWidth =
-            (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-        final cuspCount = (result.hsys == 0x47 ? 36 : 12)
-            .clamp(0, result.cusps.length - 1);
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+        final cuspCount = (result.hsys == 0x47 ? 36 : 12).clamp(
+          0,
+          result.cusps.length - 1,
+        );
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
@@ -136,8 +150,14 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                           final slice = trace.sliceByTab('houses');
                           if (slice.entries.isEmpty) return;
                           final emitter = ref.read(selectedEmitterProvider);
-                          final code = slice.entries.map(emitter.emitSnippet).join('\n');
-                          showCodeModal(context, code: code, languageLabel: emitter.displayName);
+                          final code = slice.entries
+                              .map(emitter.emitSnippet)
+                              .join('\n');
+                          showCodeModal(
+                            context,
+                            code: code,
+                            languageLabel: emitter.displayName,
+                          );
                         },
                       ),
                     ),
@@ -148,11 +168,31 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                 title: 'Angles',
                 subtitle: result.hsysName,
                 fields: [
-                  ResultField(label: 'Asc', value: formatAngle(result.asc, format), rawValue: result.asc),
-                  ResultField(label: 'MC', value: formatAngle(result.mc, format), rawValue: result.mc),
-                  ResultField(label: 'ARMC', value: formatAngle(result.armc, format), rawValue: result.armc),
-                  ResultField(label: 'Vertex', value: formatAngle(result.vertex, format), rawValue: result.vertex),
-                  ResultField(label: 'Eq Asc', value: formatAngle(result.equatorialAsc, format), rawValue: result.equatorialAsc),
+                  ResultField(
+                    label: 'Asc',
+                    value: formatAngle(result.asc, format),
+                    rawValue: result.asc,
+                  ),
+                  ResultField(
+                    label: 'MC',
+                    value: formatAngle(result.mc, format),
+                    rawValue: result.mc,
+                  ),
+                  ResultField(
+                    label: 'ARMC',
+                    value: formatAngle(result.armc, format),
+                    rawValue: result.armc,
+                  ),
+                  ResultField(
+                    label: 'Vertex',
+                    value: formatAngle(result.vertex, format),
+                    rawValue: result.vertex,
+                  ),
+                  ResultField(
+                    label: 'Eq Asc',
+                    value: formatAngle(result.equatorialAsc, format),
+                    rawValue: result.equatorialAsc,
+                  ),
                 ],
                 onCode: () {
                   final trace = ref.read(callTraceProvider);
@@ -160,8 +200,14 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                   final slice = trace.sliceByTab('houses');
                   if (slice.entries.isEmpty) return;
                   final emitter = ref.read(selectedEmitterProvider);
-                  final code = slice.entries.map(emitter.emitSnippet).join('\n');
-                  showCodeModal(context, code: code, languageLabel: emitter.displayName);
+                  final code = slice.entries
+                      .map(emitter.emitSnippet)
+                      .join('\n');
+                  showCodeModal(
+                    context,
+                    code: code,
+                    languageLabel: emitter.displayName,
+                  );
                 },
               ),
             ],
