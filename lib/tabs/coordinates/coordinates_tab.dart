@@ -5,6 +5,7 @@ import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'coordinates_provider.dart';
@@ -24,6 +25,7 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
     final fmt = ref.watch(coordFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
     final theme = Theme.of(context);
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -71,7 +73,7 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
         ),
         const Divider(height: 1),
         // ── Cards grid ──
-        Expanded(child: _buildCardsGrid()),
+        if (isMobile) _buildCardsGrid() else Expanded(child: _buildCardsGrid()),
       ],
     );
   }

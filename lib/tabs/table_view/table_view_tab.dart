@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
@@ -51,6 +52,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -171,13 +173,22 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
         ),
         const Divider(height: 1),
         // ── Data table ──
-        Expanded(
-          child: triggered
+        if (isMobile)
+          triggered
               ? _buildTable(results, selectedBodies, format)
               : const Center(
                   child: Text('Select bodies, configure step, press Calculate'),
-                ),
-        ),
+                )
+        else
+          Expanded(
+            child: triggered
+                ? _buildTable(results, selectedBodies, format)
+                : const Center(
+                    child: Text(
+                      'Select bodies, configure step, press Calculate',
+                    ),
+                  ),
+          ),
       ],
     );
   }

@@ -7,6 +7,7 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -59,6 +60,7 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -166,9 +168,12 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? const _ResultsView() : const _Placeholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? const _ResultsView() : const _Placeholder()
+        else
+          Expanded(
+            child: _hasCalculated ? const _ResultsView() : const _Placeholder(),
+          ),
       ],
     );
   }

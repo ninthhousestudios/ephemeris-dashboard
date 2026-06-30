@@ -7,6 +7,7 @@ import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -52,6 +53,7 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
 
     final showLon = type != CrossingType.moonNode;
     final showHelio = type == CrossingType.helioCross;
+    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     const helioBodies = [
       seMercury,
@@ -205,9 +207,12 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        Expanded(
-          child: _hasCalculated ? const _ResultView() : const _Placeholder(),
-        ),
+        if (isMobile)
+          _hasCalculated ? const _ResultView() : const _Placeholder()
+        else
+          Expanded(
+            child: _hasCalculated ? const _ResultView() : const _Placeholder(),
+          ),
       ],
     );
   }
