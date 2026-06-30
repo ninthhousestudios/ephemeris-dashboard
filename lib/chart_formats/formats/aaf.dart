@@ -8,7 +8,8 @@ import '../model/chart_data.dart';
 /// Plain text, chunk-based. Each chunk starts at column 0 with `#` + chunk ID
 /// followed by `:` and comma-separated fields.
 class AafFormat {
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   static ChartData readBytes(Uint8List bytes) {
     final lines = String.fromCharCodes(bytes).split(RegExp(r'\r?\n'));
@@ -105,29 +106,36 @@ class AafFormat {
 
     final nameParts = chart.name.split(' ');
     final firstName = nameParts.length > 1 ? nameParts.first : '';
-    final lastName =
-        nameParts.length > 1 ? nameParts.sublist(1).join(' ') : chart.name;
+    final lastName = nameParts.length > 1
+        ? nameParts.sublist(1).join(' ')
+        : chart.name;
     final sex = chart.gender == Gender.male
         ? 'm'
         : chart.gender == Gender.female
-            ? 'f'
-            : 'e';
+        ? 'f'
+        : 'e';
 
     sb.writeln('#A93:$lastName,$firstName,$sex');
 
     final dt = chart.dateTime;
-    final dateStr = '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+    final dateStr =
+        '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
     final timeStr =
         '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     final tzStr = _formatAafTimezone(chart.utcOffsetHours);
     sb.writeln('#B93:$dateStr,$timeStr,$tzStr');
 
     final lonStr = _formatAafCoord(
-        chart.birthLocation.longitude, chart.birthLocation.longitude >= 0 ? 'e' : 'w');
+      chart.birthLocation.longitude,
+      chart.birthLocation.longitude >= 0 ? 'e' : 'w',
+    );
     final latStr = _formatAafCoord(
-        chart.birthLocation.latitude, chart.birthLocation.latitude >= 0 ? 'n' : 's');
+      chart.birthLocation.latitude,
+      chart.birthLocation.latitude >= 0 ? 'n' : 's',
+    );
     sb.writeln(
-        '#C93:${chart.birthLocation.city},${chart.birthLocation.country},$lonStr,$latStr');
+      '#C93:${chart.birthLocation.city},${chart.birthLocation.country},$lonStr,$latStr',
+    );
 
     if (chart.roddenRating != null) {
       sb.writeln('#ADB:${chart.roddenRating}');

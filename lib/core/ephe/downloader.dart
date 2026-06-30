@@ -77,8 +77,7 @@ class EphemerisDownloader {
       final finalPath = '$targetDir/${entry.filename}';
 
       final sizeHint = entry.sizeBytes ?? 0;
-      if (sizeHint > kLargeDownloadThreshold &&
-          confirmLargeDownload != null) {
+      if (sizeHint > kLargeDownloadThreshold && confirmLargeDownload != null) {
         final ok = await confirmLargeDownload(sizeHint);
         if (!ok) throw const DownloadFailed('Cancelled by user.');
       }
@@ -114,9 +113,7 @@ class EphemerisDownloader {
       );
     }
 
-    run()
-        .then((_) => controller.close())
-        .catchError((Object e, StackTrace st) {
+    run().then((_) => controller.close()).catchError((Object e, StackTrace st) {
       controller.addError(e, st);
       controller.close();
     });
@@ -151,14 +148,18 @@ class EphemerisDownloader {
     required StreamController<DownloadProgress> controller,
   }) async {
     final args = <String>[
-      '-C', '-',
+      '-C',
+      '-',
       '-L',
       '--fail',
       '--silent',
       '--show-error',
-      '--retry', '3',
-      '--retry-delay', '1',
-      '-o', partPath,
+      '--retry',
+      '3',
+      '--retry-delay',
+      '1',
+      '-o',
+      partPath,
       entry.url,
     ];
 
@@ -202,7 +203,8 @@ class EphemerisDownloader {
     if (exitCode != 0) {
       final msg = stderrBuf.toString().trim();
       throw DownloadFailed(
-          'curl exit $exitCode: ${msg.isEmpty ? '(no error output)' : msg}');
+        'curl exit $exitCode: ${msg.isEmpty ? '(no error output)' : msg}',
+      );
     }
   }
 
@@ -267,11 +269,11 @@ class EphemerisDownloader {
         }
         // 4xx (except 416/408) means the catalog URL is wrong or the
         // server rejects us — no amount of retry will help.
-        if (status != null && status >= 400 && status < 500 &&
-            status != 408) {
+        if (status != null && status >= 400 && status < 500 && status != 408) {
           throw DownloadFailed('HTTP $status from ${entry.url}');
         }
-        final retriable = e.type == DioExceptionType.connectionError ||
+        final retriable =
+            e.type == DioExceptionType.connectionError ||
             e.type == DioExceptionType.receiveTimeout ||
             e.type == DioExceptionType.sendTimeout ||
             e.type == DioExceptionType.connectionTimeout;
@@ -309,13 +311,15 @@ class EphemerisDownloader {
       // Numbered-asteroid short files on scryr.io can legitimately be
       // ~14 KB for faint/short-arc bodies, so drop the size floor for
       // that family — the HTML-page sniff still rejects error bodies.
-      final minBytes =
-          entry.family == BodyFamily.numberedAsteroid ? 0 : 16 * 1024;
+      final minBytes = entry.family == BodyFamily.numberedAsteroid
+          ? 0
+          : 16 * 1024;
       final rej = validateEpheFile(partFileHandle, minBytes: minBytes);
       if (rej != null) {
         partFileHandle.deleteSync();
         throw DownloadFailed(
-            'Downloaded payload rejected: ${describeRejection(rej)}');
+          'Downloaded payload rejected: ${describeRejection(rej)}',
+        );
       }
     }
 
@@ -326,11 +330,13 @@ class EphemerisDownloader {
 }
 
 final downloaderProvider = Provider<EphemerisDownloader>((ref) {
-  final dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 20),
-    receiveTimeout: const Duration(minutes: 10),
-    sendTimeout: const Duration(minutes: 10),
-  ));
+  final dio = Dio(
+    BaseOptions(
+      connectTimeout: const Duration(seconds: 20),
+      receiveTimeout: const Duration(minutes: 10),
+      sendTimeout: const Duration(minutes: 10),
+    ),
+  );
   ref.onDispose(dio.close);
   return EphemerisDownloader(dio);
 });

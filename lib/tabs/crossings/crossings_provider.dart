@@ -64,8 +64,14 @@ String _formatDateResult(DateResult r, double utcOffset) {
   final ss = (totalSec % 60).toString().padLeft(2, '0');
   final utStr = '$y-$mo-$d $hh:$mm:$ss UT';
   if (utcOffset == 0.0) return utStr;
-  final utcDt = DateTime.utc(r.year, r.month, r.day,
-      totalSec ~/ 3600, (totalSec % 3600) ~/ 60, totalSec % 60);
+  final utcDt = DateTime.utc(
+    r.year,
+    r.month,
+    r.day,
+    totalSec ~/ 3600,
+    (totalSec % 3600) ~/ 60,
+    totalSec % 60,
+  );
   final local = utcDt.add(Duration(minutes: (utcOffset * 60).round()));
   final sign = utcOffset >= 0 ? '+' : '';
   final offsetStr = utcOffset == utcOffset.roundToDouble()
@@ -95,7 +101,9 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
     switch (type) {
       case CrossingType.sunCross:
         final jd = runner.run(
-          globals, (eph) => eph.solCrossUt(lon, ectx.jdUt, ectx.iflag));
+          globals,
+          (eph) => eph.solCrossUt(lon, ectx.jdUt, ectx.iflag),
+        );
         final date = _formatDateResult(swe.revjul(jd), utcOffset);
         return CrossingResult(
           crossingJd: jd,
@@ -106,7 +114,9 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
 
       case CrossingType.moonCross:
         final jd = runner.run(
-          globals, (eph) => eph.moonCrossUt(lon, ectx.jdUt, ectx.iflag));
+          globals,
+          (eph) => eph.moonCrossUt(lon, ectx.jdUt, ectx.iflag),
+        );
         final date = _formatDateResult(swe.revjul(jd), utcOffset);
         return CrossingResult(
           crossingJd: jd,
@@ -117,7 +127,9 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
 
       case CrossingType.moonNode:
         final r = runner.run(
-          globals, (eph) => eph.moonCrossNodeUt(ectx.jdUt, ectx.iflag));
+          globals,
+          (eph) => eph.moonCrossNodeUt(ectx.jdUt, ectx.iflag),
+        );
         final date = _formatDateResult(swe.revjul(r.jdUt), utcOffset);
         return CrossingResult(
           crossingJd: r.jdUt,
@@ -128,8 +140,10 @@ final crossingResultProvider = Provider<CrossingResult?>((ref) {
 
       case CrossingType.helioCross:
         final bodyName = _safeGetName(swe, helioBody);
-        final jd = runner.run(globals,
-            (eph) => eph.helioCrossUt(helioBody, lon, ectx.jdUt, ectx.iflag, dir));
+        final jd = runner.run(
+          globals,
+          (eph) => eph.helioCrossUt(helioBody, lon, ectx.jdUt, ectx.iflag, dir),
+        );
         final date = _formatDateResult(swe.revjul(jd), utcOffset);
         return CrossingResult(
           crossingJd: jd,
@@ -154,10 +168,18 @@ List<ExportRow> crossingToExportRows(CrossingResult result) {
     ExportRow(
       header: result.description,
       fields: [
-        ('JD (UT)', result.crossingJd.isNaN ? 'NaN' : result.crossingJd.toStringAsFixed(6)),
+        (
+          'JD (UT)',
+          result.crossingJd.isNaN
+              ? 'NaN'
+              : result.crossingJd.toStringAsFixed(6),
+        ),
         ('Date/Time', result.crossingDate),
         if (result.crossingLongitude != null)
-          ('Node Longitude', '${result.crossingLongitude!.toStringAsFixed(6)}°'),
+          (
+            'Node Longitude',
+            '${result.crossingLongitude!.toStringAsFixed(6)}°',
+          ),
       ],
     ),
   ];

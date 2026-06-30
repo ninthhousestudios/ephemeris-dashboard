@@ -96,11 +96,7 @@ void main() {
     test('emits // Error: for errored calls', () {
       final entry = CallEntry(
         functionName: 'swe_calc_ut',
-        args: {
-          'jdUt': 2460412.5,
-          'body': -99,
-          'iflag': seFlgSwiEph,
-        },
+        args: {'jdUt': 2460412.5, 'body': -99, 'iflag': seFlgSwiEph},
         category: CallCategory.calc,
         traceId: 'planets:calc_ut:body=-99',
         errorMessage: 'illegal planet number',
@@ -181,13 +177,16 @@ void main() {
         ),
       ];
 
-      final section = emitter.emitSection(entries, metadata: {
-        'JD': 2460412.5,
-        'Date/Time': '2024-03-25 12:00:00 UTC',
-        'Location': '51.5074°N, 0.1278°W',
-        'Ephemeris': 'Swiss Ephemeris',
-        'Ayanamsa': 'Lahiri',
-      });
+      final section = emitter.emitSection(
+        entries,
+        metadata: {
+          'JD': 2460412.5,
+          'Date/Time': '2024-03-25 12:00:00 UTC',
+          'Location': '51.5074°N, 0.1278°W',
+          'Ephemeris': 'Swiss Ephemeris',
+          'Ayanamsa': 'Lahiri',
+        },
+      );
 
       expect(section, contains('JD:'));
       expect(section, contains('2460412.5'));

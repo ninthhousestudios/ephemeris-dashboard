@@ -38,20 +38,45 @@ class PlanetoCentricResult {
 
 /// Bodies available as center (observer).
 final centerBodies = [
-  seSun, seMercury, seVenus, seEarth, seMars,
-  seJupiter, seSaturn, seUranus, seNeptune, sePluto,
+  seSun,
+  seMercury,
+  seVenus,
+  seEarth,
+  seMars,
+  seJupiter,
+  seSaturn,
+  seUranus,
+  seNeptune,
+  sePluto,
 ];
 
 /// Default target bodies.
 final defaultTargetBodies = [
-  seSun, seMoon, seMercury, seVenus, seMars,
-  seJupiter, seSaturn, seUranus, seNeptune, sePluto,
+  seSun,
+  seMoon,
+  seMercury,
+  seVenus,
+  seMars,
+  seJupiter,
+  seSaturn,
+  seUranus,
+  seNeptune,
+  sePluto,
 ];
 
 /// Extra target bodies (progressive disclosure).
 final extraTargetBodies = [
-  seEarth, seChiron, sePholus, seCeres, sePallas, seJuno, seVesta,
-  seMeanNode, seTrueNode, seMeanApog, seOscuApog,
+  seEarth,
+  seChiron,
+  sePholus,
+  seCeres,
+  sePallas,
+  seJuno,
+  seVesta,
+  seMeanNode,
+  seTrueNode,
+  seMeanApog,
+  seOscuApog,
 ];
 
 /// Selected center body (observer).
@@ -68,8 +93,9 @@ final planetocentricFormatProvider = StateProvider<DisplayFormat>(
 );
 
 /// Planetocentric calculation results.
-final planetocentricResultsProvider =
-    Provider<List<PlanetoCentricResult>>((ref) {
+final planetocentricResultsProvider = Provider<List<PlanetoCentricResult>>((
+  ref,
+) {
   final session = ref.watch(calcSessionProvider);
   if (!session.tabHasRun('planetocentric')) return const [];
 
@@ -91,34 +117,40 @@ final planetocentricResultsProvider =
     if (body == centerBody) continue;
     try {
       final r = runner.run(
-        globals, (eph) => eph.calcPctr(jdEt, body, centerBody, flags));
-      results.add(PlanetoCentricResult(
-        body: body,
-        bodyName: swe.getPlanetName(body),
-        centerBody: centerBody,
-        centerName: centerName,
-        longitude: r.longitude,
-        latitude: r.latitude,
-        distance: r.distance,
-        speedLon: r.longitudeSpeed,
-        speedLat: r.latitudeSpeed,
-        speedDist: r.distanceSpeed,
-        returnFlag: r.returnFlag,
-      ));
+        globals,
+        (eph) => eph.calcPctr(jdEt, body, centerBody, flags),
+      );
+      results.add(
+        PlanetoCentricResult(
+          body: body,
+          bodyName: swe.getPlanetName(body),
+          centerBody: centerBody,
+          centerName: centerName,
+          longitude: r.longitude,
+          latitude: r.latitude,
+          distance: r.distance,
+          speedLon: r.longitudeSpeed,
+          speedLat: r.latitudeSpeed,
+          speedDist: r.distanceSpeed,
+          returnFlag: r.returnFlag,
+        ),
+      );
     } on SweException {
-      results.add(PlanetoCentricResult(
-        body: body,
-        bodyName: _safeGetName(swe, body),
-        centerBody: centerBody,
-        centerName: centerName,
-        longitude: double.nan,
-        latitude: double.nan,
-        distance: double.nan,
-        speedLon: double.nan,
-        speedLat: double.nan,
-        speedDist: double.nan,
-        returnFlag: -1,
-      ));
+      results.add(
+        PlanetoCentricResult(
+          body: body,
+          bodyName: _safeGetName(swe, body),
+          centerBody: centerBody,
+          centerName: centerName,
+          longitude: double.nan,
+          latitude: double.nan,
+          distance: double.nan,
+          speedLon: double.nan,
+          speedLat: double.nan,
+          speedDist: double.nan,
+          returnFlag: -1,
+        ),
+      );
     }
   }
 
@@ -126,19 +158,23 @@ final planetocentricResultsProvider =
 });
 
 List<ExportRow> planetocentricToExportRows(
-    List<PlanetoCentricResult> results, DisplayFormat fmt) {
+  List<PlanetoCentricResult> results,
+  DisplayFormat fmt,
+) {
   return results
-      .map((r) => ExportRow(
-            header: '${r.bodyName} from ${r.centerName}',
-            fields: [
-              ('Longitude', formatAngle(r.longitude, fmt)),
-              ('Latitude', formatAngle(r.latitude, fmt)),
-              ('Distance', formatDistance(r.distance, fmt)),
-              ('Spd Lon', formatSpeed(r.speedLon, fmt)),
-              ('Spd Lat', formatSpeed(r.speedLat, fmt)),
-              ('Spd Dist', formatSpeed(r.speedDist, fmt)),
-            ],
-          ))
+      .map(
+        (r) => ExportRow(
+          header: '${r.bodyName} from ${r.centerName}',
+          fields: [
+            ('Longitude', formatAngle(r.longitude, fmt)),
+            ('Latitude', formatAngle(r.latitude, fmt)),
+            ('Distance', formatDistance(r.distance, fmt)),
+            ('Spd Lon', formatSpeed(r.speedLon, fmt)),
+            ('Spd Lat', formatSpeed(r.speedLat, fmt)),
+            ('Spd Dist', formatSpeed(r.speedDist, fmt)),
+          ],
+        ),
+      )
       .toList();
 }
 

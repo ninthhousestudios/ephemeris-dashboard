@@ -11,20 +11,29 @@ import '../model/chart_data.dart';
 ///   B) "Input only" — has timezone/location data, shorter
 class JhdFormat {
   static const _planetOrder = [
-    'Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu',
+    'Sun',
+    'Moon',
+    'Mars',
+    'Mercury',
+    'Jupiter',
+    'Venus',
+    'Saturn',
+    'Rahu',
     'Ketu',
   ];
 
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   static ChartData readBytes(Uint8List bytes) {
-    final lines = String.fromCharCodes(bytes)
-        .split(RegExp(r'\r?\n'))
-        .map((l) => l.trim())
-        .toList();
+    final lines = String.fromCharCodes(
+      bytes,
+    ).split(RegExp(r'\r?\n')).map((l) => l.trim()).toList();
 
     if (lines.length < 9) {
-      throw FormatException('Invalid .jhd file: expected at least 9 lines, got ${lines.length}');
+      throw FormatException(
+        'Invalid .jhd file: expected at least 9 lines, got ${lines.length}',
+      );
     }
     final month = int.tryParse(lines[0]) ?? 1;
     final day = int.tryParse(lines[1]) ?? 1;
@@ -32,8 +41,10 @@ class JhdFormat {
     final decimalTime = double.tryParse(lines[3]) ?? 0.0;
     final hour = decimalTime.floor();
     final minute = ((decimalTime - hour) * 60).round();
-    final second =
-        (((decimalTime - hour) * 60 - minute) * 60).round().clamp(0, 59);
+    final second = (((decimalTime - hour) * 60 - minute) * 60).round().clamp(
+      0,
+      59,
+    );
 
     final rawOffset = double.tryParse(lines[4]) ?? 0.0;
     final utcOffset = -rawOffset;
@@ -59,11 +70,13 @@ class JhdFormat {
           final flags = lines[17];
           if (i < flags.length) retro = flags[i] == '1';
         }
-        planets.add(PlanetPosition(
-          name: _planetOrder[i],
-          longitude: lon,
-          retrograde: retro,
-        ));
+        planets.add(
+          PlanetPosition(
+            name: _planetOrder[i],
+            longitude: lon,
+            retrograde: retro,
+          ),
+        );
       }
       if (lines.length > 18) city = lines[18];
       if (lines.length > 19) country = lines[19];
@@ -135,8 +148,7 @@ class JhdFormat {
     for (final p in chart.planets!) {
       sb.writeln(p.longitude.toStringAsFixed(6));
     }
-    final flags =
-        chart.planets!.map((p) => p.retrograde ? '1' : '0').join();
+    final flags = chart.planets!.map((p) => p.retrograde ? '1' : '0').join();
     sb.writeln(flags);
 
     File(filePath).writeAsStringSync(sb.toString());

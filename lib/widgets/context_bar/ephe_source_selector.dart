@@ -11,8 +11,7 @@ class EpheSourceSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final source =
-        ref.watch(contextBarProvider.select((s) => s.epheSource));
+    final source = ref.watch(contextBarProvider.select((s) => s.epheSource));
     final noFiles = !hasEpheFiles;
 
     // When no ephemeris files exist, force Moshier and disable the dropdown.

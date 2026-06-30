@@ -17,7 +17,8 @@ class ContextBarState {
     this.origin = Origin.geocentric,
     this.zodiacRef = ZodiacRef.tropical,
     this.eqRef = EqRef.trueEquinox,
-    this.ayanamsa = -1, // -1 = none; 0+ = SE_SIDM_* constant (only meaningful when sidereal)
+    this.ayanamsa =
+        -1, // -1 = none; 0+ = SE_SIDM_* constant (only meaningful when sidereal)
     this.userAyanT0 = 0.0,
     this.userAyanValue = 0.0,
     this.epheSource = EpheSource.moshier,
@@ -42,7 +43,8 @@ class ContextBarState {
   final double userAyanT0; // reference JD for SE_SIDM_USER
   final double userAyanValue; // ayanamsa value at t0, degrees
   final EpheSource epheSource;
-  final String? jplFilename; // e.g. 'de440.eph'; only used when epheSource == jpl
+  final String?
+  jplFilename; // e.g. 'de440.eph'; only used when epheSource == jpl
 
   ContextBarState copyWith({
     DateTime? dateTime,
@@ -104,22 +106,22 @@ class ContextBarState {
 
   @override
   int get hashCode => Object.hash(
-        dateTime,
-        utcOffset,
-        jdUt,
-        latitude,
-        longitude,
-        altitude,
-        cityLabel,
-        origin,
-        zodiacRef,
-        eqRef,
-        ayanamsa,
-        userAyanT0,
-        userAyanValue,
-        epheSource,
-        jplFilename,
-      );
+    dateTime,
+    utcOffset,
+    jdUt,
+    latitude,
+    longitude,
+    altitude,
+    cityLabel,
+    origin,
+    zodiacRef,
+    eqRef,
+    ayanamsa,
+    userAyanT0,
+    userAyanValue,
+    epheSource,
+    jplFilename,
+  );
 }
 
 /// Geocentric (default) vs topocentric vs heliocentric/barycentric.

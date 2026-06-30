@@ -10,9 +10,20 @@ import '../../core/swe_service.dart';
 
 /// Common star names for quick-select chips.
 const commonStars = [
-  'Aldebaran', 'Regulus', 'Spica', 'Antares', 'Fomalhaut',
-  'Algol', 'Sirius', 'Canopus', 'Arcturus', 'Vega',
-  'Capella', 'Rigel', 'Betelgeuse', 'Pollux',
+  'Aldebaran',
+  'Regulus',
+  'Spica',
+  'Antares',
+  'Fomalhaut',
+  'Algol',
+  'Sirius',
+  'Canopus',
+  'Arcturus',
+  'Vega',
+  'Capella',
+  'Rigel',
+  'Betelgeuse',
+  'Pollux',
 ];
 
 /// Star catalog entry for autocomplete search.
@@ -139,7 +150,9 @@ const starCatalog = [
 final starSearchProvider = StateProvider<String>((ref) => 'Aldebaran');
 
 /// Display format for star results.
-final starsFormatProvider = StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
+final starsFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 /// Result of a fixed star calculation.
 class StarResult {
@@ -186,7 +199,9 @@ final starResultProvider = Provider<StarResult?>((ref) {
   try {
     final flags = ectx.iflag | seFlgSpeed;
     var r = runner.run(
-      globals, (eph) => eph.fixstar2Ut(term, ectx.jdUt, flags));
+      globals,
+      (eph) => eph.fixstar2Ut(term, ectx.jdUt, flags),
+    );
 
     // swisseph silently returns the first star (Aldebaran) when a search
     // doesn't match. Detect this by checking if the resolved name contains
@@ -205,7 +220,9 @@ final starResultProvider = Provider<StarResult?>((ref) {
       if (!term.startsWith(',')) {
         try {
           r = runner.run(
-            globals, (eph) => eph.fixstar2Ut(',$term', ectx.jdUt, flags));
+            globals,
+            (eph) => eph.fixstar2Ut(',$term', ectx.jdUt, flags),
+          );
         } on SweException {
           return null;
         }
@@ -250,7 +267,10 @@ List<ExportRow> starToExportRows(StarResult result, DisplayFormat fmt) {
         ('Longitude', formatAngle(result.longitude, fmt)),
         ('Latitude', formatAngle(result.latitude, fmt)),
         ('Distance', formatDistance(result.distance, fmt)),
-        ('Magnitude', result.magnitude.isNaN ? '—' : result.magnitude.toStringAsFixed(2)),
+        (
+          'Magnitude',
+          result.magnitude.isNaN ? '—' : result.magnitude.toStringAsFixed(2),
+        ),
         ('Spd Lon', formatSpeed(result.speedLon, fmt)),
         ('Spd Lat', formatSpeed(result.speedLat, fmt)),
         ('Spd Dist', formatSpeed(result.speedDist, fmt)),

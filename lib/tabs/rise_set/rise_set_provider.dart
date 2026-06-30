@@ -40,7 +40,6 @@ final riseSetAttempProvider = StateProvider<double>((ref) => 15.0);
 /// Does NOT include the event-type bits (rise/set/transit) — those are fixed.
 final riseSetModifiersProvider = StateProvider<int>((ref) => 0);
 
-
 // ── Result model ──────────────────────────────────────────────────────────────
 
 /// Readable date/time broken out from a JD by revjul().
@@ -69,9 +68,15 @@ class RiseSetDateTime {
   String formattedWithLocal(double utcOffset) {
     final utStr = formatted();
     if (utcOffset == 0.0) return utStr;
-    final utcDt = DateTime.utc(year, month, day,
-        hour.floor(), ((hour - hour.floor()) * 60).floor(),
-        (((hour - hour.floor()) * 60 - ((hour - hour.floor()) * 60).floor()) * 60).round());
+    final utcDt = DateTime.utc(
+      year,
+      month,
+      day,
+      hour.floor(),
+      ((hour - hour.floor()) * 60).floor(),
+      (((hour - hour.floor()) * 60 - ((hour - hour.floor()) * 60).floor()) * 60)
+          .round(),
+    );
     final totalMinutes = (utcOffset * 60).round();
     final local = utcDt.add(Duration(minutes: totalMinutes));
     final sign = utcOffset >= 0 ? '+' : '';
@@ -187,12 +192,20 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Rise
   try {
-    final r = runner.run(globals, (eph) => eph.riseTrans(
-      jdUt, body,
-      epheflag: epheflag, rsmi: rsCalcRise | modifiers,
-      geolon: geolon, geolat: geolat, geoalt: geoalt,
-      atpress: atpress, attemp: attemp,
-    ));
+    final r = runner.run(
+      globals,
+      (eph) => eph.riseTrans(
+        jdUt,
+        body,
+        epheflag: epheflag,
+        rsmi: rsCalcRise | modifiers,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+      ),
+    );
     riseJd = r.transitTime;
     riseFlag = r.returnFlag;
     riseDateTime = _toDateTime(swe, r.transitTime);
@@ -202,12 +215,20 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Set
   try {
-    final r = runner.run(globals, (eph) => eph.riseTrans(
-      jdUt, body,
-      epheflag: epheflag, rsmi: rsCalcSet | modifiers,
-      geolon: geolon, geolat: geolat, geoalt: geoalt,
-      atpress: atpress, attemp: attemp,
-    ));
+    final r = runner.run(
+      globals,
+      (eph) => eph.riseTrans(
+        jdUt,
+        body,
+        epheflag: epheflag,
+        rsmi: rsCalcSet | modifiers,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+      ),
+    );
     setJd = r.transitTime;
     setFlag = r.returnFlag;
     setDateTime = _toDateTime(swe, r.transitTime);
@@ -217,12 +238,20 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Upper meridian transit
   try {
-    final r = runner.run(globals, (eph) => eph.riseTrans(
-      jdUt, body,
-      epheflag: epheflag, rsmi: rsCalcMtransit | modifiers,
-      geolon: geolon, geolat: geolat, geoalt: geoalt,
-      atpress: atpress, attemp: attemp,
-    ));
+    final r = runner.run(
+      globals,
+      (eph) => eph.riseTrans(
+        jdUt,
+        body,
+        epheflag: epheflag,
+        rsmi: rsCalcMtransit | modifiers,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+      ),
+    );
     upperTransitJd = r.transitTime;
     upperTransitFlag = r.returnFlag;
     upperTransitDateTime = _toDateTime(swe, r.transitTime);
@@ -232,12 +261,20 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
   // Lower meridian transit
   try {
-    final r = runner.run(globals, (eph) => eph.riseTrans(
-      jdUt, body,
-      epheflag: epheflag, rsmi: rsCalcItransit | modifiers,
-      geolon: geolon, geolat: geolat, geoalt: geoalt,
-      atpress: atpress, attemp: attemp,
-    ));
+    final r = runner.run(
+      globals,
+      (eph) => eph.riseTrans(
+        jdUt,
+        body,
+        epheflag: epheflag,
+        rsmi: rsCalcItransit | modifiers,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+      ),
+    );
     lowerTransitJd = r.transitTime;
     lowerTransitFlag = r.returnFlag;
     lowerTransitDateTime = _toDateTime(swe, r.transitTime);
@@ -267,11 +304,9 @@ final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
-String _jdStr(double? jd) =>
-    jd != null ? jd.toStringAsFixed(8) : '—';
+String _jdStr(double? jd) => jd != null ? jd.toStringAsFixed(8) : '—';
 
-String _dtStr(RiseSetDateTime? dt) =>
-    dt?.formatted() ?? '—';
+String _dtStr(RiseSetDateTime? dt) => dt?.formatted() ?? '—';
 
 List<ExportRow> riseSetToExportRows(RiseSetResult result) {
   return [
@@ -296,7 +331,8 @@ List<ExportRow> riseSetToExportRows(RiseSetResult result) {
       fields: [
         ('JD', _jdStr(result.upperTransitJd)),
         ('Date/Time', _dtStr(result.upperTransitDateTime)),
-        if (result.upperTransitError != null) ('Error', result.upperTransitError!),
+        if (result.upperTransitError != null)
+          ('Error', result.upperTransitError!),
       ],
     ),
     ExportRow(
@@ -304,7 +340,8 @@ List<ExportRow> riseSetToExportRows(RiseSetResult result) {
       fields: [
         ('JD', _jdStr(result.lowerTransitJd)),
         ('Date/Time', _dtStr(result.lowerTransitDateTime)),
-        if (result.lowerTransitError != null) ('Error', result.lowerTransitError!),
+        if (result.lowerTransitError != null)
+          ('Error', result.lowerTransitError!),
       ],
     ),
   ];

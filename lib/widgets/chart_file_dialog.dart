@@ -88,12 +88,18 @@ class _ChartFileDialogState extends State<ChartFileDialog> {
         }
       }
 
-      dirs.sort((a, b) =>
-          p.basename(a.path).toLowerCase().compareTo(
-              p.basename(b.path).toLowerCase()));
-      files.sort((a, b) =>
-          p.basename(a.path).toLowerCase().compareTo(
-              p.basename(b.path).toLowerCase()));
+      dirs.sort(
+        (a, b) => p
+            .basename(a.path)
+            .toLowerCase()
+            .compareTo(p.basename(b.path).toLowerCase()),
+      );
+      files.sort(
+        (a, b) => p
+            .basename(a.path)
+            .toLowerCase()
+            .compareTo(p.basename(b.path).toLowerCase()),
+      );
 
       setState(() {
         _entries = [...dirs, ...files];
@@ -170,7 +176,9 @@ class _ChartFileDialogState extends State<ChartFileDialog> {
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 8),
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
                         border: const OutlineInputBorder(),
                         suffixIcon: IconButton(
                           icon: const Icon(Icons.arrow_forward, size: 16),
@@ -197,11 +205,15 @@ class _ChartFileDialogState extends State<ChartFileDialog> {
                       style: theme.textTheme.bodySmall,
                       underline: const SizedBox.shrink(),
                       items: _filters.entries
-                          .map((e) => DropdownMenuItem(
-                                value: e.key,
-                                child: Text(e.value,
-                                    overflow: TextOverflow.ellipsis),
-                              ))
+                          .map(
+                            (e) => DropdownMenuItem(
+                              value: e.key,
+                              child: Text(
+                                e.value,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
                           .toList(),
                       onChanged: (v) {
                         if (v != null) {
@@ -226,78 +238,78 @@ class _ChartFileDialogState extends State<ChartFileDialog> {
                   child: _loading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                          ? Center(
-                              child: Text(_error!,
-                                  style: TextStyle(color: colors.error)))
-                          : _entries.isEmpty
-                              ? Center(
-                                  child: Text('No matching files',
-                                      style: theme.textTheme.bodySmall))
-                              : ListView.builder(
-                                  itemCount: _entries.length,
-                                  itemBuilder: (context, i) {
-                                    final entry = _entries[i];
-                                    final isDir = entry is Directory;
-                                    final name = p.basename(entry.path);
-                                    final isSelected =
-                                        entry.path == _selectedPath;
+                      ? Center(
+                          child: Text(
+                            _error!,
+                            style: TextStyle(color: colors.error),
+                          ),
+                        )
+                      : _entries.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No matching files',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _entries.length,
+                          itemBuilder: (context, i) {
+                            final entry = _entries[i];
+                            final isDir = entry is Directory;
+                            final name = p.basename(entry.path);
+                            final isSelected = entry.path == _selectedPath;
 
-                                    return GestureDetector(
-                                      onDoubleTap: () {
-                                        if (entry is Directory) {
-                                          _navigateTo(entry);
-                                        } else {
-                                          Navigator.of(context)
-                                              .pop(entry.path);
-                                        }
-                                      },
-                                      child: ListTile(
-                                        dense: true,
-                                        selected: isSelected,
-                                        selectedTileColor:
-                                            colors.primaryContainer,
-                                        leading: Icon(
-                                          isDir
-                                              ? Icons.folder
-                                              : Icons.insert_drive_file,
-                                          size: 18,
-                                          color: isDir
-                                              ? colors.primary
-                                              : colors.onSurfaceVariant,
-                                        ),
-                                        title: Text(
-                                          name,
-                                          style: theme.textTheme.bodySmall,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        subtitle: isDir
-                                            ? null
-                                            : Text(
-                                                ChartIO.formatDescriptions[
-                                                        p
-                                                            .extension(
-                                                                entry.path)
-                                                            .toLowerCase()] ??
-                                                    '',
-                                                style: theme
-                                                    .textTheme.labelSmall
-                                                    ?.copyWith(
-                                                        color: colors
-                                                            .onSurfaceVariant),
-                                              ),
-                                        onTap: () {
-                                          if (entry is Directory) {
-                                            _navigateTo(entry);
-                                          } else {
-                                            setState(() {
-                                              _selectedPath = entry.path;
-                                            });
-                                          }
-                                        },
-                                      ),
-                                    );
-                                  },
+                            return GestureDetector(
+                              onDoubleTap: () {
+                                if (entry is Directory) {
+                                  _navigateTo(entry);
+                                } else {
+                                  Navigator.of(context).pop(entry.path);
+                                }
+                              },
+                              child: ListTile(
+                                dense: true,
+                                selected: isSelected,
+                                selectedTileColor: colors.primaryContainer,
+                                leading: Icon(
+                                  isDir
+                                      ? Icons.folder
+                                      : Icons.insert_drive_file,
+                                  size: 18,
+                                  color: isDir
+                                      ? colors.primary
+                                      : colors.onSurfaceVariant,
                                 ),
+                                title: Text(
+                                  name,
+                                  style: theme.textTheme.bodySmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                subtitle: isDir
+                                    ? null
+                                    : Text(
+                                        ChartIO.formatDescriptions[p
+                                                .extension(entry.path)
+                                                .toLowerCase()] ??
+                                            '',
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: colors.onSurfaceVariant,
+                                            ),
+                                      ),
+                                onTap: () {
+                                  if (entry is Directory) {
+                                    _navigateTo(entry);
+                                  } else {
+                                    setState(() {
+                                      _selectedPath = entry.path;
+                                    });
+                                  }
+                                },
+                              ),
+                            );
+                          },
+                        ),
                 ),
               ),
               const SizedBox(height: 12),

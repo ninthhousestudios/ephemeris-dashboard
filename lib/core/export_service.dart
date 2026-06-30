@@ -70,9 +70,10 @@ class ExportService {
     for (final row in rows) {
       final valuesByLabel = _fieldMap(row);
       buf.writeln(
-        [row.header, ...labels.map((l) => valuesByLabel[l] ?? '')]
-            .map(_csvEscape)
-            .join(','),
+        [
+          row.header,
+          ...labels.map((l) => valuesByLabel[l] ?? ''),
+        ].map(_csvEscape).join(','),
       );
     }
     return buf.toString().trimRight();

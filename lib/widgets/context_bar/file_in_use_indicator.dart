@@ -22,21 +22,26 @@ class FileInUseIndicator extends ConsumerWidget {
     final ctx = ref.watch(contextBarProvider);
     final theme = Theme.of(context);
 
-    final (String text, Color bg, Color fg, String tooltip) = switch (ctx.epheSource) {
+    final (
+      String text,
+      Color bg,
+      Color fg,
+      String tooltip,
+    ) = switch (ctx.epheSource) {
       EpheSource.moshier => (
-          'Moshier',
-          theme.colorScheme.tertiaryContainer,
-          theme.colorScheme.onTertiaryContainer,
-          'Analytical Moshier model — no ephemeris file is read.',
-        ),
+        'Moshier',
+        theme.colorScheme.tertiaryContainer,
+        theme.colorScheme.onTertiaryContainer,
+        'Analytical Moshier model — no ephemeris file is read.',
+      ),
       EpheSource.jpl => (
-          ctx.jplFilename ?? 'JPL',
-          theme.colorScheme.secondaryContainer,
-          theme.colorScheme.onSecondaryContainer,
-          ctx.jplFilename == null
-              ? 'JPL mode selected but no JPL file chosen.'
-              : 'JPL file for JD ${ctx.jdUt.toStringAsFixed(2)}: ${ctx.jplFilename}',
-        ),
+        ctx.jplFilename ?? 'JPL',
+        theme.colorScheme.secondaryContainer,
+        theme.colorScheme.onSecondaryContainer,
+        ctx.jplFilename == null
+            ? 'JPL mode selected but no JPL file chosen.'
+            : 'JPL file for JD ${ctx.jdUt.toStringAsFixed(2)}: ${ctx.jplFilename}',
+      ),
       EpheSource.swissEph => _swissEphBadge(ref, ctx.jdUt, theme),
     };
 
@@ -45,7 +50,8 @@ class FileInUseIndicator extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () {
-          ref.read(selectedTabProvider.notifier).state = AppTab.ephemerisManager;
+          ref.read(selectedTabProvider.notifier).state =
+              AppTab.ephemerisManager;
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -66,7 +72,10 @@ class FileInUseIndicator extends ConsumerWidget {
   }
 
   (String, Color, Color, String) _swissEphBadge(
-      WidgetRef ref, double jdUt, ThemeData theme) {
+    WidgetRef ref,
+    double jdUt,
+    ThemeData theme,
+  ) {
     final file = ref.watch(activeFileProvider(BodyFamily.planets));
     if (file == null) {
       return (

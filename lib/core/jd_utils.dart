@@ -9,7 +9,10 @@ class JdUtils {
 
   /// Convert a Dart [DateTime] (treated as UT) to Julian Day.
   double dateTimeToJd(DateTime dt) {
-    final hour = dt.hour + dt.minute / 60.0 + dt.second / 3600.0 +
+    final hour =
+        dt.hour +
+        dt.minute / 60.0 +
+        dt.second / 3600.0 +
         dt.millisecond / 3600000.0;
     return _swe.julday(dt.year, dt.month, dt.day, hour);
   }

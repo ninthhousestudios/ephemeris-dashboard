@@ -19,14 +19,16 @@ const _scaleMin = 0.6;
 const _scaleMax = 2.0;
 
 void zoomIn(WidgetRef ref) {
-  ref.read(scaleFactorProvider.notifier).update(
-      (s) => (s + _scaleStep).clamp(_scaleMin, _scaleMax));
+  ref
+      .read(scaleFactorProvider.notifier)
+      .update((s) => (s + _scaleStep).clamp(_scaleMin, _scaleMax));
   ref.read(persistenceProvider).saveZoom(ref.read(scaleFactorProvider));
 }
 
 void zoomOut(WidgetRef ref) {
-  ref.read(scaleFactorProvider.notifier).update(
-      (s) => (s - _scaleStep).clamp(_scaleMin, _scaleMax));
+  ref
+      .read(scaleFactorProvider.notifier)
+      .update((s) => (s - _scaleStep).clamp(_scaleMin, _scaleMax));
   ref.read(persistenceProvider).saveZoom(ref.read(scaleFactorProvider));
 }
 

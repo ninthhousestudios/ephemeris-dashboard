@@ -112,11 +112,13 @@ const _kCustomPathKey = 'ephe.customPath';
 class EphemerisDirectoryNotifier
     extends StateNotifier<EphemerisDirectorySettings> {
   EphemerisDirectoryNotifier(this._prefs)
-      : super(EphemerisDirectorySettings(
+    : super(
+        EphemerisDirectorySettings(
           useManaged: _prefs.getBool(_kUseManagedKey) ?? true,
           customPath: _prefs.getString(_kCustomPathKey),
           managedPath: managedEphePath,
-        ));
+        ),
+      );
 
   final SharedPreferences _prefs;
 
@@ -132,11 +134,14 @@ class EphemerisDirectoryNotifier
   }
 }
 
-final ephemerisDirectoryProvider = StateNotifierProvider<
-    EphemerisDirectoryNotifier, EphemerisDirectorySettings>((ref) {
-  final prefs = ref.watch(sharedPrefsProvider);
-  return EphemerisDirectoryNotifier(prefs);
-});
+final ephemerisDirectoryProvider =
+    StateNotifierProvider<
+      EphemerisDirectoryNotifier,
+      EphemerisDirectorySettings
+    >((ref) {
+      final prefs = ref.watch(sharedPrefsProvider);
+      return EphemerisDirectoryNotifier(prefs);
+    });
 
 /// The ephe directory that SwissEph reads from AND the manager writes to.
 /// When useManaged, always returns the managed dir (seeded with the

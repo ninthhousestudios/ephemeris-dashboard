@@ -4,7 +4,8 @@ import 'package:swisseph/swisseph.dart';
 
 // Conditional dart:io import — only used when !kIsWeb.
 import 'swe_service_io.dart'
-    if (dart.library.js_interop) 'swe_service_stub.dart' as io;
+    if (dart.library.js_interop) 'swe_service_stub.dart'
+    as io;
 
 /// Resolved once at startup; null on web (Moshier mode, no files needed).
 String? _ephePath;

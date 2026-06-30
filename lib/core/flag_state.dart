@@ -58,7 +58,11 @@ class FlagBarState {
           lockedFlags == other.lockedFlags;
 
   @override
-  int get hashCode => Object.hash(coordValue, Object.hashAll(toggles.toList()..sort()), lockedFlags);
+  int get hashCode => Object.hash(
+    coordValue,
+    Object.hashAll(toggles.toList()..sort()),
+    lockedFlags,
+  );
 
   /// Compute locked flags from context bar state.
   static int lockedFlagsFrom(ContextBarState ctx) {

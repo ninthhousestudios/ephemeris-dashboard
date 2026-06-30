@@ -9,7 +9,8 @@ import '../model/chart_data.dart';
 /// The key switch is `-qa` which carries all birth data.
 /// Zone: positive = west of UTC, negative = east (US convention).
 class AstrologFormat {
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   static ChartData readBytes(Uint8List bytes) {
     final lines = String.fromCharCodes(bytes).split(RegExp(r'\r?\n'));
@@ -30,8 +31,7 @@ class AstrologFormat {
           year = int.tryParse(parts[2]) ?? 2000;
           final timeParts = parts[3].split(':');
           hour = int.tryParse(timeParts[0]) ?? 0;
-          minute =
-              timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
+          minute = timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
           utcOffset = -(double.tryParse(parts[4]) ?? 0.0);
           longitude = _parseCoord(parts[5]);
           latitude = _parseCoord(parts[6]);
@@ -46,8 +46,7 @@ class AstrologFormat {
           year = int.tryParse(parts[2]) ?? 2000;
           final timeParts = parts[3].split(':');
           hour = int.tryParse(timeParts[0]) ?? 0;
-          minute =
-              timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
+          minute = timeParts.length > 1 ? (int.tryParse(timeParts[1]) ?? 0) : 0;
         }
       }
 
@@ -74,10 +73,7 @@ class AstrologFormat {
     return ChartData(
       name: name ?? 'Chart',
       dateTime: DateTime(year, month, day, hour, minute),
-      birthLocation: GeoLocation(
-        latitude: latitude,
-        longitude: longitude,
-      ),
+      birthLocation: GeoLocation(latitude: latitude, longitude: longitude),
       utcOffsetHours: utcOffset,
     );
   }
@@ -97,7 +93,8 @@ class AstrologFormat {
     final latStr = _formatCoord(chart.birthLocation.latitude);
 
     sb.writeln(
-        '-qa ${dt.month} ${dt.day} ${dt.year} $timeStr $zoneStr $lonStr $latStr');
+      '-qa ${dt.month} ${dt.day} ${dt.year} $timeStr $zoneStr $lonStr $latStr',
+    );
 
     File(filePath).writeAsStringSync(sb.toString());
   }

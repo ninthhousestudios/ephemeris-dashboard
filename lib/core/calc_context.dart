@@ -60,10 +60,20 @@ class EffectiveContext {
 
   @override
   int get hashCode => Object.hash(
-        jdUt, iflag, latitude, longitude, altitude,
-        origin, zodiacRef, eqRef, ayanamsa, userAyanT0, userAyanValue,
-        epheSource, jplFilename,
-      );
+    jdUt,
+    iflag,
+    latitude,
+    longitude,
+    altitude,
+    origin,
+    zodiacRef,
+    eqRef,
+    ayanamsa,
+    userAyanT0,
+    userAyanValue,
+    epheSource,
+    jplFilename,
+  );
 }
 
 /// Derived provider: merges context bar + flag bar into EffectiveContext.

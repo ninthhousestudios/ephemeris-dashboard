@@ -8,7 +8,8 @@ import '../model/chart_data.dart';
 /// TOML chart format — structured, human-readable format.
 /// Time stored as Julian Day number.
 class TomlChartFormat {
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   static ChartData readBytes(Uint8List bytes) {
     final content = String.fromCharCodes(bytes);
@@ -92,19 +93,14 @@ class TomlChartFormat {
       if (chart.gender != null) 'gender': chart.gender!.name,
       if (chart.birthLocation.country.isNotEmpty)
         'country': chart.birthLocation.country,
-      'timeJD': {
-        'jd': jd,
-        'utcoffset': chart.utcOffsetHours,
-      },
+      'timeJD': {'jd': jd, 'utcoffset': chart.utcOffsetHours},
       'location': {
         'lat': chart.birthLocation.latitude,
         'long': chart.birthLocation.longitude,
-        if (chart.extra.containsKey('altitude'))
-          'alt': chart.extra['altitude'],
+        if (chart.extra.containsKey('altitude')) 'alt': chart.extra['altitude'],
         'placename': chart.birthLocation.city,
         'timezone': _formatTimezone(chart.utcOffsetHours),
-        if (chart.extra.containsKey('icao'))
-          'icao': chart.extra['icao'],
+        if (chart.extra.containsKey('icao')) 'icao': chart.extra['icao'],
       },
     };
 
@@ -148,8 +144,7 @@ class TomlChartFormat {
     }
     final a = y ~/ 100;
     final b = 2 - a + (a ~/ 4);
-    final dayFrac =
-        (dt.hour + dt.minute / 60.0 + dt.second / 3600.0) / 24.0;
+    final dayFrac = (dt.hour + dt.minute / 60.0 + dt.second / 3600.0) / 24.0;
     return (365.25 * (y + 4716)).floor() +
         (30.6001 * (m + 1)).floor() +
         dt.day +

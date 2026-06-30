@@ -15,7 +15,14 @@ import 'formats/qck.dart';
 /// Unified chart I/O — dispatches to the correct format by file extension.
 class ChartIO {
   static const supportedExtensions = [
-    '.chtk', '.jhd', '.aaf', '.as', '.json', '.csv', '.toml', '.qck',
+    '.chtk',
+    '.jhd',
+    '.aaf',
+    '.as',
+    '.json',
+    '.csv',
+    '.toml',
+    '.qck',
   ];
 
   static const formatDescriptions = {
@@ -30,8 +37,9 @@ class ChartIO {
   };
 
   /// File extension filter strings for file_picker.
-  static final pickerExtensions =
-      supportedExtensions.map((e) => e.substring(1)).toList();
+  static final pickerExtensions = supportedExtensions
+      .map((e) => e.substring(1))
+      .toList();
 
   /// Read a chart from any supported format.
   static ChartData read(String filePath) {

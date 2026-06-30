@@ -23,22 +23,24 @@ class FlagGroupWidget extends StatelessWidget {
         Text(
           '${group.label}:',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(width: 6),
-        ...group.members.map((m) => Padding(
-              padding: const EdgeInsets.only(right: 4),
-              child: Tooltip(
-                message: m.tooltip,
-                child: ChoiceChip(
-                  label: Text(m.label),
-                  selected: selectedValue == m.value,
-                  onSelected: (_) => onSelected(m.value),
-                  visualDensity: VisualDensity.compact,
-                ),
+        ...group.members.map(
+          (m) => Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Tooltip(
+              message: m.tooltip,
+              child: ChoiceChip(
+                label: Text(m.label),
+                selected: selectedValue == m.value,
+                onSelected: (_) => onSelected(m.value),
+                visualDensity: VisualDensity.compact,
               ),
-            )),
+            ),
+          ),
+        ),
       ],
     );
   }

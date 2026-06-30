@@ -15,6 +15,7 @@ enum BodyFamily {
   planets,
   moon,
   mainAsteroids,
+
   /// Per-asteroid files (`seNNNNs.se1`) in `astX/` subdirs (X = mpc ~/ 1000).
   numberedAsteroid,
   fixedStars,
@@ -55,10 +56,12 @@ class EpheFile {
   final double endJd;
   final int startYear; // proleptic Gregorian; negative = BCE
   final int endYear;
+
   /// Subdirectory relative to the ephe root (e.g. 'ast0'). Empty string
   /// means the file lives directly in the ephe root. Scanner and
   /// downloader both honor this for path-joining.
   final String subdir;
+
   /// For [BodyFamily.numberedAsteroid], the MPC number (e.g. 433 = Eros).
   final int? mpcNumber;
   final int? ephemerisNumber; // from getCurrentFileData; null until probed
@@ -124,17 +127,17 @@ class EpheFile {
 
   @override
   int get hashCode => Object.hash(
-        filename,
-        family,
-        startJd,
-        endJd,
-        startYear,
-        endYear,
-        subdir,
-        mpcNumber,
-        sizeBytes,
-        status,
-        ephemerisNumber,
-        downloadProgress,
-      );
+    filename,
+    family,
+    startJd,
+    endJd,
+    startYear,
+    endYear,
+    subdir,
+    mpcNumber,
+    sizeBytes,
+    status,
+    ephemerisNumber,
+    downloadProgress,
+  );
 }

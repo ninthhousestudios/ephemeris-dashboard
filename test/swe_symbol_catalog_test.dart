@@ -61,7 +61,10 @@ void main() {
 
   group('flagDecompose', () {
     test('decomposes single flag', () {
-      expect(SweSymbolCatalog.flagDecompose(seFlgSpeed), equals(['SEFLG_SPEED']));
+      expect(
+        SweSymbolCatalog.flagDecompose(seFlgSpeed),
+        equals(['SEFLG_SPEED']),
+      );
     });
 
     test('decomposes combined flags', () {
@@ -74,12 +77,15 @@ void main() {
     test('decomposes complex flag combination', () {
       final flags = seFlgSwiEph | seFlgSpeed | seFlgTopoCtr | seFlgSidereal;
       final names = SweSymbolCatalog.flagDecompose(flags);
-      expect(names, containsAll([
-        'SEFLG_SWIEPH',
-        'SEFLG_SPEED',
-        'SEFLG_TOPOCTR',
-        'SEFLG_SIDEREAL',
-      ]));
+      expect(
+        names,
+        containsAll([
+          'SEFLG_SWIEPH',
+          'SEFLG_SPEED',
+          'SEFLG_TOPOCTR',
+          'SEFLG_SIDEREAL',
+        ]),
+      );
       expect(names, hasLength(4));
     });
 
@@ -97,16 +103,32 @@ void main() {
 
   group('sidModeName', () {
     test('returns C name for common modes', () {
-      expect(SweSymbolCatalog.sidModeName(seSidmFaganBradley), equals('SE_SIDM_FAGAN_BRADLEY'));
-      expect(SweSymbolCatalog.sidModeName(seSidmLahiri), equals('SE_SIDM_LAHIRI'));
-      expect(SweSymbolCatalog.sidModeName(seSidmRaman), equals('SE_SIDM_RAMAN'));
-      expect(SweSymbolCatalog.sidModeName(seSidmKrishnamurti), equals('SE_SIDM_KRISHNAMURTI'));
+      expect(
+        SweSymbolCatalog.sidModeName(seSidmFaganBradley),
+        equals('SE_SIDM_FAGAN_BRADLEY'),
+      );
+      expect(
+        SweSymbolCatalog.sidModeName(seSidmLahiri),
+        equals('SE_SIDM_LAHIRI'),
+      );
+      expect(
+        SweSymbolCatalog.sidModeName(seSidmRaman),
+        equals('SE_SIDM_RAMAN'),
+      );
+      expect(
+        SweSymbolCatalog.sidModeName(seSidmKrishnamurti),
+        equals('SE_SIDM_KRISHNAMURTI'),
+      );
     });
 
     test('returns C name for all 47 modes', () {
       for (int i = 0; i <= 46; i++) {
         final name = SweSymbolCatalog.sidModeName(i);
-        expect(name, startsWith('SE_SIDM_'), reason: 'mode $i should have SE_SIDM_ prefix');
+        expect(
+          name,
+          startsWith('SE_SIDM_'),
+          reason: 'mode $i should have SE_SIDM_ prefix',
+        );
       }
     });
 
@@ -123,21 +145,39 @@ void main() {
     test('returns display name for common house systems', () {
       expect(SweSymbolCatalog.houseSysName(hsysPlacidus), equals('Placidus'));
       expect(SweSymbolCatalog.houseSysName(hsysKoch), equals('Koch'));
-      expect(SweSymbolCatalog.houseSysName(hsysWholeSign), equals('Whole Sign'));
+      expect(
+        SweSymbolCatalog.houseSysName(hsysWholeSign),
+        equals('Whole Sign'),
+      );
       expect(SweSymbolCatalog.houseSysName(hsysEqual), equals('Equal'));
       expect(SweSymbolCatalog.houseSysName(hsysCampanus), equals('Campanus'));
     });
 
     test('returns display name for all house systems', () {
       expect(SweSymbolCatalog.houseSysName(hsysPorphyry), equals('Porphyry'));
-      expect(SweSymbolCatalog.houseSysName(hsysRegiomontanus), equals('Regiomontanus'));
-      expect(SweSymbolCatalog.houseSysName(hsysAlcabitius), equals('Alcabitius'));
-      expect(SweSymbolCatalog.houseSysName(hsysTopocentric), equals('Topocentric'));
+      expect(
+        SweSymbolCatalog.houseSysName(hsysRegiomontanus),
+        equals('Regiomontanus'),
+      );
+      expect(
+        SweSymbolCatalog.houseSysName(hsysAlcabitius),
+        equals('Alcabitius'),
+      );
+      expect(
+        SweSymbolCatalog.houseSysName(hsysTopocentric),
+        equals('Topocentric'),
+      );
       expect(SweSymbolCatalog.houseSysName(hsysMeridian), equals('Meridian'));
       expect(SweSymbolCatalog.houseSysName(hsysMorinus), equals('Morinus'));
-      expect(SweSymbolCatalog.houseSysName(hsysKrusinski), equals('Krusinski-Pisa'));
+      expect(
+        SweSymbolCatalog.houseSysName(hsysKrusinski),
+        equals('Krusinski-Pisa'),
+      );
       expect(SweSymbolCatalog.houseSysName(hsysVehlow), equals('Vehlow Equal'));
-      expect(SweSymbolCatalog.houseSysName(hsysGauquelin), equals('Gauquelin Sectors'));
+      expect(
+        SweSymbolCatalog.houseSysName(hsysGauquelin),
+        equals('Gauquelin Sectors'),
+      );
     });
 
     test('returns integer fallback for unknown house system', () {

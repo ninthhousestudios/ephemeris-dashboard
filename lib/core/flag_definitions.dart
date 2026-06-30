@@ -2,11 +2,7 @@ import 'package:swisseph/swisseph.dart';
 
 /// Metadata for a single flag toggle or group member.
 class FlagDef {
-  const FlagDef({
-    required this.label,
-    required this.value,
-    this.tooltip = '',
-  });
+  const FlagDef({required this.label, required this.value, this.tooltip = ''});
 
   final String label;
   final int value;
@@ -16,10 +12,7 @@ class FlagDef {
 /// A mutually exclusive group — only one member can be active at a time.
 /// The first member is the default.
 class FlagGroup {
-  const FlagGroup({
-    required this.label,
-    required this.members,
-  });
+  const FlagGroup({required this.label, required this.members});
 
   final String label;
   final List<FlagDef> members;
@@ -81,11 +74,7 @@ final flagToggles = [
     value: seFlgJ2000,
     tooltip: 'J2000 equator/ecliptic reference frame',
   ),
-  FlagDef(
-    label: 'No Nut',
-    value: seFlgNoNut,
-    tooltip: 'No nutation',
-  ),
+  FlagDef(label: 'No Nut', value: seFlgNoNut, tooltip: 'No nutation'),
   FlagDef(
     label: 'ICRS',
     value: seFlgIcrs,

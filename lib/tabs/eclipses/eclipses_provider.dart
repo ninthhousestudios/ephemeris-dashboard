@@ -25,17 +25,18 @@ const eclipseFilters = <(String, int)>[
 
 // ── State providers ──────────────────────────────────────────────────────────
 
-final eclipseTypeProvider =
-    StateProvider<EclipseType>((ref) => EclipseType.solar);
+final eclipseTypeProvider = StateProvider<EclipseType>(
+  (ref) => EclipseType.solar,
+);
 
-final eclipseScopeProvider =
-    StateProvider<EclipseScope>((ref) => EclipseScope.global);
+final eclipseScopeProvider = StateProvider<EclipseScope>(
+  (ref) => EclipseScope.global,
+);
 
 final eclipseFilterProvider = StateProvider<int>((ref) => 0);
 
 /// How many eclipses to search for in a single Calculate press.
 final eclipseCountProvider = StateProvider<int>((ref) => 5);
-
 
 // ── Result models ────────────────────────────────────────────────────────────
 
@@ -152,18 +153,21 @@ final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
 
   for (var i = 0; i < count; i++) {
     try {
-      final event = runner.run(globals, (eph) => _findNextEclipse(
-        swe: eph,
-        jdStart: searchJd,
-        epheflag: epheflag,
-        type: type,
-        scope: scope,
-        eclFilter: eclFilter,
-        index: i + 1,
-        geolon: ectx.longitude,
-        geolat: ectx.latitude,
-        geoalt: ectx.altitude,
-      ));
+      final event = runner.run(
+        globals,
+        (eph) => _findNextEclipse(
+          swe: eph,
+          jdStart: searchJd,
+          epheflag: epheflag,
+          type: type,
+          scope: scope,
+          eclFilter: eclFilter,
+          index: i + 1,
+          geolon: ectx.longitude,
+          geolat: ectx.latitude,
+          geoalt: ectx.altitude,
+        ),
+      );
       results.add(event);
       if (event.maxEclipseJd != null) {
         searchJd = event.maxEclipseJd! + 1.0;
@@ -171,13 +175,15 @@ final eclipseResultsProvider = Provider<List<EclipseEvent>>((ref) {
         break;
       }
     } catch (e) {
-      results.add(EclipseEvent(
-        index: i + 1,
-        type: type,
-        scope: scope,
-        returnFlag: 0,
-        error: e.toString(),
-      ));
+      results.add(
+        EclipseEvent(
+          index: i + 1,
+          type: type,
+          scope: scope,
+          returnFlag: 0,
+          error: e.toString(),
+        ),
+      );
       break;
     }
   }
@@ -263,8 +269,11 @@ EclipseEvent _findSolarEclipse({
     );
   } else {
     final l = swe.solEclipseWhenLoc(
-      jdStart, epheflag,
-      geolon: geolon, geolat: geolat, geoalt: geoalt,
+      jdStart,
+      epheflag,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
     );
     return EclipseEvent(
       index: index,
@@ -314,8 +323,11 @@ EclipseEvent _findLunarEclipse({
     );
   } else {
     final l = swe.lunEclipseWhenLoc(
-      jdStart, epheflag,
-      geolon: geolon, geolat: geolat, geoalt: geoalt,
+      jdStart,
+      epheflag,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
     );
     return EclipseEvent(
       index: index,
@@ -342,9 +354,7 @@ double? _nonZero(double v) => v == 0.0 ? null : v;
 
 List<ExportRow> eclipsesToExportRows(List<EclipseEvent> events, SwissEph swe) {
   return events.map((e) {
-    final fields = <(String, String)>[
-      ('Type', e.eclipseTypeLabel),
-    ];
+    final fields = <(String, String)>[('Type', e.eclipseTypeLabel)];
     if (e.error != null) {
       fields.add(('Error', e.error!));
     } else {
@@ -372,7 +382,10 @@ List<ExportRow> eclipsesToExportRows(List<EclipseEvent> events, SwissEph swe) {
         fields.add(('Central Lon', e.centralLon!.toStringAsFixed(4)));
       }
       if (e.sarosSeries != null) {
-        fields.add(('Saros', '${e.sarosSeries!.round()}/${e.sarosMember?.round() ?? "?"}'));
+        fields.add((
+          'Saros',
+          '${e.sarosSeries!.round()}/${e.sarosMember?.round() ?? "?"}',
+        ));
       }
     }
     return ExportRow(

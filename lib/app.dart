@@ -22,22 +22,20 @@ class SweDashboardApp extends ConsumerWidget {
       builder: (context, child) {
         final mq = MediaQuery.of(context);
         return MediaQuery(
-          data: mq.copyWith(
-            textScaler: TextScaler.linear(scale),
-          ),
+          data: mq.copyWith(textScaler: TextScaler.linear(scale)),
           child: child!,
         );
       },
       home: CallbackShortcuts(
         bindings: {
-          const SingleActivator(LogicalKeyboardKey.equal, control: true): () => zoomIn(ref),
-          const SingleActivator(LogicalKeyboardKey.minus, control: true): () => zoomOut(ref),
-          const SingleActivator(LogicalKeyboardKey.digit0, control: true): () => zoomReset(ref),
+          const SingleActivator(LogicalKeyboardKey.equal, control: true): () =>
+              zoomIn(ref),
+          const SingleActivator(LogicalKeyboardKey.minus, control: true): () =>
+              zoomOut(ref),
+          const SingleActivator(LogicalKeyboardKey.digit0, control: true): () =>
+              zoomReset(ref),
         },
-        child: const Focus(
-          autofocus: true,
-          child: AppShell(),
-        ),
+        child: const Focus(autofocus: true, child: AppShell()),
       ),
     );
   }

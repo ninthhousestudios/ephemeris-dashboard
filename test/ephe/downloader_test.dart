@@ -97,12 +97,9 @@ void main() {
       md5: expectedMd5,
     );
 
-    await expectLater(
-      () async {
-        await for (final _ in dl.download(entry: entry, destDir: tmp.path)) {}
-      },
-      throwsA(isA<DownloadFailed>()),
-    );
+    await expectLater(() async {
+      await for (final _ in dl.download(entry: entry, destDir: tmp.path)) {}
+    }, throwsA(isA<DownloadFailed>()));
     // On MD5 failure, the .part file must be cleaned up.
     expect(File('${tmp.path}/payload.bin.part').existsSync(), isFalse);
     expect(File('${tmp.path}/payload.bin').existsSync(), isFalse);
@@ -115,8 +112,9 @@ void main() {
 
     // Pre-seed a half-complete .part file.
     final halfway = payload.length ~/ 2;
-    File('${tmp.path}/payload.bin.part')
-        .writeAsBytesSync(payload.sublist(0, halfway));
+    File(
+      '${tmp.path}/payload.bin.part',
+    ).writeAsBytesSync(payload.sublist(0, halfway));
 
     final dl = EphemerisDownloader(Dio());
     final entry = CatalogEntry(
@@ -132,8 +130,7 @@ void main() {
     expect(out.readAsBytesSync(), payload);
   });
 
-  test('large-download callback can cancel before any bytes move',
-      () async {
+  test('large-download callback can cancel before any bytes move', () async {
     final dl = EphemerisDownloader(Dio());
     final entry = CatalogEntry(
       filename: 'huge.eph',
@@ -141,16 +138,13 @@ void main() {
       url: 'http://127.0.0.1:1/nope', // should never be hit
       sizeBytes: kLargeDownloadThreshold + 1,
     );
-    await expectLater(
-      () async {
-        await for (final _ in dl.download(
-          entry: entry,
-          destDir: tmp.path,
-          confirmLargeDownload: (_) async => false,
-        )) {}
-      },
-      throwsA(isA<DownloadFailed>()),
-    );
+    await expectLater(() async {
+      await for (final _ in dl.download(
+        entry: entry,
+        destDir: tmp.path,
+        confirmLargeDownload: (_) async => false,
+      )) {}
+    }, throwsA(isA<DownloadFailed>()));
     expect(File('${tmp.path}/huge.eph.part').existsSync(), isFalse);
   });
 }

@@ -67,7 +67,9 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
 
   // SE files: (sepl|semo|seas)(_|m)NN.se1 — NN is 2 or 3 digits (step-of-6
   // chunks from aloistr/swisseph/ephe: …,_48,_54,…,_96,_102,_108,…).
-  final seMatch = RegExp(r'^(sepl|semo|seas)(_|m)(\d{2,3})\.se1$').firstMatch(filename);
+  final seMatch = RegExp(
+    r'^(sepl|semo|seas)(_|m)(\d{2,3})\.se1$',
+  ).firstMatch(filename);
   if (seMatch != null) {
     final prefix = seMatch.group(1)!;
     final bceMarker = seMatch.group(2)!; // '_' = AD, 'm' = BCE
@@ -138,13 +140,8 @@ double gregorianYearStartJd(int year) {
   final y = year + 4800 - a;
   final m = month + 12 * a - 3;
   // Fliegel–Van Flandern Gregorian JD (noon TT).
-  final jdn = day +
-      (153 * m + 2) ~/ 5 +
-      365 * y +
-      y ~/ 4 -
-      y ~/ 100 +
-      y ~/ 400 -
-      32045;
+  final jdn =
+      day + (153 * m + 2) ~/ 5 + 365 * y + y ~/ 4 - y ~/ 100 + y ~/ 400 - 32045;
   // Midnight UT = JD noon - 0.5.
   return jdn - 0.5;
 }

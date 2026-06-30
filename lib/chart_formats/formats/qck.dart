@@ -21,7 +21,8 @@ class QckFormat {
         .toList();
   }
 
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   static ChartData readBytes(Uint8List bytes) {
     final charts = readAllBytes(bytes);
@@ -72,7 +73,9 @@ class QckFormat {
       var lon = lonDeg + lonMin / 60.0;
       if (lonDir == 'W') lon = -lon;
 
-      final place = s.length > 62 ? s.substring(62, s.length.clamp(62, 96)).trim() : '';
+      final place = s.length > 62
+          ? s.substring(62, s.length.clamp(62, 96)).trim()
+          : '';
 
       Gender? gender;
       if (s.length > 96) {
@@ -90,11 +93,7 @@ class QckFormat {
       return ChartData(
         name: name,
         dateTime: DateTime(year, month, day, hour, minute),
-        birthLocation: GeoLocation(
-          city: place,
-          latitude: lat,
-          longitude: lon,
-        ),
+        birthLocation: GeoLocation(city: place, latitude: lat, longitude: lon),
         utcOffsetHours: utcOffset,
         gender: gender,
         roddenRating: rodden,
@@ -124,20 +123,26 @@ class QckFormat {
     final latAbs = loc.latitude.abs();
     final latDeg = latAbs.floor().toString().padLeft(2, '0');
     final latDir = loc.latitude >= 0 ? 'N' : 'S';
-    final latMin = ((latAbs - latAbs.floor()) * 60).round().toString().padLeft(2, '0');
+    final latMin = ((latAbs - latAbs.floor()) * 60).round().toString().padLeft(
+      2,
+      '0',
+    );
 
     final lonAbs = loc.longitude.abs();
     final lonDeg = lonAbs.floor().toString().padLeft(3, '0');
     final lonDir = loc.longitude >= 0 ? 'E' : 'W';
-    final lonMin = ((lonAbs - lonAbs.floor()) * 60).round().toString().padLeft(2, '0');
+    final lonMin = ((lonAbs - lonAbs.floor()) * 60).round().toString().padLeft(
+      2,
+      '0',
+    );
 
     final place = loc.city.padRight(34).substring(0, 34);
 
     final gender = c.gender == Gender.male
         ? 'M'
         : c.gender == Gender.female
-            ? 'F'
-            : ' ';
+        ? 'F'
+        : ' ';
     final rodden = (c.roddenRating ?? '').padRight(3).substring(0, 3);
 
     return '$name$month$day$year$hour$minute$timeFlag$tzStr$tzExtra'

@@ -74,8 +74,13 @@ class DatesResult {
   /// Day of week name.
   String get dayOfWeekName {
     const names = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-      'Friday', 'Saturday', 'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     ];
     if (dayOfWeekIndex < 0 || dayOfWeekIndex > 6) return '?';
     return names[dayOfWeekIndex];

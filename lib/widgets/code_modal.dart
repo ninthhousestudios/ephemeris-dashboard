@@ -13,11 +13,7 @@ void showCodeModal(
 }
 
 class CodeModal extends StatelessWidget {
-  const CodeModal({
-    super.key,
-    required this.code,
-    required this.languageLabel,
-  });
+  const CodeModal({super.key, required this.code, required this.languageLabel});
 
   final String code;
   final String languageLabel;

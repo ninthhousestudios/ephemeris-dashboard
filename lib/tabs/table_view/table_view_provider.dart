@@ -43,18 +43,21 @@ enum StepUnit {
 // ── State providers ──────────────────────────────────────────────────────────
 
 /// Selected bodies as a set of planet IDs.
-final tableViewBodiesProvider =
-    StateProvider<Set<int>>((ref) => {seSun, seMoon});
+final tableViewBodiesProvider = StateProvider<Set<int>>(
+  (ref) => {seSun, seMoon},
+);
 
 final tableViewStepValueProvider = StateProvider<double>((ref) => 1.0);
 
-final tableViewStepUnitProvider =
-    StateProvider<StepUnit>((ref) => StepUnit.days);
+final tableViewStepUnitProvider = StateProvider<StepUnit>(
+  (ref) => StepUnit.days,
+);
 
 final tableViewStepCountProvider = StateProvider<int>((ref) => 30);
 
-final tableViewFormatProvider =
-    StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
+final tableViewFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 // ── Result model ─────────────────────────────────────────────────────────────
 
@@ -101,7 +104,9 @@ final tableViewResultsProvider = Provider<List<EphemerisRow>>((ref) {
     for (final body in sortedBodies) {
       try {
         final result = runner.run(
-          globals, (eph) => eph.calcUt(jd, body, iflag));
+          globals,
+          (eph) => eph.calcUt(jd, body, iflag),
+        );
         bodyValues[body] = (result.longitude, null);
       } catch (e) {
         bodyValues[body] = (null, e.toString());
@@ -145,17 +150,12 @@ List<ExportRow> tableViewToExportRows(
 ) {
   final sortedBodies = bodies.toList()..sort();
   return rows.map((row) {
-    final fields = <(String, String)>[
-      ('JD', row.jd.toStringAsFixed(8)),
-    ];
+    final fields = <(String, String)>[('JD', row.jd.toStringAsFixed(8))];
     for (final body in sortedBodies) {
       final val = row.bodyValues[body];
       if (val == null) continue;
       final (lon, err) = val;
-      fields.add((
-        bodyName(body),
-        err ?? formatAngle(lon!, format),
-      ));
+      fields.add((bodyName(body), err ?? formatAngle(lon!, format)));
     }
     return ExportRow(header: row.dateStr, fields: fields);
   }).toList();

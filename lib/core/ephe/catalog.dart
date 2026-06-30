@@ -23,10 +23,13 @@ class CatalogEntry {
   final String? md5;
   final int startYear;
   final int endYear;
+
   /// Subdirectory relative to the ephe root (e.g. 'ast0'). Empty = root.
   final String subdir;
+
   /// For numbered asteroids, the MPC number (e.g. 433 for Eros).
   final int? mpcNumber;
+
   /// Pretty name used in the manager UI (e.g. 'Eros (433)'). Falls back
   /// to [filename] when absent.
   final String? displayName;
@@ -110,14 +113,16 @@ List<CatalogEntry> _buildSeCatalog() {
     final (int sy, int ey) = chunk.bceMarker == '_'
         ? (chunk.nn * 100, chunk.nn * 100 + 600)
         : (-(chunk.nn * 100 - 1), -(chunk.nn * 100 - 1) + 599);
-    out.add(CatalogEntry(
-      filename: filename,
-      family: family,
-      url:
-          'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/$filename',
-      startYear: sy,
-      endYear: ey,
-    ));
+    out.add(
+      CatalogEntry(
+        filename: filename,
+        family: family,
+        url:
+            'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/$filename',
+        startYear: sy,
+        endYear: ey,
+      ),
+    );
   }
   return out;
 }
@@ -159,8 +164,9 @@ CatalogEntry? asteroidCatalogEntryFor(int mpcNumber, {String? displayName}) {
     url: 'https://ephe.scryr.io/ephe/$subdir/$filename',
     subdir: subdir,
     mpcNumber: mpcNumber,
-    displayName:
-        displayName == null ? '#$mpcNumber' : '$displayName ($mpcNumber)',
+    displayName: displayName == null
+        ? '#$mpcNumber'
+        : '$displayName ($mpcNumber)',
   );
 }
 
@@ -197,8 +203,11 @@ final asteroidCatalog = <CatalogEntry>[
 /// Full catalog of files offered for download (JPL + SE extensions +
 /// seeded asteroids). On-the-fly MPC entries come from
 /// [asteroidCatalogEntryFor], not this list.
-List<CatalogEntry> get fullCatalog =>
-    [...jplCatalog, ...seCatalog, ...asteroidCatalog];
+List<CatalogEntry> get fullCatalog => [
+  ...jplCatalog,
+  ...seCatalog,
+  ...asteroidCatalog,
+];
 
 CatalogEntry? catalogEntryFor(String filename) {
   for (final e in fullCatalog) {

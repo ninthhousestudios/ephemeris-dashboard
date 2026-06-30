@@ -80,8 +80,8 @@ class _ExportButtonState extends State<ExportButton> {
             tooltip: 'Export options',
             onPressed: widget.hasResults
                 ? () => _menuController.isOpen
-                    ? _menuController.close()
-                    : _menuController.open()
+                      ? _menuController.close()
+                      : _menuController.open()
                 : null,
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints(minWidth: 24, minHeight: 32),

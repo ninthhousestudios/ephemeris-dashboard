@@ -27,7 +27,7 @@ class ConfigTab extends ConsumerWidget {
                   Text('About', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
                   Text(
-                    'SWE Dashboard is a Flutter GUI for the Swiss Ephemeris. '
+                    'Ephemeris Dashboard is a Flutter GUI for the Swiss Ephemeris. '
                     'It provides pure astronomical calculations with no '
                     'interpretation.',
                     style: theme.textTheme.bodyMedium,
@@ -56,12 +56,13 @@ class ConfigTab extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Copyright \u00a9 2026 Ninth House Studios',
-                    style: theme.textTheme.bodyMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'SWE Dashboard is free software licensed under the '
+                    'Ephemeris Dashboard is free software licensed under the '
                     'GNU Affero General Public License v3.0 (AGPL-3.0).',
                     style: theme.textTheme.bodyMedium,
                   ),
@@ -127,7 +128,7 @@ class ConfigTab extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _repoLink(
                     theme,
-                    'SWE Dashboard',
+                    'Ephemeris Dashboard',
                     'https://gitlab.com/ninthhouse/swe-dashboard',
                   ),
                   const SizedBox(height: 8),
@@ -154,8 +155,10 @@ class ConfigTab extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Swiss Ephemeris Library',
-                      style: theme.textTheme.titleMedium),
+                  Text(
+                    'Swiss Ephemeris Library',
+                    style: theme.textTheme.titleMedium,
+                  ),
                   const SizedBox(height: 12),
                   _infoRow(theme, 'Version', info.version),
                   const SizedBox(height: 4),
@@ -193,27 +196,32 @@ class ConfigTab extends ConsumerWidget {
 
   Widget _repoLink(ThemeData theme, String label, String url) {
     return InkWell(
-      onTap: () => launchUrl(Uri.parse(url),
-          mode: LaunchMode.externalApplication),
+      onTap: () =>
+          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
       borderRadius: BorderRadius.circular(4),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.open_in_new,
-                size: 16, color: theme.colorScheme.primary),
+            Icon(Icons.open_in_new, size: 16, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label,
-                      style: theme.textTheme.bodyMedium
-                          ?.copyWith(color: theme.colorScheme.primary)),
-                  Text(url,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant)),
+                  Text(
+                    label,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  Text(
+                    url,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -229,9 +237,12 @@ class ConfigTab extends ConsumerWidget {
       children: [
         SizedBox(
           width: 120,
-          child: Text(label,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          child: Text(
+            label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ),
         Expanded(
           child: SelectableText(value, style: theme.textTheme.bodyMedium),

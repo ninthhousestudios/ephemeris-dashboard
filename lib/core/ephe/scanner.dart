@@ -64,7 +64,8 @@ void _scanOneDir(
     // Partial download left by an interrupted transfer.
     if (name.endsWith('.se1.part') || name.endsWith('.eph.part')) {
       final baseName = name.substring(0, name.length - '.part'.length);
-      final parsed = parseEpheFilename(baseName, size) ??
+      final parsed =
+          parseEpheFilename(baseName, size) ??
           EpheFile(
             filename: baseName,
             family: BodyFamily.unknown,
@@ -75,11 +76,13 @@ void _scanOneDir(
             sizeBytes: size,
             status: EpheFileStatus.partial,
           );
-      entries.add(parsed.copyWith(
-        sizeBytes: size,
-        subdir: relSubdir,
-        status: EpheFileStatus.partial,
-      ));
+      entries.add(
+        parsed.copyWith(
+          sizeBytes: size,
+          subdir: relSubdir,
+          status: EpheFileStatus.partial,
+        ),
+      );
       continue;
     }
 

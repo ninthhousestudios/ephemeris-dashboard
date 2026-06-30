@@ -10,7 +10,9 @@ import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
 
 /// Display format for Ayanamsa tab (promoted from local state).
-final ayanamsaFormatProvider = StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
+final ayanamsaFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 /// Result for a single ayanamsa calculation.
 class AyanamsaCalcResult {
@@ -38,7 +40,9 @@ Map<int, String> ayanamsaModesFor({bool includeUser = true}) {
 }
 
 /// Selected ayanamsas for compare mode.
-final selectedAyanamsasProvider = StateProvider<List<int>>((ref) => [1]); // Lahiri default
+final selectedAyanamsasProvider = StateProvider<List<int>>(
+  (ref) => [1],
+); // Lahiri default
 
 /// Compare mode toggle.
 final ayanamsaCompareModeProvider = StateProvider<bool>((ref) => false);
@@ -64,19 +68,21 @@ final ayanamsaResultsProvider = Provider<List<AyanamsaCalcResult>>((ref) {
   final results = <AyanamsaCalcResult>[];
   for (final sidMode in modes) {
     try {
-      final value = runner.runScoped(
-        (eph) {
-          if (sidMode == ayanamsaUserId) {
-            eph.setSidMode(sidMode,
-                t0: ctx.userAyanT0, ayanT0: ctx.userAyanValue);
-          } else {
-            eph.setSidMode(sidMode);
-          }
-        },
-        (eph) => eph.getAyanamsaUt(ectx.jdUt),
-      );
+      final value = runner.runScoped((eph) {
+        if (sidMode == ayanamsaUserId) {
+          eph.setSidMode(
+            sidMode,
+            t0: ctx.userAyanT0,
+            ayanT0: ctx.userAyanValue,
+          );
+        } else {
+          eph.setSidMode(sidMode);
+        }
+      }, (eph) => eph.getAyanamsaUt(ectx.jdUt));
       final name = ayanamsaName(sidMode);
-      results.add(AyanamsaCalcResult(sidMode: sidMode, name: name, value: value));
+      results.add(
+        AyanamsaCalcResult(sidMode: sidMode, name: name, value: value),
+      );
     } on SweException {
       // Skip failed modes.
     }
@@ -86,9 +92,16 @@ final ayanamsaResultsProvider = Provider<List<AyanamsaCalcResult>>((ref) {
 });
 
 /// Convert ayanamsa results to export rows.
-List<ExportRow> ayanamsaToExportRows(List<AyanamsaCalcResult> results, DisplayFormat fmt) {
-  return results.map((r) => ExportRow(
-    header: r.name,
-    fields: [('Value', formatAngle(r.value, fmt))],
-  )).toList();
+List<ExportRow> ayanamsaToExportRows(
+  List<AyanamsaCalcResult> results,
+  DisplayFormat fmt,
+) {
+  return results
+      .map(
+        (r) => ExportRow(
+          header: r.name,
+          fields: [('Value', formatAngle(r.value, fmt))],
+        ),
+      )
+      .toList();
 }

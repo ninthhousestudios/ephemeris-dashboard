@@ -56,50 +56,63 @@ class ResultCard extends StatelessWidget {
                     children: [
                       Text(title, style: theme.textTheme.titleSmall),
                       if (subtitle != null)
-                        Text(subtitle!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            )),
+                        Text(
+                          subtitle!,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
                     ],
                   ),
                 ),
                 if (flagHex != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(4),
                     ),
-                    child: Text(flagHex!,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontFamily: 'monospace',
-                          color: colorScheme.onSurfaceVariant,
-                        )),
+                    child: Text(
+                      flagHex!,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontFamily: 'monospace',
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   ),
               ],
             ),
             const SizedBox(height: 8),
             // Result fields
-            ...fields.map((f) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 80 * MediaQuery.textScalerOf(context).scale(1.0),
-                        child: Text(f.label,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            )),
+            ...fields.map(
+              (f) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 80 * MediaQuery.textScalerOf(context).scale(1.0),
+                      child: Text(
+                        f.label,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                      Expanded(
-                        child: SelectableText(f.value,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontFamily: 'monospace',
-                            )),
+                    ),
+                    Expanded(
+                      child: SelectableText(
+                        f.value,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
                       ),
-                    ],
-                  ),
-                )),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             // Action row: copy + pin
             const SizedBox(height: 8),
             Row(
@@ -110,18 +123,28 @@ class ResultCard extends StatelessWidget {
                   icon: const Icon(Icons.copy, size: 18),
                   tooltip: 'Copy to clipboard',
                   onPressed: () async {
-                    final text = fields.map((f) => '${f.label}: ${f.value}').join('\n');
+                    final text = fields
+                        .map((f) => '${f.label}: ${f.value}')
+                        .join('\n');
                     try {
-                      await Clipboard.setData(ClipboardData(text: '$title\n$text'));
+                      await Clipboard.setData(
+                        ClipboardData(text: '$title\n$text'),
+                      );
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Copied'), duration: Duration(seconds: 1)),
+                          const SnackBar(
+                            content: Text('Copied'),
+                            duration: Duration(seconds: 1),
+                          ),
                         );
                       }
                     } catch (_) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Copy failed'), duration: Duration(seconds: 1)),
+                          const SnackBar(
+                            content: Text('Copy failed'),
+                            duration: Duration(seconds: 1),
+                          ),
                         );
                       }
                     }

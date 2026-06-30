@@ -1,11 +1,7 @@
 import 'dart:io';
 
 /// Why a candidate ephemeris file was rejected by [validateEpheFile].
-enum EpheFileRejection {
-  missing,
-  tooSmall,
-  looksLikeHtml,
-}
+enum EpheFileRejection { missing, tooSmall, looksLikeHtml }
 
 /// Cheap sanity check for a file on disk that claims to be a Swiss
 /// Ephemeris (.se1) or JPL (.eph) binary. Catches the two failure modes
@@ -30,7 +26,7 @@ EpheFileRejection? validateEpheFile(File file, {int minBytes = 16 * 1024}) {
     if (asText.startsWith('<!doc') ||
         asText.startsWith('<html') ||
         asText.startsWith('<?xml') ||
-        (asText.isNotEmpty && asText.codeUnitAt(0) == 0x3c /* '<' */)) {
+        (asText.isNotEmpty && asText.codeUnitAt(0) == 0x3c /* '<' */ )) {
       return EpheFileRejection.looksLikeHtml;
     }
   } finally {
@@ -40,8 +36,8 @@ EpheFileRejection? validateEpheFile(File file, {int minBytes = 16 * 1024}) {
 }
 
 String describeRejection(EpheFileRejection r) => switch (r) {
-      EpheFileRejection.missing => 'file missing',
-      EpheFileRejection.tooSmall => 'file too small to be a real ephemeris',
-      EpheFileRejection.looksLikeHtml =>
-        'file looks like an HTML/XML error page, not an ephemeris binary',
-    };
+  EpheFileRejection.missing => 'file missing',
+  EpheFileRejection.tooSmall => 'file too small to be a real ephemeris',
+  EpheFileRejection.looksLikeHtml =>
+    'file looks like an HTML/XML error page, not an ephemeris binary',
+};

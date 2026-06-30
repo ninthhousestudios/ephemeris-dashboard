@@ -6,8 +6,16 @@ void main() {
   print('version: ${swe.version()}');
 
   for (final name in [
-    'Aldebaran', 'Sirius', 'Spica', 'Regulus', 'Vega',
-    'Arcturus', 'Betelgeuse', 'Canopus', 'Fomalhaut', 'Algol',
+    'Aldebaran',
+    'Sirius',
+    'Spica',
+    'Regulus',
+    'Vega',
+    'Arcturus',
+    'Betelgeuse',
+    'Canopus',
+    'Fomalhaut',
+    'Algol',
   ]) {
     try {
       final r = swe.fixstar2Ut(name, 2460000.5, 0);
@@ -20,9 +28,7 @@ void main() {
   // Also try with setEphePath pointing to the ephe dir
   swe.setEphePath('/home/josh/nhs/soft/swisseph/ephe');
   print('\n--- With ephePath set ---');
-  for (final name in [
-    'Aldebaran', 'Sirius', 'Spica', 'Regulus', 'Vega',
-  ]) {
+  for (final name in ['Aldebaran', 'Sirius', 'Spica', 'Regulus', 'Vega']) {
     try {
       final r = swe.fixstar2Ut(name, 2460000.5, 0);
       print('$name: OK → ${r.starName} lon=${r.longitude.toStringAsFixed(4)}');

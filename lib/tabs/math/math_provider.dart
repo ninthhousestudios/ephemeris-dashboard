@@ -28,38 +28,94 @@ List<ResultField> computeMathOp(SwissEph swe, MathOp op, double a, double b) {
     switch (op) {
       case MathOp.degnorm:
         final result = swe.degnorm(a);
-        return [ResultField(label: 'Result (°)', value: result.toStringAsFixed(8), rawValue: result)];
+        return [
+          ResultField(
+            label: 'Result (°)',
+            value: result.toStringAsFixed(8),
+            rawValue: result,
+          ),
+        ];
 
       case MathOp.radNorm:
         final result = swe.radNorm(a);
-        return [ResultField(label: 'Result (rad)', value: result.toStringAsFixed(8), rawValue: result)];
+        return [
+          ResultField(
+            label: 'Result (rad)',
+            value: result.toStringAsFixed(8),
+            rawValue: result,
+          ),
+        ];
 
       case MathOp.splitDeg:
         final r = swe.splitDeg(a, 0);
         return [
-          ResultField(label: 'Degrees', value: '${r.degrees}°', rawValue: r.degrees.toDouble()),
-          ResultField(label: 'Minutes', value: "${r.minutes}'", rawValue: r.minutes.toDouble()),
-          ResultField(label: 'Seconds', value: '${r.seconds}"', rawValue: r.seconds.toDouble()),
-          ResultField(label: 'Sec fraction', value: r.secondsFraction.toStringAsFixed(6), rawValue: r.secondsFraction),
-          ResultField(label: 'Sign', value: '${r.sign}', rawValue: r.sign.toDouble()),
+          ResultField(
+            label: 'Degrees',
+            value: '${r.degrees}°',
+            rawValue: r.degrees.toDouble(),
+          ),
+          ResultField(
+            label: 'Minutes',
+            value: "${r.minutes}'",
+            rawValue: r.minutes.toDouble(),
+          ),
+          ResultField(
+            label: 'Seconds',
+            value: '${r.seconds}"',
+            rawValue: r.seconds.toDouble(),
+          ),
+          ResultField(
+            label: 'Sec fraction',
+            value: r.secondsFraction.toStringAsFixed(6),
+            rawValue: r.secondsFraction,
+          ),
+          ResultField(
+            label: 'Sign',
+            value: '${r.sign}',
+            rawValue: r.sign.toDouble(),
+          ),
         ];
 
       case MathOp.degMidp:
         final result = swe.degMidp(a, b);
-        return [ResultField(label: 'Midpoint (°)', value: result.toStringAsFixed(8), rawValue: result)];
+        return [
+          ResultField(
+            label: 'Midpoint (°)',
+            value: result.toStringAsFixed(8),
+            rawValue: result,
+          ),
+        ];
 
       case MathOp.radMidp:
         final result = swe.radMidp(a, b);
-        return [ResultField(label: 'Midpoint (rad)', value: result.toStringAsFixed(8), rawValue: result)];
+        return [
+          ResultField(
+            label: 'Midpoint (rad)',
+            value: result.toStringAsFixed(8),
+            rawValue: result,
+          ),
+        ];
 
       case MathOp.difDegn:
         final result = swe.degnorm(a - b);
-        return [ResultField(label: 'Difference 0–360 (°)', value: result.toStringAsFixed(8), rawValue: result)];
+        return [
+          ResultField(
+            label: 'Difference 0–360 (°)',
+            value: result.toStringAsFixed(8),
+            rawValue: result,
+          ),
+        ];
 
       case MathOp.difDeg2n:
         var result = swe.degnorm(a - b);
         if (result > 180.0) result -= 360.0;
-        return [ResultField(label: 'Difference −180–180 (°)', value: result.toStringAsFixed(8), rawValue: result)];
+        return [
+          ResultField(
+            label: 'Difference −180–180 (°)',
+            value: result.toStringAsFixed(8),
+            rawValue: result,
+          ),
+        ];
     }
   } on SweException catch (e) {
     return [ResultField(label: 'Error', value: e.message, rawValue: 0.0)];
@@ -70,9 +126,11 @@ List<ResultField> computeMathOp(SwissEph swe, MathOp op, double a, double b) {
 List<ExportRow> mathToExportRows(Map<MathOp, List<ResultField>> allResults) {
   return allResults.entries
       .where((e) => e.value.isNotEmpty)
-      .map((e) => ExportRow(
-            header: e.key.label,
-            fields: e.value.map((f) => (f.label, f.value)).toList(),
-          ))
+      .map(
+        (e) => ExportRow(
+          header: e.key.label,
+          fields: e.value.map((f) => (f.label, f.value)).toList(),
+        ),
+      )
       .toList();
 }

@@ -58,25 +58,29 @@ final phenomenaResultsProvider = Provider<List<PhenomenaResult>>((ref) {
         globals,
         (eph) => eph.phenoUt(ectx.jdUt, body, ectx.iflag),
       );
-      results.add(PhenomenaResult(
-        body: body,
-        bodyName: _safeGetName(swe, body),
-        phaseAngle: r.phaseAngle,
-        phase: r.phase,
-        elongation: r.elongation,
-        apparentDiameter: r.apparentDiameter,
-        apparentMagnitude: r.apparentMagnitude,
-      ));
+      results.add(
+        PhenomenaResult(
+          body: body,
+          bodyName: _safeGetName(swe, body),
+          phaseAngle: r.phaseAngle,
+          phase: r.phase,
+          elongation: r.elongation,
+          apparentDiameter: r.apparentDiameter,
+          apparentMagnitude: r.apparentMagnitude,
+        ),
+      );
     } on SweException {
-      results.add(PhenomenaResult(
-        body: body,
-        bodyName: _safeGetName(swe, body),
-        phaseAngle: double.nan,
-        phase: double.nan,
-        elongation: double.nan,
-        apparentDiameter: double.nan,
-        apparentMagnitude: double.nan,
-      ));
+      results.add(
+        PhenomenaResult(
+          body: body,
+          bodyName: _safeGetName(swe, body),
+          phaseAngle: double.nan,
+          phase: double.nan,
+          elongation: double.nan,
+          apparentDiameter: double.nan,
+          apparentMagnitude: double.nan,
+        ),
+      );
     }
   }
 
@@ -89,16 +93,18 @@ List<ExportRow> phenomenaToExportRows(
   DisplayFormat fmt,
 ) {
   return results
-      .map((r) => ExportRow(
-            header: r.bodyName,
-            fields: [
-              ('Phase Angle', formatAngle(r.phaseAngle, fmt)),
-              ('Phase (Illum.)', r.phase.toStringAsFixed(6)),
-              ('Elongation', formatAngle(r.elongation, fmt)),
-              ('App. Diameter', formatAngle(r.apparentDiameter, fmt)),
-              ('App. Magnitude', r.apparentMagnitude.toStringAsFixed(4)),
-            ],
-          ))
+      .map(
+        (r) => ExportRow(
+          header: r.bodyName,
+          fields: [
+            ('Phase Angle', formatAngle(r.phaseAngle, fmt)),
+            ('Phase (Illum.)', r.phase.toStringAsFixed(6)),
+            ('Elongation', formatAngle(r.elongation, fmt)),
+            ('App. Diameter', formatAngle(r.apparentDiameter, fmt)),
+            ('App. Magnitude', r.apparentMagnitude.toStringAsFixed(4)),
+          ],
+        ),
+      )
       .toList();
 }
 

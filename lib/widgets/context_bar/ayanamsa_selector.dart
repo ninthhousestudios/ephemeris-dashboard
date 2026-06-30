@@ -22,9 +22,8 @@ class AyanamsaSelector extends ConsumerWidget {
       label: 'Ayanamsa',
       value: ayanamsa,
       items: ids,
-      itemLabel: (id) => id == ayanamsaTropicalId
-          ? 'None (Tropical)'
-          : ayanamsaName(id),
+      itemLabel: (id) =>
+          id == ayanamsaTropicalId ? 'None (Tropical)' : ayanamsaName(id),
       onChanged: (v) async {
         if (v == ayanamsaUserId) {
           final ok = await _promptUserAyanamsa(context, ref);
@@ -38,8 +37,7 @@ class AyanamsaSelector extends ConsumerWidget {
   Future<bool> _promptUserAyanamsa(BuildContext context, WidgetRef ref) async {
     final state = ref.read(contextBarProvider);
     final t0Ctrl = TextEditingController(text: state.userAyanT0.toString());
-    final valCtrl =
-        TextEditingController(text: state.userAyanValue.toString());
+    final valCtrl = TextEditingController(text: state.userAyanValue.toString());
 
     final result = await showDialog<bool>(
       context: context,
@@ -57,7 +55,9 @@ class AyanamsaSelector extends ConsumerWidget {
             TextField(
               controller: t0Ctrl,
               keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true, signed: true),
+                decimal: true,
+                signed: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 't0 (reference Julian Day UT)',
                 helperText: 'e.g. 2451545.0 for J2000',
@@ -67,7 +67,9 @@ class AyanamsaSelector extends ConsumerWidget {
             TextField(
               controller: valCtrl,
               keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true, signed: true),
+                decimal: true,
+                signed: true,
+              ),
               decoration: const InputDecoration(
                 labelText: 'ayanamsa at t0 (degrees)',
               ),

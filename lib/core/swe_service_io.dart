@@ -36,7 +36,8 @@ Future<NativeInitResult> initNativeEphePath() async {
     final pkgConfigPath = _findPackageConfig();
     if (pkgConfigPath != null) {
       final config =
-          jsonDecode(File(pkgConfigPath).readAsStringSync()) as Map<String, dynamic>;
+          jsonDecode(File(pkgConfigPath).readAsStringSync())
+              as Map<String, dynamic>;
       final packages = config['packages'] as List<dynamic>;
       for (final pkg in packages) {
         if (pkg['name'] == 'swisseph') {
@@ -61,7 +62,8 @@ Future<NativeInitResult> initNativeEphePath() async {
     // Re-extract if directory is missing, empty, or from a different version.
     const epheVersion = '0.4.3'; // bump when swisseph dependency changes
     final versionFile = File('${epheDir.path}/.version');
-    final needsExtract = !_isValidEpheDir(epheDir.path) ||
+    final needsExtract =
+        !_isValidEpheDir(epheDir.path) ||
         !versionFile.existsSync() ||
         versionFile.readAsStringSync().trim() != epheVersion;
 
@@ -132,8 +134,8 @@ SwissEph _loadNativeLibrary() {
   final bareName = Platform.isWindows
       ? 'swisseph.dll'
       : Platform.isLinux
-          ? 'libswisseph.so'
-          : 'libswisseph.dylib';
+      ? 'libswisseph.so'
+      : 'libswisseph.dylib';
   try {
     return SwissEph(bareName);
   } catch (_) {}
@@ -156,8 +158,9 @@ SwissEph _loadNativeLibrary() {
 /// Find .dart_tool/package_config.json from CWD or by walking up from exe.
 String? _findPackageConfig() {
   // Try CWD first (works on Linux desktop dev mode).
-  final cwdConfig =
-      File('${Directory.current.path}/.dart_tool/package_config.json');
+  final cwdConfig = File(
+    '${Directory.current.path}/.dart_tool/package_config.json',
+  );
   if (cwdConfig.existsSync()) return cwdConfig.path;
 
   // Walk up from executable to find project root (macOS dev mode:
@@ -210,8 +213,9 @@ bool _isValidEpheDir(String path) {
 Future<List<String>> _listEpheAssets() async {
   try {
     final manifestBytes = await rootBundle.load('AssetManifest.bin');
-    final manifest = const StandardMessageCodec()
-        .decodeMessage(manifestBytes) as Map<Object?, Object?>;
+    final manifest =
+        const StandardMessageCodec().decodeMessage(manifestBytes)
+            as Map<Object?, Object?>;
     return manifest.keys
         .map((k) => k.toString())
         .where((k) => k.startsWith('assets/ephe/'))

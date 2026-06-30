@@ -10,13 +10,13 @@ import '../model/chart_data.dart';
 /// Sentinel lines: `~end of notes~` and `~end of muhurtas~`.
 class ChtkFormat {
   /// Read a .chtk file and return a [ChartData].
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   /// Read from raw bytes.
   static ChartData readBytes(Uint8List bytes) {
     final content = _decodeUtf16Le(bytes);
-    final lines =
-        content.split(RegExp(r'\r?\n')).map((l) => l.trim()).toList();
+    final lines = content.split(RegExp(r'\r?\n')).map((l) => l.trim()).toList();
 
     // Remove empty trailing lines
     while (lines.isNotEmpty && lines.last.isEmpty) {
@@ -24,7 +24,9 @@ class ChtkFormat {
     }
 
     if (lines.length < 13) {
-      throw FormatException('Invalid .chtk file: expected at least 13 lines, got ${lines.length}');
+      throw FormatException(
+        'Invalid .chtk file: expected at least 13 lines, got ${lines.length}',
+      );
     }
     final name = lines[0];
     final year = int.tryParse(lines[1]) ?? 2000;
@@ -75,8 +77,9 @@ class ChtkFormat {
       final curCity = idx < lines.length ? lines[idx++] : '';
       final curLon = idx < lines.length ? _parseDms(lines[idx++]) : 0.0;
       final curLat = idx < lines.length ? _parseDms(lines[idx++]) : 0.0;
-      final curOffset =
-          idx < lines.length ? _parseUtcOffset(lines[idx++]) : 0.0;
+      final curOffset = idx < lines.length
+          ? _parseUtcOffset(lines[idx++])
+          : 0.0;
       currentLoc = GeoLocation(
         city: curCity,
         country: curCountry,
@@ -100,8 +103,8 @@ class ChtkFormat {
       gender: genderCode == 2
           ? Gender.female
           : genderCode == 1
-              ? Gender.male
-              : null,
+          ? Gender.male
+          : null,
       notes: noteLines.isNotEmpty ? noteLines.join('\n') : null,
       currentLocation: currentLoc,
       currentUtcOffsetHours: currentUtcOffset,
@@ -122,8 +125,8 @@ class ChtkFormat {
     final gc = chart.gender == Gender.female
         ? 2
         : chart.gender == Gender.male
-            ? 1
-            : 0;
+        ? 1
+        : 0;
     sb.writeln(gc);
     sb.writeln(chart.birthLocation.country);
     sb.writeln(chart.birthLocation.city);
@@ -147,7 +150,8 @@ class ChtkFormat {
       sb.writeln(_formatDmsLon(chart.currentLocation!.longitude));
       sb.writeln(_formatDmsLat(chart.currentLocation!.latitude));
       sb.writeln(
-          _formatUtcOffset(chart.currentUtcOffsetHours ?? chart.utcOffsetHours));
+        _formatUtcOffset(chart.currentUtcOffsetHours ?? chart.utcOffsetHours),
+      );
       sb.writeln('0');
       sb.writeln('XX00');
     }
@@ -158,8 +162,9 @@ class ChtkFormat {
 
   static double _parseDms(String s) {
     s = s.trim();
-    final match =
-        RegExp(r"(\d+)([NESW])(\d+)'(\d+)").firstMatch(s.toUpperCase());
+    final match = RegExp(
+      r"(\d+)([NESW])(\d+)'(\d+)",
+    ).firstMatch(s.toUpperCase());
     if (match == null) return 0.0;
     final deg = int.parse(match.group(1)!);
     final dir = match.group(2)!;

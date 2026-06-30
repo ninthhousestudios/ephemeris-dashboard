@@ -9,17 +9,16 @@ EpheFile _file({
   required double startJd,
   required double endJd,
   EpheFileStatus status = EpheFileStatus.installed,
-}) =>
-    EpheFile(
-      filename: name,
-      family: family,
-      startJd: startJd,
-      endJd: endJd,
-      startYear: 0,
-      endYear: 0,
-      sizeBytes: 1,
-      status: status,
-    );
+}) => EpheFile(
+  filename: name,
+  family: family,
+  startJd: startJd,
+  endJd: endJd,
+  startYear: 0,
+  endYear: 0,
+  sizeBytes: 1,
+  status: status,
+);
 
 void main() {
   group('resolveActiveFile', () {

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Per-tab display format provider (currently used by Planets tab).
-final planetsFormatProvider = StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
+final planetsFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 /// Display format for angular values.
 enum DisplayFormat {

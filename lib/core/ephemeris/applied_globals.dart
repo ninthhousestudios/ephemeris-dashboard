@@ -45,7 +45,6 @@ class AppliedGlobals {
           jplFile == other.jplFile;
 
   @override
-  int get hashCode => Object.hash(
-        ephePath, sidMode, userAyanT0, userAyanValue, topo, jplFile,
-      );
+  int get hashCode =>
+      Object.hash(ephePath, sidMode, userAyanT0, userAyanValue, topo, jplFile);
 }

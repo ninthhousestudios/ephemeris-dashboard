@@ -24,9 +24,9 @@ enum CoordOp {
 // ── UI state providers ─────────────────────────────────────────────────────
 
 final coordOpProvider = StateProvider<CoordOp>((ref) => CoordOp.azAlt);
-final coordFormatProvider =
-    StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
-
+final coordFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 // ── Input providers (committed on Calculate) ───────────────────────────────
 
@@ -110,18 +110,32 @@ final coordResultProvider = Provider<CoordResult?>((ref) {
       switch (op) {
         case CoordOp.azAlt:
           final r = eph.azAlt(
-            ectx.jdUt, seEcl2hor,
-            geolon: ectx.longitude, geolat: ectx.latitude, geoalt: ectx.altitude,
-            atpress: atpress, attemp: attemp,
-            bodyLon: lon, bodyLat: lat, bodyDist: dist,
+            ectx.jdUt,
+            seEcl2hor,
+            geolon: ectx.longitude,
+            geolat: ectx.latitude,
+            geoalt: ectx.altitude,
+            atpress: atpress,
+            attemp: attemp,
+            bodyLon: lon,
+            bodyLat: lat,
+            bodyDist: dist,
           );
-          return CoordAzAltResult(r.azimuth, r.trueAltitude, r.apparentAltitude);
+          return CoordAzAltResult(
+            r.azimuth,
+            r.trueAltitude,
+            r.apparentAltitude,
+          );
 
         case CoordOp.azAltRev:
           final r = eph.azAltRev(
-            ectx.jdUt, seHor2ecl,
-            geolon: ectx.longitude, geolat: ectx.latitude, geoalt: ectx.altitude,
-            azimuth: azimuth, altitude: altitude,
+            ectx.jdUt,
+            seHor2ecl,
+            geolon: ectx.longitude,
+            geolat: ectx.latitude,
+            geoalt: ectx.altitude,
+            azimuth: azimuth,
+            altitude: altitude,
           );
           return CoordAzAltRevResult(r.lon, r.lat);
 
@@ -132,8 +146,11 @@ final coordResultProvider = Provider<CoordResult?>((ref) {
 
         case CoordOp.refrac:
           final apparent = eph.refrac(altitude, atpress, attemp, seTrueToApp);
-          return CoordRefracResult(altitude, apparent,
-              'input=${altitude.toStringAsFixed(4)}° true→apparent');
+          return CoordRefracResult(
+            altitude,
+            apparent,
+            'input=${altitude.toStringAsFixed(4)}° true→apparent',
+          );
       }
     });
   } on SweException catch (e) {
@@ -145,8 +162,7 @@ final coordResultProvider = Provider<CoordResult?>((ref) {
 
 // ── ResultField conversion ─────────────────────────────────────────────────
 
-List<ResultField> coordResultToFields(
-    CoordResult result, DisplayFormat fmt) {
+List<ResultField> coordResultToFields(CoordResult result, DisplayFormat fmt) {
   switch (result) {
     case CoordAzAltResult r:
       return [
@@ -183,11 +199,7 @@ List<ResultField> coordResultToFields(
 
     case CoordCoTransResult r:
       return [
-        ResultField(
-          label: 'Direction',
-          value: r.direction,
-          rawValue: null,
-        ),
+        ResultField(label: 'Direction', value: r.direction, rawValue: null),
         ResultField(
           label: 'Longitude',
           value: formatAngle(r.lon, fmt),
@@ -232,13 +244,17 @@ List<ResultField> coordResultToFields(
 // ── Export ─────────────────────────────────────────────────────────────────
 
 List<ExportRow> coordToExportRows(
-    CoordOp op, CoordResult result, DisplayFormat fmt) {
+  CoordOp op,
+  CoordResult result,
+  DisplayFormat fmt,
+) {
   return [
     ExportRow(
       header: '${op.label} — ${op.description}',
-      fields: coordResultToFields(result, fmt)
-          .map((f) => (f.label, f.value))
-          .toList(),
+      fields: coordResultToFields(
+        result,
+        fmt,
+      ).map((f) => (f.label, f.value)).toList(),
     ),
   ];
 }

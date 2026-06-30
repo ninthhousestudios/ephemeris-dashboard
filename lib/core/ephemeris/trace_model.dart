@@ -34,26 +34,23 @@ class CallTrace {
   final DateTime capturedAt;
 
   TraceSlice sliceByCategory(CallCategory category) => TraceSlice(
-        entries: entries.where((e) => e.category == category).toList(),
-        context: context,
-      );
+    entries: entries.where((e) => e.category == category).toList(),
+    context: context,
+  );
 
   TraceSlice sliceByTraceId(String traceId) => TraceSlice(
-        entries: entries.where((e) => e.traceId == traceId).toList(),
-        context: context,
-      );
+    entries: entries.where((e) => e.traceId == traceId).toList(),
+    context: context,
+  );
 
   TraceSlice sliceByTab(String tabTag) => TraceSlice(
-        entries: entries.where((e) => e.traceId.startsWith('$tabTag:')).toList(),
-        context: context,
-      );
+    entries: entries.where((e) => e.traceId.startsWith('$tabTag:')).toList(),
+    context: context,
+  );
 }
 
 class TraceSlice {
-  const TraceSlice({
-    required this.entries,
-    required this.context,
-  });
+  const TraceSlice({required this.entries, required this.context});
 
   final List<CallEntry> entries;
   final EffectiveContext context;

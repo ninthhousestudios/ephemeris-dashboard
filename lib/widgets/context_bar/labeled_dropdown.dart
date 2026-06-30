@@ -25,8 +25,8 @@ class LabeledDropdown<T> extends StatelessWidget {
         Text(
           '$label ',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         Expanded(
           child: InputDecorator(
@@ -42,8 +42,10 @@ class LabeledDropdown<T> extends StatelessWidget {
                 isExpanded: true,
                 style: Theme.of(context).textTheme.bodySmall,
                 items: items
-                    .map((v) => DropdownMenuItem(
-                        value: v, child: Text(itemLabel(v))))
+                    .map(
+                      (v) =>
+                          DropdownMenuItem(value: v, child: Text(itemLabel(v))),
+                    )
                     .toList(),
                 onChanged: onChanged == null
                     ? null

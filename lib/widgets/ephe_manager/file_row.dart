@@ -148,30 +148,30 @@ class _StatusChip extends StatelessWidget {
     final theme = Theme.of(context);
     final (String label, Color bg, Color fg) = switch (status) {
       EpheFileStatus.installed => (
-          'Installed',
-          theme.colorScheme.secondaryContainer,
-          theme.colorScheme.onSecondaryContainer,
-        ),
+        'Installed',
+        theme.colorScheme.secondaryContainer,
+        theme.colorScheme.onSecondaryContainer,
+      ),
       EpheFileStatus.missing => (
-          'Missing',
-          theme.colorScheme.surfaceContainerHighest,
-          theme.colorScheme.onSurface,
-        ),
+        'Missing',
+        theme.colorScheme.surfaceContainerHighest,
+        theme.colorScheme.onSurface,
+      ),
       EpheFileStatus.corrupt => (
-          'Corrupt',
-          theme.colorScheme.errorContainer,
-          theme.colorScheme.onErrorContainer,
-        ),
+        'Corrupt',
+        theme.colorScheme.errorContainer,
+        theme.colorScheme.onErrorContainer,
+      ),
       EpheFileStatus.downloading => (
-          'Downloading',
-          theme.colorScheme.tertiaryContainer,
-          theme.colorScheme.onTertiaryContainer,
-        ),
+        'Downloading',
+        theme.colorScheme.tertiaryContainer,
+        theme.colorScheme.onTertiaryContainer,
+      ),
       EpheFileStatus.partial => (
-          'Partial',
-          theme.colorScheme.tertiaryContainer,
-          theme.colorScheme.onTertiaryContainer,
-        ),
+        'Partial',
+        theme.colorScheme.tertiaryContainer,
+        theme.colorScheme.onTertiaryContainer,
+      ),
     };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -179,7 +179,10 @@ class _StatusChip extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(label, style: theme.textTheme.labelSmall?.copyWith(color: fg)),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(color: fg),
+      ),
     );
   }
 }

@@ -96,22 +96,22 @@ final heliacalResultProvider = Provider<HeliacalCalcResult?>((ref) {
     humidity: humidity,
     extinction: extinction,
   );
-  final observer = ObserverConditions(
-    age: age,
-    snellenRatio: snellen,
-  );
+  final observer = ObserverConditions(age: age, snellenRatio: snellen);
 
   try {
-    final result = runner.run(globals, (eph) => eph.heliacalUt(
-      ectx.jdUt,
-      geolon: ectx.longitude,
-      geolat: ectx.latitude,
-      geoalt: ectx.altitude,
-      atmo: atmo,
-      observer: observer,
-      objectName: objectName.isEmpty ? 'Venus' : objectName,
-      typeEvent: typeEvent,
-    ));
+    final result = runner.run(
+      globals,
+      (eph) => eph.heliacalUt(
+        ectx.jdUt,
+        geolon: ectx.longitude,
+        geolat: ectx.latitude,
+        geoalt: ectx.altitude,
+        atmo: atmo,
+        observer: observer,
+        objectName: objectName.isEmpty ? 'Venus' : objectName,
+        typeEvent: typeEvent,
+      ),
+    );
     return HeliacalCalcResult(
       objectName: objectName.isEmpty ? 'Venus' : objectName,
       eventType: typeEvent,
@@ -146,7 +146,8 @@ List<ExportRow> heliacalToExportRows(HeliacalCalcResult r, SwissEph swe) {
   if (r.hasError) {
     return [
       ExportRow(
-        header: '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
+        header:
+            '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
         fields: [('Error', r.error!)],
       ),
     ];

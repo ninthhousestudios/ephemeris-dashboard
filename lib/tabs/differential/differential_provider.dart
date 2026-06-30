@@ -15,7 +15,9 @@ final diffBodyAProvider = StateProvider<int>((ref) => seSun);
 final diffBodyBProvider = StateProvider<int>((ref) => seMoon);
 
 /// Display format for this tab.
-final diffFormatProvider = StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
+final diffFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 /// Optional override JD — when non-null, use this instead of the context bar JD.
 final diffOverrideJdProvider = StateProvider<double?>((ref) => null);

@@ -44,42 +44,64 @@ const _sizes = [
   ('desktop', kDesktop),
 ];
 
-const _themes = [
-  ('light', true),
-  ('dark', false),
-];
+const _themes = [('light', true), ('dark', false)];
 
 // ── Fake data ──
 
 final fakePlanetResults = [
   const PlanetResult(
-    body: 0, bodyName: 'Sun',
-    longitude: 4.583333, latitude: 0.0002, distance: 0.9967,
-    speedLon: 0.9856, speedLat: 0.0001, speedDist: 0.0001,
+    body: 0,
+    bodyName: 'Sun',
+    longitude: 4.583333,
+    latitude: 0.0002,
+    distance: 0.9967,
+    speedLon: 0.9856,
+    speedLat: 0.0001,
+    speedDist: 0.0001,
     returnFlag: 2,
   ),
   const PlanetResult(
-    body: 1, bodyName: 'Moon',
-    longitude: 128.75, latitude: 5.15, distance: 0.00257,
-    speedLon: 13.176, speedLat: -0.148, speedDist: 0.00003,
+    body: 1,
+    bodyName: 'Moon',
+    longitude: 128.75,
+    latitude: 5.15,
+    distance: 0.00257,
+    speedLon: 13.176,
+    speedLat: -0.148,
+    speedDist: 0.00003,
     returnFlag: 2,
   ),
   const PlanetResult(
-    body: 2, bodyName: 'Mercury',
-    longitude: 348.92, latitude: -1.83, distance: 1.234,
-    speedLon: 1.45, speedLat: 0.12, speedDist: -0.003,
+    body: 2,
+    bodyName: 'Mercury',
+    longitude: 348.92,
+    latitude: -1.83,
+    distance: 1.234,
+    speedLon: 1.45,
+    speedLat: 0.12,
+    speedDist: -0.003,
     returnFlag: 2,
   ),
   const PlanetResult(
-    body: 3, bodyName: 'Venus',
-    longitude: 52.64, latitude: 1.22, distance: 0.723,
-    speedLon: 1.18, speedLat: -0.05, speedDist: 0.002,
+    body: 3,
+    bodyName: 'Venus',
+    longitude: 52.64,
+    latitude: 1.22,
+    distance: 0.723,
+    speedLon: 1.18,
+    speedLat: -0.05,
+    speedDist: 0.002,
     returnFlag: 2,
   ),
   const PlanetResult(
-    body: 4, bodyName: 'Mars',
-    longitude: 210.33, latitude: -0.78, distance: 1.882,
-    speedLon: 0.524, speedLat: 0.01, speedDist: -0.005,
+    body: 4,
+    bodyName: 'Mars',
+    longitude: 210.33,
+    latitude: -0.78,
+    distance: 1.882,
+    speedLon: 0.524,
+    speedLat: 0.01,
+    speedDist: -0.005,
     returnFlag: 2,
   ),
 ];
@@ -106,22 +128,40 @@ final fakeAyanamsaResults = [
 
 final calcSessionOverride = calcSessionProvider.overrideWith((ref) {
   final notifier = CalcSessionNotifier();
-  notifier.calculate(activate: {
-    'planets', 'houses', 'ayanamsa', 'stars', 'dates', 'riseSet',
-    'eclipses', 'heliacal', 'crossings', 'coordinates', 'phenomena',
-    'nodesApsides', 'differential', 'planetocentric', 'tableView', 'math',
-  });
+  notifier.calculate(
+    activate: {
+      'planets',
+      'houses',
+      'ayanamsa',
+      'stars',
+      'dates',
+      'riseSet',
+      'eclipses',
+      'heliacal',
+      'crossings',
+      'coordinates',
+      'phenomena',
+      'nodesApsides',
+      'differential',
+      'planetocentric',
+      'tableView',
+      'math',
+    },
+  );
   return notifier;
 });
 
-final planetsResultsOverride =
-    planetsResultsProvider.overrideWith((ref) => fakePlanetResults);
+final planetsResultsOverride = planetsResultsProvider.overrideWith(
+  (ref) => fakePlanetResults,
+);
 
-final housesResultOverride =
-    housesResultProvider.overrideWith((ref) => fakeHousesResult);
+final housesResultOverride = housesResultProvider.overrideWith(
+  (ref) => fakeHousesResult,
+);
 
-final ayanamsaResultsOverride =
-    ayanamsaResultsProvider.overrideWith((ref) => fakeAyanamsaResults);
+final ayanamsaResultsOverride = ayanamsaResultsProvider.overrideWith(
+  (ref) => fakeAyanamsaResults,
+);
 
 /// All overrides needed for tab-level tests.
 final tabOverrides = [
@@ -153,10 +193,7 @@ Future<void> pumpGoldenWidget(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [
-        sharedPrefsProvider.overrideWithValue(prefs),
-        ...overrides,
-      ],
+      overrides: [sharedPrefsProvider.overrideWithValue(prefs), ...overrides],
       child: MaterialApp(
         theme: isLight ? AppThemes.light : AppThemes.dark,
         home: Scaffold(body: widget),
@@ -223,9 +260,21 @@ ResultCard fakeResultCard({
       ResultField(label: 'Longitude', value: "4° 35' 00.00\"", rawValue: 4.583),
       ResultField(label: 'Latitude', value: "0° 00' 00.72\"", rawValue: 0.0002),
       ResultField(label: 'Distance', value: '0.99670000 AU', rawValue: 0.9967),
-      ResultField(label: 'Spd Lon', value: "0° 59' 08.16\"/day", rawValue: 0.9856),
-      ResultField(label: 'Spd Lat', value: "0° 00' 00.36\"/day", rawValue: 0.0001),
-      ResultField(label: 'Spd Dist', value: "0° 00' 00.36\"/day", rawValue: 0.0001),
+      ResultField(
+        label: 'Spd Lon',
+        value: "0° 59' 08.16\"/day",
+        rawValue: 0.9856,
+      ),
+      ResultField(
+        label: 'Spd Lat',
+        value: "0° 00' 00.36\"/day",
+        rawValue: 0.0001,
+      ),
+      ResultField(
+        label: 'Spd Dist',
+        value: "0° 00' 00.36\"/day",
+        rawValue: 0.0001,
+      ),
     ],
   );
 }

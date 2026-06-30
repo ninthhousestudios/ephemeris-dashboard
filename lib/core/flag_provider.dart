@@ -6,8 +6,9 @@ import 'flag_state.dart';
 import 'persistence.dart';
 
 /// Global flag bar state provider.
-final flagBarProvider =
-    StateNotifierProvider<FlagBarNotifier, FlagBarState>((ref) {
+final flagBarProvider = StateNotifierProvider<FlagBarNotifier, FlagBarState>((
+  ref,
+) {
   final persistence = ref.watch(persistenceProvider);
   final notifier = FlagBarNotifier(persistence);
 

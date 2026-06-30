@@ -240,14 +240,11 @@ class SweSymbolCatalog {
     seSidmUser: 'seSidmUser',
   };
 
-  static String bodyName(int body) =>
-      _bodies[body] ?? body.toString();
+  static String bodyName(int body) => _bodies[body] ?? body.toString();
 
-  static String bodyNameDart(int body) =>
-      _dartBodies[body] ?? body.toString();
+  static String bodyNameDart(int body) => _dartBodies[body] ?? body.toString();
 
-  static String sidModeName(int mode) =>
-      _sidModes[mode] ?? mode.toString();
+  static String sidModeName(int mode) => _sidModes[mode] ?? mode.toString();
 
   static String sidModeNameDart(int mode) =>
       _dartSidModes[mode] ?? mode.toString();

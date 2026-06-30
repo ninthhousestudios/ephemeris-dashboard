@@ -6,7 +6,8 @@ import '../model/chart_data.dart';
 
 /// JSON chart format — open, human-readable format.
 class JsonChartFormat {
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   static ChartData readBytes(Uint8List bytes) {
     final content = String.fromCharCodes(bytes);

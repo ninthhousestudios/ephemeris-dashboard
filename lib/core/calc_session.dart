@@ -37,8 +37,8 @@ class CalcSessionNotifier extends StateNotifier<CalcSession> {
 
 final calcSessionProvider =
     StateNotifierProvider<CalcSessionNotifier, CalcSession>(
-  (_) => CalcSessionNotifier(),
-);
+      (_) => CalcSessionNotifier(),
+    );
 
 final activeTabIdProvider = StateProvider<String>((_) => 'planets');
 

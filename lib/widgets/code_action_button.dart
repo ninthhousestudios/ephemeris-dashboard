@@ -39,20 +39,22 @@ class CodeActionButton extends ConsumerWidget {
             child: Text('View as ${current.displayName}'),
           ),
           const PopupMenuDivider(),
-          ...availableEmitters.map((e) => PopupMenuItem<Object>(
-                value: e,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (e.languageId == current.languageId)
-                      const Icon(Icons.check, size: 16)
-                    else
-                      const SizedBox(width: 16),
-                    const SizedBox(width: 8),
-                    Text(e.displayName),
-                  ],
-                ),
-              )),
+          ...availableEmitters.map(
+            (e) => PopupMenuItem<Object>(
+              value: e,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (e.languageId == current.languageId)
+                    const Icon(Icons.check, size: 16)
+                  else
+                    const SizedBox(width: 16),
+                  const SizedBox(width: 8),
+                  Text(e.displayName),
+                ],
+              ),
+            ),
+          ),
         ],
       );
     }
@@ -77,20 +79,22 @@ class CodeActionButton extends ConsumerWidget {
               onCode?.call();
             },
             itemBuilder: (_) => availableEmitters
-                .map((e) => PopupMenuItem(
-                      value: e,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (e.languageId == current.languageId)
-                            const Icon(Icons.check, size: 16)
-                          else
-                            const SizedBox(width: 16),
-                          const SizedBox(width: 8),
-                          Text(e.displayName),
-                        ],
-                      ),
-                    ))
+                .map(
+                  (e) => PopupMenuItem(
+                    value: e,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (e.languageId == current.languageId)
+                          const Icon(Icons.check, size: 16)
+                        else
+                          const SizedBox(width: 16),
+                        const SizedBox(width: 8),
+                        Text(e.displayName),
+                      ],
+                    ),
+                  ),
+                )
                 .toList(),
           ),
         ),

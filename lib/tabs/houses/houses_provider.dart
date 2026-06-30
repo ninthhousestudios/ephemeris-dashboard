@@ -10,7 +10,9 @@ import '../../core/persistence.dart';
 import '../../core/swe_service.dart';
 
 /// Display format for Houses tab (promoted from local state).
-final housesFormatProvider = StateProvider<DisplayFormat>((ref) => DisplayFormat.dms);
+final housesFormatProvider = StateProvider<DisplayFormat>(
+  (ref) => DisplayFormat.dms,
+);
 
 /// Result of a house calculation.
 class HousesCalcResult {
@@ -23,6 +25,7 @@ class HousesCalcResult {
   });
 
   final List<double> cusps;
+
   /// [0] Asc, [1] MC, [2] ARMC, [3] Vertex, [4] Eq Asc, [5..7] co-asc/polar
   final List<double> ascmc;
   final int hsys;
@@ -46,30 +49,30 @@ class HouseSystemDef {
 }
 
 final houseSystems = <HouseSystemDef>[
-  HouseSystemDef(0x50, 'Placidus'),           // P
-  HouseSystemDef(0x4B, 'Koch'),               // K
-  HouseSystemDef(0x4F, 'Porphyry'),           // O
-  HouseSystemDef(0x52, 'Regiomontanus'),      // R
-  HouseSystemDef(0x43, 'Campanus'),           // C
-  HouseSystemDef(0x45, 'Equal (Asc)'),        // E
-  HouseSystemDef(0x57, 'Whole Sign'),         // W
-  HouseSystemDef(0x41, 'Equal (MC)'),         // A
-  HouseSystemDef(0x42, 'Alcabitius'),         // B
-  HouseSystemDef(0x4D, 'Morinus'),            // M
-  HouseSystemDef(0x55, 'Krusinski'),          // U
+  HouseSystemDef(0x50, 'Placidus'), // P
+  HouseSystemDef(0x4B, 'Koch'), // K
+  HouseSystemDef(0x4F, 'Porphyry'), // O
+  HouseSystemDef(0x52, 'Regiomontanus'), // R
+  HouseSystemDef(0x43, 'Campanus'), // C
+  HouseSystemDef(0x45, 'Equal (Asc)'), // E
+  HouseSystemDef(0x57, 'Whole Sign'), // W
+  HouseSystemDef(0x41, 'Equal (MC)'), // A
+  HouseSystemDef(0x42, 'Alcabitius'), // B
+  HouseSystemDef(0x4D, 'Morinus'), // M
+  HouseSystemDef(0x55, 'Krusinski'), // U
   HouseSystemDef(0x48, 'Azimuthal/Horizontal'), // H
-  HouseSystemDef(0x56, 'Vehlow Equal'),       // V
-  HouseSystemDef(0x58, 'Meridian (Axial)'),   // X
-  HouseSystemDef(0x47, 'Gauquelin (36)'),     // G
-  HouseSystemDef(0x54, 'Polich/Page'),        // T
-  HouseSystemDef(0x44, 'Equal (MC, desc)'),   // D
-  HouseSystemDef(0x4E, 'Equal/1=Aries'),      // N
-  HouseSystemDef(0x59, 'APC Houses'),         // Y
+  HouseSystemDef(0x56, 'Vehlow Equal'), // V
+  HouseSystemDef(0x58, 'Meridian (Axial)'), // X
+  HouseSystemDef(0x47, 'Gauquelin (36)'), // G
+  HouseSystemDef(0x54, 'Polich/Page'), // T
+  HouseSystemDef(0x44, 'Equal (MC, desc)'), // D
+  HouseSystemDef(0x4E, 'Equal/1=Aries'), // N
+  HouseSystemDef(0x59, 'APC Houses'), // Y
   HouseSystemDef(0x46, 'Carter Poli-Equatorial'), // F
   HouseSystemDef(0x49, 'Sunshine (Treindl)'), // I
   HouseSystemDef(0x69, 'Sunshine (Makransky)'), // i
-  HouseSystemDef(0x4C, 'Pullen SD'),          // L
-  HouseSystemDef(0x51, 'Pullen SR'),          // Q
+  HouseSystemDef(0x4C, 'Pullen SD'), // L
+  HouseSystemDef(0x51, 'Pullen SR'), // Q
 ];
 
 /// Selected house system (persisted).
@@ -111,23 +114,27 @@ final housesResultProvider = Provider<HousesCalcResult?>((ref) {
 List<ExportRow> housesToExportRows(HousesCalcResult result, DisplayFormat fmt) {
   final rows = <ExportRow>[];
   // Angles card first
-  rows.add(ExportRow(
-    header: 'Angles (${result.hsysName})',
-    fields: [
-      ('Asc', formatAngle(result.asc, fmt)),
-      ('MC', formatAngle(result.mc, fmt)),
-      ('ARMC', formatAngle(result.armc, fmt)),
-      ('Vertex', formatAngle(result.vertex, fmt)),
-      ('Eq Asc', formatAngle(result.equatorialAsc, fmt)),
-    ],
-  ));
+  rows.add(
+    ExportRow(
+      header: 'Angles (${result.hsysName})',
+      fields: [
+        ('Asc', formatAngle(result.asc, fmt)),
+        ('MC', formatAngle(result.mc, fmt)),
+        ('ARMC', formatAngle(result.armc, fmt)),
+        ('Vertex', formatAngle(result.vertex, fmt)),
+        ('Eq Asc', formatAngle(result.equatorialAsc, fmt)),
+      ],
+    ),
+  );
   // Cusp cards
   for (int i = 1; i < result.cusps.length; i++) {
     if (result.cusps[i] == 0.0 && i > 12) continue; // skip unused slots
-    rows.add(ExportRow(
-      header: 'Cusp $i',
-      fields: [('Longitude', formatAngle(result.cusps[i], fmt))],
-    ));
+    rows.add(
+      ExportRow(
+        header: 'Cusp $i',
+        fields: [('Longitude', formatAngle(result.cusps[i], fmt))],
+      ),
+    );
   }
   return rows;
 }

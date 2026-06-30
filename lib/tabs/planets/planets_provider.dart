@@ -33,6 +33,7 @@ class PlanetResult {
   final double speedLat;
   final double speedDist;
   final int returnFlag;
+
   /// When non-null, the SE call failed for this body. UI shows this in
   /// place of the numeric fields (typically a missing-ephemeris-file
   /// message with a pointer to the Ephemeris tab).
@@ -50,14 +51,33 @@ class BodyPreset {
 
 /// Classical 7 + outers + nodes + Lilith variants.
 final defaultBodies = [
-  seSun, seMoon, seMercury, seVenus, seMars, seJupiter, seSaturn,
-  seUranus, seNeptune, sePluto,
-  seMeanNode, seTrueNode, seMeanApog, seOscuApog,
+  seSun,
+  seMoon,
+  seMercury,
+  seVenus,
+  seMars,
+  seJupiter,
+  seSaturn,
+  seUranus,
+  seNeptune,
+  sePluto,
+  seMeanNode,
+  seTrueNode,
+  seMeanApog,
+  seOscuApog,
 ];
 
 /// Presets for quick selection from the default set.
 final bodyPresets = [
-  BodyPreset('Classical', [seSun, seMoon, seMercury, seVenus, seMars, seJupiter, seSaturn]),
+  BodyPreset('Classical', [
+    seSun,
+    seMoon,
+    seMercury,
+    seVenus,
+    seMars,
+    seJupiter,
+    seSaturn,
+  ]),
   BodyPreset('Full', defaultBodies),
   BodyPreset('Outers', [seUranus, seNeptune, sePluto]),
   BodyPreset('Nodes', [seMeanNode, seTrueNode, seMeanApog, seOscuApog]),
@@ -67,14 +87,27 @@ final bodyPresets = [
 
 /// Chiron, Pholus, main-belt asteroids, Earth, interpolated apogee/perigee.
 final extraBodies = [
-  seChiron, sePholus, seCeres, sePallas, seJuno, seVesta,
-  seEarth, seIntpApog, seIntpPerg,
+  seChiron,
+  sePholus,
+  seCeres,
+  sePallas,
+  seJuno,
+  seVesta,
+  seEarth,
+  seIntpApog,
+  seIntpPerg,
 ];
 
 /// Uranian / Hamburg School fictitious bodies.
 final uranianBodies = [
-  seCupido, seHades, seZeus, seKronos,
-  seApollon, seAdmetos, seVulkanus, sePoseidon,
+  seCupido,
+  seHades,
+  seZeus,
+  seKronos,
+  seApollon,
+  seAdmetos,
+  seVulkanus,
+  sePoseidon,
 ];
 
 // ── Asteroid access (third level) ──
@@ -84,7 +117,7 @@ const int asteroidOffset = seAstOffset; // 10000
 
 /// Common named asteroids by MPC number.
 final namedAsteroids = <int, String>{
-  1: 'Ceres',       // also seCeres (17), but MPC route works too
+  1: 'Ceres', // also seCeres (17), but MPC route works too
   2: 'Pallas',
   3: 'Juno',
   4: 'Vesta',
@@ -97,8 +130,8 @@ final namedAsteroids = <int, String>{
   16: 'Psyche',
   433: 'Eros',
   1221: 'Amor',
-  2060: 'Chiron',    // also seChiron (15)
-  5145: 'Pholus',    // also sePholus (16)
+  2060: 'Chiron', // also seChiron (15)
+  5145: 'Pholus', // also sePholus (16)
   7066: 'Nessus',
   136199: 'Eris',
   136472: 'Makemake',
@@ -141,30 +174,34 @@ final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
         globals,
         (eph) => eph.calcUt(ectx.jdUt, body, flags),
       );
-      results.add(PlanetResult(
-        body: body,
-        bodyName: swe.getPlanetName(body),
-        longitude: r.longitude,
-        latitude: r.latitude,
-        distance: r.distance,
-        speedLon: r.longitudeSpeed,
-        speedLat: r.latitudeSpeed,
-        speedDist: r.distanceSpeed,
-        returnFlag: r.returnFlag,
-      ));
+      results.add(
+        PlanetResult(
+          body: body,
+          bodyName: swe.getPlanetName(body),
+          longitude: r.longitude,
+          latitude: r.latitude,
+          distance: r.distance,
+          speedLon: r.longitudeSpeed,
+          speedLat: r.latitudeSpeed,
+          speedDist: r.distanceSpeed,
+          returnFlag: r.returnFlag,
+        ),
+      );
     } on SweException catch (e) {
-      results.add(PlanetResult(
-        body: body,
-        bodyName: _safeGetName(swe, body),
-        longitude: double.nan,
-        latitude: double.nan,
-        distance: double.nan,
-        speedLon: double.nan,
-        speedLat: double.nan,
-        speedDist: double.nan,
-        returnFlag: -1,
-        errorMessage: _describeBodyError(body, e.message),
-      ));
+      results.add(
+        PlanetResult(
+          body: body,
+          bodyName: _safeGetName(swe, body),
+          longitude: double.nan,
+          latitude: double.nan,
+          distance: double.nan,
+          speedLon: double.nan,
+          speedLat: double.nan,
+          speedDist: double.nan,
+          returnFlag: -1,
+          errorMessage: _describeBodyError(body, e.message),
+        ),
+      );
     }
   }
 
@@ -172,18 +209,25 @@ final planetsResultsProvider = Provider<List<PlanetResult>>((ref) {
 });
 
 /// Convert planet results to export rows.
-List<ExportRow> planetsToExportRows(List<PlanetResult> results, DisplayFormat fmt) {
-  return results.map((r) => ExportRow(
-    header: r.bodyName,
-    fields: [
-      ('Longitude', formatAngle(r.longitude, fmt)),
-      ('Latitude', formatAngle(r.latitude, fmt)),
-      ('Distance', formatDistance(r.distance, fmt)),
-      ('Spd Lon', formatSpeed(r.speedLon, fmt)),
-      ('Spd Lat', formatSpeed(r.speedLat, fmt)),
-      ('Spd Dist', formatSpeed(r.speedDist, fmt)),
-    ],
-  )).toList();
+List<ExportRow> planetsToExportRows(
+  List<PlanetResult> results,
+  DisplayFormat fmt,
+) {
+  return results
+      .map(
+        (r) => ExportRow(
+          header: r.bodyName,
+          fields: [
+            ('Longitude', formatAngle(r.longitude, fmt)),
+            ('Latitude', formatAngle(r.latitude, fmt)),
+            ('Distance', formatDistance(r.distance, fmt)),
+            ('Spd Lon', formatSpeed(r.speedLon, fmt)),
+            ('Spd Lat', formatSpeed(r.speedLat, fmt)),
+            ('Spd Dist', formatSpeed(r.speedDist, fmt)),
+          ],
+        ),
+      )
+      .toList();
 }
 
 String _safeGetName(SwissEph swe, int body) {

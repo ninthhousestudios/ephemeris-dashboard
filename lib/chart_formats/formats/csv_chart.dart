@@ -18,7 +18,9 @@ class CsvChartFormat {
     final start = lines[0].startsWith('name') ? 1 : 0;
     return lines.sublist(start).where((l) => l.trim().isNotEmpty).map((line) {
       final fields = _parseCsvLine(line);
-      final dateParts = (fields.length > 1 ? fields[1] : '2000-01-01').split('-');
+      final dateParts = (fields.length > 1 ? fields[1] : '2000-01-01').split(
+        '-',
+      );
       final timeParts = (fields.length > 2 ? fields[2] : '00:00:00').split(':');
       return ChartData(
         name: fields.isNotEmpty ? fields[0] : '',
@@ -36,13 +38,16 @@ class CsvChartFormat {
           latitude: fields.length > 7 ? (double.tryParse(fields[7]) ?? 0) : 0,
           longitude: fields.length > 8 ? (double.tryParse(fields[8]) ?? 0) : 0,
         ),
-        utcOffsetHours:
-            fields.length > 3 ? (double.tryParse(fields[3]) ?? 0) : 0,
-        dstOffsetHours:
-            fields.length > 4 ? (double.tryParse(fields[4]) ?? 0) : 0,
+        utcOffsetHours: fields.length > 3
+            ? (double.tryParse(fields[3]) ?? 0)
+            : 0,
+        dstOffsetHours: fields.length > 4
+            ? (double.tryParse(fields[4]) ?? 0)
+            : 0,
         gender: fields.length > 9 ? _parseGender(fields[9]) : null,
-        roddenRating:
-            fields.length > 10 && fields[10].isNotEmpty ? fields[10] : null,
+        roddenRating: fields.length > 10 && fields[10].isNotEmpty
+            ? fields[10]
+            : null,
       );
     }).toList();
   }
@@ -56,7 +61,8 @@ class CsvChartFormat {
     File(filePath).writeAsStringSync(sb.toString());
   }
 
-  static ChartData read(String filePath) => readBytes(File(filePath).readAsBytesSync());
+  static ChartData read(String filePath) =>
+      readBytes(File(filePath).readAsBytesSync());
 
   static ChartData readBytes(Uint8List bytes) {
     final charts = readAllBytes(bytes);

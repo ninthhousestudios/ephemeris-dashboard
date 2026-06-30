@@ -10,16 +10,16 @@ import '../chart_formats/model/chart_data.dart';
 /// Global context bar state provider.
 final contextBarProvider =
     StateNotifierProvider<ContextBarNotifier, ContextBarState>((ref) {
-  final swe = ref.watch(sweProvider);
-  final persistence = ref.watch(persistenceProvider);
-  return ContextBarNotifier(swe, persistence);
-});
+      final swe = ref.watch(sweProvider);
+      final persistence = ref.watch(persistenceProvider);
+      return ContextBarNotifier(swe, persistence);
+    });
 
 /// Manages context bar state with bidirectional JD ↔ DateTime sync.
 class ContextBarNotifier extends StateNotifier<ContextBarState> {
   ContextBarNotifier(SwissEph swe, this._persistence)
-      : _jdUtils = JdUtils(swe),
-        super(_initialState(swe)) {
+    : _jdUtils = JdUtils(swe),
+      super(_initialState(swe)) {
     restoreFromPersistence();
   }
 
@@ -31,11 +31,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     final jdUtils = JdUtils(swe);
     final jd = jdUtils.dateTimeToJd(now);
     final localOffset = DateTime.now().timeZoneOffset.inMinutes / 60.0;
-    return ContextBarState(
-      dateTime: now,
-      utcOffset: localOffset,
-      jdUt: jd,
-    );
+    return ContextBarState(dateTime: now, utcOffset: localOffset, jdUt: jd);
   }
 
   /// Apply persisted values after construction (called from provider factory).

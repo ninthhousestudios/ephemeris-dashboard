@@ -10,8 +10,7 @@ class ZodiacRefSelector extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final zodiacRef =
-        ref.watch(contextBarProvider.select((s) => s.zodiacRef));
+    final zodiacRef = ref.watch(contextBarProvider.select((s) => s.zodiacRef));
 
     return LabeledDropdown<ZodiacRef>(
       label: 'Zodiac',
