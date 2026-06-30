@@ -7,7 +7,7 @@ import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
@@ -197,28 +197,42 @@ List<PlanetResult> computePlanets({
   }).toList();
 }
 
+/// Runs the kernel once per recompute; `planetsResultsProvider` and
+/// `planetsTraceProvider` both derive from this so the native calc only
+/// runs a single time per Context/Flags/selection change.
+final _planetsCalcProvider =
+    Provider<({CalcOutcome<List<PlanetResult>> outcome, CallTrace trace})>((
+      ref,
+    ) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final bodies = ref.watch(selectedBodiesProvider);
+
+      return runTabCalc(
+        ref,
+        tabTag: 'planets',
+        compute: (eph) => computePlanets(
+          eph: eph,
+          jdUt: ctx.jdUt,
+          iflag: flags.iflag,
+          origin: ctx.origin,
+          bodies: bodies,
+          getName: (body) => _safeGetName(swe, body),
+        ),
+      );
+    });
+
 /// Planets calculation results.
 final planetsResultsProvider = Provider<CalcOutcome<List<PlanetResult>>>((ref) {
-  final ctx = ref.watch(contextBarProvider);
-  final flags = ref.watch(flagBarProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  final swe = ref.read(sweProvider);
-  final bodies = ref.watch(selectedBodiesProvider);
+  return ref.watch(_planetsCalcProvider.select((c) => c.outcome));
+});
 
-  return runTabCalc(
-    runner: runner,
-    globals: globals,
-    tabTag: 'planets',
-    compute: (eph) => computePlanets(
-      eph: eph,
-      jdUt: ctx.jdUt,
-      iflag: flags.iflag,
-      origin: ctx.origin,
-      bodies: bodies,
-      getName: (body) => _safeGetName(swe, body),
-    ),
-  );
+/// Call Trace produced by the most recent planets calculation — always
+/// fresh for whatever `planetsResultsProvider` currently shows, unlike the
+/// legacy session-gated `callTraceProvider`.
+final planetsTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_planetsCalcProvider.select((c) => c.trace));
 });
 
 /// Convert planet results to export rows.

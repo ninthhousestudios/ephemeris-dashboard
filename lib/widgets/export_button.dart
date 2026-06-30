@@ -12,11 +12,16 @@ class ExportButton extends StatefulWidget {
     required this.getRows,
     required this.filenameStem,
     this.hasResults = true,
+    this.disabledTooltip,
   });
 
   final List<ExportRow> Function() getRows;
   final String filenameStem;
   final bool hasResults;
+
+  /// Shown instead of the default tooltip while disabled — e.g. to
+  /// distinguish "no results selected" from "calculation failed".
+  final String? disabledTooltip;
 
   @override
   State<ExportButton> createState() => _ExportButtonState();
@@ -68,7 +73,9 @@ class _ExportButtonState extends State<ExportButton> {
         children: [
           IconButton(
             icon: const Icon(Icons.file_download, size: 18),
-            tooltip: 'Copy all results (TSV)',
+            tooltip: widget.hasResults
+                ? 'Copy all results (TSV)'
+                : (widget.disabledTooltip ?? 'Copy all results (TSV)'),
             onPressed: widget.hasResults
                 ? () => _export(ExportFormat.tsvClipboard)
                 : null,
@@ -77,7 +84,9 @@ class _ExportButtonState extends State<ExportButton> {
           ),
           IconButton(
             icon: const Icon(Icons.arrow_drop_down, size: 18),
-            tooltip: 'Export options',
+            tooltip: widget.hasResults
+                ? 'Export options'
+                : (widget.disabledTooltip ?? 'Export options'),
             onPressed: widget.hasResults
                 ? () => _menuController.isOpen
                       ? _menuController.close()

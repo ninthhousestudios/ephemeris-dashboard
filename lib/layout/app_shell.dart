@@ -215,6 +215,9 @@ class _AppShellState extends ConsumerState<AppShell>
                   hasResults: results.isNotEmpty,
                   getRows: () => planetsToExportRows(results, format),
                   filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',
+                  disabledTooltip: outcome is CalcSweError
+                      ? 'Export disabled: calculation error'
+                      : null,
                 ),
               ],
             );
