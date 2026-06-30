@@ -8,6 +8,7 @@ import '../../chart_formats/chart_io.dart';
 import '../../chart_formats/model/chart_data.dart';
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
+import '../../core/date_time_input.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../chart_file_dialog.dart';
 import '../../core/jd_utils.dart';
@@ -101,12 +102,10 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     final ctx = ref.read(contextBarProvider);
     final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
     if (!_dateFocus.hasFocus) {
-      _date.text =
-          '${_p(local.year, 4)}-${_p(local.month, 2)}-${_p(local.day, 2)}';
+      _date.text = fmtDate(local);
     }
     if (!_timeFocus.hasFocus) {
-      _time.text =
-          '${_p(local.hour, 2)}:${_p(local.minute, 2)}:${_p(local.second, 2)}';
+      _time.text = fmtTime(local);
     }
     if (!_utcFocus.hasFocus) {
       _utc.text = _fmtOffset(ctx.utcOffset);
@@ -250,7 +249,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
   Future<void> _pickTime() async {
     final ctx = ref.read(contextBarProvider);
     final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    final picked = await _showPreciseTimePicker(
+    final picked = await showPreciseTimePicker(
       context: context,
       initialHour: local.hour,
       initialMinute: local.minute,
@@ -268,126 +267,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     ref
         .read(contextBarProvider.notifier)
         .setDateTime(_jdUtils.removeUtcOffset(newLocal, ctx.utcOffset));
-  }
-
-  /// Time picker dialog with hour, minute, and second spinners.
-  static Future<(int, int, int)?> _showPreciseTimePicker({
-    required BuildContext context,
-    required int initialHour,
-    required int initialMinute,
-    required int initialSecond,
-  }) {
-    var h = initialHour;
-    var m = initialMinute;
-    var s = initialSecond;
-    final hCtrl = TextEditingController(text: h.toString().padLeft(2, '0'));
-    final mCtrl = TextEditingController(text: m.toString().padLeft(2, '0'));
-    final sCtrl = TextEditingController(text: s.toString().padLeft(2, '0'));
-    return showDialog<(int, int, int)>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          final spinnerStyle = Theme.of(
-            ctx,
-          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
-
-          void updateCtrl(TextEditingController ctrl, int value) {
-            final text = value.toString().padLeft(2, '0');
-            if (ctrl.text != text) {
-              ctrl.text = text;
-              ctrl.selection = TextSelection.collapsed(offset: text.length);
-            }
-          }
-
-          updateCtrl(hCtrl, h);
-          updateCtrl(mCtrl, m);
-          updateCtrl(sCtrl, s);
-
-          Widget spinner(
-            String label,
-            int value,
-            int max,
-            ValueChanged<int> onChanged,
-            TextEditingController ctrl,
-          ) {
-            return IntrinsicWidth(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(label, style: Theme.of(ctx).textTheme.labelSmall),
-                  const SizedBox(height: 4),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_drop_up),
-                    onPressed: () =>
-                        setState(() => onChanged((value + 1) % (max + 1))),
-                  ),
-                  TextField(
-                    controller: ctrl,
-                    textAlign: TextAlign.center,
-                    style: spinnerStyle,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(2),
-                    ],
-                    onChanged: (text) {
-                      final v = int.tryParse(text);
-                      if (v != null && v >= 0 && v <= max) {
-                        onChanged(v);
-                      }
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_drop_down),
-                    onPressed: () => setState(
-                      () => onChanged((value - 1 + max + 1) % (max + 1)),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return AlertDialog(
-            title: const Text('Set Time'),
-            content: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                spinner('Hour', h, 23, (v) => h = v, hCtrl),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(':', style: spinnerStyle),
-                ),
-                spinner('Min', m, 59, (v) => m = v, mCtrl),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(':', style: spinnerStyle),
-                ),
-                spinner('Sec', s, 59, (v) => s = v, sCtrl),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop((h, m, s)),
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
-      ),
-    );
   }
 
   /// Half-hour UTC offset options from -12:00 to +12:00.
@@ -409,7 +288,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             controller: _utc,
             focusNode: _utcFocus,
             style: _fieldStyle,
-            decoration: _deco('+00:00'),
+            decoration: dateTimeInputDecoration('+00:00'),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[\d:+-]')),
             ],
@@ -454,13 +333,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
         : Theme.of(context).textTheme.bodySmall;
   }
 
-  InputDecoration _deco(String hint) => InputDecoration(
-    isDense: true,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-    hintText: hint,
-    border: const OutlineInputBorder(),
-  );
-
   /// A labeled text field: [64px label] [expanding field] [optional icon]
   Widget _labeled(
     String label,
@@ -479,7 +351,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             controller: controller,
             focusNode: focusNode,
             style: _fieldStyle,
-            decoration: _deco(hint),
+            decoration: dateTimeInputDecoration(hint),
             inputFormatters: formatters,
             onSubmitted: (_) => onCommit(),
             onEditingComplete: onCommit,
@@ -487,16 +359,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
         ),
         ?trailing,
       ],
-    );
-  }
-
-  Widget _iconBtn(IconData icon, String tooltip, VoidCallback onPressed) {
-    return IconButton(
-      icon: Icon(icon, size: 14),
-      padding: const EdgeInsets.only(left: 4),
-      constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-      tooltip: tooltip,
-      onPressed: onPressed,
     );
   }
 
@@ -623,8 +485,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        '${_p(local.year, 4)}-${_p(local.month, 2)}-${_p(local.day, 2)}  '
-                        '${_p(local.hour, 2)}:${_p(local.minute, 2)}:${_p(local.second, 2)}  '
+                        '${fmtDate(local)}  '
+                        '${fmtTime(local)}  '
                         '${_fmtOffset(ctx.utcOffset)}  '
                         '${_fmtCoord(ctx.latitude)}, ${_fmtCoord(ctx.longitude)}',
                         style: summaryStyle,
@@ -686,7 +548,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                 onPressed: _openChart,
               ),
               const Spacer(),
-              _iconBtn(Icons.update, 'Set to now', () {
+              dateTimeIconButton(Icons.update, 'Set to now', () {
                 ref.read(contextBarProvider.notifier).setNow();
               }),
               const SizedBox(width: 4),
@@ -767,7 +629,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                   formatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
                   ],
-                  trailing: _iconBtn(
+                  trailing: dateTimeIconButton(
                     Icons.calendar_today,
                     'Pick date',
                     _pickDate,
@@ -785,7 +647,11 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                   formatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
                   ],
-                  trailing: _iconBtn(Icons.access_time, 'Pick time', _pickTime),
+                  trailing: dateTimeIconButton(
+                    Icons.access_time,
+                    'Pick time',
+                    _pickTime,
+                  ),
                 ),
               ),
             ],
@@ -1001,7 +867,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        _iconBtn(Icons.update, 'Set to now', () {
+                        dateTimeIconButton(Icons.update, 'Set to now', () {
                           ref.read(contextBarProvider.notifier).setNow();
                         }),
                       ],
@@ -1022,7 +888,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                                 RegExp(r'[\d-]'),
                               ),
                             ],
-                            trailing: _iconBtn(
+                            trailing: dateTimeIconButton(
                               Icons.calendar_today,
                               'Pick date',
                               _pickDate,
@@ -1045,12 +911,16 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                _iconBtn(Icons.update, 'Set to now', () {
-                                  ref
-                                      .read(contextBarProvider.notifier)
-                                      .setNow();
-                                }),
-                                _iconBtn(
+                                dateTimeIconButton(
+                                  Icons.update,
+                                  'Set to now',
+                                  () {
+                                    ref
+                                        .read(contextBarProvider.notifier)
+                                        .setNow();
+                                  },
+                                ),
+                                dateTimeIconButton(
                                   Icons.access_time,
                                   'Pick time',
                                   _pickTime,

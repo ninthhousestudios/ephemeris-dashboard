@@ -5,6 +5,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
+import '../../core/date_time_input.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
@@ -55,39 +56,28 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   bool get _hasCalculated =>
       ref.watch(calcSessionProvider.select((s) => s.tabHasRun('differential')));
 
-  // ── Date/time helpers (same pattern as DatesTab) ──
-
-  static String _fmtDate(DateTime dt) =>
-      '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
-
-  static String _fmtTime(DateTime dt) =>
-      '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
-
   void _syncTimeFromContext() {
     final ctx = ref.read(contextBarProvider);
     final dt = _jdUtils.jdToDateTime(ctx.jdUt);
-    _dateCtrl.text = _fmtDate(dt);
-    _timeCtrl.text = _fmtTime(dt);
+    _dateCtrl.text = fmtDate(dt);
+    _timeCtrl.text = fmtTime(dt);
     _jdCtrl.text = ctx.jdUt.toStringAsFixed(8);
   }
 
   double? _parseDateTime() {
-    try {
-      final parts = _dateCtrl.text.split('-');
-      if (parts.length != 3) return null;
-      final year = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final day = int.parse(parts[2]);
-      final tParts = _timeCtrl.text.split(':');
-      final hour = tParts.isNotEmpty ? int.tryParse(tParts[0]) ?? 0 : 0;
-      final min = tParts.length > 1 ? int.tryParse(tParts[1]) ?? 0 : 0;
-      final sec = tParts.length > 2 ? int.tryParse(tParts[2]) ?? 0 : 0;
-      return _jdUtils.dateTimeToJd(
-        DateTime.utc(year, month, day, hour, min, sec),
-      );
-    } catch (_) {
-      return null;
-    }
+    final d = parseDateFields(_dateCtrl.text);
+    if (d == null) return null;
+    final t = parseTimeFields(_timeCtrl.text);
+    return _jdUtils.dateTimeToJd(
+      DateTime.utc(
+        d.year,
+        d.month,
+        d.day,
+        t?.hour ?? 0,
+        t?.minute ?? 0,
+        t?.second ?? 0,
+      ),
+    );
   }
 
   void _syncJdFromDateTimeFields() {
@@ -97,8 +87,8 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
 
   void _setNow() {
     final now = DateTime.now().toUtc();
-    _dateCtrl.text = _fmtDate(now);
-    _timeCtrl.text = _fmtTime(now);
+    _dateCtrl.text = fmtDate(now);
+    _timeCtrl.text = fmtTime(now);
     _jdCtrl.text = _jdUtils.dateTimeToJd(now).toStringAsFixed(8);
     setState(() => _isCustomTime = true);
   }
@@ -119,15 +109,8 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   }
 
   Future<void> _pickDate() async {
-    DateTime? current;
-    try {
-      final parts = _dateCtrl.text.split('-');
-      current = DateTime(
-        int.parse(parts[0]),
-        int.parse(parts[1]),
-        int.parse(parts[2]),
-      );
-    } catch (_) {}
+    final d = parseDateFields(_dateCtrl.text);
+    final current = d != null ? DateTime(d.year, d.month, d.day) : null;
     final picked = await showDatePicker(
       context: context,
       initialDate: current ?? DateTime.now(),
@@ -135,26 +118,22 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
       lastDate: DateTime(4000),
     );
     if (picked == null) return;
-    _dateCtrl.text = _fmtDate(picked);
+    _dateCtrl.text = fmtDate(picked);
     _syncJdFromDateTimeFields();
     setState(() => _isCustomTime = true);
     _commitTimeOverride();
   }
 
   Future<void> _pickTime() async {
-    final parts = _timeCtrl.text.split(':');
-    final h = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0;
-    final m = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
-    final s = parts.length > 2 ? int.tryParse(parts[2]) ?? 0 : 0;
-    final picked = await _showPreciseTimePicker(
+    final t = parseTimeFields(_timeCtrl.text);
+    final picked = await showPreciseTimePicker(
       context: context,
-      initialHour: h,
-      initialMinute: m,
-      initialSecond: s,
+      initialHour: t?.hour ?? 0,
+      initialMinute: t?.minute ?? 0,
+      initialSecond: t?.second ?? 0,
     );
     if (picked == null) return;
-    _timeCtrl.text =
-        '${picked.$1.toString().padLeft(2, '0')}:${picked.$2.toString().padLeft(2, '0')}:${picked.$3.toString().padLeft(2, '0')}';
+    _timeCtrl.text = fmtHms(picked.$1, picked.$2, picked.$3);
     _syncJdFromDateTimeFields();
     setState(() => _isCustomTime = true);
     _commitTimeOverride();
@@ -187,8 +166,8 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
     if (!_isCustomTime) {
       final ctx = ref.watch(contextBarProvider);
       final dt = _jdUtils.jdToDateTime(ctx.jdUt);
-      final dateStr = _fmtDate(dt);
-      final timeStr = _fmtTime(dt);
+      final dateStr = fmtDate(dt);
+      final timeStr = fmtTime(dt);
       final jdStr = ctx.jdUt.toStringAsFixed(8);
       if (_dateCtrl.text != dateStr) _dateCtrl.text = dateStr;
       if (_timeCtrl.text != timeStr) _timeCtrl.text = timeStr;
@@ -218,7 +197,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                 child: TextField(
                   controller: _dateCtrl,
                   style: theme.textTheme.bodySmall,
-                  decoration: _deco('YYYY-MM-DD'),
+                  decoration: dateTimeInputDecoration('YYYY-MM-DD'),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
                   ],
@@ -229,14 +208,14 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   },
                 ),
               ),
-              _iconBtn(Icons.calendar_today, 'Pick date', _pickDate),
+              dateTimeIconButton(Icons.calendar_today, 'Pick date', _pickDate),
               const SizedBox(width: 12),
               Text('Time (UT) ', style: labelStyle),
               Expanded(
                 child: TextField(
                   controller: _timeCtrl,
                   style: theme.textTheme.bodySmall,
-                  decoration: _deco('HH:MM:SS'),
+                  decoration: dateTimeInputDecoration('HH:MM:SS'),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
                   ],
@@ -247,14 +226,14 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                   },
                 ),
               ),
-              _iconBtn(Icons.access_time, 'Pick time', _pickTime),
+              dateTimeIconButton(Icons.access_time, 'Pick time', _pickTime),
               const SizedBox(width: 12),
               Text('JD ', style: labelStyle),
               Expanded(
                 child: TextField(
                   controller: _jdCtrl,
                   style: theme.textTheme.bodySmall,
-                  decoration: _deco('2460000.0'),
+                  decoration: dateTimeInputDecoration('2460000.0'),
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                   ],
@@ -266,9 +245,13 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
               ),
               if (_isCustomTime) ...[
                 const SizedBox(width: 4),
-                _iconBtn(Icons.sync, 'Reset to context', _resetToContext),
+                dateTimeIconButton(
+                  Icons.sync,
+                  'Reset to context',
+                  _resetToContext,
+                ),
               ],
-              _iconBtn(Icons.update, 'Now', _setNow),
+              dateTimeIconButton(Icons.update, 'Now', _setNow),
             ],
           ),
         ),
@@ -554,130 +537,6 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
             : theme.colorScheme.secondary.withValues(alpha: 0.2),
         onSelected: (_) => _setBodyA(body),
         visualDensity: VisualDensity.compact,
-      ),
-    );
-  }
-
-  static InputDecoration _deco(String hint) => InputDecoration(
-    isDense: true,
-    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-    hintText: hint,
-    border: const OutlineInputBorder(),
-  );
-
-  Widget _iconBtn(IconData icon, String tooltip, VoidCallback onPressed) {
-    return IconButton(
-      icon: Icon(icon, size: 14),
-      padding: const EdgeInsets.only(left: 4),
-      constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-      tooltip: tooltip,
-      onPressed: onPressed,
-    );
-  }
-
-  /// Precise time picker dialog with hour/minute/second spinners.
-  static Future<(int, int, int)?> _showPreciseTimePicker({
-    required BuildContext context,
-    required int initialHour,
-    required int initialMinute,
-    required int initialSecond,
-  }) {
-    var h = initialHour;
-    var m = initialMinute;
-    var s = initialSecond;
-    return showDialog<(int, int, int)>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) {
-          final spinnerStyle = Theme.of(
-            ctx,
-          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
-          final colonStyle = Theme.of(
-            ctx,
-          ).textTheme.headlineSmall?.copyWith(fontFamily: 'monospace');
-
-          Widget spinner(
-            String label,
-            int value,
-            int max,
-            ValueChanged<int> onChanged,
-          ) {
-            return IntrinsicWidth(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(label, style: Theme.of(ctx).textTheme.labelSmall),
-                  const SizedBox(height: 4),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_drop_up),
-                    onPressed: () =>
-                        setState(() => onChanged((value + 1) % (max + 1))),
-                  ),
-                  TextField(
-                    controller: TextEditingController(
-                      text: value.toString().padLeft(2, '0'),
-                    ),
-                    textAlign: TextAlign.center,
-                    style: spinnerStyle,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 8,
-                      ),
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(2),
-                    ],
-                    onChanged: (text) {
-                      final v = int.tryParse(text);
-                      if (v != null && v >= 0 && v <= max) onChanged(v);
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_drop_down),
-                    onPressed: () => setState(
-                      () => onChanged((value - 1 + max + 1) % (max + 1)),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return AlertDialog(
-            title: const Text('Set Time'),
-            content: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                spinner('Hour', h, 23, (v) => h = v),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(':', style: colonStyle),
-                ),
-                spinner('Min', m, 59, (v) => m = v),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Text(':', style: colonStyle),
-                ),
-                spinner('Sec', s, 59, (v) => s = v),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop((h, m, s)),
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
       ),
     );
   }
