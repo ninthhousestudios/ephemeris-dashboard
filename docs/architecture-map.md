@@ -79,15 +79,19 @@ Tabs access the engine two ways:
    **Known trace gap:** eclipses_provider.dart calls eclipse methods directly on
    `swe`, bypassing the runner entirely.
 
-## Code emission (lib/core/ephemeris/ + lib/core/emitters/)
+## Code emission (lib/core/ephemeris/)
 
 | File | Key types |
 |------|-----------|
-| `swe_symbol_catalog.dart` | `SweSymbolCatalog` — maps SE constants/functions to per-target renderings |
-| `c_emitter.dart` | `CEmitter` — renders CallTrace → C source |
-| `dart_emitter.dart` | `DartEmitter` — renders CallTrace → Dart source |
+| `swe_symbol_catalog.dart` | `CodeTarget`, `TracedFunction` (39-value enum), `SymbolPair`, `SweSymbolCatalog` — single source of truth for SE constants and traced functions |
+| `code_emitter.dart` | `CodeEmitter` (abstract), `CEmitter`, `DartEmitter` — renders CallTrace → C/Dart source via exhaustive switch on `TracedFunction` |
 
-Emitters consume a `TraceSlice` (filtered CallTrace) and the Symbol Catalog.
+`TracedFunction` is the canonical registry of all traced SwissEph calls.
+`CallEntry.functionName` is `TracedFunction` (not `String`), so both recording
+(`TracingSwissEph`) and emission derive from the catalog. Emitter switches are
+Dart 3 exhaustive switch expressions — a missing case is a compile error.
+Constant lookups (bodies, flags, sidModes) use `CodeTarget`-parameterized
+methods backed by unified `SymbolPair`-valued maps.
 
 ## Context subsystem (lib/core/)
 
