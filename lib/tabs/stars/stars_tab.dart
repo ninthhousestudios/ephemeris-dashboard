@@ -5,7 +5,6 @@ import '../../core/calc_session.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -101,7 +100,6 @@ class _StarsTabState extends ConsumerState<StarsTab> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final fmt = ref.watch(starsFormatProvider);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -221,12 +219,9 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _hasCalculated ? _buildResults(theme) : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults(theme) : _buildPlaceholder(),
-          ),
+        Expanded(
+          child: _hasCalculated ? _buildResults(theme) : _buildPlaceholder(),
+        ),
       ],
     );
   }

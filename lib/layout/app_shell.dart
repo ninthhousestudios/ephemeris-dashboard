@@ -140,26 +140,14 @@ class _AppShellState extends ConsumerState<AppShell>
                 child: _AllTabsBar(controller: _tabController),
               ),
       ),
-      body: screenSize == ScreenSize.mobile
-          ? SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const ContextBar(),
-                  if (selectedTab.hasFlags)
-                    FlagBar(trailing: _buildFlagBarTrailing(selectedTab)),
-                  _TabContent(tab: selectedTab),
-                ],
-              ),
-            )
-          : Column(
-              children: [
-                const ContextBar(),
-                if (selectedTab.hasFlags)
-                  FlagBar(trailing: _buildFlagBarTrailing(selectedTab)),
-                Expanded(child: _TabContent(tab: selectedTab)),
-              ],
-            ),
+      body: Column(
+        children: [
+          const ContextBar(),
+          if (selectedTab.hasFlags)
+            FlagBar(trailing: _buildFlagBarTrailing(selectedTab)),
+          Expanded(child: _TabContent(tab: selectedTab)),
+        ],
+      ),
       // Mobile bottom navigation
       bottomNavigationBar: screenSize == ScreenSize.mobile
           ? _MobileTabBar(

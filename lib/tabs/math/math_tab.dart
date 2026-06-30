@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/context_provider.dart';
 import '../../core/swe_service.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'math_provider.dart';
@@ -21,7 +20,6 @@ class _MathTabState extends ConsumerState<MathTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
     return Column(
       children: [
         // Export bar
@@ -45,7 +43,7 @@ class _MathTabState extends ConsumerState<MathTab> {
         ),
         const Divider(height: 1),
         // Cards grid
-        if (isMobile) _buildMathGrid() else Expanded(child: _buildMathGrid()),
+        Expanded(child: _buildMathGrid()),
       ],
     );
   }

@@ -7,7 +7,6 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/swe_service.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/result_card.dart';
 import 'planetocentric_provider.dart';
@@ -40,7 +39,6 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     final center = ref.watch(planetocentricCenterProvider);
     final swe = ref.read(sweProvider);
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -154,12 +152,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         const SizedBox(height: 4),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        Expanded(child: _hasCalculated ? _buildResults() : _buildPlaceholder()),
       ],
     );
   }

@@ -6,7 +6,6 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -36,7 +35,6 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
     final compareMode = ref.watch(ayanamsaCompareModeProvider);
     final selected = ref.watch(selectedAyanamsasProvider);
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -141,12 +139,7 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
         ),
         const Divider(height: 1),
         // Results
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        Expanded(child: _hasCalculated ? _buildResults() : _buildPlaceholder()),
       ],
     );
   }

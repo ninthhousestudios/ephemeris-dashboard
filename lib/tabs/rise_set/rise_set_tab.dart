@@ -6,7 +6,6 @@ import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -111,7 +110,6 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -278,14 +276,9 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _hasCalculated() ? _buildResults(result) : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated()
-                ? _buildResults(result)
-                : _buildPlaceholder(),
-          ),
+        Expanded(
+          child: _hasCalculated() ? _buildResults(result) : _buildPlaceholder(),
+        ),
       ],
     );
   }

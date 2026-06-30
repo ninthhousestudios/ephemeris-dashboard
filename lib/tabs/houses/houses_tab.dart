@@ -6,7 +6,6 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/persistence.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/result_card.dart';
 import 'houses_provider.dart';
@@ -26,7 +25,6 @@ class _HousesTabState extends ConsumerState<HousesTab> {
   Widget build(BuildContext context) {
     final hsys = ref.watch(selectedHouseSystemProvider);
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -84,12 +82,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
         ),
         const Divider(height: 1),
         // Results
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        Expanded(child: _hasCalculated ? _buildResults() : _buildPlaceholder()),
       ],
     );
   }
