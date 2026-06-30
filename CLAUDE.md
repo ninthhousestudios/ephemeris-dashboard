@@ -61,9 +61,22 @@ This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must 
 
 The app is being refactored into deep, testable modules. Vocabulary: `CONTEXT.md`.
 Decisions: `docs/adr/`. Plan: `docs/prd/deep-module-refactor.md` (yojana `swe-dashboard/4`).
+Architecture map: `docs/architecture-map.md` (provider graph, file roles, call patterns).
 Use `CONTEXT.md` terms in code, tests, and commits (Context, Moment, Ephemeris vs
 Ephemeris Source, Calculation/Result, Locked/Toggle Flag, Chart, Symbol Catalog,
 Call Trace, Emitter).
+
+### Planning protocol
+
+When planning a refactor task (vidhi-plan), do NOT launch a broad exploration agent.
+Instead:
+
+1. Read `docs/architecture-map.md` (~2k tokens) for the stable layout.
+2. Do targeted `sutra_read` calls on the specific symbols the task names.
+3. Only delegate exploration to a subagent when the answer set is genuinely unknown
+   (e.g. "find all callers of X across the codebase").
+
+Update the architecture map when a task changes the module structure or provider graph.
 
 ### Governed invariants
 
