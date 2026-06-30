@@ -75,16 +75,20 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     final d = parseDateFields(_dateCtrl.text);
     if (d == null) return null;
     final t = parseTimeFields(_timeCtrl.text);
-    return _jdUtils.dateTimeToJd(
-      DateTime.utc(
-        d.year,
-        d.month,
-        d.day,
-        t?.hour ?? 0,
-        t?.minute ?? 0,
-        t?.second ?? 0,
-      ),
-    );
+    try {
+      return _jdUtils.dateTimeToJd(
+        DateTime.utc(
+          d.year,
+          d.month,
+          d.day,
+          t?.hour ?? 0,
+          t?.minute ?? 0,
+          t?.second ?? 0,
+        ),
+      );
+    } on ArgumentError {
+      return null;
+    }
   }
 
   void _setNow() {

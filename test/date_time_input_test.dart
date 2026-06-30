@@ -14,7 +14,12 @@ void main() {
     });
 
     test('handles negative years (BCE)', () {
-      expect(fmtDate(DateTime.utc(-500, 3, 21)), equals('-500-03-21'));
+      expect(fmtDate(DateTime.utc(-500, 3, 21)), equals('-0500-03-21'));
+    });
+
+    test('zero-pads small-magnitude negative years', () {
+      expect(fmtDate(DateTime.utc(-50, 3, 21)), equals('-0050-03-21'));
+      expect(fmtDate(DateTime.utc(-5, 3, 21)), equals('-0005-03-21'));
     });
   });
 
@@ -68,6 +73,15 @@ void main() {
       final r = parseDateFields('-500-03-21');
       expect(r, isNotNull);
       expect(r!.year, equals(-500));
+    });
+
+    test('round-trips small-magnitude negative years through fmtDate', () {
+      for (final year in [-1, -5, -50, -500, -5000]) {
+        final dt = DateTime.utc(year, 3, 21);
+        final r = parseDateFields(fmtDate(dt));
+        expect(r, isNotNull, reason: 'year $year');
+        expect(r!.year, equals(year), reason: 'year $year');
+      }
     });
   });
 
