@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../chart_formats/chart_io.dart';
-import '../../chart_formats/model/chart_data.dart';
+import '../../core/chart_io.dart';
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';

@@ -33,6 +33,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
+  charts_dart:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: main
+      resolved-ref: "29d7b3c4deb39017fb6669a997ef3b3668971702"
+      url: "https://github.com/ninthhousestudios/charts_dart.git"
+    source: git
+    version: "1.0.0"
   clock:
     dependency: transitive
     description:
@@ -526,7 +535,7 @@ packages:
     source: hosted
     version: "0.7.10"
   toml:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: toml
       sha256: "35a35f782228656a2af31e8c73d1353cc4ef3d683fd68af1111b44631879c05e"

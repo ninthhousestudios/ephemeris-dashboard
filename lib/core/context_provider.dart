@@ -5,7 +5,7 @@ import 'context_state.dart';
 import 'jd_utils.dart';
 import 'persistence.dart';
 import 'swe_service.dart';
-import '../chart_formats/model/chart_data.dart';
+import 'chart_io.dart';
 
 /// Global context bar state provider.
 final contextBarProvider =

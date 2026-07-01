@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
-import '../chart_formats/chart_io.dart';
+import '../core/chart_io.dart';
 
 /// A themed in-app file browser dialog for opening chart files.
 ///
