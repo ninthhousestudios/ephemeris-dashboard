@@ -35,12 +35,14 @@ sweProvider (SwissEph)          ← swe_service.dart, conditional import
 | `calc_outcome.dart` | `CalcOutcome<T>`, `CalcOk<T>`, `CalcSweError<T>` | Sealed result type. No "not run" variant — per ADR-0001, a tab's result provider is always a projection of the current Context. |
 | `run_tab_calc.dart` | `runTabCalc<T>` | Free function (not a provider factory): tab-tag -> apply-globals -> execute compute lambda -> envelope in `CalcOutcome`. Synchronous. Each tab's result provider watches its own inputs and calls this with a compute lambda; per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. |
 
-**Migrated to the kernel:** `planets` (`lib/tabs/planets/planets_provider.dart` —
-`computePlanets` is the pure compute fn, `planetsResultsProvider` returns
-`CalcOutcome<List<PlanetResult>>` and watches `contextBarProvider` +
-`flagBarProvider` directly, no longer `effectiveContextProvider`). Other tabs
-still use the legacy `calcSessionProvider` activation gate + raw return types
-pending migration (`swe-dashboard/15`).
+**Migrated to the kernel:** `planets`, `differential`, `phenomena`,
+`planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`.
+Each has a pure `compute*` function + `_*CalcProvider` (via `runTabCalc`) →
+`*ResultsProvider` (`CalcOutcome<T>`) + `*TraceProvider` (`CallTrace`).
+Watches `contextBarProvider` + `flagBarProvider` directly; no
+`effectiveContextProvider` or `calcSessionProvider` gate. Shared
+`safeGetName` helper in `lib/core/body_utils.dart` (was duplicated in 4
+provider files).
 
 ## Ephemeris subsystem (lib/core/ephemeris/)
 
