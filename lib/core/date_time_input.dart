@@ -21,16 +21,22 @@ String fmtHms(int h, int m, int s) =>
   final mo = int.tryParse(parts[1]);
   final d = int.tryParse(parts[2]);
   if (y == null || mo == null || d == null) return null;
-  return (year: negative ? -y : y, month: mo, day: d);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  final year = negative ? -y : y;
+  final check = DateTime.utc(year, mo, d);
+  if (check.year != year || check.month != mo || check.day != d) return null;
+  return (year: year, month: mo, day: d);
 }
 
 ({int hour, int minute, int second})? parseTimeFields(String text) {
   final parts = text.split(':');
   if (parts.isEmpty) return null;
   final h = int.tryParse(parts[0]);
-  if (h == null) return null;
+  if (h == null || h < 0 || h > 23) return null;
   final m = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+  if (m < 0 || m > 59) return null;
   final s = parts.length > 2 ? int.tryParse(parts[2]) ?? 0 : 0;
+  if (s < 0 || s > 59) return null;
   return (hour: h, minute: m, second: s);
 }
 

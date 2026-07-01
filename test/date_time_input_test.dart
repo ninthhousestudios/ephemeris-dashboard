@@ -69,6 +69,24 @@ void main() {
       expect(parseDateFields(''), isNull);
     });
 
+    test('rejects impossible day for month (Feb 31)', () {
+      expect(parseDateFields('2024-02-31'), isNull);
+    });
+
+    test('rejects month 0 and month 13', () {
+      expect(parseDateFields('2024-00-15'), isNull);
+      expect(parseDateFields('2024-13-15'), isNull);
+    });
+
+    test('rejects day 0', () {
+      expect(parseDateFields('2024-06-00'), isNull);
+    });
+
+    test('accepts Feb 29 on leap year, rejects on non-leap', () {
+      expect(parseDateFields('2024-02-29'), isNotNull);
+      expect(parseDateFields('2023-02-29'), isNull);
+    });
+
     test('parses negative year', () {
       final r = parseDateFields('-500-03-21');
       expect(r, isNotNull);
@@ -106,6 +124,22 @@ void main() {
 
     test('returns null on non-numeric hour', () {
       expect(parseTimeFields('ab:30:00'), isNull);
+    });
+
+    test('rejects hour 24', () {
+      expect(parseTimeFields('24:00:00'), isNull);
+    });
+
+    test('rejects minute 60', () {
+      expect(parseTimeFields('12:60:00'), isNull);
+    });
+
+    test('rejects second 60', () {
+      expect(parseTimeFields('12:30:60'), isNull);
+    });
+
+    test('rejects negative values', () {
+      expect(parseTimeFields('-1:30:00'), isNull);
     });
   });
 

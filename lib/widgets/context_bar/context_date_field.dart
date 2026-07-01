@@ -48,16 +48,16 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
     final parsed = parseDateFields(_controller.text);
     if (parsed == null) return;
     final ctx = ref.read(contextBarProvider);
-    final oldDt = ctx.dateTime;
-    final newDt = DateTime.utc(
+    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
+    final newLocal = DateTime.utc(
       parsed.year,
       parsed.month,
       parsed.day,
-      oldDt.hour,
-      oldDt.minute,
-      oldDt.second,
+      local.hour,
+      local.minute,
+      local.second,
     );
-    final ut = _jdUtils.removeUtcOffset(newDt, ctx.utcOffset);
+    final ut = _jdUtils.removeUtcOffset(newLocal, ctx.utcOffset);
     _selfUpdate = true;
     ref.read(contextBarProvider.notifier).setDateTime(ut);
   }
