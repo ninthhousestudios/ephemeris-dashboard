@@ -3,7 +3,7 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-06-30 (pre-Ephemeris-seam refactor).
+Last updated: 2026-07-01 (post-Ephemeris seam + Calculation kernel).
 
 ## Provider graph (data flow)
 
@@ -13,7 +13,7 @@ sweProvider (SwissEph)          ← swe_service.dart, conditional import
      ├── ephemerisRunnerProvider (EphemerisRunner)
      │        │  wraps SwissEph in TracingSwissEph
      │        │  exposes: run(globals, (eph) => ...), runScoped(override, body)
-     │        │  tabs receive the tracer as eph param (currently typed SwissEph)
+     │        │  tabs receive the tracer as eph param (typed Ephemeris)
      │        │
      │        └── callTraceProvider (CallTrace?)
      │                 reads runner.traceEntries + effectiveContext
@@ -46,7 +46,9 @@ pending migration (`swe-dashboard/15`).
 
 | File | Key types | Role |
 |------|-----------|------|
-| `tracing_swiss_eph.dart` | `TracingSwissEph` | Production adapter. `implements SwissEph`. Wraps delegate, records CallEntry for ~35 traced methods. ~50 untraced forwarding methods. |
+| `ephemeris.dart` | `Ephemeris` | Abstract interface — 4 context setters + ~35 calculation methods. The seam between tabs and the engine. |
+| `tracing_swiss_eph.dart` | `TracingSwissEph` | Production adapter. `implements Ephemeris`. Wraps `SwissEph` delegate, records CallEntry for every interface method. |
+| `fake_ephemeris.dart` | `FakeEphemeris` | Test adapter. `implements Ephemeris`. Optional `on*` callbacks per method; context setters record into `contextCalls`. |
 | `trace_model.dart` | `CallEntry`, `CallTrace`, `TraceSlice`, `CallCategory` | Immutable trace data. Category: context/flags/calc/teardown. |
 | `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider`, `callTraceProvider` | Owns the TracingSwissEph singleton. `run()` applies globals then passes tracer to callback. |
 | `applied_globals.dart` | `AppliedGlobals` | Value object: ephePath, sidMode, topo, jplFile. |
