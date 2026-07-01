@@ -285,7 +285,11 @@ class _AppShellState extends ConsumerState<AppShell>
         return Consumer(
           builder: (context, ref, _) {
             final format = ref.watch(planetocentricFormatProvider);
-            final results = ref.watch(planetocentricResultsProvider);
+            final outcome = ref.watch(planetocentricResultsProvider);
+            final results = switch (outcome) {
+              CalcOk(value: final v) => v,
+              CalcSweError() => const <PlanetoCentricResult>[],
+            };
             final jd = ref.watch(contextBarProvider).jdUt;
             return Row(
               mainAxisSize: MainAxisSize.min,

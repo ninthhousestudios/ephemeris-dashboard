@@ -1,11 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/body_utils.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 
 enum CrossingType {
@@ -57,7 +60,6 @@ String _formatDateResult(DateResult r, double utcOffset) {
   final y = r.year;
   final mo = r.month.toString().padLeft(2, '0');
   final d = r.day.toString().padLeft(2, '0');
-  // hour field is fractional — split into h/m/s
   final totalSec = (r.hour * 3600).round();
   final hh = (totalSec ~/ 3600).toString().padLeft(2, '0');
   final mm = ((totalSec % 3600) ~/ 60).toString().padLeft(2, '0');
@@ -82,85 +84,93 @@ String _formatDateResult(DateResult r, double utcOffset) {
       '${local.second.toString().padLeft(2, '0')} UTC$offsetStr)';
 }
 
-final crossingResultProvider = Provider<CrossingResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('crossings')) return null;
+CrossingResult computeCrossing({
+  required Ephemeris eph,
+  required double jdUt,
+  required int iflag,
+  required CrossingType type,
+  required double longitude,
+  required int helioBody,
+  required int helioDir,
+  required String helioBodyName,
+  required DateResult Function(double) revjul,
+  required double utcOffset,
+}) {
+  switch (type) {
+    case CrossingType.sunCross:
+      final jd = eph.solCrossUt(longitude, jdUt, iflag);
+      return CrossingResult(
+        crossingJd: jd,
+        crossingDate: _formatDateResult(revjul(jd), utcOffset),
+        crossingLongitude: null,
+        description: 'Sun crosses ${longitude.toStringAsFixed(4)}°',
+      );
 
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('crossings');
-  final swe = ref.read(sweProvider);
-  final type = ref.watch(crossingTypeProvider);
-  final lon = ref.watch(crossingLonProvider);
-  final helioBody = ref.watch(crossingHelioBodyProvider);
-  final dir = ref.watch(crossingDirProvider);
-  final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    case CrossingType.moonCross:
+      final jd = eph.moonCrossUt(longitude, jdUt, iflag);
+      return CrossingResult(
+        crossingJd: jd,
+        crossingDate: _formatDateResult(revjul(jd), utcOffset),
+        crossingLongitude: null,
+        description: 'Moon crosses ${longitude.toStringAsFixed(4)}°',
+      );
 
-  try {
-    switch (type) {
-      case CrossingType.sunCross:
-        final jd = runner.run(
-          globals,
-          (eph) => eph.solCrossUt(lon, ectx.jdUt, ectx.iflag),
-        );
-        final date = _formatDateResult(swe.revjul(jd), utcOffset);
-        return CrossingResult(
-          crossingJd: jd,
-          crossingDate: date,
-          crossingLongitude: null,
-          description: 'Sun crosses ${lon.toStringAsFixed(4)}°',
-        );
+    case CrossingType.moonNode:
+      final r = eph.moonCrossNodeUt(jdUt, iflag);
+      return CrossingResult(
+        crossingJd: r.jdUt,
+        crossingDate: _formatDateResult(revjul(r.jdUt), utcOffset),
+        crossingLongitude: r.longitude,
+        description: 'Moon crosses node',
+      );
 
-      case CrossingType.moonCross:
-        final jd = runner.run(
-          globals,
-          (eph) => eph.moonCrossUt(lon, ectx.jdUt, ectx.iflag),
-        );
-        final date = _formatDateResult(swe.revjul(jd), utcOffset);
-        return CrossingResult(
-          crossingJd: jd,
-          crossingDate: date,
-          crossingLongitude: null,
-          description: 'Moon crosses ${lon.toStringAsFixed(4)}°',
-        );
-
-      case CrossingType.moonNode:
-        final r = runner.run(
-          globals,
-          (eph) => eph.moonCrossNodeUt(ectx.jdUt, ectx.iflag),
-        );
-        final date = _formatDateResult(swe.revjul(r.jdUt), utcOffset);
-        return CrossingResult(
-          crossingJd: r.jdUt,
-          crossingDate: date,
-          crossingLongitude: r.longitude,
-          description: 'Moon crosses node',
-        );
-
-      case CrossingType.helioCross:
-        final bodyName = _safeGetName(swe, helioBody);
-        final jd = runner.run(
-          globals,
-          (eph) => eph.helioCrossUt(helioBody, lon, ectx.jdUt, ectx.iflag, dir),
-        );
-        final date = _formatDateResult(swe.revjul(jd), utcOffset);
-        return CrossingResult(
-          crossingJd: jd,
-          crossingDate: date,
-          crossingLongitude: null,
-          description:
-              '$bodyName helio crosses ${lon.toStringAsFixed(4)}° (${dir == 1 ? 'forward' : 'backward'})',
-        );
-    }
-  } on SweException catch (e) {
-    return CrossingResult(
-      crossingJd: double.nan,
-      crossingDate: 'Error',
-      crossingLongitude: null,
-      description: e.message,
-    );
+    case CrossingType.helioCross:
+      final jd = eph.helioCrossUt(helioBody, longitude, jdUt, iflag, helioDir);
+      return CrossingResult(
+        crossingJd: jd,
+        crossingDate: _formatDateResult(revjul(jd), utcOffset),
+        crossingLongitude: null,
+        description:
+            '$helioBodyName helio crosses ${longitude.toStringAsFixed(4)}° '
+            '(${helioDir == 1 ? 'forward' : 'backward'})',
+      );
   }
+}
+
+final _crossingCalcProvider =
+    Provider<({CalcOutcome<CrossingResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final type = ref.watch(crossingTypeProvider);
+      final lon = ref.watch(crossingLonProvider);
+      final helioBody = ref.watch(crossingHelioBodyProvider);
+      final dir = ref.watch(crossingDirProvider);
+
+      return runTabCalc(
+        ref,
+        tabTag: 'crossings',
+        compute: (eph) => computeCrossing(
+          eph: eph,
+          jdUt: ctx.jdUt,
+          iflag: flags.iflag,
+          type: type,
+          longitude: lon,
+          helioBody: helioBody,
+          helioDir: dir,
+          helioBodyName: safeGetName(swe, helioBody),
+          revjul: swe.revjul,
+          utcOffset: ctx.utcOffset,
+        ),
+      );
+    });
+
+final crossingResultProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
+  return ref.watch(_crossingCalcProvider.select((c) => c.outcome));
+});
+
+final crossingTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_crossingCalcProvider.select((c) => c.trace));
 });
 
 List<ExportRow> crossingToExportRows(CrossingResult result) {
@@ -183,12 +193,4 @@ List<ExportRow> crossingToExportRows(CrossingResult result) {
       ],
     ),
   ];
-}
-
-String _safeGetName(SwissEph swe, int body) {
-  try {
-    return swe.getPlanetName(body);
-  } catch (_) {
-    return 'Body $body';
-  }
 }

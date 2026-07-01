@@ -1,11 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/body_utils.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 
 /// Selected bodies for phenomena calculation.
@@ -39,52 +43,69 @@ class PhenomenaResult {
   final double apparentMagnitude;
 }
 
-/// Phenomena calculation results.
-final phenomenaResultsProvider = Provider<List<PhenomenaResult>>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('phenomena')) return const [];
-
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('phenomena');
-  final swe = ref.read(sweProvider);
-  final bodies = ref.watch(phenomenaBodiesProvider);
-
-  final results = <PhenomenaResult>[];
-  for (final body in bodies) {
+List<PhenomenaResult> computePhenomena({
+  required Ephemeris eph,
+  required double jdUt,
+  required int iflag,
+  required List<int> bodies,
+  required String Function(int) getName,
+}) {
+  return bodies.map((body) {
     try {
-      final r = runner.run(
-        globals,
-        (eph) => eph.phenoUt(ectx.jdUt, body, ectx.iflag),
-      );
-      results.add(
-        PhenomenaResult(
-          body: body,
-          bodyName: _safeGetName(swe, body),
-          phaseAngle: r.phaseAngle,
-          phase: r.phase,
-          elongation: r.elongation,
-          apparentDiameter: r.apparentDiameter,
-          apparentMagnitude: r.apparentMagnitude,
-        ),
+      final r = eph.phenoUt(jdUt, body, iflag);
+      return PhenomenaResult(
+        body: body,
+        bodyName: getName(body),
+        phaseAngle: r.phaseAngle,
+        phase: r.phase,
+        elongation: r.elongation,
+        apparentDiameter: r.apparentDiameter,
+        apparentMagnitude: r.apparentMagnitude,
       );
     } on SweException {
-      results.add(
-        PhenomenaResult(
-          body: body,
-          bodyName: _safeGetName(swe, body),
-          phaseAngle: double.nan,
-          phase: double.nan,
-          elongation: double.nan,
-          apparentDiameter: double.nan,
-          apparentMagnitude: double.nan,
-        ),
+      return PhenomenaResult(
+        body: body,
+        bodyName: getName(body),
+        phaseAngle: double.nan,
+        phase: double.nan,
+        elongation: double.nan,
+        apparentDiameter: double.nan,
+        apparentMagnitude: double.nan,
       );
     }
-  }
+  }).toList();
+}
 
-  return results;
+final _phenomenaCalcProvider =
+    Provider<({CalcOutcome<List<PhenomenaResult>> outcome, CallTrace trace})>((
+      ref,
+    ) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final bodies = ref.watch(phenomenaBodiesProvider);
+
+      return runTabCalc(
+        ref,
+        tabTag: 'phenomena',
+        compute: (eph) => computePhenomena(
+          eph: eph,
+          jdUt: ctx.jdUt,
+          iflag: flags.iflag,
+          bodies: bodies,
+          getName: (body) => safeGetName(swe, body),
+        ),
+      );
+    });
+
+final phenomenaResultsProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
+  ref,
+) {
+  return ref.watch(_phenomenaCalcProvider.select((c) => c.outcome));
+});
+
+final phenomenaTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_phenomenaCalcProvider.select((c) => c.trace));
 });
 
 /// Convert phenomena results to export rows.
@@ -106,12 +127,4 @@ List<ExportRow> phenomenaToExportRows(
         ),
       )
       .toList();
-}
-
-String _safeGetName(SwissEph swe, int body) {
-  try {
-    return swe.getPlanetName(body);
-  } catch (_) {
-    return 'Body $body';
-  }
 }

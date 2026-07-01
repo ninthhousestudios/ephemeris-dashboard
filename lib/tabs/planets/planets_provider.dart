@@ -3,6 +3,7 @@ import 'package:swisseph/swisseph.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/body_utils.dart';
 import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/display_format.dart';
@@ -218,7 +219,7 @@ final _planetsCalcProvider =
           iflag: flags.iflag,
           origin: ctx.origin,
           bodies: bodies,
-          getName: (body) => _safeGetName(swe, body),
+          getName: (body) => safeGetName(swe, body),
         ),
       );
     });
@@ -255,14 +256,6 @@ List<ExportRow> planetsToExportRows(
         ),
       )
       .toList();
-}
-
-String _safeGetName(SwissEph swe, int body) {
-  try {
-    return swe.getPlanetName(body);
-  } catch (_) {
-    return 'Body $body';
-  }
 }
 
 /// Turn a raw SE error into something the user can act on. For numbered

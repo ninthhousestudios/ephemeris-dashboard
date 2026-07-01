@@ -1,11 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/body_utils.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 
 /// Body selection for nodes/apsides calculation.
@@ -44,67 +48,79 @@ class NodesApsResult {
   final double? minDist;
 }
 
-/// Computes nodes & apsides for the selected body.
-final nodesApsResultsProvider = Provider<NodesApsResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('nodesApsides')) return null;
+NodesApsResult computeNodesApsides({
+  required Ephemeris eph,
+  required double jdUt,
+  required double deltat,
+  required int body,
+  required int iflag,
+  required int method,
+  required String bodyName,
+}) {
+  final flags = iflag | seFlgSpeed;
+  final jdEt = jdUt + deltat;
 
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('nodesApsides');
-  final swe = ref.read(sweProvider);
-  final body = ref.watch(nodesBodyProvider);
-  final method = ref.watch(nodesMethodProvider);
+  final nar = eph.nodApsUt(jdUt, body, flags, method);
 
-  final flags = ectx.iflag | seFlgSpeed;
-  final jdUt = ectx.jdUt;
-  final jdEt = jdUt + swe.deltat(jdUt);
-
+  OrbitalElementsResult? orbEl;
   try {
-    final nar = runner.run(
-      globals,
-      (eph) => eph.nodApsUt(jdUt, body, flags, method),
-    );
-
-    OrbitalElementsResult? orbEl;
-    double? maxDist;
-    double? minDist;
-
-    try {
-      orbEl = runner.run(
-        globals,
-        (eph) => eph.getOrbitalElements(jdEt, body, flags),
-      );
-    } on SweException {
-      orbEl = null;
-    }
-
-    try {
-      final od = runner.run(
-        globals,
-        (eph) => eph.orbitMaxMinTrueDistance(jdEt, body, flags),
-      );
-      maxDist = od.maxDist;
-      minDist = od.minDist;
-    } on SweException {
-      maxDist = null;
-      minDist = null;
-    }
-
-    return NodesApsResult(
-      bodyName: swe.getPlanetName(body),
-      ascending: nar.ascending,
-      descending: nar.descending,
-      perihelion: nar.perihelion,
-      aphelion: nar.aphelion,
-      orbitalElements: orbEl,
-      maxDist: maxDist,
-      minDist: minDist,
-    );
+    orbEl = eph.getOrbitalElements(jdEt, body, flags);
   } on SweException {
-    return null;
+    orbEl = null;
   }
+
+  double? maxDist;
+  double? minDist;
+  try {
+    final od = eph.orbitMaxMinTrueDistance(jdEt, body, flags);
+    maxDist = od.maxDist;
+    minDist = od.minDist;
+  } on SweException {
+    maxDist = null;
+    minDist = null;
+  }
+
+  return NodesApsResult(
+    bodyName: bodyName,
+    ascending: nar.ascending,
+    descending: nar.descending,
+    perihelion: nar.perihelion,
+    aphelion: nar.aphelion,
+    orbitalElements: orbEl,
+    maxDist: maxDist,
+    minDist: minDist,
+  );
+}
+
+final _nodesApsCalcProvider =
+    Provider<({CalcOutcome<NodesApsResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final body = ref.watch(nodesBodyProvider);
+      final method = ref.watch(nodesMethodProvider);
+
+      return runTabCalc(
+        ref,
+        tabTag: 'nodesApsides',
+        compute: (eph) => computeNodesApsides(
+          eph: eph,
+          jdUt: ctx.jdUt,
+          deltat: swe.deltat(ctx.jdUt),
+          body: body,
+          iflag: flags.iflag,
+          method: method,
+          bodyName: safeGetName(swe, body),
+        ),
+      );
+    });
+
+final nodesApsResultsProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
+  return ref.watch(_nodesApsCalcProvider.select((c) => c.outcome));
+});
+
+final nodesApsTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_nodesApsCalcProvider.select((c) => c.trace));
 });
 
 /// Convert a NodesApsResult to export rows.

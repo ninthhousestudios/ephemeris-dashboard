@@ -1,11 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 
 /// Common star names for quick-select chips.
@@ -181,81 +184,93 @@ class StarResult {
   final int returnFlag;
 }
 
-/// Fixed star calculation result.
-final starResultProvider = Provider<StarResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('stars')) return null;
-
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('stars');
-  final swe = ref.read(sweProvider);
-  final searchTerm = ref.watch(starSearchProvider);
-
+/// Pure compute: resolve a fixed star by name, with Bayer-prefix retry.
+/// Returns null when the search term doesn't match any star (not an error).
+StarResult? computeStar({
+  required Ephemeris eph,
+  required double jdUt,
+  required int iflag,
+  required String searchTerm,
+  required double Function(String) getMagnitude,
+}) {
   final term = searchTerm.trim();
   if (term.isEmpty) return null;
 
-  try {
-    final flags = ectx.iflag | seFlgSpeed;
-    var r = runner.run(
-      globals,
-      (eph) => eph.fixstar2Ut(term, ectx.jdUt, flags),
-    );
+  final flags = iflag | seFlgSpeed;
+  var r = eph.fixstar2Ut(term, jdUt, flags);
 
-    // swisseph silently returns the first star (Aldebaran) when a search
-    // doesn't match. Detect this by checking if the resolved name contains
-    // what the user typed. If not, retry as a Bayer designation (leading
-    // comma). If that also mismatches, return null.
-    final termLower = term.toLowerCase();
-    final bayerTerm = term.startsWith(',') ? term.substring(1) : term;
-    bool nameMatches(String resolved) {
-      final lower = resolved.toLowerCase();
-      return lower.contains(termLower) ||
-          lower.contains(bayerTerm.toLowerCase());
-    }
+  // swisseph silently returns the first star (Aldebaran) when a search
+  // doesn't match. Detect this by checking if the resolved name contains
+  // what the user typed. If not, retry as a Bayer designation (leading
+  // comma). If that also mismatches, return null.
+  final termLower = term.toLowerCase();
+  final bayerTerm = term.startsWith(',') ? term.substring(1) : term;
+  bool nameMatches(String resolved) {
+    final lower = resolved.toLowerCase();
+    return lower.contains(termLower) || lower.contains(bayerTerm.toLowerCase());
+  }
 
-    if (!nameMatches(r.starName)) {
-      // Retry as Bayer designation search.
-      if (!term.startsWith(',')) {
-        try {
-          r = runner.run(
-            globals,
-            (eph) => eph.fixstar2Ut(',$term', ectx.jdUt, flags),
-          );
-        } on SweException {
-          return null;
-        }
-      }
-      // If still no match, the star wasn't found.
-      if (!nameMatches(r.starName)) {
+  if (!nameMatches(r.starName)) {
+    if (!term.startsWith(',')) {
+      try {
+        r = eph.fixstar2Ut(',$term', jdUt, flags);
+      } on SweException {
         return null;
       }
     }
-
-    final searchForMag = r.starName.split(',').first.trim();
-    double magnitude;
-    try {
-      magnitude = swe.fixstar2Mag(searchForMag);
-    } catch (_) {
-      magnitude = double.nan;
+    if (!nameMatches(r.starName)) {
+      return null;
     }
-
-    return StarResult(
-      searchTerm: term,
-      resolvedName: r.starName,
-      longitude: r.longitude,
-      latitude: r.latitude,
-      distance: r.distance,
-      speedLon: r.longitudeSpeed,
-      speedLat: r.latitudeSpeed,
-      speedDist: r.distanceSpeed,
-      magnitude: magnitude,
-      returnFlag: r.returnFlag,
-    );
-  } on SweException {
-    return null;
   }
+
+  final searchForMag = r.starName.split(',').first.trim();
+  double magnitude;
+  try {
+    magnitude = getMagnitude(searchForMag);
+  } catch (_) {
+    magnitude = double.nan;
+  }
+
+  return StarResult(
+    searchTerm: term,
+    resolvedName: r.starName,
+    longitude: r.longitude,
+    latitude: r.latitude,
+    distance: r.distance,
+    speedLon: r.longitudeSpeed,
+    speedLat: r.latitudeSpeed,
+    speedDist: r.distanceSpeed,
+    magnitude: magnitude,
+    returnFlag: r.returnFlag,
+  );
+}
+
+final _starCalcProvider =
+    Provider<({CalcOutcome<StarResult?> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final searchTerm = ref.watch(starSearchProvider);
+
+      return runTabCalc(
+        ref,
+        tabTag: 'stars',
+        compute: (eph) => computeStar(
+          eph: eph,
+          jdUt: ctx.jdUt,
+          iflag: flags.iflag,
+          searchTerm: searchTerm,
+          getMagnitude: swe.fixstar2Mag,
+        ),
+      );
+    });
+
+final starResultProvider = Provider<CalcOutcome<StarResult?>>((ref) {
+  return ref.watch(_starCalcProvider.select((c) => c.outcome));
+});
+
+final starTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_starCalcProvider.select((c) => c.trace));
 });
 
 /// Convert a star result to export rows.

@@ -1,11 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/body_utils.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 
 /// Body A selection.
@@ -54,51 +58,71 @@ class DiffResult {
   final int returnFlagB;
 }
 
-/// Computes the differential between Body A and Body B.
-final diffResultProvider = Provider<DiffResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('differential')) return null;
+DiffResult computeDifferential({
+  required Ephemeris eph,
+  required double jdUt,
+  required int iflag,
+  required int bodyA,
+  required int bodyB,
+  required String nameA,
+  required String nameB,
+  required double Function(double) degnorm,
+  required double Function(double, double) degMidp,
+}) {
+  final rA = eph.calcUt(jdUt, bodyA, iflag | seFlgSpeed);
+  final rB = eph.calcUt(jdUt, bodyB, iflag | seFlgSpeed);
 
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('differential');
-  final swe = ref.read(sweProvider);
-  final bodyA = ref.watch(diffBodyAProvider);
-  final bodyB = ref.watch(diffBodyBProvider);
-  final overrideJd = ref.watch(diffOverrideJdProvider);
-  final jdUt = overrideJd ?? ectx.jdUt;
+  final lonA = rA.longitude;
+  final lonB = rB.longitude;
 
-  final flags = ectx.iflag | seFlgSpeed;
+  var diff = degnorm(lonA - lonB);
+  if (diff > 180.0) diff = 360.0 - diff;
 
-  try {
-    final rA = runner.run(globals, (eph) => eph.calcUt(jdUt, bodyA, flags));
-    final rB = runner.run(globals, (eph) => eph.calcUt(jdUt, bodyB, flags));
+  return DiffResult(
+    nameA: nameA,
+    nameB: nameB,
+    lonA: lonA,
+    lonB: lonB,
+    difference: diff,
+    complement: 360.0 - diff,
+    midpoint: degMidp(lonA, lonB),
+    returnFlagA: rA.returnFlag,
+    returnFlagB: rB.returnFlag,
+  );
+}
 
-    final lonA = rA.longitude;
-    final lonB = rB.longitude;
+final _diffCalcProvider =
+    Provider<({CalcOutcome<DiffResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final bodyA = ref.watch(diffBodyAProvider);
+      final bodyB = ref.watch(diffBodyBProvider);
+      final overrideJd = ref.watch(diffOverrideJdProvider);
 
-    // Shorter arc: normalise A-B to 0–360, then fold > 180.
-    var diff = swe.degnorm(lonA - lonB);
-    if (diff > 180.0) diff = 360.0 - diff;
+      return runTabCalc(
+        ref,
+        tabTag: 'differential',
+        compute: (eph) => computeDifferential(
+          eph: eph,
+          jdUt: overrideJd ?? ctx.jdUt,
+          iflag: flags.iflag,
+          bodyA: bodyA,
+          bodyB: bodyB,
+          nameA: safeGetName(swe, bodyA),
+          nameB: safeGetName(swe, bodyB),
+          degnorm: swe.degnorm,
+          degMidp: swe.degMidp,
+        ),
+      );
+    });
 
-    final complement = 360.0 - diff;
-    final midpoint = swe.degMidp(lonA, lonB);
+final diffResultProvider = Provider<CalcOutcome<DiffResult>>((ref) {
+  return ref.watch(_diffCalcProvider.select((c) => c.outcome));
+});
 
-    return DiffResult(
-      nameA: swe.getPlanetName(bodyA),
-      nameB: swe.getPlanetName(bodyB),
-      lonA: lonA,
-      lonB: lonB,
-      difference: diff,
-      complement: complement,
-      midpoint: midpoint,
-      returnFlagA: rA.returnFlag,
-      returnFlagB: rB.returnFlag,
-    );
-  } on SweException {
-    return null;
-  }
+final diffTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_diffCalcProvider.select((c) => c.trace));
 });
 
 /// Convert a DiffResult to export rows.

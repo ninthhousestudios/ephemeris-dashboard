@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../widgets/result_card.dart';
 
@@ -28,22 +30,18 @@ final coordFormatProvider = StateProvider<DisplayFormat>(
   (ref) => DisplayFormat.dms,
 );
 
-// ── Input providers (committed on Calculate) ───────────────────────────────
+// ── Input providers ────────────────────────────────────────────────────────
 
-// Shared angular input fields (lon/lat/dist used by azAlt, azAltRev, cotrans)
 final coordLonProvider = StateProvider<double>((ref) => 0.0);
 final coordLatProvider = StateProvider<double>((ref) => 0.0);
 final coordDistProvider = StateProvider<double>((ref) => 1.0);
 
-// azAlt / refrac atmospheric inputs
 final coordAtpressProvider = StateProvider<double>((ref) => 1013.25);
 final coordAttempProvider = StateProvider<double>((ref) => 15.0);
 
-// azAltRev inputs
 final coordAzimuthProvider = StateProvider<double>((ref) => 0.0);
 final coordAltitudeProvider = StateProvider<double>((ref) => 0.0);
 
-// cotrans obliquity
 final coordEpsProvider = StateProvider<double>((ref) => 23.4393);
 
 // ── Result sealed variants ─────────────────────────────────────────────────
@@ -68,7 +66,6 @@ class CoordCoTransResult extends CoordResult {
   final double lon;
   final double lat;
   final double dist;
-  // 'ecl→equ' or 'equ→ecl'
   final String direction;
 }
 
@@ -84,80 +81,116 @@ class CoordErrorResult extends CoordResult {
   final String message;
 }
 
-// ── Computation provider ───────────────────────────────────────────────────
+// ── Pure compute ───────────────────────────────────────────────────────────
 
-final coordResultProvider = Provider<CoordResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('coordinates')) return null;
-
-  final op = ref.watch(coordOpProvider);
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('coordinates');
-
-  final lon = ref.watch(coordLonProvider);
-  final lat = ref.watch(coordLatProvider);
-  final dist = ref.watch(coordDistProvider);
-  final atpress = ref.watch(coordAtpressProvider);
-  final attemp = ref.watch(coordAttempProvider);
-  final azimuth = ref.watch(coordAzimuthProvider);
-  final altitude = ref.watch(coordAltitudeProvider);
-  final eps = ref.watch(coordEpsProvider);
-
+CoordResult computeCoordinates({
+  required Ephemeris eph,
+  required CoordOp op,
+  required double jdUt,
+  required double geolon,
+  required double geolat,
+  required double geoalt,
+  required double lon,
+  required double lat,
+  required double dist,
+  required double atpress,
+  required double attemp,
+  required double azimuth,
+  required double altitude,
+  required double eps,
+}) {
   try {
-    return runner.run(globals, (eph) {
-      switch (op) {
-        case CoordOp.azAlt:
-          final r = eph.azAlt(
-            ectx.jdUt,
-            seEcl2hor,
-            geolon: ectx.longitude,
-            geolat: ectx.latitude,
-            geoalt: ectx.altitude,
-            atpress: atpress,
-            attemp: attemp,
-            bodyLon: lon,
-            bodyLat: lat,
-            bodyDist: dist,
-          );
-          return CoordAzAltResult(
-            r.azimuth,
-            r.trueAltitude,
-            r.apparentAltitude,
-          );
+    switch (op) {
+      case CoordOp.azAlt:
+        final r = eph.azAlt(
+          jdUt,
+          seEcl2hor,
+          geolon: geolon,
+          geolat: geolat,
+          geoalt: geoalt,
+          atpress: atpress,
+          attemp: attemp,
+          bodyLon: lon,
+          bodyLat: lat,
+          bodyDist: dist,
+        );
+        return CoordAzAltResult(r.azimuth, r.trueAltitude, r.apparentAltitude);
 
-        case CoordOp.azAltRev:
-          final r = eph.azAltRev(
-            ectx.jdUt,
-            seHor2ecl,
-            geolon: ectx.longitude,
-            geolat: ectx.latitude,
-            geoalt: ectx.altitude,
-            azimuth: azimuth,
-            altitude: altitude,
-          );
-          return CoordAzAltRevResult(r.lon, r.lat);
+      case CoordOp.azAltRev:
+        final r = eph.azAltRev(
+          jdUt,
+          seHor2ecl,
+          geolon: geolon,
+          geolat: geolat,
+          geoalt: geoalt,
+          azimuth: azimuth,
+          altitude: altitude,
+        );
+        return CoordAzAltRevResult(r.lon, r.lat);
 
-        case CoordOp.cotrans:
-          final r = eph.cotrans(lon, lat, dist, eps);
-          final dir = eps >= 0 ? 'ecl→equ' : 'equ→ecl';
-          return CoordCoTransResult(r.lon, r.lat, r.dist, dir);
+      case CoordOp.cotrans:
+        final r = eph.cotrans(lon, lat, dist, eps);
+        final dir = eps >= 0 ? 'ecl→equ' : 'equ→ecl';
+        return CoordCoTransResult(r.lon, r.lat, r.dist, dir);
 
-        case CoordOp.refrac:
-          final apparent = eph.refrac(altitude, atpress, attemp, seTrueToApp);
-          return CoordRefracResult(
-            altitude,
-            apparent,
-            'input=${altitude.toStringAsFixed(4)}° true→apparent',
-          );
-      }
-    });
+      case CoordOp.refrac:
+        final apparent = eph.refrac(altitude, atpress, attemp, seTrueToApp);
+        return CoordRefracResult(
+          altitude,
+          apparent,
+          'input=${altitude.toStringAsFixed(4)}° true→apparent',
+        );
+    }
   } on SweException catch (e) {
     return CoordErrorResult(e.message);
   } catch (e) {
     return CoordErrorResult(e.toString());
   }
+}
+
+// ── Kernel wiring ──────────────────────────────────────────────────────────
+
+final _coordCalcProvider =
+    Provider<({CalcOutcome<CoordResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final op = ref.watch(coordOpProvider);
+      final lon = ref.watch(coordLonProvider);
+      final lat = ref.watch(coordLatProvider);
+      final dist = ref.watch(coordDistProvider);
+      final atpress = ref.watch(coordAtpressProvider);
+      final attemp = ref.watch(coordAttempProvider);
+      final azimuth = ref.watch(coordAzimuthProvider);
+      final altitude = ref.watch(coordAltitudeProvider);
+      final eps = ref.watch(coordEpsProvider);
+
+      return runTabCalc(
+        ref,
+        tabTag: 'coordinates',
+        compute: (eph) => computeCoordinates(
+          eph: eph,
+          op: op,
+          jdUt: ctx.jdUt,
+          geolon: ctx.longitude,
+          geolat: ctx.latitude,
+          geoalt: ctx.altitude,
+          lon: lon,
+          lat: lat,
+          dist: dist,
+          atpress: atpress,
+          attemp: attemp,
+          azimuth: azimuth,
+          altitude: altitude,
+          eps: eps,
+        ),
+      );
+    });
+
+final coordResultProvider = Provider<CalcOutcome<CoordResult>>((ref) {
+  return ref.watch(_coordCalcProvider.select((c) => c.outcome));
+});
+
+final coordTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_coordCalcProvider.select((c) => c.trace));
 });
 
 // ── ResultField conversion ─────────────────────────────────────────────────
