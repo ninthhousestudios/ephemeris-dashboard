@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:charts_dart/charts_dart.dart' hide ChartIO;
@@ -75,5 +76,9 @@ class ChartIO {
     };
   }
 
-  static String _decode(Uint8List bytes) => String.fromCharCodes(bytes);
+  /// Decode text-format bytes as UTF-8, matching the desktop `read()` path
+  /// (charts_dart's per-format `read` uses `File.readAsStringSync()`, which
+  /// defaults to UTF-8). CHTK is UTF-16LE and goes through `parseBytes`
+  /// directly, bypassing this.
+  static String _decode(Uint8List bytes) => utf8.decode(bytes);
 }
