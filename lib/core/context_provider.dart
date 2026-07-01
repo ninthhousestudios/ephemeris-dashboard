@@ -102,6 +102,26 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     _save();
   }
 
+  void setLatitude(double v) {
+    state = state.copyWith(latitude: v);
+    _save();
+  }
+
+  void setLongitude(double v) {
+    state = state.copyWith(longitude: v);
+    _save();
+  }
+
+  void setAltitude(double v) {
+    state = state.copyWith(altitude: v);
+    _save();
+  }
+
+  void setCityLabel(String v) {
+    state = state.copyWith(cityLabel: v);
+    _save();
+  }
+
   void setOrigin(Origin origin) {
     state = state.copyWith(origin: origin);
     _save();

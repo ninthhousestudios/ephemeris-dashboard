@@ -1,24 +1,28 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/chart_io.dart';
 import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
-import '../../core/ephemeris/emitter_provider.dart';
-import '../chart_file_dialog.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
+import '../chart_file_dialog.dart';
+import 'ayanamsa_selector.dart';
+import 'code_language_selector.dart';
+import 'context_date_field.dart';
+import 'context_jd_field.dart';
+import 'context_location_field.dart';
+import 'context_time_field.dart';
+import 'context_utc_field.dart';
+import 'ephe_source_selector.dart';
+import 'eq_ref_selector.dart';
+import 'file_in_use_indicator.dart';
 import 'origin_selector.dart';
 import 'zodiac_ref_selector.dart';
-import 'eq_ref_selector.dart';
-import 'ayanamsa_selector.dart';
-import 'ephe_source_selector.dart';
-import 'file_in_use_indicator.dart';
 
 /// Persistent top bar with shared global calculation context.
 ///
@@ -37,333 +41,15 @@ class ContextBar extends ConsumerStatefulWidget {
 class _ContextBarState extends ConsumerState<ContextBar> {
   bool _mobileExpanded = true;
 
+  static const _colGap = 12.0;
+  static const _rowGap = 6.0;
+
   void _calculate() {
     final activeTab = ref.read(activeTabIdProvider);
     ref
         .read(calcSessionProvider.notifier)
         .calculate(activate: {...kContextOnlyTabs, activeTab});
   }
-
-  // Controllers and focus nodes for all text fields
-  final _date = TextEditingController();
-  final _time = TextEditingController();
-  final _utc = TextEditingController();
-  final _jd = TextEditingController();
-  final _lat = TextEditingController();
-  final _lon = TextEditingController();
-  final _alt = TextEditingController();
-  final _city = TextEditingController();
-
-  late final _dateFocus = _focusWithCommit(_commitDate);
-  late final _timeFocus = _focusWithCommit(_commitTime);
-  late final _utcFocus = _focusWithCommit(_commitUtc);
-  late final _jdFocus = _focusWithCommit(_commitJd);
-  late final _latFocus = _focusWithCommit(_commitLocation);
-  late final _lonFocus = _focusWithCommit(_commitLocation);
-  late final _altFocus = _focusWithCommit(_commitLocation);
-  late final _cityFocus = _focusWithCommit(_commitLocation);
-
-  /// Create a FocusNode that commits on focus loss.
-  FocusNode _focusWithCommit(VoidCallback commit) {
-    final node = FocusNode();
-    node.addListener(() {
-      if (!node.hasFocus) commit();
-    });
-    return node;
-  }
-
-  @override
-  void dispose() {
-    _date.dispose();
-    _time.dispose();
-    _utc.dispose();
-    _jd.dispose();
-    _lat.dispose();
-    _lon.dispose();
-    _alt.dispose();
-    _city.dispose();
-    _dateFocus.dispose();
-    _timeFocus.dispose();
-    _utcFocus.dispose();
-    _jdFocus.dispose();
-    _latFocus.dispose();
-    _lonFocus.dispose();
-    _altFocus.dispose();
-    _cityFocus.dispose();
-    super.dispose();
-  }
-
-  JdUtils get _jdUtils => JdUtils(ref.read(sweProvider));
-
-  /// Sync controller text from state, but skip any field that has focus
-  /// (the user is actively editing it).
-  void _sync() {
-    final ctx = ref.read(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    if (!_dateFocus.hasFocus) {
-      _date.text = fmtDate(local);
-    }
-    if (!_timeFocus.hasFocus) {
-      _time.text = fmtTime(local);
-    }
-    if (!_utcFocus.hasFocus) {
-      _utc.text = _fmtOffset(ctx.utcOffset);
-    }
-    if (!_jdFocus.hasFocus) {
-      _jd.text = ctx.jdUt.toStringAsFixed(6);
-    }
-    if (!_latFocus.hasFocus) {
-      _lat.text = _fmtCoord(ctx.latitude);
-    }
-    if (!_lonFocus.hasFocus) {
-      _lon.text = _fmtCoord(ctx.longitude);
-    }
-    if (!_altFocus.hasFocus) {
-      _alt.text = ctx.altitude.round().toString();
-    }
-    if (!_cityFocus.hasFocus) {
-      _city.text = ctx.cityLabel;
-    }
-  }
-
-  String _p(int v, int w) => v.toString().padLeft(w, '0');
-
-  String _fmtOffset(double offset) {
-    final sign = offset >= 0 ? '+' : '-';
-    final abs = offset.abs();
-    final h = abs.truncate();
-    final m = ((abs - h) * 60).round();
-    return '$sign${_p(h, 2)}:${_p(m, 2)}';
-  }
-
-  /// Format a coordinate: show up to 4 decimals, but strip trailing zeros.
-  /// 0.0 → "0", 51.5074 → "51.5074", 10.5000 → "10.5"
-  String _fmtCoord(double v) {
-    final s = v.toStringAsFixed(4);
-    if (!s.contains('.')) return s;
-    var trimmed = s.replaceAll(RegExp(r'0+$'), '');
-    if (trimmed.endsWith('.'))
-      trimmed = trimmed.substring(0, trimmed.length - 1);
-    return trimmed;
-  }
-
-  void _commitDate() {
-    final parts = _date.text.split('-');
-    if (parts.length != 3) return;
-    final y = int.tryParse(parts[0]);
-    final mo = int.tryParse(parts[1]);
-    final d = int.tryParse(parts[2]);
-    if (y == null || mo == null || d == null) return;
-    final ctx = ref.read(contextBarProvider);
-    final oldDt = ctx.dateTime;
-    final newDt = DateTime.utc(
-      y,
-      mo,
-      d,
-      oldDt.hour,
-      oldDt.minute,
-      oldDt.second,
-    );
-    final ut = _jdUtils.removeUtcOffset(newDt, ctx.utcOffset);
-    _selfUpdate = true;
-    ref.read(contextBarProvider.notifier).setDateTime(ut);
-  }
-
-  void _commitTime() {
-    final parts = _time.text.split(':');
-    if (parts.length < 2) return;
-    final h = int.tryParse(parts[0]);
-    final m = int.tryParse(parts[1]);
-    final s = parts.length > 2 ? int.tryParse(parts[2]) : 0;
-    if (h == null || m == null) return;
-    final ctx = ref.read(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    final newLocal = DateTime.utc(
-      local.year,
-      local.month,
-      local.day,
-      h,
-      m,
-      s ?? 0,
-    );
-    final ut = _jdUtils.removeUtcOffset(newLocal, ctx.utcOffset);
-    _selfUpdate = true;
-    ref.read(contextBarProvider.notifier).setDateTime(ut);
-  }
-
-  void _commitUtc() {
-    final text = _utc.text.trim();
-    if (text.isEmpty) return;
-    final sign = text.startsWith('-') ? -1.0 : 1.0;
-    final stripped = text.replaceAll(RegExp(r'^[+-]'), '');
-    final parts = stripped.split(':');
-    final h = int.tryParse(parts[0]) ?? 0;
-    final m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
-    _selfUpdate = true;
-    ref.read(contextBarProvider.notifier).setUtcOffset(sign * (h + m / 60.0));
-  }
-
-  void _commitJd() {
-    final jd = double.tryParse(_jd.text);
-    if (jd == null) return;
-    _selfUpdate = true;
-    ref.read(contextBarProvider.notifier).setJd(jd);
-  }
-
-  void _commitLocation() {
-    _selfUpdate = true;
-    ref
-        .read(contextBarProvider.notifier)
-        .setLocation(
-          latitude: double.tryParse(_lat.text) ?? 0,
-          longitude: double.tryParse(_lon.text) ?? 0,
-          altitude: double.tryParse(_alt.text) ?? 0,
-          cityLabel: _city.text,
-        );
-  }
-
-  Future<void> _pickDate() async {
-    final ctx = ref.read(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: local,
-      firstDate: DateTime(-4000),
-      lastDate: DateTime(4000),
-    );
-    if (picked == null) return;
-    final newLocal = DateTime.utc(
-      picked.year,
-      picked.month,
-      picked.day,
-      local.hour,
-      local.minute,
-      local.second,
-    );
-    ref
-        .read(contextBarProvider.notifier)
-        .setDateTime(_jdUtils.removeUtcOffset(newLocal, ctx.utcOffset));
-  }
-
-  Future<void> _pickTime() async {
-    final ctx = ref.read(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    final picked = await showPreciseTimePicker(
-      context: context,
-      initialHour: local.hour,
-      initialMinute: local.minute,
-      initialSecond: local.second,
-    );
-    if (picked == null) return;
-    final newLocal = DateTime.utc(
-      local.year,
-      local.month,
-      local.day,
-      picked.$1,
-      picked.$2,
-      picked.$3,
-    );
-    ref
-        .read(contextBarProvider.notifier)
-        .setDateTime(_jdUtils.removeUtcOffset(newLocal, ctx.utcOffset));
-  }
-
-  /// Half-hour UTC offset options from -12:00 to +12:00.
-  static final _utcOffsets = [
-    for (int h = -12; h <= 12; h++)
-      for (final m in [0, 30])
-        if (h != 12 || m == 0) h + m / 60.0,
-  ];
-
-  String _offsetLabel(double offset) => _fmtOffset(offset);
-
-  /// Combo field: editable text + dropdown of half-hour offsets.
-  Widget _utcOffsetField() {
-    return Row(
-      children: [
-        Text('UTC Offset ', style: _labelStyle),
-        Expanded(
-          child: TextField(
-            controller: _utc,
-            focusNode: _utcFocus,
-            style: _fieldStyle,
-            decoration: dateTimeInputDecoration('+00:00'),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[\d:+-]')),
-            ],
-            onSubmitted: (_) => _commitUtc(),
-            onEditingComplete: _commitUtc,
-          ),
-        ),
-        PopupMenuButton<double>(
-          icon: const Icon(Icons.arrow_drop_down, size: 18),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-          tooltip: 'Select UTC offset',
-          itemBuilder: (_) => _utcOffsets
-              .map(
-                (o) => PopupMenuItem(
-                  value: o,
-                  height: 32,
-                  child: Text(_offsetLabel(o), style: _fieldStyle),
-                ),
-              )
-              .toList(),
-          onSelected: (offset) {
-            ref.read(contextBarProvider.notifier).setUtcOffset(offset);
-          },
-        ),
-      ],
-    );
-  }
-
-  // --- Build helpers ---
-
-  static const _colGap = 12.0;
-  static const _rowGap = 6.0;
-
-  TextStyle? get _labelStyle => Theme.of(context).textTheme.labelSmall
-      ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
-
-  TextStyle? get _fieldStyle {
-    final isMobile = MediaQuery.sizeOf(context).width < 600;
-    return isMobile
-        ? Theme.of(context).textTheme.bodyMedium
-        : Theme.of(context).textTheme.bodySmall;
-  }
-
-  /// A labeled text field: [64px label] [expanding field] [optional icon]
-  Widget _labeled(
-    String label,
-    TextEditingController controller,
-    FocusNode focusNode, {
-    required String hint,
-    required VoidCallback onCommit,
-    List<TextInputFormatter>? formatters,
-    Widget? trailing,
-  }) {
-    return Row(
-      children: [
-        Text('$label ', style: _labelStyle),
-        Expanded(
-          child: TextField(
-            controller: controller,
-            focusNode: focusNode,
-            style: _fieldStyle,
-            decoration: dateTimeInputDecoration(hint),
-            inputFormatters: formatters,
-            onSubmitted: (_) => onCommit(),
-            onEditingComplete: onCommit,
-          ),
-        ),
-        ?trailing,
-      ],
-    );
-  }
-
-  /// Track whether the last provider change came from our own commit methods
-  /// so we can skip syncing (the controllers already have the right text).
-  bool _selfUpdate = false;
 
   Future<void> _openChart() async {
     final useFilePicker =
@@ -434,16 +120,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(contextBarProvider, (_, _) {
-      if (_selfUpdate) {
-        _selfUpdate = false;
-        return;
-      }
-      _sync();
-    });
-    // Initial sync on first build.
-    if (_date.text.isEmpty) _sync();
-
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isMobile = screenWidth < 1224;
 
@@ -462,11 +138,11 @@ class _ContextBarState extends ConsumerState<ContextBar> {
   Widget _buildMobileLayout() {
     final theme = Theme.of(context);
     final ctx = ref.watch(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
+    final jdUtils = JdUtils(ref.read(sweProvider));
+    final local = jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
     final summaryStyle = theme.textTheme.bodySmall;
 
     if (!_mobileExpanded) {
-      // ── Collapsed: single-line summary ──
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Row(
@@ -486,8 +162,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                       child: Text(
                         '${fmtDate(local)}  '
                         '${fmtTime(local)}  '
-                        '${_fmtOffset(ctx.utcOffset)}  '
-                        '${_fmtCoord(ctx.latitude)}, ${_fmtCoord(ctx.longitude)}',
+                        '${fmtOffset(ctx.utcOffset)}  '
+                        '${fmtCoord(ctx.latitude)}, ${fmtCoord(ctx.longitude)}',
                         style: summaryStyle,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -507,8 +183,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
       );
     }
 
-    // ── Expanded: full editing layout ──
-    final numFmt = FilteringTextInputFormatter.allow(RegExp(r'[\d.+-]'));
     final sectionLabel = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w600,
@@ -560,172 +234,49 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             ],
           ),
           // ── Secondary: code language, ephemeris badge ──
-          Row(
+          const Row(
             children: [
-              Consumer(
-                builder: (context, ref, _) {
-                  final emitter = ref.watch(selectedEmitterProvider);
-                  return PopupMenuButton<CodeEmitter>(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minHeight: 24),
-                    tooltip: 'Code language',
-                    onSelected: (e) =>
-                        ref.read(selectedEmitterProvider.notifier).state = e,
-                    itemBuilder: (_) => availableEmitters
-                        .map(
-                          (e) => PopupMenuItem(
-                            value: e,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (e.languageId == emitter.languageId)
-                                  const Icon(Icons.check, size: 16)
-                                else
-                                  const SizedBox(width: 16),
-                                const SizedBox(width: 8),
-                                Text(e.displayName),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 4,
-                        vertical: 2,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.code, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            emitter.displayName,
-                            style: Theme.of(context).textTheme.labelSmall,
-                          ),
-                          const Icon(Icons.arrow_drop_down, size: 14),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-              const Flexible(child: FileInUseIndicator()),
+              CodeLanguageSelector(),
+              SizedBox(width: 8),
+              Flexible(child: FileInUseIndicator()),
             ],
           ),
           const SizedBox(height: 4),
           // Date | Time
-          Row(
+          const Row(
             children: [
-              Expanded(
-                child: _labeled(
-                  'Date',
-                  _date,
-                  _dateFocus,
-                  hint: 'YYYY-MM-DD',
-                  onCommit: _commitDate,
-                  formatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
-                  ],
-                  trailing: dateTimeIconButton(
-                    Icons.calendar_today,
-                    'Pick date',
-                    _pickDate,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _labeled(
-                  'Time',
-                  _time,
-                  _timeFocus,
-                  hint: 'HH:MM:SS',
-                  onCommit: _commitTime,
-                  formatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
-                  ],
-                  trailing: dateTimeIconButton(
-                    Icons.access_time,
-                    'Pick time',
-                    _pickTime,
-                  ),
-                ),
-              ),
+              Expanded(child: ContextDateField()),
+              SizedBox(width: 8),
+              Expanded(child: ContextTimeField()),
             ],
           ),
           const SizedBox(height: 4),
           // UTC | JD
-          Row(
+          const Row(
             children: [
-              Expanded(child: _utcOffsetField()),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _labeled(
-                  'JD (UT)',
-                  _jd,
-                  _jdFocus,
-                  hint: '2460000.0',
-                  onCommit: _commitJd,
-                  formatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-                  ],
-                ),
-              ),
+              Expanded(child: ContextUtcField()),
+              SizedBox(width: 8),
+              Expanded(child: ContextJdField()),
             ],
           ),
           const SizedBox(height: 4),
           // Lat | Lon
-          Row(
+          const Row(
             children: [
+              Expanded(child: ContextLocationField(LocationFieldKind.latitude)),
+              SizedBox(width: 8),
               Expanded(
-                child: _labeled(
-                  'Lat',
-                  _lat,
-                  _latFocus,
-                  hint: '0',
-                  onCommit: _commitLocation,
-                  formatters: [numFmt],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _labeled(
-                  'Lon',
-                  _lon,
-                  _lonFocus,
-                  hint: '0',
-                  onCommit: _commitLocation,
-                  formatters: [numFmt],
-                ),
+                child: ContextLocationField(LocationFieldKind.longitude),
               ),
             ],
           ),
           const SizedBox(height: 4),
           // Alt | City
-          Row(
+          const Row(
             children: [
-              Expanded(
-                child: _labeled(
-                  'Alt',
-                  _alt,
-                  _altFocus,
-                  hint: '0',
-                  onCommit: _commitLocation,
-                  formatters: [numFmt],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _labeled(
-                  'City',
-                  _city,
-                  _cityFocus,
-                  hint: 'City',
-                  onCommit: _commitLocation,
-                ),
-              ),
+              Expanded(child: ContextLocationField(LocationFieldKind.altitude)),
+              SizedBox(width: 8),
+              Expanded(child: ContextLocationField(LocationFieldKind.city)),
             ],
           ),
           const Divider(height: 12),
@@ -761,7 +312,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
   }
 
   Widget _buildDesktopLayout(double screenWidth) {
-    final numFmt = FilteringTextInputFormatter.allow(RegExp(r'[\d.+-]'));
     final sectionLabel = Theme.of(context).textTheme.labelSmall?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w600,
@@ -798,62 +348,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                           onPressed: _openChart,
                         ),
                         const SizedBox(width: 4),
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final emitter = ref.watch(selectedEmitterProvider);
-                            return PopupMenuButton<CodeEmitter>(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(minHeight: 24),
-                              tooltip: 'Code language',
-                              onSelected: (e) =>
-                                  ref
-                                          .read(
-                                            selectedEmitterProvider.notifier,
-                                          )
-                                          .state =
-                                      e,
-                              itemBuilder: (_) => availableEmitters
-                                  .map(
-                                    (e) => PopupMenuItem(
-                                      value: e,
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (e.languageId ==
-                                              emitter.languageId)
-                                            const Icon(Icons.check, size: 16)
-                                          else
-                                            const SizedBox(width: 16),
-                                          const SizedBox(width: 8),
-                                          Text(e.displayName),
-                                        ],
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.code, size: 14),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      emitter.displayName,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.labelSmall,
-                                    ),
-                                    const Icon(Icons.arrow_drop_down, size: 14),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                        const CodeLanguageSelector(),
                         const SizedBox(width: 8),
                         const Flexible(child: FileInUseIndicator()),
                         const SizedBox(width: 8),
@@ -872,126 +367,42 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                       ],
                     ),
                     SizedBox(height: _rowGap),
-                    // Row 1: Date | Time | UTC | JD [now]
-                    Row(
+                    // Row 1: Date | Time | UTC | JD
+                    const Row(
                       children: [
-                        Expanded(
-                          child: _labeled(
-                            'Date',
-                            _date,
-                            _dateFocus,
-                            hint: 'YYYY-MM-DD',
-                            onCommit: _commitDate,
-                            formatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[\d-]'),
-                              ),
-                            ],
-                            trailing: dateTimeIconButton(
-                              Icons.calendar_today,
-                              'Pick date',
-                              _pickDate,
-                            ),
-                          ),
-                        ),
+                        Expanded(child: ContextDateField()),
                         SizedBox(width: _colGap),
-                        Expanded(
-                          child: _labeled(
-                            'Time',
-                            _time,
-                            _timeFocus,
-                            hint: 'HH:MM:SS',
-                            onCommit: _commitTime,
-                            formatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[\d:]'),
-                              ),
-                            ],
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                dateTimeIconButton(
-                                  Icons.update,
-                                  'Set to now',
-                                  () {
-                                    ref
-                                        .read(contextBarProvider.notifier)
-                                        .setNow();
-                                  },
-                                ),
-                                dateTimeIconButton(
-                                  Icons.access_time,
-                                  'Pick time',
-                                  _pickTime,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        Expanded(child: ContextTimeField(showNowButton: true)),
                         SizedBox(width: _colGap),
-                        Expanded(child: _utcOffsetField()),
+                        Expanded(child: ContextUtcField()),
                         SizedBox(width: _colGap),
-                        Expanded(
-                          child: _labeled(
-                            'JD (UT)',
-                            _jd,
-                            _jdFocus,
-                            hint: '2460000.0',
-                            onCommit: _commitJd,
-                            formatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[\d.]'),
-                              ),
-                            ],
-                          ),
-                        ),
+                        Expanded(child: ContextJdField()),
                       ],
                     ),
                     SizedBox(height: _rowGap),
                     // Row 2: Lat | Lon | Alt | City
-                    Row(
+                    const Row(
                       children: [
                         Expanded(
-                          child: _labeled(
-                            'Lat',
-                            _lat,
-                            _latFocus,
-                            hint: '0',
-                            onCommit: _commitLocation,
-                            formatters: [numFmt],
+                          child: ContextLocationField(
+                            LocationFieldKind.latitude,
                           ),
                         ),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled(
-                            'Lon',
-                            _lon,
-                            _lonFocus,
-                            hint: '0',
-                            onCommit: _commitLocation,
-                            formatters: [numFmt],
+                          child: ContextLocationField(
+                            LocationFieldKind.longitude,
                           ),
                         ),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled(
-                            'Alt',
-                            _alt,
-                            _altFocus,
-                            hint: '0',
-                            onCommit: _commitLocation,
-                            formatters: [numFmt],
+                          child: ContextLocationField(
+                            LocationFieldKind.altitude,
                           ),
                         ),
                         SizedBox(width: _colGap),
                         Expanded(
-                          child: _labeled(
-                            'City',
-                            _city,
-                            _cityFocus,
-                            hint: 'City',
-                            onCommit: _commitLocation,
-                          ),
+                          child: ContextLocationField(LocationFieldKind.city),
                         ),
                       ],
                     ),
@@ -1014,7 +425,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                   children: [
                     Text('OPTIONS', style: sectionLabel),
                     SizedBox(height: _rowGap),
-                    // Row 1: Origin | Zodiac | Eq. Ref
                     const Row(
                       children: [
                         Expanded(child: OriginSelector()),
@@ -1025,7 +435,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                       ],
                     ),
                     SizedBox(height: _rowGap),
-                    // Row 2: Ayanamsa | Ephe | (empty)
                     const Row(
                       children: [
                         Expanded(child: AyanamsaSelector()),

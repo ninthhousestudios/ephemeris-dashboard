@@ -55,6 +55,60 @@ Widget dateTimeIconButton(
   );
 }
 
+String fmtOffset(double offset) {
+  final sign = offset >= 0 ? '+' : '-';
+  final abs = offset.abs();
+  final h = abs.truncate();
+  final m = ((abs - h) * 60).round();
+  return '$sign${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+}
+
+String fmtCoord(double v) {
+  final s = v.toStringAsFixed(4);
+  if (!s.contains('.')) return s;
+  var trimmed = s.replaceAll(RegExp(r'0+$'), '');
+  if (trimmed.endsWith('.')) {
+    trimmed = trimmed.substring(0, trimmed.length - 1);
+  }
+  return trimmed;
+}
+
+Widget labeledField({
+  required BuildContext context,
+  required String label,
+  required TextEditingController controller,
+  required FocusNode focusNode,
+  required String hint,
+  required VoidCallback onCommit,
+  List<TextInputFormatter>? formatters,
+  Widget? trailing,
+}) {
+  final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+  );
+  final isMobile = MediaQuery.sizeOf(context).width < 600;
+  final fieldStyle = isMobile
+      ? Theme.of(context).textTheme.bodyMedium
+      : Theme.of(context).textTheme.bodySmall;
+  return Row(
+    children: [
+      Text('$label ', style: labelStyle),
+      Expanded(
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          style: fieldStyle,
+          decoration: dateTimeInputDecoration(hint),
+          inputFormatters: formatters,
+          onSubmitted: (_) => onCommit(),
+          onEditingComplete: onCommit,
+        ),
+      ),
+      ?trailing,
+    ],
+  );
+}
+
 Future<(int, int, int)?> showPreciseTimePicker({
   required BuildContext context,
   required int initialHour,
