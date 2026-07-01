@@ -8,7 +8,6 @@ import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
@@ -559,8 +558,7 @@ class _DiffResults extends ConsumerWidget {
               '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
               '0x${result.returnFlagB.toRadixString(16).toUpperCase()}',
           onCode: () {
-            final trace = ref.read(callTraceProvider);
-            if (trace == null) return;
+            final trace = ref.read(diffTraceProvider);
             final slice = trace.sliceByTab('differential');
             if (slice.entries.isEmpty) return;
             final emitter = ref.read(selectedEmitterProvider);

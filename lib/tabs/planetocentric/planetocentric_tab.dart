@@ -5,7 +5,6 @@ import 'package:swisseph/swisseph.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
@@ -228,8 +227,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                     ),
                   ],
                   onCode: () {
-                    final trace = ref.read(callTraceProvider);
-                    if (trace == null) return;
+                    final trace = ref.read(planetocentricTraceProvider);
                     final slice = trace.sliceByTab('planetocentric');
                     if (slice.entries.isEmpty) return;
                     final emitter = ref.read(selectedEmitterProvider);

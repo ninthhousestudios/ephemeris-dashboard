@@ -6,7 +6,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
@@ -250,8 +249,7 @@ class _ResultsView extends ConsumerWidget {
                               ),
                             ],
                             onCode: () {
-                              final trace = ref.read(callTraceProvider);
-                              if (trace == null) return;
+                              final trace = ref.read(phenomenaTraceProvider);
                               final slice = trace.sliceByTab('phenomena');
                               if (slice.entries.isEmpty) return;
                               final emitter = ref.read(selectedEmitterProvider);

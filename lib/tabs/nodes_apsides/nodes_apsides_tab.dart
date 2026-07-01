@@ -6,7 +6,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
@@ -270,8 +269,7 @@ class _NodesResults extends ConsumerWidget {
         final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
         void onCode() {
-          final trace = ref.read(callTraceProvider);
-          if (trace == null) return;
+          final trace = ref.read(nodesApsTraceProvider);
           final slice = trace.sliceByTab('nodesApsides');
           if (slice.entries.isEmpty) return;
           final emitter = ref.read(selectedEmitterProvider);
