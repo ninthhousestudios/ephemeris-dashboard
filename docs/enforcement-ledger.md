@@ -25,7 +25,7 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 | 4 | "Context bar / shell cycle removed" — PRD ⑥ | a | `no_cycles lib/widgets/context_bar` | live, **advisory** → blocking @ `/17` (1 cycle today) |
 | 5 | "Calculation kernel stays acyclic" — PRD ② | b | `no_cycles` on kernel dir | deferred → bind @ `/7` |
 | 6 | "Kernel/Ephemeris are not god-hubs" — refactor goal | b | `max_fan_in` on kernel + interface | deferred → bind @ `/11` (tend; needs data) |
-| 7 | "No in-tree chart parsers" — PRD ③ | b | `confined_external charts_dart` | deferred → bind @ `/9` |
+| 7 | "No in-tree chart parsers" — PRD ③ | a | `confined_external charts_dart allowed_in=lib/widgets/context_bar/**,lib/core/**` | live, **blocking** (clean today, bound @ `/9`) |
 | 8 | "Each recompute synchronous; Applied Globals never set across an await" — ADR-0001 | c | CLAUDE.md invariant | routed → CLAUDE.md |
 | 9 | "JD is canonical; civil is derived" — CONTEXT §Moment | c | CLAUDE.md invariant | routed → CLAUDE.md |
 | 10 | "Locked Flags are a pure function of the Context" — CONTEXT §Locked Flag | c | CLAUDE.md invariant | routed → CLAUDE.md |

@@ -71,6 +71,22 @@ severity = "advisory"  # FLIP TO BLOCKING at swe-dashboard/17 (ContextBar decomp
 provenance = "yojana:swe-dashboard/4 §Implementation ⑥"
 
 # ═══════════════════════════════════════════════════════════════════
+# Chart parsing confinement (PRD module ③)
+# ═══════════════════════════════════════════════════════════════════
+# Chart parsing lives in the charts_dart package, not in-tree. The dashboard
+# touches it only where Charts are loaded. Bound at swe-dashboard/9 (in-tree
+# chart_formats deleted, charts_dart adopted) — clean today: only
+# lib/core/chart_io.dart imports package:charts_dart directly.
+
+[[constraint]]
+kind = "confined_external"
+crates = ["charts_dart"]
+allowed_in = ["lib/widgets/context_bar/**", "lib/core/**"]
+name = "charts-dart-at-load-sites-only"
+severity = "blocking"  # already clean — locked now
+provenance = "CONTEXT.md §Chart; yojana:swe-dashboard/4 §Implementation ③"
+
+# ═══════════════════════════════════════════════════════════════════
 # DEFERRED — scope does not exist yet; uncomment + bind at the trigger
 # ═══════════════════════════════════════════════════════════════════
 
@@ -92,17 +108,6 @@ provenance = "yojana:swe-dashboard/4 §Implementation ⑥"
 # name = "kernel-fan-in-guard"
 # severity = "advisory"
 # provenance = "vidhi-sutra-tend (R1)"
-
-# TRIGGER: at swe-dashboard/9 (in-tree chart_formats deleted) — uncomment.
-# Chart parsing lives in the charts_dart package, not in-tree. The dashboard
-# touches it only where Charts are loaded.
-# [[constraint]]
-# kind = "confined_external"
-# crates = ["charts_dart"]
-# allowed_in = ["lib/widgets/context_bar/**", "lib/core/**"]
-# name = "charts-dart-at-load-sites-only"
-# severity = "blocking"
-# provenance = "CONTEXT.md §Chart; yojana:swe-dashboard/4 §Implementation ③"
 
 # ═══════════════════════════════════════════════════════════════════
 # Conventions
