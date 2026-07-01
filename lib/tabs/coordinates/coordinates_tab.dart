@@ -4,32 +4,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/emitter_provider.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../layout/responsive_layout.dart';
+import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'coordinates_provider.dart';
 
-class CoordinatesTab extends ConsumerStatefulWidget {
+class CoordinatesTab extends ConsumerWidget {
   const CoordinatesTab({super.key});
 
   @override
-  ConsumerState<CoordinatesTab> createState() => _CoordinatesTabState();
-}
-
-class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
-  final Map<String, List<ResultField>> _allResults = {};
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final fmt = ref.watch(coordFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
     final theme = Theme.of(context);
     final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
+    final azAltOutcome = ref.watch(azAltResultProvider);
+    final coTransOutcome = ref.watch(coTransResultProvider);
+    final refracOutcome = ref.watch(refracResultProvider);
+
+    final exportRows = <ExportRow>[
+      if (azAltOutcome case CalcOk(value: final r))
+        ...coordToExportRows(
+          r is CoordAzAltRevResult ? CoordOp.azAltRev : CoordOp.azAlt,
+          r,
+          fmt,
+        ),
+      if (coTransOutcome case CalcOk(value: final r))
+        ...coordToExportRows(CoordOp.cotrans, r, fmt),
+      if (refracOutcome case CalcOk(value: final r))
+        ...coordToExportRows(CoordOp.refrac, r, fmt),
+    ];
+
     return Column(
       children: [
-        // ── Header: title + format + export ──
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: SingleChildScrollView(
@@ -54,17 +66,8 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
-                  hasResults: _allResults.isNotEmpty,
-                  getRows: () => _allResults.entries
-                      .map(
-                        (e) => ExportRow(
-                          header: e.key,
-                          fields: e.value
-                              .map((f) => (f.label, f.value))
-                              .toList(),
-                        ),
-                      )
-                      .toList(),
+                  hasResults: exportRows.isNotEmpty,
+                  getRows: () => exportRows,
                   filenameStem: 'swe_coordinates_${jd.toStringAsFixed(4)}',
                 ),
               ],
@@ -72,7 +75,6 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
           ),
         ),
         const Divider(height: 1),
-        // ── Cards grid ──
         if (isMobile) _buildCardsGrid() else Expanded(child: _buildCardsGrid()),
       ],
     );
@@ -94,30 +96,9 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
             spacing: 4,
             runSpacing: 4,
             children: [
-              SizedBox(
-                width: cardWidth,
-                child: _AzAltCard(
-                  onResult: (fields) => setState(() {
-                    if (fields != null) _allResults['Az/Alt'] = fields;
-                  }),
-                ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _CoTransCard(
-                  onResult: (fields) => setState(() {
-                    if (fields != null) _allResults['CoTrans'] = fields;
-                  }),
-                ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _RefracCard(
-                  onResult: (fields) => setState(() {
-                    if (fields != null) _allResults['Refraction'] = fields;
-                  }),
-                ),
-              ),
+              SizedBox(width: cardWidth, child: const _AzAltCard()),
+              SizedBox(width: cardWidth, child: const _CoTransCard()),
+              SizedBox(width: cardWidth, child: const _RefracCard()),
             ],
           ),
         );
@@ -129,15 +110,14 @@ class _CoordinatesTabState extends ConsumerState<CoordinatesTab> {
 // ── Az/Alt card (with direction toggle) ─────────────────────────────────────
 
 class _AzAltCard extends ConsumerStatefulWidget {
-  const _AzAltCard({required this.onResult});
-  final ValueChanged<List<ResultField>?> onResult;
+  const _AzAltCard();
 
   @override
   ConsumerState<_AzAltCard> createState() => _AzAltCardState();
 }
 
 class _AzAltCardState extends ConsumerState<_AzAltCard> {
-  bool _forward = true; // true = ecl→hor, false = hor→ecl
+  bool _forward = true;
   final _lonCtrl = TextEditingController(text: '0.0');
   final _latCtrl = TextEditingController(text: '0.0');
   final _distCtrl = TextEditingController(text: '1.0');
@@ -145,7 +125,6 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
   final _altCtrl = TextEditingController(text: '0.0');
   final _atpressCtrl = TextEditingController(text: '1013.25');
   final _attempCtrl = TextEditingController(text: '15.0');
-  List<ResultField>? _result;
 
   @override
   void dispose() {
@@ -159,42 +138,25 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
     super.dispose();
   }
 
-  void _calculate() {
-    if (_forward) {
-      ref.read(coordOpProvider.notifier).state = CoordOp.azAlt;
-      ref.read(coordLonProvider.notifier).state =
-          double.tryParse(_lonCtrl.text) ?? 0.0;
-      ref.read(coordLatProvider.notifier).state =
-          double.tryParse(_latCtrl.text) ?? 0.0;
-      ref.read(coordDistProvider.notifier).state =
-          double.tryParse(_distCtrl.text) ?? 1.0;
-      ref.read(coordAtpressProvider.notifier).state =
-          double.tryParse(_atpressCtrl.text) ?? 1013.25;
-      ref.read(coordAttempProvider.notifier).state =
-          double.tryParse(_attempCtrl.text) ?? 15.0;
-    } else {
-      ref.read(coordOpProvider.notifier).state = CoordOp.azAltRev;
-      ref.read(coordAzimuthProvider.notifier).state =
-          double.tryParse(_azCtrl.text) ?? 0.0;
-      ref.read(coordAltitudeProvider.notifier).state =
-          double.tryParse(_altCtrl.text) ?? 0.0;
-    }
-    final outcome = ref.read(coordResultProvider);
-    switch (outcome) {
-      case CalcOk(value: final result):
-        final fmt = ref.read(coordFormatProvider);
-        final fields = coordResultToFields(result, fmt);
-        setState(() => _result = fields);
-        widget.onResult(fields);
-      case CalcSweError():
-        break;
-    }
+  void _commit() {
+    ref.read(azAltInputProvider.notifier).state = (
+      forward: _forward,
+      lon: double.tryParse(_lonCtrl.text) ?? 0.0,
+      lat: double.tryParse(_latCtrl.text) ?? 0.0,
+      dist: double.tryParse(_distCtrl.text) ?? 1.0,
+      atpress: double.tryParse(_atpressCtrl.text) ?? 1013.25,
+      attemp: double.tryParse(_attempCtrl.text) ?? 15.0,
+      azimuth: double.tryParse(_azCtrl.text) ?? 0.0,
+      altitude: double.tryParse(_altCtrl.text) ?? 0.0,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final outcome = ref.watch(azAltResultProvider);
+    final fmt = ref.watch(coordFormatProvider);
 
     return Card(
       margin: const EdgeInsets.all(4),
@@ -212,7 +174,6 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
               ),
             ),
             const SizedBox(height: 8),
-            // Direction toggle
             SegmentedButton<bool>(
               segments: const [
                 ButtonSegment(value: true, label: Text('Ecl → Hor')),
@@ -223,7 +184,6 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
             ),
             const SizedBox(height: 8),
-            // Inputs change based on direction
             if (_forward) ...[
               _buildInput('Lon (°)', _lonCtrl),
               const SizedBox(height: 4),
@@ -243,17 +203,13 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _calculate,
+                onPressed: _commit,
                 icon: const Icon(Icons.calculate, size: 16),
                 label: const Text('Calculate'),
               ),
             ),
-            if (_result != null) ...[
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-              ..._result!.map((f) => _resultRow(f, theme, colorScheme)),
-            ],
+            _resultSection(outcome, fmt, theme, colorScheme),
+            _codeButton(ref, azAltTraceProvider, 'coord-azalt'),
           ],
         ),
       ),
@@ -277,7 +233,7 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
-            onSubmitted: (_) => _calculate(),
+            onSubmitted: (_) => _commit(),
           ),
         ),
       ],
@@ -288,20 +244,18 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
 // ── CoTrans card ────────────────────────────────────────────────────────────
 
 class _CoTransCard extends ConsumerStatefulWidget {
-  const _CoTransCard({required this.onResult});
-  final ValueChanged<List<ResultField>?> onResult;
+  const _CoTransCard();
 
   @override
   ConsumerState<_CoTransCard> createState() => _CoTransCardState();
 }
 
 class _CoTransCardState extends ConsumerState<_CoTransCard> {
-  bool _eclToEqu = true; // true = ecl→equ, false = equ→ecl
+  bool _eclToEqu = true;
   final _lonCtrl = TextEditingController(text: '0.0');
   final _latCtrl = TextEditingController(text: '0.0');
   final _distCtrl = TextEditingController(text: '1.0');
   final _epsCtrl = TextEditingController(text: '23.4393');
-  List<ResultField>? _result;
 
   @override
   void dispose() {
@@ -312,33 +266,22 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
     super.dispose();
   }
 
-  void _calculate() {
-    ref.read(coordOpProvider.notifier).state = CoordOp.cotrans;
-    ref.read(coordLonProvider.notifier).state =
-        double.tryParse(_lonCtrl.text) ?? 0.0;
-    ref.read(coordLatProvider.notifier).state =
-        double.tryParse(_latCtrl.text) ?? 0.0;
-    ref.read(coordDistProvider.notifier).state =
-        double.tryParse(_distCtrl.text) ?? 1.0;
-    // Sign of eps controls direction: positive = ecl→equ, negative = equ→ecl
-    final epsAbs = (double.tryParse(_epsCtrl.text) ?? 23.4393).abs();
-    ref.read(coordEpsProvider.notifier).state = _eclToEqu ? epsAbs : -epsAbs;
-    final outcome = ref.read(coordResultProvider);
-    switch (outcome) {
-      case CalcOk(value: final result):
-        final fmt = ref.read(coordFormatProvider);
-        final fields = coordResultToFields(result, fmt);
-        setState(() => _result = fields);
-        widget.onResult(fields);
-      case CalcSweError():
-        break;
-    }
+  void _commit() {
+    ref.read(coTransInputProvider.notifier).state = (
+      eclToEqu: _eclToEqu,
+      lon: double.tryParse(_lonCtrl.text) ?? 0.0,
+      lat: double.tryParse(_latCtrl.text) ?? 0.0,
+      dist: double.tryParse(_distCtrl.text) ?? 1.0,
+      eps: double.tryParse(_epsCtrl.text) ?? 23.4393,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final outcome = ref.watch(coTransResultProvider);
+    final fmt = ref.watch(coordFormatProvider);
 
     return Card(
       margin: const EdgeInsets.all(4),
@@ -356,7 +299,6 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
               ),
             ),
             const SizedBox(height: 8),
-            // Direction toggle
             SegmentedButton<bool>(
               segments: const [
                 ButtonSegment(value: true, label: Text('Ecl → Equ')),
@@ -378,17 +320,13 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _calculate,
+                onPressed: _commit,
                 icon: const Icon(Icons.calculate, size: 16),
                 label: const Text('Calculate'),
               ),
             ),
-            if (_result != null) ...[
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-              ..._result!.map((f) => _resultRow(f, theme, colorScheme)),
-            ],
+            _resultSection(outcome, fmt, theme, colorScheme),
+            _codeButton(ref, coTransTraceProvider, 'coord-cotrans'),
           ],
         ),
       ),
@@ -412,7 +350,7 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
-            onSubmitted: (_) => _calculate(),
+            onSubmitted: (_) => _commit(),
           ),
         ),
       ],
@@ -423,8 +361,7 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
 // ── Refraction card ─────────────────────────────────────────────────────────
 
 class _RefracCard extends ConsumerStatefulWidget {
-  const _RefracCard({required this.onResult});
-  final ValueChanged<List<ResultField>?> onResult;
+  const _RefracCard();
 
   @override
   ConsumerState<_RefracCard> createState() => _RefracCardState();
@@ -434,7 +371,6 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
   final _altCtrl = TextEditingController(text: '0.0');
   final _atpressCtrl = TextEditingController(text: '1013.25');
   final _attempCtrl = TextEditingController(text: '15.0');
-  List<ResultField>? _result;
 
   @override
   void dispose() {
@@ -444,30 +380,20 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
     super.dispose();
   }
 
-  void _calculate() {
-    ref.read(coordOpProvider.notifier).state = CoordOp.refrac;
-    ref.read(coordAltitudeProvider.notifier).state =
-        double.tryParse(_altCtrl.text) ?? 0.0;
-    ref.read(coordAtpressProvider.notifier).state =
-        double.tryParse(_atpressCtrl.text) ?? 1013.25;
-    ref.read(coordAttempProvider.notifier).state =
-        double.tryParse(_attempCtrl.text) ?? 15.0;
-    final outcome = ref.read(coordResultProvider);
-    switch (outcome) {
-      case CalcOk(value: final result):
-        final fmt = ref.read(coordFormatProvider);
-        final fields = coordResultToFields(result, fmt);
-        setState(() => _result = fields);
-        widget.onResult(fields);
-      case CalcSweError():
-        break;
-    }
+  void _commit() {
+    ref.read(refracInputProvider.notifier).state = (
+      altitude: double.tryParse(_altCtrl.text) ?? 0.0,
+      atpress: double.tryParse(_atpressCtrl.text) ?? 1013.25,
+      attemp: double.tryParse(_attempCtrl.text) ?? 15.0,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final outcome = ref.watch(refracResultProvider);
+    final fmt = ref.watch(coordFormatProvider);
 
     return Card(
       margin: const EdgeInsets.all(4),
@@ -494,17 +420,13 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _calculate,
+                onPressed: _commit,
                 icon: const Icon(Icons.calculate, size: 16),
                 label: const Text('Calculate'),
               ),
             ),
-            if (_result != null) ...[
-              const SizedBox(height: 8),
-              const Divider(height: 1),
-              const SizedBox(height: 8),
-              ..._result!.map((f) => _resultRow(f, theme, colorScheme)),
-            ],
+            _resultSection(outcome, fmt, theme, colorScheme),
+            _codeButton(ref, refracTraceProvider, 'coord-refrac'),
           ],
         ),
       ),
@@ -528,7 +450,7 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
-            onSubmitted: (_) => _calculate(),
+            onSubmitted: (_) => _commit(),
           ),
         ),
       ],
@@ -536,7 +458,36 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
   }
 }
 
-// ── Shared result row helper ────────────────────────────────────────────────
+// ── Shared helpers ──────────────────────────────────────────────────────────
+
+Widget _resultSection(
+  CalcOutcome<CoordResult> outcome,
+  DisplayFormat fmt,
+  ThemeData theme,
+  ColorScheme colorScheme,
+) {
+  return switch (outcome) {
+    CalcSweError(:final message) => Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        'Error: $message',
+        style: TextStyle(color: colorScheme.error),
+      ),
+    ),
+    CalcOk(value: final result) => Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 8),
+        const Divider(height: 1),
+        const SizedBox(height: 8),
+        ...coordResultToFields(
+          result,
+          fmt,
+        ).map((f) => _resultRow(f, theme, colorScheme)),
+      ],
+    ),
+  };
+}
 
 Widget _resultRow(ResultField f, ThemeData theme, ColorScheme colorScheme) {
   return Padding(
@@ -559,6 +510,35 @@ Widget _resultRow(ResultField f, ThemeData theme, ColorScheme colorScheme) {
           ),
         ),
       ],
+    ),
+  );
+}
+
+Widget _codeButton(
+  WidgetRef ref,
+  Provider<CallTrace> traceProvider,
+  String tabTag,
+) {
+  final trace = ref.watch(traceProvider);
+  final slice = trace.sliceByTab(tabTag);
+  if (slice.entries.isEmpty) return const SizedBox.shrink();
+
+  return Builder(
+    builder: (context) => Align(
+      alignment: Alignment.centerRight,
+      child: IconButton(
+        icon: const Icon(Icons.code, size: 16),
+        tooltip: 'View code',
+        onPressed: () {
+          final emitter = ref.read(selectedEmitterProvider);
+          final code = slice.entries.map(emitter.emitSnippet).join('\n');
+          showCodeModal(
+            context,
+            code: code,
+            languageLabel: emitter.displayName,
+          );
+        },
+      ),
     ),
   );
 }

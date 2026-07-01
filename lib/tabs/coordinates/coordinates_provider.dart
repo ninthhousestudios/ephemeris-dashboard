@@ -23,26 +23,55 @@ enum CoordOp {
   final String description;
 }
 
-// ── UI state providers ─────────────────────────────────────────────────────
+// ── Shared UI state ───────────────────────────────────────────────────────
 
-final coordOpProvider = StateProvider<CoordOp>((ref) => CoordOp.azAlt);
 final coordFormatProvider = StateProvider<DisplayFormat>(
   (ref) => DisplayFormat.dms,
 );
 
-// ── Input providers ────────────────────────────────────────────────────────
+// ── Per-card input records ────────────────────────────────────────────────
 
-final coordLonProvider = StateProvider<double>((ref) => 0.0);
-final coordLatProvider = StateProvider<double>((ref) => 0.0);
-final coordDistProvider = StateProvider<double>((ref) => 1.0);
+typedef AzAltInput = ({
+  bool forward,
+  double lon,
+  double lat,
+  double dist,
+  double atpress,
+  double attemp,
+  double azimuth,
+  double altitude,
+});
 
-final coordAtpressProvider = StateProvider<double>((ref) => 1013.25);
-final coordAttempProvider = StateProvider<double>((ref) => 15.0);
+final azAltInputProvider = StateProvider<AzAltInput>(
+  (ref) => (
+    forward: true,
+    lon: 0.0,
+    lat: 0.0,
+    dist: 1.0,
+    atpress: 1013.25,
+    attemp: 15.0,
+    azimuth: 0.0,
+    altitude: 0.0,
+  ),
+);
 
-final coordAzimuthProvider = StateProvider<double>((ref) => 0.0);
-final coordAltitudeProvider = StateProvider<double>((ref) => 0.0);
+typedef CoTransInput = ({
+  bool eclToEqu,
+  double lon,
+  double lat,
+  double dist,
+  double eps,
+});
 
-final coordEpsProvider = StateProvider<double>((ref) => 23.4393);
+final coTransInputProvider = StateProvider<CoTransInput>(
+  (ref) => (eclToEqu: true, lon: 0.0, lat: 0.0, dist: 1.0, eps: 23.4393),
+);
+
+typedef RefracInput = ({double altitude, double atpress, double attemp});
+
+final refracInputProvider = StateProvider<RefracInput>(
+  (ref) => (altitude: 0.0, atpress: 1013.25, attemp: 15.0),
+);
 
 // ── Result sealed variants ─────────────────────────────────────────────────
 
@@ -148,50 +177,107 @@ CoordResult computeCoordinates({
   }
 }
 
-// ── Kernel wiring ──────────────────────────────────────────────────────────
+// ── Per-card kernel wiring ─────────────────────────────────────────────────
 
-final _coordCalcProvider =
+final _azAltCalcProvider =
     Provider<({CalcOutcome<CoordResult> outcome, CallTrace trace})>((ref) {
       final ctx = ref.watch(contextBarProvider);
-      final op = ref.watch(coordOpProvider);
-      final lon = ref.watch(coordLonProvider);
-      final lat = ref.watch(coordLatProvider);
-      final dist = ref.watch(coordDistProvider);
-      final atpress = ref.watch(coordAtpressProvider);
-      final attemp = ref.watch(coordAttempProvider);
-      final azimuth = ref.watch(coordAzimuthProvider);
-      final altitude = ref.watch(coordAltitudeProvider);
-      final eps = ref.watch(coordEpsProvider);
-
+      final i = ref.watch(azAltInputProvider);
       return runTabCalc(
         ref,
-        tabTag: 'coordinates',
+        tabTag: 'coord-azalt',
         compute: (eph) => computeCoordinates(
           eph: eph,
-          op: op,
+          op: i.forward ? CoordOp.azAlt : CoordOp.azAltRev,
           jdUt: ctx.jdUt,
           geolon: ctx.longitude,
           geolat: ctx.latitude,
           geoalt: ctx.altitude,
-          lon: lon,
-          lat: lat,
-          dist: dist,
-          atpress: atpress,
-          attemp: attemp,
-          azimuth: azimuth,
-          altitude: altitude,
-          eps: eps,
+          lon: i.lon,
+          lat: i.lat,
+          dist: i.dist,
+          atpress: i.atpress,
+          attemp: i.attemp,
+          azimuth: i.azimuth,
+          altitude: i.altitude,
+          eps: 0,
         ),
       );
     });
 
-final coordResultProvider = Provider<CalcOutcome<CoordResult>>((ref) {
-  return ref.watch(_coordCalcProvider.select((c) => c.outcome));
-});
+final azAltResultProvider = Provider<CalcOutcome<CoordResult>>(
+  (ref) => ref.watch(_azAltCalcProvider.select((c) => c.outcome)),
+);
+final azAltTraceProvider = Provider<CallTrace>(
+  (ref) => ref.watch(_azAltCalcProvider.select((c) => c.trace)),
+);
 
-final coordTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_coordCalcProvider.select((c) => c.trace));
-});
+final _coTransCalcProvider =
+    Provider<({CalcOutcome<CoordResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final i = ref.watch(coTransInputProvider);
+      final epsAbs = i.eps.abs();
+      return runTabCalc(
+        ref,
+        tabTag: 'coord-cotrans',
+        compute: (eph) => computeCoordinates(
+          eph: eph,
+          op: CoordOp.cotrans,
+          jdUt: ctx.jdUt,
+          geolon: ctx.longitude,
+          geolat: ctx.latitude,
+          geoalt: ctx.altitude,
+          lon: i.lon,
+          lat: i.lat,
+          dist: i.dist,
+          atpress: 0,
+          attemp: 0,
+          azimuth: 0,
+          altitude: 0,
+          eps: i.eclToEqu ? epsAbs : -epsAbs,
+        ),
+      );
+    });
+
+final coTransResultProvider = Provider<CalcOutcome<CoordResult>>(
+  (ref) => ref.watch(_coTransCalcProvider.select((c) => c.outcome)),
+);
+final coTransTraceProvider = Provider<CallTrace>(
+  (ref) => ref.watch(_coTransCalcProvider.select((c) => c.trace)),
+);
+
+final _refracCalcProvider =
+    Provider<({CalcOutcome<CoordResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final i = ref.watch(refracInputProvider);
+      return runTabCalc(
+        ref,
+        tabTag: 'coord-refrac',
+        compute: (eph) => computeCoordinates(
+          eph: eph,
+          op: CoordOp.refrac,
+          jdUt: ctx.jdUt,
+          geolon: ctx.longitude,
+          geolat: ctx.latitude,
+          geoalt: ctx.altitude,
+          lon: 0,
+          lat: 0,
+          dist: 0,
+          atpress: i.atpress,
+          attemp: i.attemp,
+          azimuth: 0,
+          altitude: i.altitude,
+          eps: 0,
+        ),
+      );
+    });
+
+final refracResultProvider = Provider<CalcOutcome<CoordResult>>(
+  (ref) => ref.watch(_refracCalcProvider.select((c) => c.outcome)),
+);
+final refracTraceProvider = Provider<CallTrace>(
+  (ref) => ref.watch(_refracCalcProvider.select((c) => c.trace)),
+);
 
 // ── ResultField conversion ─────────────────────────────────────────────────
 
