@@ -36,7 +36,18 @@ class FakeEphemeris implements Ephemeris {
   onCalcPctr;
   HouseResult Function(double jdUt, double geolat, double geolon, int hsys)?
   onHouses;
-  double Function(double jdUt, int body, int flags, int method)?
+  double Function(
+    double jdUt,
+    int body,
+    int flags,
+    int method, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    double atpress,
+    double attemp,
+    String? starName,
+  })?
   onGauquelinSector;
   double Function(double jdUt)? onGetAyanamsaUt;
   AyanamsaResult Function(double jdUt, int flags)? onGetAyanamsaExUt;
@@ -46,21 +57,105 @@ class FakeEphemeris implements Ephemeris {
   MoonNodeCrossResult Function(double jdUt, int flags)? onMoonCrossNodeUt;
   double Function(int body, double longitude, double jdUt, int flags, int dir)?
   onHelioCrossUt;
-  SolarEclipseLocalResult Function(double jdStart, int flags)?
+  SolarEclipseLocalResult Function(
+    double jdStart,
+    int flags, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    bool backward,
+  })?
   onSolEclipseWhenLoc;
-  SolarEclipseGlobalResult Function(double jdStart, int flags)?
+  SolarEclipseGlobalResult Function(
+    double jdStart,
+    int flags, {
+    int eclType,
+    bool backward,
+  })?
   onSolEclipseWhenGlob;
-  SolarEclipseAttrResult Function(double jdUt, int flags)? onSolEclipseHow;
+  SolarEclipseAttrResult Function(
+    double jdUt,
+    int flags, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+  })?
+  onSolEclipseHow;
   EclipseWhereResult Function(double jdUt, int flags)? onSolEclipseWhere;
-  LunarEclipseGlobalResult Function(double jdStart, int flags)?
+  LunarEclipseGlobalResult Function(
+    double jdStart,
+    int flags, {
+    int eclType,
+    bool backward,
+  })?
   onLunEclipseWhen;
-  LunarEclipseLocalResult Function(double jdStart, int flags)?
+  LunarEclipseLocalResult Function(
+    double jdStart,
+    int flags, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    bool backward,
+  })?
   onLunEclipseWhenLoc;
-  LunarEclipseAttrResult Function(double jdUt, int flags)? onLunEclipseHow;
-  RiseTransResult Function(double jdUt, int body)? onRiseTrans;
-  RiseTransResult Function(double jdUt, int body)? onRiseTransTrueHor;
-  AzAltResult Function(double jdUt, int calcFlag)? onAzAlt;
-  AzAltRevResult Function(double jdUt, int calcFlag)? onAzAltRev;
+  LunarEclipseAttrResult Function(
+    double jdUt,
+    int flags, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+  })?
+  onLunEclipseHow;
+  RiseTransResult Function(
+    double jdUt,
+    int body, {
+    String? starName,
+    int epheflag,
+    int rsmi,
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    double atpress,
+    double attemp,
+  })?
+  onRiseTrans;
+  RiseTransResult Function(
+    double jdUt,
+    int body, {
+    String? starName,
+    int epheflag,
+    int rsmi,
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    double atpress,
+    double attemp,
+    required double horizonHeight,
+  })?
+  onRiseTransTrueHor;
+  AzAltResult Function(
+    double jdUt,
+    int calcFlag, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    double atpress,
+    double attemp,
+    required double bodyLon,
+    required double bodyLat,
+    double bodyDist,
+  })?
+  onAzAlt;
+  AzAltRevResult Function(
+    double jdUt,
+    int calcFlag, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    required double azimuth,
+    required double altitude,
+  })?
+  onAzAltRev;
   CoTransResult Function(double lon, double lat, double dist, double eps)?
   onCotrans;
   double Function(double altitude, double atpress, double attemp, int calcFlag)?
@@ -78,7 +173,18 @@ class FakeEphemeris implements Ephemeris {
   OrbitDistanceResult Function(double jdEt, int body, int flags)?
   onOrbitMaxMinTrueDistance;
   PhenoResult Function(double jdUt, int body, int flags)? onPhenoUt;
-  HeliacalResult Function(double jdStart, int typeEvent)? onHeliacalUt;
+  HeliacalResult Function(
+    double jdStart, {
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    required AtmoConditions atmo,
+    required ObserverConditions observer,
+    required String objectName,
+    required int typeEvent,
+    int flags,
+  })?
+  onHeliacalUt;
 
   @override
   CalcResult calcUt(double jdUt, int body, int flags) {
@@ -114,7 +220,18 @@ class FakeEphemeris implements Ephemeris {
     if (onGauquelinSector == null) {
       throw UnimplementedError('gauquelinSector not scripted');
     }
-    return onGauquelinSector!(jdUt, body, flags, method);
+    return onGauquelinSector!(
+      jdUt,
+      body,
+      flags,
+      method,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atpress: atpress,
+      attemp: attemp,
+      starName: starName,
+    );
   }
 
   @override
@@ -191,7 +308,14 @@ class FakeEphemeris implements Ephemeris {
     if (onSolEclipseWhenLoc == null) {
       throw UnimplementedError('solEclipseWhenLoc not scripted');
     }
-    return onSolEclipseWhenLoc!(jdStart, flags);
+    return onSolEclipseWhenLoc!(
+      jdStart,
+      flags,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      backward: backward,
+    );
   }
 
   @override
@@ -204,7 +328,12 @@ class FakeEphemeris implements Ephemeris {
     if (onSolEclipseWhenGlob == null) {
       throw UnimplementedError('solEclipseWhenGlob not scripted');
     }
-    return onSolEclipseWhenGlob!(jdStart, flags);
+    return onSolEclipseWhenGlob!(
+      jdStart,
+      flags,
+      eclType: eclType,
+      backward: backward,
+    );
   }
 
   @override
@@ -218,7 +347,13 @@ class FakeEphemeris implements Ephemeris {
     if (onSolEclipseHow == null) {
       throw UnimplementedError('solEclipseHow not scripted');
     }
-    return onSolEclipseHow!(jdUt, flags);
+    return onSolEclipseHow!(
+      jdUt,
+      flags,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+    );
   }
 
   @override
@@ -239,7 +374,12 @@ class FakeEphemeris implements Ephemeris {
     if (onLunEclipseWhen == null) {
       throw UnimplementedError('lunEclipseWhen not scripted');
     }
-    return onLunEclipseWhen!(jdStart, flags);
+    return onLunEclipseWhen!(
+      jdStart,
+      flags,
+      eclType: eclType,
+      backward: backward,
+    );
   }
 
   @override
@@ -254,7 +394,14 @@ class FakeEphemeris implements Ephemeris {
     if (onLunEclipseWhenLoc == null) {
       throw UnimplementedError('lunEclipseWhenLoc not scripted');
     }
-    return onLunEclipseWhenLoc!(jdStart, flags);
+    return onLunEclipseWhenLoc!(
+      jdStart,
+      flags,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      backward: backward,
+    );
   }
 
   @override
@@ -268,7 +415,13 @@ class FakeEphemeris implements Ephemeris {
     if (onLunEclipseHow == null) {
       throw UnimplementedError('lunEclipseHow not scripted');
     }
-    return onLunEclipseHow!(jdUt, flags);
+    return onLunEclipseHow!(
+      jdUt,
+      flags,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+    );
   }
 
   @override
@@ -287,7 +440,18 @@ class FakeEphemeris implements Ephemeris {
     if (onRiseTrans == null) {
       throw UnimplementedError('riseTrans not scripted');
     }
-    return onRiseTrans!(jdUt, body);
+    return onRiseTrans!(
+      jdUt,
+      body,
+      starName: starName,
+      epheflag: epheflag,
+      rsmi: rsmi,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atpress: atpress,
+      attemp: attemp,
+    );
   }
 
   @override
@@ -307,7 +471,19 @@ class FakeEphemeris implements Ephemeris {
     if (onRiseTransTrueHor == null) {
       throw UnimplementedError('riseTransTrueHor not scripted');
     }
-    return onRiseTransTrueHor!(jdUt, body);
+    return onRiseTransTrueHor!(
+      jdUt,
+      body,
+      starName: starName,
+      epheflag: epheflag,
+      rsmi: rsmi,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atpress: atpress,
+      attemp: attemp,
+      horizonHeight: horizonHeight,
+    );
   }
 
   @override
@@ -324,7 +500,18 @@ class FakeEphemeris implements Ephemeris {
     double bodyDist = 1.0,
   }) {
     if (onAzAlt == null) throw UnimplementedError('azAlt not scripted');
-    return onAzAlt!(jdUt, calcFlag);
+    return onAzAlt!(
+      jdUt,
+      calcFlag,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atpress: atpress,
+      attemp: attemp,
+      bodyLon: bodyLon,
+      bodyLat: bodyLat,
+      bodyDist: bodyDist,
+    );
   }
 
   @override
@@ -338,7 +525,15 @@ class FakeEphemeris implements Ephemeris {
     required double altitude,
   }) {
     if (onAzAltRev == null) throw UnimplementedError('azAltRev not scripted');
-    return onAzAltRev!(jdUt, calcFlag);
+    return onAzAltRev!(
+      jdUt,
+      calcFlag,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      azimuth: azimuth,
+      altitude: altitude,
+    );
   }
 
   @override
@@ -436,6 +631,16 @@ class FakeEphemeris implements Ephemeris {
     if (onHeliacalUt == null) {
       throw UnimplementedError('heliacalUt not scripted');
     }
-    return onHeliacalUt!(jdStart, typeEvent);
+    return onHeliacalUt!(
+      jdStart,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atmo: atmo,
+      observer: observer,
+      objectName: objectName,
+      typeEvent: typeEvent,
+      flags: flags,
+    );
   }
 }
