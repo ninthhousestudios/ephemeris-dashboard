@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
@@ -20,14 +20,12 @@ class StarsTab extends ConsumerStatefulWidget {
 
 class _StarsTabState extends ConsumerState<StarsTab> {
   late final TextEditingController _searchController;
-  late final CalcSessionNotifier _calcNotifier;
   final _focusNode = FocusNode();
   List<StarCatalogEntry> _suggestions = [];
 
   @override
   void initState() {
     super.initState();
-    _calcNotifier = ref.read(calcSessionProvider.notifier);
     _searchController = TextEditingController(
       text: ref.read(starSearchProvider),
     );
@@ -37,17 +35,10 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         setState(() => _suggestions = []);
       }
     });
-    _calcNotifier.registerCommit('stars', () {
-      final term = _searchController.text.trim();
-      if (term.isNotEmpty) {
-        ref.read(starSearchProvider.notifier).state = term;
-      }
-    });
   }
 
   @override
   void dispose() {
-    _calcNotifier.unregisterCommit('stars');
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     _focusNode.dispose();
@@ -76,7 +67,6 @@ class _StarsTabState extends ConsumerState<StarsTab> {
       ref.read(starSearchProvider.notifier).state = term;
     }
     setState(() => _suggestions = []);
-    ref.read(calcSessionProvider.notifier).calculate(activate: {'stars'});
   }
 
   void _selectSuggestion(StarCatalogEntry entry) {
@@ -93,9 +83,6 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     ref.read(starSearchProvider.notifier).state = name;
     setState(() => _suggestions = []);
   }
-
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('stars')));
 
   @override
   Widget build(BuildContext context) {
@@ -185,10 +172,14 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                 const SizedBox(width: 8),
                 Consumer(
                   builder: (context, ref, _) {
-                    final result = ref.watch(starResultProvider);
+                    final outcome = ref.watch(starResultProvider);
                     final fmt2 = ref.watch(starsFormatProvider);
+                    final result = switch (outcome) {
+                      CalcOk(value: final r) => r,
+                      CalcSweError() => null,
+                    };
                     return ExportButton(
-                      hasResults: _hasCalculated && result != null,
+                      hasResults: result != null,
                       getRows: () =>
                           result != null ? starToExportRows(result, fmt2) : [],
                       filenameStem:
@@ -222,34 +213,35 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         const Divider(height: 1),
         // ── Results ──
         if (isMobile)
-          _hasCalculated ? _buildResults(theme) : _buildPlaceholder()
+          _buildResults(theme)
         else
-          Expanded(
-            child: _hasCalculated ? _buildResults(theme) : _buildPlaceholder(),
-          ),
+          Expanded(child: _buildResults(theme)),
       ],
     );
   }
 
-  Widget _buildPlaceholder() {
-    return const Center(
-      child: Text('Enter a star name or catalog number and press Calculate'),
-    );
-  }
-
   Widget _buildResults(ThemeData theme) {
-    final result = ref.watch(starResultProvider);
+    final outcome = ref.watch(starResultProvider);
     final fmt = ref.watch(starsFormatProvider);
 
-    if (result == null) {
-      return Center(
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text(
+          'Calculation error: $message',
+          style: TextStyle(color: theme.colorScheme.error),
+        ),
+      ),
+      CalcOk(value: null) => Center(
         child: Text(
           'Star not found — check the name or catalog number',
           style: TextStyle(color: theme.colorScheme.error),
         ),
-      );
-    }
+      ),
+      CalcOk(value: final result) => _buildResultCard(result!, fmt),
+    };
+  }
 
+  Widget _buildResultCard(StarResult result, DisplayFormat fmt) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
       child: ResultCard(

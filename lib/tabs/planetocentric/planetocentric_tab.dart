@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
@@ -29,10 +29,6 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         : [...current, body];
     ref.read(planetocentricBodiesProvider.notifier).state = updated;
   }
-
-  bool get _hasCalculated => ref.watch(
-    calcSessionProvider.select((s) => s.tabHasRun('planetocentric')),
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -154,30 +150,30 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         const SizedBox(height: 4),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
       ],
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return const Center(
-      child: Text('Select a center body, targets, and press Calculate'),
     );
   }
 
   Widget _buildResults() {
     final format = ref.watch(planetocentricFormatProvider);
-    final results = ref.watch(planetocentricResultsProvider);
+    final outcome = ref.watch(planetocentricResultsProvider);
 
-    if (results.isEmpty) {
-      return const Center(child: Text('No target bodies selected'));
-    }
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
+      ),
+      CalcOk(value: final results) =>
+        results.isEmpty
+            ? const Center(child: Text('No target bodies selected'))
+            : _buildResultCards(format, results),
+    };
+  }
 
+  Widget _buildResultCards(
+    DisplayFormat format,
+    List<PlanetoCentricResult> results,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 1200

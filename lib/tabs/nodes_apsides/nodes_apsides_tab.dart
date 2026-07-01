@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
@@ -56,15 +56,13 @@ class NodesApsidesTab extends ConsumerStatefulWidget {
 class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
   bool _showExtraBodies = false;
 
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('nodesApsides')));
-
   @override
   Widget build(BuildContext context) {
     final body = ref.watch(nodesBodyProvider);
     final method = ref.watch(nodesMethodProvider);
     final fmt = ref.watch(nodesFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
+    final nodesOutcome = ref.watch(nodesApsResultsProvider);
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -177,14 +175,15 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
-                  hasResults: _hasCalculated,
+                  hasResults: nodesOutcome is CalcOk<NodesApsResult>,
                   getRows: () {
-                    final result = ref.read(nodesApsResultsProvider);
-                    if (result == null) return [];
-                    return nodesApsToExportRows(
-                      result,
-                      ref.read(nodesFormatProvider),
-                    );
+                    return switch (nodesOutcome) {
+                      CalcOk(value: final result) => nodesApsToExportRows(
+                        result,
+                        ref.read(nodesFormatProvider),
+                      ),
+                      CalcSweError() => [],
+                    };
                   },
                   filenameStem: 'swe_nodes_apsides_${jd.toStringAsFixed(4)}',
                 ),
@@ -195,25 +194,10 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
         const Divider(height: 1),
         // ── Results ──
         if (isMobile)
-          _hasCalculated ? const _NodesResults() : const _Placeholder()
+          const _NodesResults()
         else
-          Expanded(
-            child: _hasCalculated
-                ? const _NodesResults()
-                : const _Placeholder(),
-          ),
+          Expanded(child: const _NodesResults()),
       ],
-    );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Select a body and method, then press Calculate'),
     );
   }
 }
@@ -223,15 +207,23 @@ class _NodesResults extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final result = ref.watch(nodesApsResultsProvider);
+    final outcome = ref.watch(nodesApsResultsProvider);
     final fmt = ref.watch(nodesFormatProvider);
 
-    if (result == null) {
-      return const Center(
-        child: Text('Calculation failed — check body selection'),
-      );
-    }
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
+      ),
+      CalcOk(value: final result) => _buildResult(context, ref, result, fmt),
+    };
+  }
 
+  Widget _buildResult(
+    BuildContext context,
+    WidgetRef ref,
+    NodesApsResult result,
+    DisplayFormat fmt,
+  ) {
     String deg(double v) => formatAngle(v, fmt);
     String raw(double v) => v.toStringAsFixed(8);
 

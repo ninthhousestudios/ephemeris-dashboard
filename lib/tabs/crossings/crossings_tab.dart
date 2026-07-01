@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
@@ -37,9 +37,6 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
     _lonController.dispose();
     super.dispose();
   }
-
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('crossings')));
 
   @override
   Widget build(BuildContext context) {
@@ -192,12 +189,16 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
               const Spacer(),
               Consumer(
                 builder: (context, ref, _) {
-                  final result = ref.watch(crossingResultProvider);
+                  final outcome = ref.watch(crossingResultProvider);
                   final jd = ref.watch(contextBarProvider).jdUt;
                   return ExportButton(
-                    hasResults: _hasCalculated && result != null,
-                    getRows: () =>
-                        result != null ? crossingToExportRows(result) : [],
+                    hasResults: outcome is CalcOk<CrossingResult>,
+                    getRows: () => switch (outcome) {
+                      CalcOk(value: final result) => crossingToExportRows(
+                        result,
+                      ),
+                      CalcSweError() => [],
+                    },
                     filenameStem: 'swe_crossings_${jd.toStringAsFixed(4)}',
                   );
                 },
@@ -208,23 +209,10 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
         const Divider(height: 1),
         // ── Results ──
         if (isMobile)
-          _hasCalculated ? const _ResultView() : const _Placeholder()
+          const _ResultView()
         else
-          Expanded(
-            child: _hasCalculated ? const _ResultView() : const _Placeholder(),
-          ),
+          Expanded(child: const _ResultView()),
       ],
-    );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Configure a crossing and press Calculate'),
     );
   }
 }
@@ -234,12 +222,21 @@ class _ResultView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final result = ref.watch(crossingResultProvider);
+    final outcome = ref.watch(crossingResultProvider);
 
-    if (result == null) {
-      return const Center(child: Text('No result'));
-    }
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
+      ),
+      CalcOk(value: final result) => _buildResult(context, ref, result),
+    };
+  }
 
+  Widget _buildResult(
+    BuildContext context,
+    WidgetRef ref,
+    CrossingResult result,
+  ) {
     final isError = result.crossingJd.isNaN;
 
     return SingleChildScrollView(

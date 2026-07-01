@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/display_format.dart';
@@ -52,9 +52,6 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   }
 
   JdUtils get _jdUtils => JdUtils(ref.read(sweProvider));
-
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('differential')));
 
   void _syncTimeFromContext() {
     final ctx = ref.read(contextBarProvider);
@@ -182,6 +179,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
     final bodyB = ref.watch(diffBodyBProvider);
     final fmt = ref.watch(diffFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
+    final diffOutcome = ref.watch(diffResultProvider);
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
@@ -326,14 +324,15 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
-                  hasResults: _hasCalculated,
+                  hasResults: diffOutcome is CalcOk<DiffResult>,
                   getRows: () {
-                    final result = ref.read(diffResultProvider);
-                    if (result == null) return [];
-                    return diffToExportRows(
-                      result,
-                      ref.read(diffFormatProvider),
-                    );
+                    return switch (diffOutcome) {
+                      CalcOk(value: final result) => diffToExportRows(
+                        result,
+                        ref.read(diffFormatProvider),
+                      ),
+                      CalcSweError() => [],
+                    };
                   },
                   filenameStem: 'swe_differential_${jd.toStringAsFixed(4)}',
                 ),
@@ -343,12 +342,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _hasCalculated ? _DiffResults() : const _Placeholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _DiffResults() : const _Placeholder(),
-          ),
+        if (isMobile) _DiffResults() else Expanded(child: _DiffResults()),
       ],
     );
   }
@@ -546,77 +540,67 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   }
 }
 
-class _Placeholder extends StatelessWidget {
-  const _Placeholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Select two bodies and press Calculate'));
-  }
-}
-
 class _DiffResults extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final result = ref.watch(diffResultProvider);
+    final outcome = ref.watch(diffResultProvider);
     final fmt = ref.watch(diffFormatProvider);
 
-    if (result == null) {
-      return const Center(
-        child: Text('Calculation failed — check body selection'),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(8),
-      child: ResultCard(
-        title: '${result.nameA} — ${result.nameB}',
-        subtitle: 'Differential',
-        flagHex:
-            '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
-            '0x${result.returnFlagB.toRadixString(16).toUpperCase()}',
-        onCode: () {
-          final trace = ref.read(callTraceProvider);
-          if (trace == null) return;
-          final slice = trace.sliceByTab('differential');
-          if (slice.entries.isEmpty) return;
-          final emitter = ref.read(selectedEmitterProvider);
-          final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(
-            context,
-            code: code,
-            languageLabel: emitter.displayName,
-          );
-        },
-        fields: [
-          ResultField(
-            label: 'Lon ${result.nameA}',
-            value: formatAngle(result.lonA, fmt),
-            rawValue: result.lonA,
-          ),
-          ResultField(
-            label: 'Lon ${result.nameB}',
-            value: formatAngle(result.lonB, fmt),
-            rawValue: result.lonB,
-          ),
-          ResultField(
-            label: 'Difference',
-            value: formatAngle(result.difference, fmt),
-            rawValue: result.difference,
-          ),
-          ResultField(
-            label: 'Complement',
-            value: formatAngle(result.complement, fmt),
-            rawValue: result.complement,
-          ),
-          ResultField(
-            label: 'Midpoint',
-            value: formatAngle(result.midpoint, fmt),
-            rawValue: result.midpoint,
-          ),
-        ],
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
       ),
-    );
+      CalcOk(value: final result) => SingleChildScrollView(
+        padding: const EdgeInsets.all(8),
+        child: ResultCard(
+          title: '${result.nameA} — ${result.nameB}',
+          subtitle: 'Differential',
+          flagHex:
+              '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
+              '0x${result.returnFlagB.toRadixString(16).toUpperCase()}',
+          onCode: () {
+            final trace = ref.read(callTraceProvider);
+            if (trace == null) return;
+            final slice = trace.sliceByTab('differential');
+            if (slice.entries.isEmpty) return;
+            final emitter = ref.read(selectedEmitterProvider);
+            final code = slice.entries.map(emitter.emitSnippet).join('\n');
+            showCodeModal(
+              context,
+              code: code,
+              languageLabel: emitter.displayName,
+            );
+          },
+          fields: [
+            ResultField(
+              label: 'Lon ${result.nameA}',
+              value: formatAngle(result.lonA, fmt),
+              rawValue: result.lonA,
+            ),
+            ResultField(
+              label: 'Lon ${result.nameB}',
+              value: formatAngle(result.lonB, fmt),
+              rawValue: result.lonB,
+            ),
+            ResultField(
+              label: 'Difference',
+              value: formatAngle(result.difference, fmt),
+              rawValue: result.difference,
+            ),
+            ResultField(
+              label: 'Complement',
+              value: formatAngle(result.complement, fmt),
+              rawValue: result.complement,
+            ),
+            ResultField(
+              label: 'Midpoint',
+              value: formatAngle(result.midpoint, fmt),
+              rawValue: result.midpoint,
+            ),
+          ],
+        ),
+      ),
+    };
   }
 }
 

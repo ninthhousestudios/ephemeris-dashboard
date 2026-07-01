@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
@@ -40,9 +40,6 @@ class PhenomenaTab extends ConsumerStatefulWidget {
 
 class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
   bool _showExtra = false;
-
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('phenomena')));
 
   void _toggleBody(int body) {
     final current = ref.read(phenomenaBodiesProvider);
@@ -152,12 +149,20 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
                 const SizedBox(width: 8),
                 Consumer(
                   builder: (context, ref, _) {
-                    final results = ref.watch(phenomenaResultsProvider);
+                    final outcome = ref.watch(phenomenaResultsProvider);
                     final format = ref.watch(phenomenaFormatProvider);
                     final jd = ref.watch(contextBarProvider).jdUt;
                     return ExportButton(
-                      hasResults: _hasCalculated && results.isNotEmpty,
-                      getRows: () => phenomenaToExportRows(results, format),
+                      hasResults:
+                          outcome is CalcOk<List<PhenomenaResult>> &&
+                          outcome.value.isNotEmpty,
+                      getRows: () => switch (outcome) {
+                        CalcOk(value: final results) => phenomenaToExportRows(
+                          results,
+                          format,
+                        ),
+                        CalcSweError() => [],
+                      },
                       filenameStem: 'swe_phenomena_${jd.toStringAsFixed(4)}',
                     );
                   },
@@ -169,22 +174,11 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
         const Divider(height: 1),
         // ── Results ──
         if (isMobile)
-          _hasCalculated ? const _ResultsView() : const _Placeholder()
+          const _ResultsView()
         else
-          Expanded(
-            child: _hasCalculated ? const _ResultsView() : const _Placeholder(),
-          ),
+          Expanded(child: const _ResultsView()),
       ],
     );
-  }
-}
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(child: Text('Select bodies and press Calculate'));
   }
 }
 
@@ -194,82 +188,89 @@ class _ResultsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final format = ref.watch(phenomenaFormatProvider);
-    final results = ref.watch(phenomenaResultsProvider);
+    final outcome = ref.watch(phenomenaResultsProvider);
 
-    if (results.isEmpty) {
-      return const Center(child: Text('No bodies selected'));
-    }
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
+      ),
+      CalcOk(value: final results) =>
+        results.isEmpty
+            ? const Center(child: Text('No bodies selected'))
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final cols = constraints.maxWidth > 1200
+                      ? 3
+                      : constraints.maxWidth > 600
+                      ? 2
+                      : 1;
+                  final cardWidth =
+                      (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: results.map((r) {
-              return SizedBox(
-                width: cardWidth,
-                child: ResultCard(
-                  title: r.bodyName,
-                  subtitle: 'phenoUt(${r.body})',
-                  fields: [
-                    ResultField(
-                      label: 'Phase Angle',
-                      value: formatAngle(r.phaseAngle, format),
-                      rawValue: r.phaseAngle,
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(8),
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: results.map((r) {
+                        return SizedBox(
+                          width: cardWidth,
+                          child: ResultCard(
+                            title: r.bodyName,
+                            subtitle: 'phenoUt(${r.body})',
+                            fields: [
+                              ResultField(
+                                label: 'Phase Angle',
+                                value: formatAngle(r.phaseAngle, format),
+                                rawValue: r.phaseAngle,
+                              ),
+                              ResultField(
+                                label: 'Elongation',
+                                value: formatAngle(r.elongation, format),
+                                rawValue: r.elongation,
+                              ),
+                              ResultField(
+                                label: 'App. Diameter',
+                                value: formatAngle(r.apparentDiameter, format),
+                                rawValue: r.apparentDiameter,
+                              ),
+                              ResultField(
+                                label: 'Phase (Illum.)',
+                                value: r.phase.isNaN
+                                    ? 'NaN'
+                                    : r.phase.toStringAsFixed(6),
+                                rawValue: r.phase,
+                              ),
+                              ResultField(
+                                label: 'App. Magnitude',
+                                value: r.apparentMagnitude.isNaN
+                                    ? 'NaN'
+                                    : r.apparentMagnitude.toStringAsFixed(4),
+                                rawValue: r.apparentMagnitude,
+                              ),
+                            ],
+                            onCode: () {
+                              final trace = ref.read(callTraceProvider);
+                              if (trace == null) return;
+                              final slice = trace.sliceByTab('phenomena');
+                              if (slice.entries.isEmpty) return;
+                              final emitter = ref.read(selectedEmitterProvider);
+                              final code = slice.entries
+                                  .map(emitter.emitSnippet)
+                                  .join('\n');
+                              showCodeModal(
+                                context,
+                                code: code,
+                                languageLabel: emitter.displayName,
+                              );
+                            },
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    ResultField(
-                      label: 'Elongation',
-                      value: formatAngle(r.elongation, format),
-                      rawValue: r.elongation,
-                    ),
-                    ResultField(
-                      label: 'App. Diameter',
-                      value: formatAngle(r.apparentDiameter, format),
-                      rawValue: r.apparentDiameter,
-                    ),
-                    ResultField(
-                      label: 'Phase (Illum.)',
-                      value: r.phase.isNaN ? 'NaN' : r.phase.toStringAsFixed(6),
-                      rawValue: r.phase,
-                    ),
-                    ResultField(
-                      label: 'App. Magnitude',
-                      value: r.apparentMagnitude.isNaN
-                          ? 'NaN'
-                          : r.apparentMagnitude.toStringAsFixed(4),
-                      rawValue: r.apparentMagnitude,
-                    ),
-                  ],
-                  onCode: () {
-                    final trace = ref.read(callTraceProvider);
-                    if (trace == null) return;
-                    final slice = trace.sliceByTab('phenomena');
-                    if (slice.entries.isEmpty) return;
-                    final emitter = ref.read(selectedEmitterProvider);
-                    final code = slice.entries
-                        .map(emitter.emitSnippet)
-                        .join('\n');
-                    showCodeModal(
-                      context,
-                      code: code,
-                      languageLabel: emitter.displayName,
-                    );
-                  },
-                ),
-              );
-            }).toList(),
-          ),
-        );
-      },
-    );
+                  );
+                },
+              ),
+    };
   }
 }
