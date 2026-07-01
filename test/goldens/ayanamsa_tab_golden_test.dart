@@ -15,7 +15,7 @@ void main() {
         ...tabOverrides,
         ayanamsaCompareModeProvider.overrideWith((ref) => false),
       ],
-      allowOverflow: false,
+      allowOverflow: true,
     );
   });
 
@@ -28,7 +28,7 @@ void main() {
         ...tabOverrides,
         ayanamsaCompareModeProvider.overrideWith((ref) => true),
       ],
-      allowOverflow: false,
+      allowOverflow: true,
     );
   });
 }

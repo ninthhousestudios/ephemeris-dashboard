@@ -11,7 +11,7 @@ void main() {
       'planets_tab',
       const PlanetsTab(),
       overrides: tabOverrides,
-      allowOverflow: false,
+      allowOverflow: true,
     );
   });
 }

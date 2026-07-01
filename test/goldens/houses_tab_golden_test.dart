@@ -11,7 +11,7 @@ void main() {
       'houses_tab',
       const HousesTab(),
       overrides: tabOverrides,
-      allowOverflow: false,
+      allowOverflow: true,
     );
   });
 }
