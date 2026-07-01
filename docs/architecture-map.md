@@ -98,12 +98,37 @@ methods backed by unified `SymbolPair`-valued maps.
 | File | Key types |
 |------|-----------|
 | `context_state.dart` | `ContextBarState` — immutable: jdUt, lat, lon, alt, zodiacRef, origin, epheSource |
-| `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState |
+| `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState. Individual setters: setDateTime, setJd, setUtcOffset, setLatitude, setLongitude, setAltitude, setCityLabel, setOrigin, etc. |
+| `date_time_input.dart` | Shared helpers: fmtDate, fmtTime, fmtOffset, fmtCoord, parseDateFields, parseTimeFields, labeledField, dateTimeIconButton, showPreciseTimePicker |
 | `calc_context.dart` | `EffectiveContext` — merges context + flags into iflag, jdUt, lat, lon, alt |
 | `flag_definitions.dart` | `FlagDef`, `FlagGroup` — flag metadata, locked/toggle classification |
 | `flag_state.dart` | `FlagBarState` — selected flags |
 | `flag_provider.dart` | `FlagBarNotifier` — auto-links locked flags from context via ref.listen |
 | `calc_session.dart` | `CalcSession` — legacy activation gate, being removed (swe-dashboard/15) |
+
+## Context bar widgets (lib/widgets/context_bar/)
+
+`ContextBar` is a thin composition shell (~310 lines) that arranges shared field
+widgets into mobile (2-col, collapsible) and desktop (4-col, horizontal-scroll)
+layouts. Each field is a self-contained `ConsumerStatefulWidget` owning its own
+controller, focus node, and sync/commit logic.
+
+| File | Widget |
+|------|--------|
+| `context_bar.dart` | `ContextBar` — layout shell, chart actions, calculate button |
+| `context_date_field.dart` | `ContextDateField` — date text + calendar picker |
+| `context_time_field.dart` | `ContextTimeField` — time text + clock picker; `showNowButton` param |
+| `context_utc_field.dart` | `ContextUtcField` — UTC offset text + half-hour dropdown |
+| `context_jd_field.dart` | `ContextJdField` — Julian Day text input |
+| `context_location_field.dart` | `ContextLocationField(LocationFieldKind)` — lat/lon/alt/city, parameterized |
+| `code_language_selector.dart` | `CodeLanguageSelector` — code emitter language picker |
+| `origin_selector.dart` | `OriginSelector` — geocentric/topocentric/helio dropdown |
+| `zodiac_ref_selector.dart` | `ZodiacRefSelector` — tropical/sidereal dropdown |
+| `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
+| `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown |
+| `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
+| `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
+| `labeled_dropdown.dart` | `LabeledDropdown<T>` — reusable labeled dropdown layout |
 
 ## Test files (tracing/ephemeris related)
 
