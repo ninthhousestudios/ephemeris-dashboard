@@ -14,7 +14,10 @@
 xcode-devices.md
 ios-error.md
 macos-error.md
-test/goldens/
+# Golden baseline images are large binaries regenerated locally; ignore the
+# PNGs (also covered by *.png above) but keep the golden *_test.dart files
+# tracked so the test suite is complete on a fresh checkout.
+test/goldens/*.png
 migrate_working_dir/
 release/
 xcode-warnings/
