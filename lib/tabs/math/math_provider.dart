@@ -22,6 +22,14 @@ enum MathOp {
   final int inputCount;
 }
 
+/// JUSTIFIED EXCEPTION to the reactive-projection model (ADR-0001,
+/// swe-dashboard/14): the Math tab is a stateless calculator, not a projection
+/// of the Context. Inputs are user-typed per card (not derived from
+/// Context/Moment), and the ops (degnorm/splitDeg/degMidp/…) are untraced pure
+/// math that touch no Applied Globals. It therefore needs no kernel, no
+/// CalcOutcome, and no trace provider; each card owns its own input State and
+/// computes on demand.
+///
 /// Compute a single math operation — pure function, no providers needed.
 List<ResultField> computeMathOp(SwissEph swe, MathOp op, double a, double b) {
   try {

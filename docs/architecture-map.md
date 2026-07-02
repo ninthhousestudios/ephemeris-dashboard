@@ -33,17 +33,32 @@ sweProvider (SwissEph)          ← swe_service.dart, conditional import
 | File | Key types | Role |
 |------|-----------|------|
 | `calc_outcome.dart` | `CalcOutcome<T>`, `CalcOk<T>`, `CalcSweError<T>` | Sealed result type. No "not run" variant — per ADR-0001, a tab's result provider is always a projection of the current Context. |
-| `run_tab_calc.dart` | `runTabCalc<T>` | Free function (not a provider factory): tab-tag -> apply-globals -> execute compute lambda -> envelope in `CalcOutcome`. Synchronous. Each tab's result provider watches its own inputs and calls this with a compute lambda; per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. |
+| `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcScoped<T>`, `ScopedRun` | Free function (not a provider factory): tab-tag -> apply-globals -> execute compute lambda -> envelope in `CalcOutcome`. Synchronous. Each tab's result provider watches its own inputs and calls this with a compute lambda; per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. Both variants funnel through a shared private `_runTabCalc` envelope. |
 
 **Migrated to the kernel:** `planets`, `differential`, `phenomena`,
 `planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`,
-`houses`, `rise_set`, `eclipses`, `table_view`, `dates`.
+`houses`, `rise_set`, `eclipses`, `table_view`, `dates`, `ayanamsa`,
+`heliacal`.
 Each has a pure `compute*` function + `_*CalcProvider` (via `runTabCalc`) →
 `*ResultsProvider` (`CalcOutcome<T>`) + `*TraceProvider` (`CallTrace`).
 Watches `contextBarProvider` + `flagBarProvider` directly; no
 `effectiveContextProvider` or `calcSessionProvider` gate. Shared
 `safeGetName` helper in `lib/core/body_utils.dart` (was duplicated in 4
 provider files).
+
+**Scoped-globals path (`runTabCalcScoped`):** `ayanamsa` needs a per-mode
+`setSidMode` override around each `getAyanamsaUt`. `runTabCalcScoped` applies
+the base Context globals once (establishing the restore target) then hands the
+compute lambda a `ScopedRun` — the runner's `runScoped` capability — so each
+mode's override is restored to the Context sidMode in a `finally` instead of
+leaking into the process-wide C state. The lambda still only ever sees
+`Ephemeris`, never `EphemerisRunner`, keeping the seam intact.
+
+**Deliberate non-kernel tabs:** `math` is a JUSTIFIED EXCEPTION — a stateless
+calculator over user-typed inputs; untraced pure math (`degnorm`/`splitDeg`/…)
+touching no Applied Globals, so no kernel/`CalcOutcome`/trace. `config` is
+OFF-PATTERN by design — a library-metadata reader (`libraryInfoProvider`) with
+no Context dependency. Both carry doc comments pointing at swe-dashboard/14.
 
 Richer result shapes among the search / multi-call tabs:
 - `dates` and `rise_set` embed **per-field** error strings in their result

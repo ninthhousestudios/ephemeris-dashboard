@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
@@ -58,12 +57,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   late final TextEditingController _ageController;
   late final TextEditingController _snellenController;
 
-  late final CalcSessionNotifier _calcNotifier;
-
   @override
   void initState() {
     super.initState();
-    _calcNotifier = ref.read(calcSessionProvider.notifier);
     _starController = TextEditingController();
     _starController.addListener(_onStarChanged);
     _starFocusNode.addListener(() {
@@ -77,12 +73,10 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _extinctionController = TextEditingController(text: '0.2');
     _ageController = TextEditingController(text: '36.0');
     _snellenController = TextEditingController(text: '1.0');
-    _calcNotifier.registerCommit('heliacal', _syncProviders);
   }
 
   @override
   void dispose() {
-    _calcNotifier.unregisterCommit('heliacal');
     _starController.removeListener(_onStarChanged);
     _starController.dispose();
     _starFocusNode.dispose();
@@ -125,32 +119,6 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     // Clear the custom star field when selecting a chip
     _starController.clear();
     setState(() => _showStarInput = false);
-  }
-
-  void _syncProviders() {
-    final star = _starController.text.trim();
-    if (star.isNotEmpty) {
-      ref.read(heliacalStarProvider.notifier).state = star;
-    }
-    _syncDouble(_pressureController, heliacalPressureProvider);
-    _syncDouble(_temperatureController, heliacalTemperatureProvider);
-    _syncDouble(_humidityController, heliacalHumidityProvider);
-    _syncDouble(_extinctionController, heliacalExtinctionProvider);
-    _syncDouble(_ageController, heliacalObserverAgeProvider);
-    _syncDouble(_snellenController, heliacalSnellenRatioProvider);
-  }
-
-  void _syncDouble(TextEditingController ctrl, StateProvider<double> provider) {
-    final v = double.tryParse(ctrl.text);
-    if (v != null) ref.read(provider.notifier).state = v;
-  }
-
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('heliacal')));
-
-  void _calculate() {
-    _syncProviders();
-    ref.read(calcSessionProvider.notifier).calculate(activate: {'heliacal'});
   }
 
   @override
@@ -241,11 +209,13 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                               ),
                               border: OutlineInputBorder(),
                             ),
+                            onChanged: (v) =>
+                                ref.read(heliacalStarProvider.notifier).state =
+                                    v.trim(),
                             onSubmitted: (v) {
                               if (v.trim().isNotEmpty) {
                                 ref.read(heliacalStarProvider.notifier).state =
                                     v.trim();
-                                _calculate();
                               }
                             },
                           ),
@@ -315,11 +285,13 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                 const SizedBox(width: 8),
                 Consumer(
                   builder: (context, ref, _) {
-                    final result = ref.watch(heliacalResultProvider);
+                    final result = switch (ref.watch(heliacalResultProvider)) {
+                      CalcOk(:final value) => value,
+                      CalcSweError() => null,
+                    };
                     final jd = ref.watch(contextBarProvider).jdUt;
                     return ExportButton(
-                      hasResults:
-                          _hasCalculated && result != null && !result.hasError,
+                      hasResults: result != null && !result.hasError,
                       getRows: () => result != null
                           ? heliacalToExportRows(result, ref.read(sweProvider))
                           : [],
@@ -374,6 +346,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                 _paramRow(
                   'Pressure (mbar)',
                   _pressureController,
+                  heliacalPressureProvider,
                   theme,
                   labelStyle,
                 ),
@@ -381,6 +354,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                 _paramRow(
                   'Temperature (°C)',
                   _temperatureController,
+                  heliacalTemperatureProvider,
                   theme,
                   labelStyle,
                 ),
@@ -388,6 +362,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                 _paramRow(
                   'Humidity (%)',
                   _humidityController,
+                  heliacalHumidityProvider,
                   theme,
                   labelStyle,
                 ),
@@ -395,6 +370,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                 _paramRow(
                   'Extinction coeff.',
                   _extinctionController,
+                  heliacalExtinctionProvider,
                   theme,
                   labelStyle,
                 ),
@@ -409,11 +385,18 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                _paramRow('Age (years)', _ageController, theme, labelStyle),
+                _paramRow(
+                  'Age (years)',
+                  _ageController,
+                  heliacalObserverAgeProvider,
+                  theme,
+                  labelStyle,
+                ),
                 const SizedBox(height: 4),
                 _paramRow(
                   'Snellen ratio',
                   _snellenController,
+                  heliacalSnellenRatioProvider,
                   theme,
                   labelStyle,
                 ),
@@ -425,11 +408,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
         const Divider(height: 1),
         // ── Results ──
         if (isMobile)
-          _hasCalculated ? const _ResultsView() : const _Placeholder()
+          const _ResultsView()
         else
-          Expanded(
-            child: _hasCalculated ? const _ResultsView() : const _Placeholder(),
-          ),
+          const Expanded(child: _ResultsView()),
       ],
     );
   }
@@ -437,6 +418,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   Widget _paramRow(
     String label,
     TextEditingController ctrl,
+    StateProvider<double> provider,
     ThemeData theme,
     TextStyle? labelStyle,
   ) {
@@ -457,22 +439,13 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             ),
+            onChanged: (v) {
+              final d = double.tryParse(v);
+              if (d != null) ref.read(provider.notifier).state = d;
+            },
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Placeholder ───────────────────────────────────────────────────────────────
-
-class _Placeholder extends StatelessWidget {
-  const _Placeholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Enter a star or planet name and press Calculate'),
     );
   }
 }
@@ -484,10 +457,19 @@ class _ResultsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final result = ref.watch(heliacalResultProvider);
-    if (result == null) {
-      return const Center(child: Text('No result'));
-    }
+    final result = switch (ref.watch(heliacalResultProvider)) {
+      CalcOk(:final value) => value,
+      // Catastrophic kernel-level failure (lambda folds normal errors into
+      // HeliacalCalcResult.error, so this is only a backstop).
+      CalcSweError(:final message) => HeliacalCalcResult(
+        objectName: ref.read(heliacalStarProvider),
+        eventType: ref.read(heliacalEventTypeProvider),
+        startVisibleJd: double.nan,
+        bestVisibleJd: double.nan,
+        endVisibleJd: double.nan,
+        error: message,
+      ),
+    };
 
     if (result.hasError) {
       return Center(
@@ -504,8 +486,7 @@ class _ResultsView extends ConsumerWidget {
               ),
             ],
             onCode: () {
-              final trace = ref.read(callTraceProvider);
-              if (trace == null) return;
+              final trace = ref.read(heliacalTraceProvider);
               final slice = trace.sliceByTab('heliacal');
               if (slice.entries.isEmpty) return;
               final emitter = ref.read(selectedEmitterProvider);
@@ -581,8 +562,7 @@ class _ResultsView extends ConsumerWidget {
         ),
       ],
       onCode: () {
-        final trace = ref.read(callTraceProvider);
-        if (trace == null) return;
+        final trace = ref.read(heliacalTraceProvider);
         final slice = trace.sliceByTab('heliacal');
         if (slice.entries.isEmpty) return;
         final emitter = ref.read(selectedEmitterProvider);
@@ -618,8 +598,7 @@ class _ResultsView extends ConsumerWidget {
         ),
       ],
       onCode: () {
-        final trace = ref.read(callTraceProvider);
-        if (trace == null) return;
+        final trace = ref.read(heliacalTraceProvider);
         final slice = trace.sliceByTab('heliacal');
         if (slice.entries.isEmpty) return;
         final emitter = ref.read(selectedEmitterProvider);

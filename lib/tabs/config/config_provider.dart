@@ -18,6 +18,10 @@ class LibraryInfo {
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 
+/// OFF-PATTERN by design (swe-dashboard/14): a library-metadata reader, not a
+/// Calculation. Reads sweProvider for version/body-name strings only — no
+/// Context dependency, no Applied Globals, no kernel, no trace. Kept as a plain
+/// Provider. (The `_ephePath` stub still returns null → 'unknown'; out of scope.)
 final libraryInfoProvider = Provider<LibraryInfo>((ref) {
   final swe = ref.read(sweProvider);
 

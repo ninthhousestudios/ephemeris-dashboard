@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
@@ -20,9 +19,6 @@ class AyanamsaTab extends ConsumerStatefulWidget {
 }
 
 class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('ayanamsa')));
-
   void _toggleAyanamsa(int sidMode) {
     final current = ref.read(selectedAyanamsasProvider);
     final updated = current.contains(sidMode)
@@ -91,11 +87,16 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                     const SizedBox(width: 8),
                     Consumer(
                       builder: (context, ref, _) {
-                        final results = ref.watch(ayanamsaResultsProvider);
+                        final results = switch (ref.watch(
+                          ayanamsaResultsProvider,
+                        )) {
+                          CalcOk(:final value) => value,
+                          CalcSweError() => const <AyanamsaCalcResult>[],
+                        };
                         final fmt = ref.watch(ayanamsaFormatProvider);
                         final jd = ref.watch(contextBarProvider).jdUt;
                         return ExportButton(
-                          hasResults: _hasCalculated && results.isNotEmpty,
+                          hasResults: results.isNotEmpty,
                           getRows: () => ayanamsaToExportRows(results, fmt),
                           filenameStem: 'swe_ayanamsa_${jd.toStringAsFixed(4)}',
                         );
@@ -141,25 +142,17 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
         ),
         const Divider(height: 1),
         // Results
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
       ],
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return const Center(
-      child: Text('Select ayanamsa method(s) and press Calculate'),
     );
   }
 
   Widget _buildResults() {
     final format = ref.watch(ayanamsaFormatProvider);
-    final results = ref.watch(ayanamsaResultsProvider);
+    final results = switch (ref.watch(ayanamsaResultsProvider)) {
+      CalcOk(:final value) => value,
+      CalcSweError() => const <AyanamsaCalcResult>[],
+    };
 
     if (results.isEmpty) {
       return const Center(child: Text('No results'));
@@ -200,8 +193,7 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                     ),
                   ],
                   onCode: () {
-                    final trace = ref.read(callTraceProvider);
-                    if (trace == null) return;
+                    final trace = ref.read(ayanamsaTraceProvider);
                     final slice = trace.sliceByTab('ayanamsa');
                     if (slice.entries.isEmpty) return;
                     final emitter = ref.read(selectedEmitterProvider);

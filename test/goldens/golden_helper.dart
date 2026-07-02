@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swisseph/swisseph.dart' show seHeliacalRising;
 
 import 'package:swe_dashboard/core/calc_session.dart';
 import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
 import 'package:swe_dashboard/core/display_format.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_provider.dart';
+import 'package:swe_dashboard/tabs/heliacal/heliacal_provider.dart';
 import 'package:swe_dashboard/tabs/houses/houses_provider.dart';
 import 'package:swe_dashboard/tabs/planets/planets_provider.dart';
 import 'package:swe_dashboard/theme/app_themes.dart';
@@ -125,6 +127,14 @@ final fakeAyanamsaResults = [
   const AyanamsaCalcResult(sidMode: 3, name: 'Raman', value: 22.375),
 ];
 
+const fakeHeliacalResult = HeliacalCalcResult(
+  objectName: 'Venus',
+  eventType: seHeliacalRising,
+  startVisibleJd: 2451545.5,
+  bestVisibleJd: 2451545.6,
+  endVisibleJd: 2451545.7,
+);
+
 // ── Provider overrides ──
 
 final calcSessionOverride = calcSessionProvider.overrideWith((ref) {
@@ -161,7 +171,11 @@ final housesResultOverride = housesResultProvider.overrideWith(
 );
 
 final ayanamsaResultsOverride = ayanamsaResultsProvider.overrideWith(
-  (ref) => fakeAyanamsaResults,
+  (ref) => CalcOk(fakeAyanamsaResults),
+);
+
+final heliacalResultOverride = heliacalResultProvider.overrideWith(
+  (ref) => CalcOk(fakeHeliacalResult),
 );
 
 /// All overrides needed for tab-level tests.

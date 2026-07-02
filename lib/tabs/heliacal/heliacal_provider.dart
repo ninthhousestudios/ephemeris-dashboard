@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
 
@@ -71,75 +72,84 @@ class HeliacalCalcResult {
 
 // ── Result provider ──────────────────────────────────────────────────────────
 
-final heliacalResultProvider = Provider<HeliacalCalcResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('heliacal')) return null;
+/// Runs the kernel once per recompute; result + trace derive from this.
+/// The compute lambda catches per-call failures and folds them into
+/// `HeliacalCalcResult.error`, so the outcome is (almost) always `CalcOk`;
+/// the kernel's `SweException` catch is only a backstop.
+final _heliacalCalcProvider =
+    Provider<({CalcOutcome<HeliacalCalcResult> outcome, CallTrace trace})>((
+      ref,
+    ) {
+      final ctx = ref.watch(contextBarProvider);
+      final objectName = ref.watch(heliacalStarProvider).trim();
+      final typeEvent = ref.watch(heliacalEventTypeProvider);
 
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('heliacal');
+      final atmo = AtmoConditions(
+        pressure: ref.watch(heliacalPressureProvider),
+        temperature: ref.watch(heliacalTemperatureProvider),
+        humidity: ref.watch(heliacalHumidityProvider),
+        extinction: ref.watch(heliacalExtinctionProvider),
+      );
+      final observer = ObserverConditions(
+        age: ref.watch(heliacalObserverAgeProvider),
+        snellenRatio: ref.watch(heliacalSnellenRatioProvider),
+      );
+      final name = objectName.isEmpty ? 'Venus' : objectName;
 
-  final objectName = ref.watch(heliacalStarProvider).trim();
-  final typeEvent = ref.watch(heliacalEventTypeProvider);
+      return runTabCalc(
+        ref,
+        tabTag: 'heliacal',
+        compute: (eph) {
+          try {
+            final r = eph.heliacalUt(
+              ctx.jdUt,
+              geolon: ctx.longitude,
+              geolat: ctx.latitude,
+              geoalt: ctx.altitude,
+              atmo: atmo,
+              observer: observer,
+              objectName: name,
+              typeEvent: typeEvent,
+            );
+            return HeliacalCalcResult(
+              objectName: name,
+              eventType: typeEvent,
+              startVisibleJd: r.startVisible,
+              bestVisibleJd: r.bestVisible,
+              endVisibleJd: r.endVisible,
+            );
+          } on SweException catch (e) {
+            return HeliacalCalcResult(
+              objectName: name,
+              eventType: typeEvent,
+              startVisibleJd: double.nan,
+              bestVisibleJd: double.nan,
+              endVisibleJd: double.nan,
+              error: e.message,
+            );
+          } catch (e) {
+            return HeliacalCalcResult(
+              objectName: name,
+              eventType: typeEvent,
+              startVisibleJd: double.nan,
+              bestVisibleJd: double.nan,
+              endVisibleJd: double.nan,
+              error: e.toString(),
+            );
+          }
+        },
+      );
+    });
 
-  final pressure = ref.watch(heliacalPressureProvider);
-  final temperature = ref.watch(heliacalTemperatureProvider);
-  final humidity = ref.watch(heliacalHumidityProvider);
-  final extinction = ref.watch(heliacalExtinctionProvider);
+/// Heliacal calculation result.
+final heliacalResultProvider = Provider<CalcOutcome<HeliacalCalcResult>>(
+  (ref) => ref.watch(_heliacalCalcProvider.select((c) => c.outcome)),
+);
 
-  final age = ref.watch(heliacalObserverAgeProvider);
-  final snellen = ref.watch(heliacalSnellenRatioProvider);
-
-  final atmo = AtmoConditions(
-    pressure: pressure,
-    temperature: temperature,
-    humidity: humidity,
-    extinction: extinction,
-  );
-  final observer = ObserverConditions(age: age, snellenRatio: snellen);
-
-  try {
-    final result = runner.run(
-      globals,
-      (eph) => eph.heliacalUt(
-        ectx.jdUt,
-        geolon: ectx.longitude,
-        geolat: ectx.latitude,
-        geoalt: ectx.altitude,
-        atmo: atmo,
-        observer: observer,
-        objectName: objectName.isEmpty ? 'Venus' : objectName,
-        typeEvent: typeEvent,
-      ),
-    );
-    return HeliacalCalcResult(
-      objectName: objectName.isEmpty ? 'Venus' : objectName,
-      eventType: typeEvent,
-      startVisibleJd: result.startVisible,
-      bestVisibleJd: result.bestVisible,
-      endVisibleJd: result.endVisible,
-    );
-  } on SweException catch (e) {
-    return HeliacalCalcResult(
-      objectName: objectName,
-      eventType: typeEvent,
-      startVisibleJd: double.nan,
-      bestVisibleJd: double.nan,
-      endVisibleJd: double.nan,
-      error: e.message,
-    );
-  } catch (e) {
-    return HeliacalCalcResult(
-      objectName: objectName,
-      eventType: typeEvent,
-      startVisibleJd: double.nan,
-      bestVisibleJd: double.nan,
-      endVisibleJd: double.nan,
-      error: e.toString(),
-    );
-  }
-});
+/// Call Trace produced by the most recent heliacal calculation.
+final heliacalTraceProvider = Provider<CallTrace>(
+  (ref) => ref.watch(_heliacalCalcProvider.select((c) => c.trace)),
+);
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
