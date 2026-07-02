@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 
 // ── rsmi type flags ───────────────────────────────────────────────────────────
@@ -148,158 +151,117 @@ RiseSetDateTime? _toDateTime(SwissEph swe, double jd) {
   }
 }
 
+/// One rise/set/transit event: a single `riseTrans` call wrapped so a
+/// per-event `SweException` becomes an error string instead of failing the
+/// batch. Returns (jd, returnFlag, dateTime) on success; (error) otherwise.
+({double? jd, int? flag, RiseSetDateTime? dt, String? error}) _event(
+  Ephemeris eph,
+  SwissEph swe, {
+  required double jdUt,
+  required int body,
+  required int rsmi,
+  required int epheflag,
+  required double geolon,
+  required double geolat,
+  required double geoalt,
+  required double atpress,
+  required double attemp,
+}) {
+  try {
+    final r = eph.riseTrans(
+      jdUt,
+      body,
+      epheflag: epheflag,
+      rsmi: rsmi,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atpress: atpress,
+      attemp: attemp,
+    );
+    return (
+      jd: r.transitTime,
+      flag: r.returnFlag,
+      dt: _toDateTime(swe, r.transitTime),
+      error: null,
+    );
+  } catch (e) {
+    return (jd: null, flag: null, dt: null, error: e.toString());
+  }
+}
+
+final _riseSetCalcProvider =
+    Provider<({CalcOutcome<RiseSetResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final body = ref.watch(riseSetBodyProvider);
+      final atpress = ref.watch(riseSetAtpressProvider);
+      final attemp = ref.watch(riseSetAttempProvider);
+      final modifiers = ref.watch(riseSetModifiersProvider);
+
+      final jdUt = ctx.jdUt;
+      final geolon = ctx.longitude;
+      final geolat = ctx.latitude;
+      final geoalt = ctx.altitude;
+      // riseTrans uses the basic ephe flag (no speed, no extras needed).
+      final epheflag = flags.iflag & 0xF; // low bits: ephe source
+
+      return runTabCalc(
+        ref,
+        tabTag: 'riseSet',
+        compute: (eph) {
+          ({double? jd, int? flag, RiseSetDateTime? dt, String? error}) run(
+            int rsmi,
+          ) => _event(
+            eph,
+            swe,
+            jdUt: jdUt,
+            body: body,
+            rsmi: rsmi | modifiers,
+            epheflag: epheflag,
+            geolon: geolon,
+            geolat: geolat,
+            geoalt: geoalt,
+            atpress: atpress,
+            attemp: attemp,
+          );
+
+          final rise = run(rsCalcRise);
+          final set = run(rsCalcSet);
+          final upper = run(rsCalcMtransit);
+          final lower = run(rsCalcItransit);
+
+          return RiseSetResult(
+            riseJd: rise.jd,
+            riseDateTime: rise.dt,
+            riseFlag: rise.flag,
+            riseError: rise.error,
+            setJd: set.jd,
+            setDateTime: set.dt,
+            setFlag: set.flag,
+            setError: set.error,
+            upperTransitJd: upper.jd,
+            upperTransitDateTime: upper.dt,
+            upperTransitFlag: upper.flag,
+            upperTransitError: upper.error,
+            lowerTransitJd: lower.jd,
+            lowerTransitDateTime: lower.dt,
+            lowerTransitFlag: lower.flag,
+            lowerTransitError: lower.error,
+          );
+        },
+      );
+    });
+
 /// Rise/set/transit result provider.
-final riseSetResultProvider = Provider<RiseSetResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('riseSet')) return null;
+final riseSetResultProvider = Provider<CalcOutcome<RiseSetResult>>((ref) {
+  return ref.watch(_riseSetCalcProvider.select((c) => c.outcome));
+});
 
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  final swe = ref.read(sweProvider);
-  runner.setTabTag('riseSet');
-  final body = ref.watch(riseSetBodyProvider);
-  final atpress = ref.watch(riseSetAtpressProvider);
-  final attemp = ref.watch(riseSetAttempProvider);
-  final modifiers = ref.watch(riseSetModifiersProvider);
-
-  final jdUt = ectx.jdUt;
-  final geolon = ectx.longitude;
-  final geolat = ectx.latitude;
-  final geoalt = ectx.altitude;
-  // riseTrans uses the basic ephe flag (no speed, no extras needed).
-  final epheflag = ectx.iflag & 0xF; // low bits: ephe source
-
-  double? riseJd;
-  RiseSetDateTime? riseDateTime;
-  int? riseFlag;
-  String? riseError;
-
-  double? setJd;
-  RiseSetDateTime? setDateTime;
-  int? setFlag;
-  String? setError;
-
-  double? upperTransitJd;
-  RiseSetDateTime? upperTransitDateTime;
-  int? upperTransitFlag;
-  String? upperTransitError;
-
-  double? lowerTransitJd;
-  RiseSetDateTime? lowerTransitDateTime;
-  int? lowerTransitFlag;
-  String? lowerTransitError;
-
-  // Rise
-  try {
-    final r = runner.run(
-      globals,
-      (eph) => eph.riseTrans(
-        jdUt,
-        body,
-        epheflag: epheflag,
-        rsmi: rsCalcRise | modifiers,
-        geolon: geolon,
-        geolat: geolat,
-        geoalt: geoalt,
-        atpress: atpress,
-        attemp: attemp,
-      ),
-    );
-    riseJd = r.transitTime;
-    riseFlag = r.returnFlag;
-    riseDateTime = _toDateTime(swe, r.transitTime);
-  } catch (e) {
-    riseError = e.toString();
-  }
-
-  // Set
-  try {
-    final r = runner.run(
-      globals,
-      (eph) => eph.riseTrans(
-        jdUt,
-        body,
-        epheflag: epheflag,
-        rsmi: rsCalcSet | modifiers,
-        geolon: geolon,
-        geolat: geolat,
-        geoalt: geoalt,
-        atpress: atpress,
-        attemp: attemp,
-      ),
-    );
-    setJd = r.transitTime;
-    setFlag = r.returnFlag;
-    setDateTime = _toDateTime(swe, r.transitTime);
-  } catch (e) {
-    setError = e.toString();
-  }
-
-  // Upper meridian transit
-  try {
-    final r = runner.run(
-      globals,
-      (eph) => eph.riseTrans(
-        jdUt,
-        body,
-        epheflag: epheflag,
-        rsmi: rsCalcMtransit | modifiers,
-        geolon: geolon,
-        geolat: geolat,
-        geoalt: geoalt,
-        atpress: atpress,
-        attemp: attemp,
-      ),
-    );
-    upperTransitJd = r.transitTime;
-    upperTransitFlag = r.returnFlag;
-    upperTransitDateTime = _toDateTime(swe, r.transitTime);
-  } catch (e) {
-    upperTransitError = e.toString();
-  }
-
-  // Lower meridian transit
-  try {
-    final r = runner.run(
-      globals,
-      (eph) => eph.riseTrans(
-        jdUt,
-        body,
-        epheflag: epheflag,
-        rsmi: rsCalcItransit | modifiers,
-        geolon: geolon,
-        geolat: geolat,
-        geoalt: geoalt,
-        atpress: atpress,
-        attemp: attemp,
-      ),
-    );
-    lowerTransitJd = r.transitTime;
-    lowerTransitFlag = r.returnFlag;
-    lowerTransitDateTime = _toDateTime(swe, r.transitTime);
-  } catch (e) {
-    lowerTransitError = e.toString();
-  }
-
-  return RiseSetResult(
-    riseJd: riseJd,
-    riseDateTime: riseDateTime,
-    riseFlag: riseFlag,
-    setJd: setJd,
-    setDateTime: setDateTime,
-    setFlag: setFlag,
-    upperTransitJd: upperTransitJd,
-    upperTransitDateTime: upperTransitDateTime,
-    upperTransitFlag: upperTransitFlag,
-    lowerTransitJd: lowerTransitJd,
-    lowerTransitDateTime: lowerTransitDateTime,
-    lowerTransitFlag: lowerTransitFlag,
-    riseError: riseError,
-    setError: setError,
-    upperTransitError: upperTransitError,
-    lowerTransitError: lowerTransitError,
-  );
+/// Call Trace produced by the most recent rise/set calculation.
+final riseSetTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_riseSetCalcProvider.select((c) => c.trace));
 });
 
 // ── Export ────────────────────────────────────────────────────────────────────

@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
@@ -52,20 +51,11 @@ class RiseSetTab extends ConsumerStatefulWidget {
 class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   _TwilightMode _twilightMode = _TwilightMode.none;
   bool _showAtmospheric = false;
-  late final CalcSessionNotifier _calcNotifier;
   final _atpressController = TextEditingController(text: '1013.25');
   final _attempController = TextEditingController(text: '15.0');
 
   @override
-  void initState() {
-    super.initState();
-    _calcNotifier = ref.read(calcSessionProvider.notifier);
-    _calcNotifier.registerCommit('riseSet', _commitFields);
-  }
-
-  @override
   void dispose() {
-    _calcNotifier.unregisterCommit('riseSet');
     _atpressController.dispose();
     _attempController.dispose();
     super.dispose();
@@ -97,15 +87,12 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     ref.read(riseSetModifiersProvider.notifier).state = mods;
   }
 
-  bool _hasCalculated() =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('riseSet')));
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final body = ref.watch(riseSetBodyProvider);
     final modifiers = ref.watch(riseSetModifiersProvider);
-    final result = ref.watch(riseSetResultProvider);
+    final outcome = ref.watch(riseSetResultProvider);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
@@ -175,10 +162,12 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                 ),
                 const SizedBox(width: 4),
                 ExportButton(
-                  hasResults: _hasCalculated() && result != null,
+                  hasResults: outcome is CalcOk<RiseSetResult>,
                   filenameStem: 'rise_set',
-                  getRows: () =>
-                      result != null ? riseSetToExportRows(result) : [],
+                  getRows: () => switch (outcome) {
+                    CalcOk(value: final r) => riseSetToExportRows(r),
+                    CalcSweError() => [],
+                  },
                 ),
               ],
             ),
@@ -245,6 +234,8 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        onEditingComplete: _commitFields,
+                        onSubmitted: (_) => _commitFields(),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -265,6 +256,8 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                           decimal: true,
                           signed: true,
                         ),
+                        onEditingComplete: _commitFields,
+                        onSubmitted: (_) => _commitFields(),
                       ),
                     ),
                   ],
@@ -277,26 +270,23 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
         const Divider(height: 1),
         // ── Results ──
         if (isMobile)
-          _hasCalculated() ? _buildResults(result) : _buildPlaceholder()
+          _buildResults(outcome)
         else
-          Expanded(
-            child: _hasCalculated()
-                ? _buildResults(result)
-                : _buildPlaceholder(),
-          ),
+          Expanded(child: _buildResults(outcome)),
       ],
     );
   }
 
-  Widget _buildPlaceholder() {
-    return const Center(child: Text('Select a body and press Calculate'));
+  Widget _buildResults(CalcOutcome<RiseSetResult> outcome) {
+    switch (outcome) {
+      case CalcSweError(:final message):
+        return Center(child: Text('Calculation error: $message'));
+      case CalcOk(value: final result):
+        return _buildResultCards(result);
+    }
   }
 
-  Widget _buildResults(RiseSetResult? result) {
-    if (result == null) {
-      return const Center(child: Text('No results'));
-    }
-
+  Widget _buildResultCards(RiseSetResult result) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 900
@@ -390,8 +380,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             : null,
         fields: fields,
         onCode: () {
-          final trace = ref.read(callTraceProvider);
-          if (trace == null) return;
+          final trace = ref.read(riseSetTraceProvider);
           final slice = trace.sliceByTab('riseSet');
           if (slice.entries.isEmpty) return;
           final emitter = ref.read(selectedEmitterProvider);
