@@ -20,16 +20,14 @@ class JdUtils {
   /// Convert a Julian Day to Dart [DateTime] (UT).
   DateTime jdToDateTime(double jd) {
     final result = _swe.revjul(jd);
-    final hour = result.hour;
-    final h = hour.truncate();
-    final minuteFrac = (hour - h) * 60.0;
-    final m = minuteFrac.truncate();
-    final secondFrac = (minuteFrac - m) * 60.0;
-    final s = secondFrac.truncate();
-    var ms = ((secondFrac - s) * 1000).round();
-    // Clamp to avoid invalid DateTime when rounding pushes ms to 1000.
-    if (ms >= 1000) ms = 999;
-    return DateTime.utc(result.year, result.month, result.day, h, m, s, ms);
+    // result.hour is fractional hours in [0, 24). Convert to whole milliseconds
+    // (rounded, not truncated) and add to midnight so DateTime carries across
+    // second/minute/hour/day boundaries. Truncating here dropped a second on
+    // round-trip values like 14:30:44.9999, and clamping ms to 999 masked it;
+    // rounding+carry also folds the hour == 24.0 case into the next day.
+    final totalMs = (result.hour * 3600000).round();
+    final midnight = DateTime.utc(result.year, result.month, result.day);
+    return midnight.add(Duration(milliseconds: totalMs));
   }
 
   /// Apply a UTC offset (in hours) to get local DateTime for display.
