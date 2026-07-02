@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import 'table_view_provider.dart';
 
@@ -45,10 +45,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     final selectedBodies = ref.watch(tableViewBodiesProvider);
     final stepUnit = ref.watch(tableViewStepUnitProvider);
     final format = ref.watch(tableViewFormatProvider);
-    final results = ref.watch(tableViewResultsProvider);
-    final triggered = ref.watch(
-      calcSessionProvider.select((s) => s.tabHasRun('tableView')),
-    );
+    final outcome = ref.watch(tableViewResultsProvider);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
@@ -159,13 +156,19 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
-                  hasResults: triggered && results.isNotEmpty,
+                  hasResults: switch (outcome) {
+                    CalcOk(value: final rows) => rows.isNotEmpty,
+                    CalcSweError() => false,
+                  },
                   filenameStem: 'table_view',
-                  getRows: () => tableViewToExportRows(
-                    results,
-                    ref.read(tableViewBodiesProvider),
-                    ref.read(tableViewFormatProvider),
-                  ),
+                  getRows: () => switch (outcome) {
+                    CalcOk(value: final rows) => tableViewToExportRows(
+                      rows,
+                      ref.read(tableViewBodiesProvider),
+                      ref.read(tableViewFormatProvider),
+                    ),
+                    CalcSweError() => [],
+                  },
                 ),
               ],
             ),
@@ -174,30 +177,25 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
         const Divider(height: 1),
         // ── Data table ──
         if (isMobile)
-          triggered
-              ? _buildTable(results, selectedBodies, format)
-              : const Center(
-                  child: Text('Select bodies, configure step, press Calculate'),
-                )
+          _buildTable(outcome, selectedBodies, format)
         else
-          Expanded(
-            child: triggered
-                ? _buildTable(results, selectedBodies, format)
-                : const Center(
-                    child: Text(
-                      'Select bodies, configure step, press Calculate',
-                    ),
-                  ),
-          ),
+          Expanded(child: _buildTable(outcome, selectedBodies, format)),
       ],
     );
   }
 
   Widget _buildTable(
-    List<EphemerisRow> rows,
+    CalcOutcome<List<EphemerisRow>> outcome,
     Set<int> bodies,
     DisplayFormat format,
   ) {
+    final List<EphemerisRow> rows;
+    switch (outcome) {
+      case CalcSweError(:final message):
+        return Center(child: Text('Calculation error: $message'));
+      case CalcOk(value: final v):
+        rows = v;
+    }
     if (rows.isEmpty) {
       return const Center(child: Text('No results'));
     }

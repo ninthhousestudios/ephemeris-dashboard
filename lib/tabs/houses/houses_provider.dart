@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/persistence.dart';
 import '../../core/swe_service.dart';
@@ -80,34 +81,54 @@ final selectedHouseSystemProvider = StateProvider<int>((ref) {
   return ref.read(persistenceProvider).loadHouseSystem();
 });
 
+/// Pure compute step: one `houses` call, plus the house-system display name.
+HousesCalcResult computeHouses(
+  Ephemeris eph, {
+  required double jdUt,
+  required double lat,
+  required double lon,
+  required int hsys,
+  required String hsysName,
+}) {
+  final r = eph.houses(jdUt, lat, lon, hsys);
+  return HousesCalcResult(
+    cusps: r.cusps,
+    ascmc: r.ascmc,
+    hsys: hsys,
+    hsysName: hsysName,
+    returnFlag: r.returnFlag,
+  );
+}
+
+/// Runs the kernel once per recompute; results + trace derive from this.
+final _housesCalcProvider =
+    Provider<({CalcOutcome<HousesCalcResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final swe = ref.read(sweProvider);
+      final hsys = ref.watch(selectedHouseSystemProvider);
+
+      return runTabCalc(
+        ref,
+        tabTag: 'houses',
+        compute: (eph) => computeHouses(
+          eph,
+          jdUt: ctx.jdUt,
+          lat: ctx.latitude,
+          lon: ctx.longitude,
+          hsys: hsys,
+          hsysName: swe.houseName(hsys),
+        ),
+      );
+    });
+
 /// Houses calculation result.
-final housesResultProvider = Provider<HousesCalcResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('houses')) return null;
+final housesResultProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
+  return ref.watch(_housesCalcProvider.select((c) => c.outcome));
+});
 
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('houses');
-  final swe = ref.read(sweProvider);
-  final hsys = ref.watch(selectedHouseSystemProvider);
-
-  try {
-    final r = runner.run(
-      globals,
-      (eph) => eph.houses(ectx.jdUt, ectx.latitude, ectx.longitude, hsys),
-    );
-    final hsysName = swe.houseName(hsys);
-    return HousesCalcResult(
-      cusps: r.cusps,
-      ascmc: r.ascmc,
-      hsys: hsys,
-      hsysName: hsysName,
-      returnFlag: r.returnFlag,
-    );
-  } on SweException {
-    return null;
-  }
+/// Call Trace produced by the most recent houses calculation.
+final housesTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_housesCalcProvider.select((c) => c.trace));
 });
 
 /// Convert house results to export rows.

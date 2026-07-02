@@ -36,13 +36,28 @@ sweProvider (SwissEph)          ← swe_service.dart, conditional import
 | `run_tab_calc.dart` | `runTabCalc<T>` | Free function (not a provider factory): tab-tag -> apply-globals -> execute compute lambda -> envelope in `CalcOutcome`. Synchronous. Each tab's result provider watches its own inputs and calls this with a compute lambda; per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. |
 
 **Migrated to the kernel:** `planets`, `differential`, `phenomena`,
-`planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`.
+`planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`,
+`houses`, `rise_set`, `eclipses`, `table_view`, `dates`.
 Each has a pure `compute*` function + `_*CalcProvider` (via `runTabCalc`) →
 `*ResultsProvider` (`CalcOutcome<T>`) + `*TraceProvider` (`CallTrace`).
 Watches `contextBarProvider` + `flagBarProvider` directly; no
 `effectiveContextProvider` or `calcSessionProvider` gate. Shared
 `safeGetName` helper in `lib/core/body_utils.dart` (was duplicated in 4
 provider files).
+
+Richer result shapes among the search / multi-call tabs:
+- `dates` and `rise_set` embed **per-field** error strings in their result
+  type (all sub-calls run inside one compute lambda; a per-field `SweException`
+  becomes an error string, never aborts the batch). `dates` also watches a
+  per-tab `datesOverrideJdProvider` and captures `swe` for the untraced
+  `revjul`/`dayOfWeek` calendar utilities.
+- `eclipses` (count-loop) and `table_view` (bodies × time-steps) keep their
+  loops inside the compute lambda. `table_view` has **no** `*TraceProvider`
+  (the table has no "view code" affordance).
+- `formatJdDateTime` in `lib/core/jd_utils.dart` is the single JD→date-string
+  formatter (parameterized: seconds / utLabel / utcOffset / emptyPlaceholder /
+  fallbackDigits); it replaced 6 near-duplicate copies across eclipses,
+  heliacal, crossings, and table_view.
 
 ## Ephemeris subsystem (lib/core/ephemeris/)
 
@@ -80,8 +95,6 @@ Tabs access the engine two ways:
 
 2. **Direct on swe** (untraced): `swe.getPlanetName(body)`, `swe.revjul(jd)`,
    `swe.degnorm(x)`, `swe.houseName(hsys)`, etc. Pure utilities and metadata.
-   **Known trace gap:** eclipses_provider.dart calls eclipse methods directly on
-   `swe`, bypassing the runner entirely.
 
 ## Code emission (lib/core/ephemeris/)
 

@@ -227,7 +227,7 @@ class _AppShellState extends ConsumerState<AppShell>
         return Consumer(
           builder: (context, ref, _) {
             final format = ref.watch(housesFormatProvider);
-            final result = ref.watch(housesResultProvider);
+            final outcome = ref.watch(housesResultProvider);
             final jd = ref.watch(contextBarProvider).jdUt;
             return Row(
               mainAxisSize: MainAxisSize.min,
@@ -243,9 +243,11 @@ class _AppShellState extends ConsumerState<AppShell>
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
-                  hasResults: result != null,
-                  getRows: () =>
-                      result != null ? housesToExportRows(result, format) : [],
+                  hasResults: outcome is CalcOk<HousesCalcResult>,
+                  getRows: () => switch (outcome) {
+                    CalcOk(value: final r) => housesToExportRows(r, format),
+                    CalcSweError() => [],
+                  },
                   filenameStem: 'swe_houses_${jd.toStringAsFixed(4)}',
                 ),
               ],
@@ -256,7 +258,7 @@ class _AppShellState extends ConsumerState<AppShell>
         return Consumer(
           builder: (context, ref, _) {
             final format = ref.watch(tableViewFormatProvider);
-            final results = ref.watch(tableViewResultsProvider);
+            final outcome = ref.watch(tableViewResultsProvider);
             final bodies = ref.watch(tableViewBodiesProvider);
             return Row(
               mainAxisSize: MainAxisSize.min,
@@ -273,8 +275,18 @@ class _AppShellState extends ConsumerState<AppShell>
                 ),
                 const SizedBox(width: 8),
                 ExportButton(
-                  hasResults: results.isNotEmpty,
-                  getRows: () => tableViewToExportRows(results, bodies, format),
+                  hasResults: switch (outcome) {
+                    CalcOk(value: final r) => r.isNotEmpty,
+                    CalcSweError() => false,
+                  },
+                  getRows: () => switch (outcome) {
+                    CalcOk(value: final r) => tableViewToExportRows(
+                      r,
+                      bodies,
+                      format,
+                    ),
+                    CalcSweError() => [],
+                  },
                   filenameStem: 'swe_table',
                 ),
               ],

@@ -157,7 +157,7 @@ final planetsResultsOverride = planetsResultsProvider.overrideWith(
 );
 
 final housesResultOverride = housesResultProvider.overrideWith(
-  (ref) => fakeHousesResult,
+  (ref) => CalcOk(fakeHousesResult),
 );
 
 final ayanamsaResultsOverride = ayanamsaResultsProvider.overrideWith(

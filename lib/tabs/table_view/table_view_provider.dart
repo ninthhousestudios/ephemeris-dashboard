@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../core/display_format.dart';
 
@@ -77,62 +80,66 @@ class EphemerisRow {
 
 // ── Computation ──────────────────────────────────────────────────────────────
 
-final tableViewResultsProvider = Provider<List<EphemerisRow>>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('tableView')) return [];
+final _tableViewCalcProvider =
+    Provider<({CalcOutcome<List<EphemerisRow>> outcome, CallTrace trace})>((
+      ref,
+    ) {
+      final ctx = ref.watch(contextBarProvider);
+      final flags = ref.watch(flagBarProvider);
+      final swe = ref.read(sweProvider);
+      final bodies = ref.watch(tableViewBodiesProvider);
+      final stepValue = ref.watch(tableViewStepValueProvider);
+      final stepUnit = ref.watch(tableViewStepUnitProvider);
+      final stepCount = ref.watch(tableViewStepCountProvider);
 
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  runner.setTabTag('tableView');
-  final swe = ref.read(sweProvider);
-  final bodies = ref.watch(tableViewBodiesProvider);
-  final stepValue = ref.watch(tableViewStepValueProvider);
-  final stepUnit = ref.watch(tableViewStepUnitProvider);
-  final stepCount = ref.watch(tableViewStepCountProvider);
+      final iflag = flags.iflag;
+      final jdStart = ctx.jdUt;
+      final stepJd = stepValue * stepUnit.jdFactor;
+      final sortedBodies = bodies.toList()..sort();
 
-  final iflag = ectx.iflag;
-  final jdStart = ectx.jdUt;
-  final stepJd = stepValue * stepUnit.jdFactor;
-  final sortedBodies = bodies.toList()..sort();
-  final rows = <EphemerisRow>[];
+      return runTabCalc(
+        ref,
+        tabTag: 'tableView',
+        compute: (eph) {
+          final rows = <EphemerisRow>[];
+          for (var i = 0; i < stepCount; i++) {
+            final jd = jdStart + i * stepJd;
+            final bodyValues = <int, (double?, String?)>{};
 
-  for (var i = 0; i < stepCount; i++) {
-    final jd = jdStart + i * stepJd;
-    final bodyValues = <int, (double?, String?)>{};
+            for (final body in sortedBodies) {
+              try {
+                final result = eph.calcUt(jd, body, iflag);
+                bodyValues[body] = (result.longitude, null);
+              } catch (e) {
+                bodyValues[body] = (null, e.toString());
+              }
+            }
 
-    for (final body in sortedBodies) {
-      try {
-        final result = runner.run(
-          globals,
-          (eph) => eph.calcUt(jd, body, iflag),
-        );
-        bodyValues[body] = (result.longitude, null);
-      } catch (e) {
-        bodyValues[body] = (null, e.toString());
-      }
-    }
+            rows.add(
+              EphemerisRow(
+                jd: jd,
+                dateStr: formatJdDateTime(
+                  swe,
+                  jd,
+                  utLabel: false,
+                  fallbackDigits: 4,
+                ),
+                bodyValues: bodyValues,
+              ),
+            );
+          }
+          return rows;
+        },
+      );
+    });
 
-    String dateStr;
-    try {
-      final r = swe.revjul(jd);
-      final h = r.hour.floor();
-      final mFrac = (r.hour - h) * 60;
-      final m = mFrac.floor();
-      final s = ((mFrac - m) * 60).round();
-      dateStr =
-          '${r.year}-${_p(r.month)}-${_p(r.day)} ${_p(h)}:${_p(m)}:${_p(s)}';
-    } catch (_) {
-      dateStr = jd.toStringAsFixed(4);
-    }
-
-    rows.add(EphemerisRow(jd: jd, dateStr: dateStr, bodyValues: bodyValues));
-  }
-
-  return rows;
+/// Ephemeris table results (bodies × time steps). No trace provider — the
+/// table has no "view code" affordance.
+final tableViewResultsProvider = Provider<CalcOutcome<List<EphemerisRow>>>((
+  ref,
+) {
+  return ref.watch(_tableViewCalcProvider.select((c) => c.outcome));
 });
-
-String _p(int n) => n.toString().padLeft(2, '0');
 
 // ── Export ────────────────────────────────────────────────────────────────────
 

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/persistence.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
@@ -19,9 +18,6 @@ class HousesTab extends ConsumerStatefulWidget {
 }
 
 class _HousesTabState extends ConsumerState<HousesTab> {
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('houses')));
-
   @override
   Widget build(BuildContext context) {
     final hsys = ref.watch(selectedHouseSystemProvider);
@@ -84,30 +80,24 @@ class _HousesTabState extends ConsumerState<HousesTab> {
         ),
         const Divider(height: 1),
         // Results
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
       ],
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return const Center(
-      child: Text('Select a house system and press Calculate'),
     );
   }
 
   Widget _buildResults() {
     final format = ref.watch(housesFormatProvider);
-    final result = ref.watch(housesResultProvider);
+    final outcome = ref.watch(housesResultProvider);
 
-    if (result == null) {
-      return const Center(child: Text('Calculation error'));
-    }
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
+      ),
+      CalcOk(value: final result) => _buildResultCards(result, format),
+    };
+  }
 
+  Widget _buildResultCards(HousesCalcResult result, DisplayFormat format) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 1200
@@ -145,8 +135,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                           ),
                         ],
                         onCode: () {
-                          final trace = ref.read(callTraceProvider);
-                          if (trace == null) return;
+                          final trace = ref.read(housesTraceProvider);
                           final slice = trace.sliceByTab('houses');
                           if (slice.entries.isEmpty) return;
                           final emitter = ref.read(selectedEmitterProvider);
@@ -195,8 +184,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                   ),
                 ],
                 onCode: () {
-                  final trace = ref.read(callTraceProvider);
-                  if (trace == null) return;
+                  final trace = ref.read(housesTraceProvider);
                   final slice = trace.sliceByTab('houses');
                   if (slice.entries.isEmpty) return;
                   final emitter = ref.read(selectedEmitterProvider);
