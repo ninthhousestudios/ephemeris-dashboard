@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
@@ -24,22 +23,13 @@ class DatesTab extends ConsumerStatefulWidget {
 
 class _DatesTabState extends ConsumerState<DatesTab> {
   bool _isCustom = false;
-  late final CalcSessionNotifier _calcNotifier;
 
   final _dateCtrl = TextEditingController();
   final _timeCtrl = TextEditingController();
   final _jdCtrl = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _calcNotifier = ref.read(calcSessionProvider.notifier);
-    _calcNotifier.registerCommit('dates', _commitFields);
-  }
-
-  @override
   void dispose() {
-    _calcNotifier.unregisterCommit('dates');
     _dateCtrl.dispose();
     _timeCtrl.dispose();
     _jdCtrl.dispose();
@@ -56,19 +46,13 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     _jdCtrl.text = ctx.jdUt.toStringAsFixed(8);
   }
 
-  bool get _hasCalculated =>
-      ref.watch(calcSessionProvider.select((s) => s.tabHasRun('dates')));
-
+  /// Commits the local editor fields into the per-tab override JD, which the
+  /// result provider watches — the recompute is reactive, no Calculate press.
   void _commitFields() {
     final jd = double.tryParse(_jdCtrl.text) ?? _parseDateTime();
     if (jd != null) {
       ref.read(datesOverrideJdProvider.notifier).state = jd;
     }
-  }
-
-  void _calculate() {
-    _commitFields();
-    ref.read(calcSessionProvider.notifier).calculate(activate: {'dates'});
   }
 
   double? _parseDateTime() {
@@ -97,9 +81,12 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     _timeCtrl.text = fmtTime(now);
     _jdCtrl.text = _jdUtils.dateTimeToJd(now).toStringAsFixed(8);
     setState(() => _isCustom = true);
+    _commitFields();
   }
 
   void _resetToContext() {
+    // Clear the override so the result provider tracks the context JD again.
+    ref.read(datesOverrideJdProvider.notifier).state = null;
     setState(() {
       _isCustom = false;
       _syncFromContext();
@@ -189,7 +176,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                         FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
                       ],
                       onChanged: (_) => setState(() => _isCustom = true),
-                      onSubmitted: (_) => _calculate(),
+                      onSubmitted: (_) => _commitFields(),
                     ),
                   ),
                   dateTimeIconButton(
@@ -209,7 +196,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                         FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
                       ],
                       onChanged: (_) => setState(() => _isCustom = true),
-                      onSubmitted: (_) => _calculate(),
+                      onSubmitted: (_) => _commitFields(),
                     ),
                   ),
                   dateTimeIconButton(Icons.access_time, 'Pick time', _pickTime),
@@ -225,7 +212,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                         FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                       ],
                       onChanged: (_) => setState(() => _isCustom = true),
-                      onSubmitted: (_) => _calculate(),
+                      onSubmitted: (_) => _commitFields(),
                     ),
                   ),
                 ],
@@ -252,12 +239,14 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                     const SizedBox(width: 8),
                     Consumer(
                       builder: (context, ref, _) {
-                        final result = ref.watch(datesResultProvider);
+                        final outcome = ref.watch(datesResultProvider);
                         final jd = ref.watch(contextBarProvider).jdUt;
                         return ExportButton(
-                          hasResults: _hasCalculated && result != null,
-                          getRows: () =>
-                              result != null ? datesToExportRows(result) : [],
+                          hasResults: outcome is CalcOk<DatesResult>,
+                          getRows: () => switch (outcome) {
+                            CalcOk(value: final r) => datesToExportRows(r),
+                            CalcSweError() => [],
+                          },
                           filenameStem: 'swe_dates_${jd.toStringAsFixed(4)}',
                         );
                       },
@@ -270,28 +259,22 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _hasCalculated ? _buildResults() : _buildPlaceholder()
-        else
-          Expanded(
-            child: _hasCalculated ? _buildResults() : _buildPlaceholder(),
-          ),
+        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
       ],
     );
   }
 
-  Widget _buildPlaceholder() {
-    return const Center(
-      child: Text('Press Calculate to show date/time conversions'),
-    );
+  Widget _buildResults() {
+    final outcome = ref.watch(datesResultProvider);
+    return switch (outcome) {
+      CalcSweError(:final message) => Center(
+        child: Text('Calculation error: $message'),
+      ),
+      CalcOk(value: final result) => _buildResultCards(result),
+    };
   }
 
-  Widget _buildResults() {
-    final result = ref.watch(datesResultProvider);
-    if (result == null) {
-      return const Center(child: Text('No result'));
-    }
-
+  Widget _buildResultCards(DatesResult result) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 600 ? 2 : 1;
@@ -372,8 +355,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
               ),
             ],
       onCode: () {
-        final trace = ref.read(callTraceProvider);
-        if (trace == null) return;
+        final trace = ref.read(datesTraceProvider);
         final slice = trace.sliceByTab('dates');
         if (slice.entries.isEmpty) return;
         final emitter = ref.read(selectedEmitterProvider);
@@ -400,8 +382,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         ),
       ],
       onCode: () {
-        final trace = ref.read(callTraceProvider);
-        if (trace == null) return;
+        final trace = ref.read(datesTraceProvider);
         final slice = trace.sliceByTab('dates');
         if (slice.entries.isEmpty) return;
         final emitter = ref.read(selectedEmitterProvider);
@@ -454,8 +435,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
           ),
       ],
       onCode: () {
-        final trace = ref.read(callTraceProvider);
-        if (trace == null) return;
+        final trace = ref.read(datesTraceProvider);
         final slice = trace.sliceByTab('dates');
         if (slice.entries.isEmpty) return;
         final emitter = ref.read(selectedEmitterProvider);
@@ -496,8 +476,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
           ),
       ],
       onCode: () {
-        final trace = ref.read(callTraceProvider);
-        if (trace == null) return;
+        final trace = ref.read(datesTraceProvider);
         final slice = trace.sliceByTab('dates');
         if (slice.entries.isEmpty) return;
         final emitter = ref.read(selectedEmitterProvider);

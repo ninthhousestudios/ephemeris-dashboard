@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_context.dart';
-import '../../core/calc_session.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/run_tab_calc.dart';
+import '../../core/context_provider.dart';
+import '../../core/ephemeris/ephemeris.dart';
+import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 
@@ -102,21 +104,16 @@ class DatesResult {
 
 // ── Provider ─────────────────────────────────────────────────────────────────
 
-/// Computes all date/time conversions using swisseph native functions.
-final datesResultProvider = Provider<DatesResult?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (!session.tabHasRun('dates')) return null;
-
-  final ectx = ref.watch(effectiveContextProvider);
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  final swe = ref.read(sweProvider);
-  runner.setTabTag('dates');
-  final overrideJd = ref.watch(datesOverrideJdProvider);
-  final jdUt = overrideJd ?? ectx.jdUt;
-  final geolon = ectx.longitude;
-
-  // revjul and dayOfWeek are pure calendar math — no tracing needed.
+/// Pure compute step: all date/time conversions for one JD. `revjul` and
+/// `dayOfWeek` are untraced calendar utilities (called on [swe]); the rest go
+/// through the traced [eph]. Every call is wrapped so a per-field failure
+/// becomes an error string in the result rather than aborting the batch.
+DatesResult computeDates(
+  Ephemeris eph,
+  SwissEph swe, {
+  required double jdUt,
+  required double geolon,
+}) {
   int revYear = 0, revMonth = 0, revDay = 0;
   double revHour = 0;
   String? revjulError;
@@ -137,11 +134,10 @@ final datesResultProvider = Provider<DatesResult?>((ref) {
     dayOfWeekIndex = swe.dayOfWeek(jdUt);
   } catch (_) {}
 
-  // Traceable calls go through runner.run().
   double deltaT = 0;
   String? deltaTError;
   try {
-    deltaT = runner.run(globals, (eph) => eph.deltat(jdUt)) * 86400.0;
+    deltaT = eph.deltat(jdUt) * 86400.0;
   } catch (e) {
     deltaTError = e.toString();
   }
@@ -149,7 +145,7 @@ final datesResultProvider = Provider<DatesResult?>((ref) {
   double siderealTime = 0;
   String? siderealTimeError;
   try {
-    siderealTime = runner.run(globals, (eph) => eph.sidTime(jdUt));
+    siderealTime = eph.sidTime(jdUt);
   } catch (e) {
     siderealTimeError = e.toString();
   }
@@ -157,7 +153,7 @@ final datesResultProvider = Provider<DatesResult?>((ref) {
   double equationOfTime = 0;
   String? equationOfTimeError;
   try {
-    equationOfTime = runner.run(globals, (eph) => eph.timeEqu(jdUt));
+    equationOfTime = eph.timeEqu(jdUt);
   } catch (e) {
     equationOfTimeError = e.toString();
   }
@@ -167,12 +163,12 @@ final datesResultProvider = Provider<DatesResult?>((ref) {
   double latToLmtVal = 0;
   String? latToLmtError;
   try {
-    lmtToLatVal = runner.run(globals, (eph) => eph.lmtToLat(jdUt, geolon));
+    lmtToLatVal = eph.lmtToLat(jdUt, geolon);
   } catch (e) {
     lmtToLatError = e.toString();
   }
   try {
-    latToLmtVal = runner.run(globals, (eph) => eph.latToLmt(jdUt, geolon));
+    latToLmtVal = eph.latToLmt(jdUt, geolon);
   } catch (e) {
     latToLmtError = e.toString();
   }
@@ -196,6 +192,33 @@ final datesResultProvider = Provider<DatesResult?>((ref) {
     lmtToLatError: lmtToLatError,
     latToLmtError: latToLmtError,
   );
+}
+
+/// Computes all date/time conversions using swisseph native functions.
+/// Reactive to the context JD, a per-tab override JD, and longitude.
+final _datesCalcProvider =
+    Provider<({CalcOutcome<DatesResult> outcome, CallTrace trace})>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final swe = ref.read(sweProvider);
+      final overrideJd = ref.watch(datesOverrideJdProvider);
+      final jdUt = overrideJd ?? ctx.jdUt;
+      final geolon = ctx.longitude;
+
+      return runTabCalc(
+        ref,
+        tabTag: 'dates',
+        compute: (eph) => computeDates(eph, swe, jdUt: jdUt, geolon: geolon),
+      );
+    });
+
+/// Date/time conversion results.
+final datesResultProvider = Provider<CalcOutcome<DatesResult>>((ref) {
+  return ref.watch(_datesCalcProvider.select((c) => c.outcome));
+});
+
+/// Call Trace produced by the most recent dates calculation.
+final datesTraceProvider = Provider<CallTrace>((ref) {
+  return ref.watch(_datesCalcProvider.select((c) => c.trace));
 });
 
 // ── Export ───────────────────────────────────────────────────────────────────
