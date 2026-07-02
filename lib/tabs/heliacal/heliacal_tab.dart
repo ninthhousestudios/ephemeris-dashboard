@@ -6,6 +6,7 @@ import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
@@ -565,17 +566,17 @@ class _ResultsView extends ConsumerWidget {
       fields: [
         ResultField(
           label: 'Start Visible',
-          value: _jdToDateStr(r.startVisibleJd, swe, utcOffset),
+          value: _fmtHeliacalJd(swe, r.startVisibleJd, utcOffset),
           rawValue: r.startVisibleJd,
         ),
         ResultField(
           label: 'Best Visible',
-          value: _jdToDateStr(r.bestVisibleJd, swe, utcOffset),
+          value: _fmtHeliacalJd(swe, r.bestVisibleJd, utcOffset),
           rawValue: r.bestVisibleJd,
         ),
         ResultField(
           label: 'End Visible',
-          value: _jdToDateStr(r.endVisibleJd, swe, utcOffset),
+          value: _fmtHeliacalJd(swe, r.endVisibleJd, utcOffset),
           rawValue: r.endVisibleJd,
         ),
       ],
@@ -631,31 +632,12 @@ class _ResultsView extends ConsumerWidget {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-String _jdToDateStr(double jd, SwissEph swe, double utcOffset) {
-  if (jd.isNaN || jd == 0.0) return '—';
-  try {
-    final r = swe.revjul(jd);
-    final t = r.hour;
-    var h = t.truncate();
-    final m = ((t - h) * 60).truncate();
-    // Handle midnight carry: swisseph can return hour == 24.0
-    var utcDt = DateTime.utc(r.year, r.month, r.day);
-    utcDt = utcDt.add(Duration(hours: h, minutes: m));
-    final utStr =
-        '${utcDt.year}-${utcDt.month.toString().padLeft(2, '0')}-'
-        '${utcDt.day.toString().padLeft(2, '0')} '
-        '${utcDt.hour.toString().padLeft(2, '0')}:'
-        '${utcDt.minute.toString().padLeft(2, '0')} UT';
-    if (utcOffset == 0.0) return utStr;
-    final totalMinutes = (utcOffset * 60).round();
-    final local = utcDt.add(Duration(minutes: totalMinutes));
-    final sign = utcOffset >= 0 ? '+' : '';
-    final offsetStr = utcOffset == utcOffset.roundToDouble()
-        ? '$sign${utcOffset.round()}'
-        : '$sign${utcOffset.toStringAsFixed(1)}';
-    return '$utStr  (${local.hour.toString().padLeft(2, '0')}:'
-        '${local.minute.toString().padLeft(2, '0')} UTC$offsetStr)';
-  } catch (_) {
-    return jd.toStringAsFixed(4);
-  }
-}
+String _fmtHeliacalJd(SwissEph swe, double jd, double utcOffset) =>
+    formatJdDateTime(
+      swe,
+      jd,
+      seconds: false,
+      utcOffset: utcOffset,
+      emptyPlaceholder: '—',
+      fallbackDigits: 4,
+    );

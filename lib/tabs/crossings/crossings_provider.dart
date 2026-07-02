@@ -9,6 +9,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 
 enum CrossingType {
@@ -56,36 +57,9 @@ class CrossingResult {
   final String description;
 }
 
-String _formatDateResult(DateResult r, double utcOffset) {
-  final y = r.year;
-  final mo = r.month.toString().padLeft(2, '0');
-  final d = r.day.toString().padLeft(2, '0');
-  final totalSec = (r.hour * 3600).round();
-  final hh = (totalSec ~/ 3600).toString().padLeft(2, '0');
-  final mm = ((totalSec % 3600) ~/ 60).toString().padLeft(2, '0');
-  final ss = (totalSec % 60).toString().padLeft(2, '0');
-  final utStr = '$y-$mo-$d $hh:$mm:$ss UT';
-  if (utcOffset == 0.0) return utStr;
-  final utcDt = DateTime.utc(
-    r.year,
-    r.month,
-    r.day,
-    totalSec ~/ 3600,
-    (totalSec % 3600) ~/ 60,
-    totalSec % 60,
-  );
-  final local = utcDt.add(Duration(minutes: (utcOffset * 60).round()));
-  final sign = utcOffset >= 0 ? '+' : '';
-  final offsetStr = utcOffset == utcOffset.roundToDouble()
-      ? '$sign${utcOffset.round()}'
-      : '$sign${utcOffset.toStringAsFixed(1)}';
-  return '$utStr  (${local.hour.toString().padLeft(2, '0')}:'
-      '${local.minute.toString().padLeft(2, '0')}:'
-      '${local.second.toString().padLeft(2, '0')} UTC$offsetStr)';
-}
-
 CrossingResult computeCrossing({
   required Ephemeris eph,
+  required SwissEph swe,
   required double jdUt,
   required int iflag,
   required CrossingType type,
@@ -93,7 +67,6 @@ CrossingResult computeCrossing({
   required int helioBody,
   required int helioDir,
   required String helioBodyName,
-  required DateResult Function(double) revjul,
   required double utcOffset,
 }) {
   switch (type) {
@@ -101,7 +74,7 @@ CrossingResult computeCrossing({
       final jd = eph.solCrossUt(longitude, jdUt, iflag);
       return CrossingResult(
         crossingJd: jd,
-        crossingDate: _formatDateResult(revjul(jd), utcOffset),
+        crossingDate: formatJdDateTime(swe, jd, utcOffset: utcOffset),
         crossingLongitude: null,
         description: 'Sun crosses ${longitude.toStringAsFixed(4)}°',
       );
@@ -110,7 +83,7 @@ CrossingResult computeCrossing({
       final jd = eph.moonCrossUt(longitude, jdUt, iflag);
       return CrossingResult(
         crossingJd: jd,
-        crossingDate: _formatDateResult(revjul(jd), utcOffset),
+        crossingDate: formatJdDateTime(swe, jd, utcOffset: utcOffset),
         crossingLongitude: null,
         description: 'Moon crosses ${longitude.toStringAsFixed(4)}°',
       );
@@ -119,7 +92,7 @@ CrossingResult computeCrossing({
       final r = eph.moonCrossNodeUt(jdUt, iflag);
       return CrossingResult(
         crossingJd: r.jdUt,
-        crossingDate: _formatDateResult(revjul(r.jdUt), utcOffset),
+        crossingDate: formatJdDateTime(swe, r.jdUt, utcOffset: utcOffset),
         crossingLongitude: r.longitude,
         description: 'Moon crosses node',
       );
@@ -128,7 +101,7 @@ CrossingResult computeCrossing({
       final jd = eph.helioCrossUt(helioBody, longitude, jdUt, iflag, helioDir);
       return CrossingResult(
         crossingJd: jd,
-        crossingDate: _formatDateResult(revjul(jd), utcOffset),
+        crossingDate: formatJdDateTime(swe, jd, utcOffset: utcOffset),
         crossingLongitude: null,
         description:
             '$helioBodyName helio crosses ${longitude.toStringAsFixed(4)}° '
@@ -159,7 +132,7 @@ final _crossingCalcProvider =
           helioBody: helioBody,
           helioDir: dir,
           helioBodyName: safeGetName(swe, helioBody),
-          revjul: swe.revjul,
+          swe: swe,
           utcOffset: ctx.utcOffset,
         ),
       );

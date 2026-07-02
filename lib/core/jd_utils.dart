@@ -44,3 +44,49 @@ class JdUtils {
     return localDt.subtract(Duration(minutes: totalMinutes));
   }
 }
+
+String _p2(int n) => n.toString().padLeft(2, '0');
+
+/// Formats a Julian Day (UT) as a civil date-time string. Moment = JD canonical,
+/// civil derived (CONTEXT.md). Single source for every tab's JD→string variant:
+///
+/// - [seconds]: include `:SS` (and, when [utcOffset] is set, in the local bracket)
+/// - [utLabel]: append ` UT` to the UT portion
+/// - [utcOffset]: when non-zero, append `  (HH:MM[:SS] UTC±o)` local time
+/// - [emptyPlaceholder]: when non-null, return it for `NaN`/`0.0` JDs
+/// - [fallbackDigits]: `toStringAsFixed` precision when `revjul` throws
+///
+/// Uses the carry-safe [JdUtils.jdToDateTime] path, so hour == 24.0 rolls into
+/// the next day rather than rendering `24:00`.
+String formatJdDateTime(
+  SwissEph swe,
+  double jd, {
+  bool seconds = true,
+  bool utLabel = true,
+  double utcOffset = 0.0,
+  String? emptyPlaceholder,
+  int fallbackDigits = 6,
+}) {
+  if (emptyPlaceholder != null && (jd.isNaN || jd == 0.0)) {
+    return emptyPlaceholder;
+  }
+  try {
+    final utc = JdUtils(swe).jdToDateTime(jd);
+    String hms(DateTime dt) => seconds
+        ? '${_p2(dt.hour)}:${_p2(dt.minute)}:${_p2(dt.second)}'
+        : '${_p2(dt.hour)}:${_p2(dt.minute)}';
+    var s = '${utc.year}-${_p2(utc.month)}-${_p2(utc.day)} ${hms(utc)}';
+    if (utLabel) s = '$s UT';
+    if (utcOffset != 0.0) {
+      final local = utc.add(Duration(minutes: (utcOffset * 60).round()));
+      final sign = utcOffset >= 0 ? '+' : '';
+      final off = utcOffset == utcOffset.roundToDouble()
+          ? '$sign${utcOffset.round()}'
+          : '$sign${utcOffset.toStringAsFixed(1)}';
+      s = '$s  (${hms(local)} UTC$off)';
+    }
+    return s;
+  } catch (_) {
+    return jd.toStringAsFixed(fallbackDigits);
+  }
+}

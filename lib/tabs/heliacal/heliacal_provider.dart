@@ -5,6 +5,7 @@ import '../../core/calc_context.dart';
 import '../../core/calc_session.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
+import '../../core/jd_utils.dart';
 
 // ── Input providers ──────────────────────────────────────────────────────────
 
@@ -153,20 +154,13 @@ List<ExportRow> heliacalToExportRows(HeliacalCalcResult r, SwissEph swe) {
     ];
   }
 
-  String jdToDateStr(double jd) {
-    try {
-      final r = swe.revjul(jd);
-      final t = r.hour;
-      final h = t.truncate();
-      final m = ((t - h) * 60).truncate();
-      return '${r.year}-${r.month.toString().padLeft(2, '0')}-'
-          '${r.day.toString().padLeft(2, '0')} '
-          '${h.toString().padLeft(2, '0')}:'
-          '${m.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return jd.toStringAsFixed(4);
-    }
-  }
+  String jdToDateStr(double jd) => formatJdDateTime(
+    swe,
+    jd,
+    seconds: false,
+    utLabel: false,
+    fallbackDigits: 4,
+  );
 
   return [
     ExportRow(
