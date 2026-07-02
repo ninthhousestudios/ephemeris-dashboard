@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/calculation/calc_outcome.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
@@ -27,10 +27,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     final scope = ref.watch(eclipseScopeProvider);
     final filter = ref.watch(eclipseFilterProvider);
     final count = ref.watch(eclipseCountProvider);
-    final results = ref.watch(eclipseResultsProvider);
-    final triggered = ref.watch(
-      calcSessionProvider.select((s) => s.tabHasRun('eclipses')),
-    );
+    final outcome = ref.watch(eclipseResultsProvider);
     final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
@@ -139,10 +136,18 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                 ),
                 const SizedBox(width: 4),
                 ExportButton(
-                  hasResults: triggered && results.isNotEmpty,
+                  hasResults: switch (outcome) {
+                    CalcOk(value: final events) => events.isNotEmpty,
+                    CalcSweError() => false,
+                  },
                   filenameStem: 'eclipses',
-                  getRows: () =>
-                      eclipsesToExportRows(results, ref.read(sweProvider)),
+                  getRows: () => switch (outcome) {
+                    CalcOk(value: final events) => eclipsesToExportRows(
+                      events,
+                      ref.read(sweProvider),
+                    ),
+                    CalcSweError() => [],
+                  },
                 ),
               ],
             ),
@@ -151,24 +156,21 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
         const Divider(height: 1),
         // ── Results ──
         if (isMobile)
-          triggered
-              ? _buildResults(results)
-              : const Center(
-                  child: Text('Configure search and press Calculate'),
-                )
+          _buildResults(outcome)
         else
-          Expanded(
-            child: triggered
-                ? _buildResults(results)
-                : const Center(
-                    child: Text('Configure search and press Calculate'),
-                  ),
-          ),
+          Expanded(child: _buildResults(outcome)),
       ],
     );
   }
 
-  Widget _buildResults(List<EclipseEvent> events) {
+  Widget _buildResults(CalcOutcome<List<EclipseEvent>> outcome) {
+    final List<EclipseEvent> events;
+    switch (outcome) {
+      case CalcSweError(:final message):
+        return Center(child: Text('Calculation error: $message'));
+      case CalcOk(value: final v):
+        events = v;
+    }
     if (events.isEmpty) {
       return const Center(child: Text('No eclipses found'));
     }
@@ -215,7 +217,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
         fields.add(
           ResultField(
             label: 'Max Eclipse',
-            value: _jdToDateStr(swe, e.maxEclipseJd!),
+            value: formatJdDateTime(swe, e.maxEclipseJd!),
           ),
         );
         fields.add(
@@ -288,8 +290,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
       flagHex: '0x${e.returnFlag.toRadixString(16).toUpperCase()}',
       fields: fields,
       onCode: () {
-        final trace = ref.read(callTraceProvider);
-        if (trace == null) return;
+        final trace = ref.read(eclipsesTraceProvider);
         final slice = trace.sliceByTab('eclipses');
         if (slice.entries.isEmpty) return;
         final emitter = ref.read(selectedEmitterProvider);
@@ -306,21 +307,6 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     SwissEph swe,
   ) {
     if (jd == null) return;
-    fields.add(ResultField(label: label, value: _jdToDateStr(swe, jd)));
+    fields.add(ResultField(label: label, value: formatJdDateTime(swe, jd)));
   }
 }
-
-String _jdToDateStr(SwissEph swe, double jd) {
-  try {
-    final r = swe.revjul(jd);
-    final h = r.hour.floor();
-    final mFrac = (r.hour - h) * 60;
-    final m = mFrac.floor();
-    final s = ((mFrac - m) * 60).round();
-    return '${r.year}-${_p(r.month)}-${_p(r.day)} ${_p(h)}:${_p(m)}:${_p(s)} UT';
-  } catch (_) {
-    return jd.toStringAsFixed(6);
-  }
-}
-
-String _p(int n) => n.toString().padLeft(2, '0');
