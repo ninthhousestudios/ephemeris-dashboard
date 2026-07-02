@@ -71,8 +71,18 @@ typedef ScopedRun =
 /// to the current Context) then hands [compute] the runner's scoped-run
 /// capability for per-item C-global overrides (e.g. ayanamsa sidMode). The base
 /// `runner.run(g, ...)` establishes `_last = globals`, so each `runScoped`'s
-/// `finally` restores to the Context instead of leaking a per-item override
-/// into the process-wide C state.
+/// `finally` re-applies the base globals.
+///
+/// Restore is exact only for the C-globals the base Context actually sets. For
+/// sidMode specifically: `AppliedGlobals.sidMode` is null under a tropical
+/// Context, and `EphemerisRunner._apply` skips a null sidMode (SwissEph has no
+/// "unset" — the C sidMode persists). So under a tropical Context the last
+/// per-item sidMode is *not* reset and outlives the batch. This is inert —
+/// sidMode is only consulted when `SEFLG_SIDEREAL` is set, which a tropical
+/// Context never does — and self-heals the moment the Context turns sidereal
+/// (globals change → `_apply` runs). Under a sidereal Context the restore is
+/// exact. Do not rely on the C sidMode reflecting the Context after this call
+/// unless the Context is sidereal.
 ({CalcOutcome<T> outcome, CallTrace trace}) runTabCalcScoped<T>(
   Ref ref, {
   required String tabTag,

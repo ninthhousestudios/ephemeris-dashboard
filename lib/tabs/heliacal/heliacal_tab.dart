@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
@@ -57,6 +59,12 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   late final TextEditingController _ageController;
   late final TextEditingController _snellenController;
 
+  /// Coalesces rapid field edits: heliacalUt is a heavyweight iterative FFI
+  /// search, so a reactive recompute fires only after typing pauses rather than
+  /// on every keystroke. Explicit actions (submit, suggestion/chip pick) bypass
+  /// this and push immediately, cancelling any pending debounce.
+  Timer? _recomputeDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +85,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
 
   @override
   void dispose() {
+    _recomputeDebounce?.cancel();
     _starController.removeListener(_onStarChanged);
     _starController.dispose();
     _starFocusNode.dispose();
@@ -105,7 +114,16 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     });
   }
 
+  /// Schedules [apply] after a short pause, cancelling any pending edit. The
+  /// heliacal result provider recomputes reactively when [apply] mutates a
+  /// StateProvider, so debouncing here throttles the FFI search, not the UI.
+  void _debouncedSet(void Function() apply) {
+    _recomputeDebounce?.cancel();
+    _recomputeDebounce = Timer(const Duration(milliseconds: 400), apply);
+  }
+
   void _selectStarSuggestion(StarCatalogEntry entry) {
+    _recomputeDebounce?.cancel();
     _starController.text = entry.commonName;
     _starController.selection = TextSelection.collapsed(
       offset: entry.commonName.length,
@@ -115,6 +133,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   }
 
   void _selectBody(String name) {
+    _recomputeDebounce?.cancel();
     ref.read(heliacalStarProvider.notifier).state = name;
     // Clear the custom star field when selecting a chip
     _starController.clear();
@@ -209,11 +228,16 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                               ),
                               border: OutlineInputBorder(),
                             ),
-                            onChanged: (v) =>
-                                ref.read(heliacalStarProvider.notifier).state =
-                                    v.trim(),
+                            onChanged: (v) => _debouncedSet(
+                              () =>
+                                  ref
+                                      .read(heliacalStarProvider.notifier)
+                                      .state = v
+                                      .trim(),
+                            ),
                             onSubmitted: (v) {
                               if (v.trim().isNotEmpty) {
+                                _recomputeDebounce?.cancel();
                                 ref.read(heliacalStarProvider.notifier).state =
                                     v.trim();
                               }
@@ -441,7 +465,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
             ),
             onChanged: (v) {
               final d = double.tryParse(v);
-              if (d != null) ref.read(provider.notifier).state = d;
+              if (d != null) {
+                _debouncedSet(() => ref.read(provider.notifier).state = d);
+              }
             },
           ),
         ),
