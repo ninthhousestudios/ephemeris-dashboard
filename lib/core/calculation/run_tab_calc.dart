@@ -41,8 +41,13 @@ typedef ScopedRun =
     outcome = CalcSweError(e.message);
   }
 
+  final List<CallEntry> captured = List.unmodifiable(
+    runner.traceEntries.skip(entriesBefore),
+  );
+  runner.traceEntries.clear();
+
   final trace = CallTrace(
-    entries: List.unmodifiable(runner.traceEntries.skip(entriesBefore)),
+    entries: captured,
     context: ectx,
     capturedAt: DateTime.now(),
   );
