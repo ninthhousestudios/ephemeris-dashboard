@@ -69,14 +69,12 @@ CrossingResult computeCrossing({
   required String helioBodyName,
   required double utcOffset,
 }) {
-  final hasBary = iflag & seFlgBaryCtr != 0;
-  final hasNonGeoFrame = iflag & (seFlgHelCtr | seFlgBaryCtr) != 0;
+  if (iflag & (seFlgHelCtr | seFlgBaryCtr) != 0) {
+    throw SweException('Crossings require geocentric or topocentric origin', 0);
+  }
 
   switch (type) {
     case CrossingType.sunCross:
-      if (hasBary) {
-        throw SweException('Sun crossings do not support barycentric frame', 0);
-      }
       final jd = eph.solCrossUt(longitude, jdUt, iflag);
       return CrossingResult(
         crossingJd: jd,
@@ -86,12 +84,6 @@ CrossingResult computeCrossing({
       );
 
     case CrossingType.moonCross:
-      if (hasNonGeoFrame) {
-        throw SweException(
-          'Moon crossings are only meaningful in geocentric/topocentric frames',
-          0,
-        );
-      }
       final jd = eph.moonCrossUt(longitude, jdUt, iflag);
       return CrossingResult(
         crossingJd: jd,
@@ -101,12 +93,6 @@ CrossingResult computeCrossing({
       );
 
     case CrossingType.moonNode:
-      if (hasNonGeoFrame) {
-        throw SweException(
-          'Moon node crossings are only meaningful in geocentric/topocentric frames',
-          0,
-        );
-      }
       final r = eph.moonCrossNodeUt(jdUt, iflag);
       return CrossingResult(
         crossingJd: r.jdUt,
@@ -116,16 +102,7 @@ CrossingResult computeCrossing({
       );
 
     case CrossingType.helioCross:
-      // helioCrossUt force-sets HELCTR internally; strip conflicting frame
-      // flags so plaus_iflag() doesn't silently override it.
-      final cleanFlag = iflag & ~(seFlgHelCtr | seFlgBaryCtr | seFlgTopoCtr);
-      final jd = eph.helioCrossUt(
-        helioBody,
-        longitude,
-        jdUt,
-        cleanFlag,
-        helioDir,
-      );
+      final jd = eph.helioCrossUt(helioBody, longitude, jdUt, iflag, helioDir);
       return CrossingResult(
         crossingJd: jd,
         crossingDate: formatJdDateTime(swe, jd, utcOffset: utcOffset),
