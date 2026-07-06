@@ -19,15 +19,15 @@
 # ═══════════════════════════════════════════════════════════════════
 # SwissEph is the engine. Tabs and widgets must reach it through the
 # `Ephemeris` interface, never the FFI package directly — that is what makes
-# every Calculation testable behind a fake. Today ~24 tab/widget files import
-# `package:swisseph` directly; this is the coupling the refactor removes.
+# every Calculation testable behind a fake. Constants re-exported through
+# lib/core/swe_constants.dart (swe-dashboard/22).
 
 [[constraint]]
 kind = "confined_external"
 crates = ["swisseph"]
 allowed_in = ["lib/core/**"]
 name = "swisseph-behind-ephemeris-seam"
-severity = "advisory"  # engine calls go through Ephemeris seam (swe-dashboard/12-14), but ~20 tab files still import swisseph for constants (body IDs, flag values). Flip to blocking when constants are re-exported through lib/core/.
+severity = "blocking"  # engine calls through Ephemeris seam (swe-dashboard/12-14); constants re-exported via lib/core/swe_constants.dart (swe-dashboard/22).
 provenance = "CONTEXT.md §Ephemeris; yojana:swe-dashboard/4 §Implementation ①"
 
 # ═══════════════════════════════════════════════════════════════════

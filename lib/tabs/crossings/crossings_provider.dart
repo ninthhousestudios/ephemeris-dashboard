@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swisseph/swisseph.dart';
+import '../../core/swe_constants.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';

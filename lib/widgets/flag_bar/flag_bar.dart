@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:swisseph/swisseph.dart';
+import '../../core/swe_constants.dart';
 
 import '../../core/active_tab.dart';
 import '../../core/ephemeris/emitter_provider.dart';

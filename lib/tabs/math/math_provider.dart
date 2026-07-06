@@ -1,4 +1,4 @@
-import 'package:swisseph/swisseph.dart';
+import '../../core/swe_constants.dart';
 
 import '../../core/export_service.dart';
 import '../../widgets/result_card.dart';
