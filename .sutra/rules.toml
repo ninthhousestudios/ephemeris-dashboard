@@ -27,7 +27,7 @@ kind = "confined_external"
 crates = ["swisseph"]
 allowed_in = ["lib/core/**"]
 name = "swisseph-behind-ephemeris-seam"
-severity = "blocking"  # was advisory; flipped at swe-dashboard/15 (all tabs migrated)
+severity = "advisory"  # engine calls go through Ephemeris seam (swe-dashboard/12-14), but ~20 tab files still import swisseph for constants (body IDs, flag values). Flip to blocking when constants are re-exported through lib/core/.
 provenance = "CONTEXT.md §Ephemeris; yojana:swe-dashboard/4 §Implementation ①"
 
 # ═══════════════════════════════════════════════════════════════════

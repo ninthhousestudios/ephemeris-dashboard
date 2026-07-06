@@ -93,7 +93,8 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
   hand-maintained set.
 - **SwissEph behind the Ephemeris seam** — reach the engine through the `Ephemeris`
   interface; `package:swisseph` is confined to `lib/core/**` (forbidden in
-  `lib/tabs/` and `lib/widgets/`).
+  `lib/tabs/` and `lib/widgets/` — advisory; ~20 tab files still import for
+  constants, flip to blocking when constants re-exported through `lib/core/`).
 
 ## Running
 
