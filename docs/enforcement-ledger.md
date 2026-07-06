@@ -19,12 +19,12 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 
 | # | Claim (quote / source) | Bucket | Mechanism | Status |
 |---|---|---|---|---|
-| 1 | "SwissEph routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ① | a | `confined_external swisseph allowed_in=lib/core/**` | live, **advisory** → blocking @ `/15` (24 violations today) |
+| 1 | "SwissEph routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ① | a | `confined_external swisseph allowed_in=lib/core/**` | live, **blocking** (flipped @ `/15`) |
 | 2 | "Tabs use the kernel, not the runner" — PRD ② | a | `forbidden_dep lib/tabs/** → runner.dart` | live, **advisory** → blocking @ `/11` |
 | 3 | "Tabs are independent" — PRD §Problem | a | `no_cycles lib/tabs` | live, **blocking** (clean today) |
 | 4 | "Context bar / shell cycle removed" — PRD ⑥ | a | `no_cycles lib/widgets/context_bar` | live, **advisory** → blocking @ `/17` (1 cycle today) |
-| 5 | "Calculation kernel stays acyclic" — PRD ② | b | `no_cycles` on kernel dir | deferred → bind @ `/7` |
-| 6 | "Kernel/Ephemeris are not god-hubs" — refactor goal | b | `max_fan_in` on kernel + interface | deferred → bind @ `/11` (tend; needs data) |
+| 5 | "Calculation kernel stays acyclic" — PRD ② | a | `no_cycles lib/core/calculation` | live, **blocking** (bound @ `/7`) |
+| 6 | "Kernel/Ephemeris are not god-hubs" — refactor goal | a | `max_fan_in run_tab_calc.dart threshold=30` | live, **advisory** (bound @ `/11`) |
 | 7 | "No in-tree chart parsers" — PRD ③ | a | `confined_external charts_dart allowed_in=lib/widgets/context_bar/**,lib/core/**` | live, **blocking** (clean today, bound @ `/9`) |
 | 8 | "Each recompute synchronous; Applied Globals never set across an await" — ADR-0001 | c | CLAUDE.md invariant | routed → CLAUDE.md |
 | 9 | "JD is canonical; civil is derived" — CONTEXT §Moment | c | CLAUDE.md invariant | routed → CLAUDE.md |

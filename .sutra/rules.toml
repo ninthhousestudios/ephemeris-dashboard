@@ -27,7 +27,7 @@ kind = "confined_external"
 crates = ["swisseph"]
 allowed_in = ["lib/core/**"]
 name = "swisseph-behind-ephemeris-seam"
-severity = "advisory"  # FLIP TO BLOCKING at swe-dashboard/15 (all tabs migrated)
+severity = "blocking"  # was advisory; flipped at swe-dashboard/15 (all tabs migrated)
 provenance = "CONTEXT.md §Ephemeris; yojana:swe-dashboard/4 §Implementation ①"
 
 # ═══════════════════════════════════════════════════════════════════
@@ -90,24 +90,23 @@ provenance = "CONTEXT.md §Chart; yojana:swe-dashboard/4 §Implementation ③"
 # DEFERRED — scope does not exist yet; uncomment + bind at the trigger
 # ═══════════════════════════════════════════════════════════════════
 
-# TRIGGER: at swe-dashboard/7 (kernel lands) — fix scope to the kernel dir and uncomment.
-# The Calculation kernel must stay acyclic.
-# [[constraint]]
-# kind = "no_cycles"
-# scope = "lib/core/calc"   # <-- set to the real kernel directory
-# name = "calc-kernel-acyclic"
-# severity = "blocking"
-# provenance = "yojana:swe-dashboard/4 §Implementation ②"
+# Calculation kernel must stay acyclic. Trigger: swe-dashboard/7 (kernel landed).
+[[constraint]]
+kind = "no_cycles"
+scope = "lib/core/calculation"
+name = "calc-kernel-acyclic"
+severity = "blocking"
+provenance = "yojana:swe-dashboard/4 §Implementation ②"
 
-# TRIGGER: at swe-dashboard/11 (first tend / R1) — set thresholds from real fan-in and uncomment.
 # The kernel and Ephemeris interface must not become god-hubs.
-# [[constraint]]
-# kind = "max_fan_in"
-# target = "lib/core/calc/kernel.dart"   # <-- real path
-# threshold = 30                          # <-- ~30% above measured fan-in
-# name = "kernel-fan-in-guard"
-# severity = "advisory"
-# provenance = "vidhi-sutra-tend (R1)"
+# Trigger: swe-dashboard/11 (foundation review landed).
+[[constraint]]
+kind = "max_fan_in"
+target = "lib/core/calculation/run_tab_calc.dart"
+threshold = 30
+name = "kernel-fan-in-guard"
+severity = "advisory"
+provenance = "vidhi-sutra-tend (R1)"
 
 # ═══════════════════════════════════════════════════════════════════
 # Conventions
