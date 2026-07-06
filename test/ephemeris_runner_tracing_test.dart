@@ -109,23 +109,6 @@ void main() {
   });
 
   group('trace lifecycle', () {
-    test('clearTrace removes all entries', () {
-      final globals = AppliedGlobals(
-        ephePath: null,
-        sidMode: 1,
-        userAyanT0: 0,
-        userAyanValue: 0,
-        topo: null,
-        jplFile: null,
-      );
-
-      runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
-      expect(runner.traceEntries, isNotEmpty);
-
-      runner.clearTrace();
-      expect(runner.traceEntries, isEmpty);
-    });
-
     test('setTabTag propagates to trace entries', () {
       final globals = AppliedGlobals(
         ephePath: null,
@@ -182,7 +165,6 @@ void main() {
       );
 
       runner.setTabTag('planets');
-      runner.clearTrace();
 
       // Simulate planets tab: multiple bodies
       runner.run(globals, (eph) {

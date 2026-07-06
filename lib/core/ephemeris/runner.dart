@@ -16,7 +16,6 @@ class EphemerisRunner {
   AppliedGlobals? _last;
 
   List<CallEntry> get traceEntries => _tracing.entries;
-  void clearTrace() => _tracing.clearEntries();
   void setTabTag(String tag) => _tracing.setTabTag(tag);
 
   T run<T>(AppliedGlobals globals, T Function(Ephemeris eph) body) {
@@ -63,17 +62,5 @@ final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
   return AppliedGlobals.fromContext(
     ref.watch(effectiveContextProvider),
     ref.watch(resolvedEphePathProvider),
-  );
-});
-
-final callTraceProvider = Provider<CallTrace?>((ref) {
-  final runner = ref.watch(ephemerisRunnerProvider);
-  final ectx = ref.watch(effectiveContextProvider);
-  final entries = runner.traceEntries;
-  if (entries.isEmpty) return null;
-  return CallTrace(
-    entries: List.unmodifiable(entries),
-    context: ectx,
-    capturedAt: DateTime.now(),
   );
 });

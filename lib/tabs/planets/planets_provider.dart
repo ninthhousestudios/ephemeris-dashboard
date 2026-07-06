@@ -229,9 +229,6 @@ final planetsResultsProvider = Provider<CalcOutcome<List<PlanetResult>>>((ref) {
   return ref.watch(_planetsCalcProvider.select((c) => c.outcome));
 });
 
-/// Call Trace produced by the most recent planets calculation — always
-/// fresh for whatever `planetsResultsProvider` currently shows, unlike the
-/// legacy session-gated `callTraceProvider`.
 final planetsTraceProvider = Provider<CallTrace>((ref) {
   return ref.watch(_planetsCalcProvider.select((c) => c.trace));
 });

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
 import 'responsive_layout.dart';
 import '../core/active_tab.dart';
+import '../core/active_tab_trace.dart';
 import '../core/calculation/calc_outcome.dart';
+import '../core/ephemeris/trace_model.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
@@ -11,9 +13,19 @@ import '../core/context_provider.dart';
 import '../core/display_format.dart';
 import '../widgets/export_button.dart';
 import '../widgets/flag_bar/flag_bar.dart';
+import '../tabs/ayanamsa/ayanamsa_provider.dart';
+import '../tabs/crossings/crossings_provider.dart';
+import '../tabs/dates/dates_provider.dart';
+import '../tabs/differential/differential_provider.dart';
+import '../tabs/eclipses/eclipses_provider.dart';
+import '../tabs/heliacal/heliacal_provider.dart';
 import '../tabs/houses/houses_provider.dart';
+import '../tabs/nodes_apsides/nodes_apsides_provider.dart';
+import '../tabs/phenomena/phenomena_provider.dart';
 import '../tabs/planets/planets_provider.dart';
 import '../tabs/planets/planets_tab.dart';
+import '../tabs/rise_set/rise_set_provider.dart';
+import '../tabs/stars/stars_provider.dart';
 import '../tabs/houses/houses_tab.dart';
 import '../tabs/ayanamsa/ayanamsa_tab.dart';
 import '../tabs/dates/dates_tab.dart';
@@ -64,15 +76,45 @@ class _AppShellState extends ConsumerState<AppShell>
       initialIndex: initialIndex >= 0 ? initialIndex : 0,
       vsync: this,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(activeTraceSourceProvider.notifier).state = _traceForTab(
+          initialTab,
+        );
+      }
+    });
+
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         final tab = _allTabs[_tabController.index];
         ref.read(selectedTabProvider.notifier).state = tab;
         ref.read(activeTabIdProvider.notifier).state = tab.name;
+        ref.read(activeTraceSourceProvider.notifier).state = _traceForTab(tab);
         ref.read(persistenceProvider).saveTab(tab);
       }
     });
   }
+
+  static Provider<CallTrace>? _traceForTab(AppTab tab) => switch (tab) {
+    AppTab.planets => planetsTraceProvider,
+    AppTab.houses => housesTraceProvider,
+    AppTab.ayanamsa => ayanamsaTraceProvider,
+    AppTab.riseSet => riseSetTraceProvider,
+    AppTab.eclipses => eclipsesTraceProvider,
+    AppTab.stars => starTraceProvider,
+    AppTab.crossings => crossingTraceProvider,
+    AppTab.dates => datesTraceProvider,
+    AppTab.nodesApsides => nodesApsTraceProvider,
+    AppTab.heliacal => heliacalTraceProvider,
+    AppTab.phenomena => phenomenaTraceProvider,
+    AppTab.differential => diffTraceProvider,
+    AppTab.planetocentric => planetocentricTraceProvider,
+    AppTab.coordinates ||
+    AppTab.tableView ||
+    AppTab.math ||
+    AppTab.config ||
+    AppTab.ephemerisManager => null,
+  };
 
   @override
   void dispose() {

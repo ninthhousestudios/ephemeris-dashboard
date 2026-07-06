@@ -3,9 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/swe_constants.dart';
 
-import '../../core/active_tab.dart';
+import '../../core/active_tab_trace.dart';
 import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/flag_definitions.dart';
 import '../../core/flag_provider.dart';
 import '../code_modal.dart';
@@ -95,16 +94,13 @@ class FlagBar extends ConsumerWidget {
               icon: const Icon(Icons.code, size: 18),
               tooltip: 'View tab code',
               visualDensity: VisualDensity.compact,
-              onPressed: ref.watch(callTraceProvider) == null
+              onPressed: ref.watch(activeTabTraceProvider) == null
                   ? null
                   : () {
-                      final trace = ref.read(callTraceProvider);
-                      if (trace == null) return;
-                      final activeTab = ref.read(activeTabIdProvider);
-                      final slice = trace.sliceByTab(activeTab);
-                      if (slice.entries.isEmpty) return;
+                      final trace = ref.read(activeTabTraceProvider);
+                      if (trace == null || trace.entries.isEmpty) return;
                       final emitter = ref.read(selectedEmitterProvider);
-                      final code = emitter.emitProgram(slice.entries);
+                      final code = emitter.emitProgram(trace.entries);
                       showCodeModal(
                         context,
                         code: code,
