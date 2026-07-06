@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swisseph/swisseph.dart' show seHeliacalRising;
 
-import 'package:swe_dashboard/core/calc_session.dart';
 import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
 import 'package:swe_dashboard/core/display_format.dart';
 import 'package:swe_dashboard/core/persistence.dart';
@@ -137,31 +136,6 @@ const fakeHeliacalResult = HeliacalCalcResult(
 
 // ── Provider overrides ──
 
-final calcSessionOverride = calcSessionProvider.overrideWith((ref) {
-  final notifier = CalcSessionNotifier();
-  notifier.calculate(
-    activate: {
-      'planets',
-      'houses',
-      'ayanamsa',
-      'stars',
-      'dates',
-      'riseSet',
-      'eclipses',
-      'heliacal',
-      'crossings',
-      'coordinates',
-      'phenomena',
-      'nodesApsides',
-      'differential',
-      'planetocentric',
-      'tableView',
-      'math',
-    },
-  );
-  return notifier;
-});
-
 final planetsResultsOverride = planetsResultsProvider.overrideWith(
   (ref) => CalcOk(fakePlanetResults),
 );
@@ -180,7 +154,6 @@ final heliacalResultOverride = heliacalResultProvider.overrideWith(
 
 /// All overrides needed for tab-level tests.
 final tabOverrides = [
-  calcSessionOverride,
   planetsResultsOverride,
   housesResultOverride,
   ayanamsaResultsOverride,

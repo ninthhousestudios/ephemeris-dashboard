@@ -14,7 +14,7 @@ lib/
     context_state.dart             #   Immutable ContextBarState
     context_provider.dart          #   ContextBarNotifier (JD/DateTime/location)
     calc_context.dart              #   EffectiveContext (merges context + flags)
-    calc_trigger.dart              #   Calculate button trigger
+    active_tab.dart                #   activeTabIdProvider (selected tab tracking)
     flag_definitions.dart          #   FlagDef, FlagGroup, auto-managed flags
     flag_state.dart, flag_provider #   FlagBarState/Notifier
     display_format.dart            #   DMS/Decimal/Raw formatters
@@ -51,7 +51,7 @@ This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must 
 
 ## Key Architecture Decisions
 
-1. **Reactive projection (ADR-0001)** — Results are a pure function of the Context and Flags, recomputed on change. No explicit Calculate button, no staleness. (The legacy button + activation gate are being removed in `swe-dashboard/15`; until then the old gate still exists in `calc_session.dart`.)
+1. **Reactive projection (ADR-0001)** — Results are a pure function of the Context and Flags, recomputed on change. No explicit Calculate button, no staleness.
 2. **Applied Globals** — the Context is set into the process-wide SwissEph C state at calculation time, atomically and synchronously (see invariants below)
 3. **Locked Flags** (formerly "auto-managed flags") — sidereal, topocentric, helio, bary, ephe-source flags are a pure function of the Context; the context bar owns them (shown as disabled chips with lock icon)
 4. **Flag bar uses `ref.listen`** (not `ref.watch` in notifier) for auto-linking to avoid infinite loops
@@ -93,7 +93,7 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
   hand-maintained set.
 - **SwissEph behind the Ephemeris seam** — reach the engine through the `Ephemeris`
   interface; `package:swisseph` is confined to `lib/core/**` (forbidden in
-  `lib/tabs/` and `lib/widgets/` — advisory until `swe-dashboard/15`, then blocking).
+  `lib/tabs/` and `lib/widgets/`).
 
 ## Running
 

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:swisseph/swisseph.dart';
 
-import '../../core/calc_session.dart';
+import '../../core/active_tab.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/ephemeris/runner.dart';
 import '../../core/flag_definitions.dart';

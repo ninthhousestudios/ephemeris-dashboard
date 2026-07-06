@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/chart_io.dart';
-import '../../core/calc_session.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
@@ -43,13 +42,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
 
   static const _colGap = 12.0;
   static const _rowGap = 6.0;
-
-  void _calculate() {
-    final activeTab = ref.read(activeTabIdProvider);
-    ref
-        .read(calcSessionProvider.notifier)
-        .calculate(activate: {...kContextOnlyTabs, activeTab});
-  }
 
   Future<void> _openChart() async {
     final useFilePicker =
@@ -172,12 +164,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            FilledButton.icon(
-              onPressed: _calculate,
-              icon: const Icon(Icons.calculate, size: 18),
-              label: const Text('Calculate'),
-            ),
           ],
         ),
       );
@@ -224,13 +210,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               dateTimeIconButton(Icons.update, 'Set to now', () {
                 ref.read(contextBarProvider.notifier).setNow();
               }),
-              const SizedBox(width: 4),
-              FilledButton.icon(
-                onPressed: _calculate,
-                icon: const Icon(Icons.calculate, size: 16),
-                label: const Text('Calculate'),
-                style: const ButtonStyle(visualDensity: VisualDensity.compact),
-              ),
             ],
           ),
           // ── Secondary: code language, ephemeris badge ──
@@ -352,15 +331,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         const SizedBox(width: 8),
                         const Flexible(child: FileInUseIndicator()),
                         const SizedBox(width: 8),
-                        FilledButton.icon(
-                          onPressed: _calculate,
-                          icon: const Icon(Icons.calculate, size: 16),
-                          label: const Text('Calculate'),
-                          style: const ButtonStyle(
-                            visualDensity: VisualDensity.compact,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
                         dateTimeIconButton(Icons.update, 'Set to now', () {
                           ref.read(contextBarProvider.notifier).setNow();
                         }),

@@ -17,7 +17,7 @@ sweProvider (SwissEph)          ← swe_service.dart, conditional import
      │        │
      │        └── callTraceProvider (CallTrace?)
      │                 reads runner.traceEntries + effectiveContext
-     │                 gated by calcSession.version (legacy, being removed)
+     │                 null when trace is empty; non-null once any tab computes
      │
      ├── effectiveContextProvider (EffectiveContext)
      │        merges contextBarState + flagBarState
@@ -42,7 +42,7 @@ sweProvider (SwissEph)          ← swe_service.dart, conditional import
 Each has a pure `compute*` function + `_*CalcProvider` (via `runTabCalc`) →
 `*ResultsProvider` (`CalcOutcome<T>`) + `*TraceProvider` (`CallTrace`).
 Watches `contextBarProvider` + `flagBarProvider` directly; no
-`effectiveContextProvider` or `calcSessionProvider` gate. Shared
+`effectiveContextProvider` gate. Shared
 `safeGetName` helper in `lib/core/body_utils.dart` (was duplicated in 4
 provider files).
 
@@ -136,7 +136,7 @@ methods backed by unified `SymbolPair`-valued maps.
 | `flag_definitions.dart` | `FlagDef`, `FlagGroup` — flag metadata, locked/toggle classification |
 | `flag_state.dart` | `FlagBarState` — selected flags |
 | `flag_provider.dart` | `FlagBarNotifier` — auto-links locked flags from context via ref.listen |
-| `calc_session.dart` | `CalcSession` — legacy activation gate, being removed (swe-dashboard/15) |
+| `active_tab.dart` | `activeTabIdProvider` — tracks currently selected tab |
 
 ## Context bar widgets (lib/widgets/context_bar/)
 

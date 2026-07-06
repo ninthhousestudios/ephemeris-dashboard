@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph/swisseph.dart';
 
 import '../calc_context.dart';
-import '../calc_session.dart';
 import '../swe_service.dart';
 import '../ephe/dir_provider.dart';
 import 'applied_globals.dart';
@@ -57,11 +56,7 @@ class EphemerisRunner {
 }
 
 final ephemerisRunnerProvider = Provider<EphemerisRunner>((ref) {
-  final runner = EphemerisRunner(ref.watch(sweProvider));
-  final notifier = ref.read(calcSessionProvider.notifier);
-  notifier.registerCommit('_trace_clear', runner.clearTrace);
-  ref.onDispose(() => notifier.unregisterCommit('_trace_clear'));
-  return runner;
+  return EphemerisRunner(ref.watch(sweProvider));
 });
 
 final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
@@ -72,13 +67,13 @@ final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
 });
 
 final callTraceProvider = Provider<CallTrace?>((ref) {
-  final session = ref.watch(calcSessionProvider);
-  if (session.version == 0) return null;
   final runner = ref.watch(ephemerisRunnerProvider);
   final ectx = ref.watch(effectiveContextProvider);
+  final entries = runner.traceEntries;
+  if (entries.isEmpty) return null;
   return CallTrace(
-    entries: List.unmodifiable(runner.traceEntries),
+    entries: List.unmodifiable(entries),
     context: ectx,
-    capturedAt: session.lastRunAt ?? DateTime.now(),
+    capturedAt: DateTime.now(),
   );
 });

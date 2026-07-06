@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
 import 'responsive_layout.dart';
-import '../core/calc_session.dart';
+import '../core/active_tab.dart';
 import '../core/calculation/calc_outcome.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
