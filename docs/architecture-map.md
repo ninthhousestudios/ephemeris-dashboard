@@ -3,7 +3,7 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-06 (swe-dashboard/23: per-tab trace wiring).
+Last updated: 2026-07-06 (swe-dashboard/16: tab registry).
 
 ## Provider graph (data flow)
 
@@ -171,9 +171,22 @@ controller, focus node, and sync/commit logic.
 | `test/swe_symbol_catalog_test.dart` | SweSymbolCatalog mappings |
 | `test/goldens/*.dart` | Widget golden image tests (54 PNGs, 3 sizes x 2 themes) |
 
+## Tab registry (lib/layout/)
+
+| File | Key types | Role |
+|------|-----------|------|
+| `tab_definitions.dart` | `AppTab` | Enum: label, icon, hasFlags, isMore. Identity for persistence. |
+| `tab_descriptor.dart` | `TabDescriptor` | Runtime wiring: content builder, traceProvider, flagBarTrailing. Delegates label/icon/hasFlags to AppTab. |
+| `tab_registry.dart` | `tabRegistry`, `tabDescriptorMap` | Ordered list + lookup map. Single source of truth for tab ordering and wiring. Only file that imports tab widgets/providers. |
+
+The shell (`app_shell.dart`) iterates the registry — no tab-specific imports,
+no switch statements. Format-toggle trailing widgets (planets, houses,
+tableView, planetocentric) are `ConsumerWidget`s in their respective tab files.
+`test/tab_registry_test.dart` enforces completeness (every AppTab has a descriptor).
+
 ## Tabs (lib/tabs/)
 
-16 tab directories, each with `*_tab.dart` (UI) + `*_provider.dart` (state/calc):
+18 tab directories, each with `*_tab.dart` (UI) + `*_provider.dart` (state/calc):
 planets, houses, ayanamsa, dates, nodes_apsides, stars, coordinates, phenomena,
 rise_set, crossings, heliacal, eclipses, differential, planetocentric,
-table_view, math, config.
+table_view, math, config, plus ephemeris_manager (widget, not a tab directory).
