@@ -3,7 +3,7 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-01 (post-Ephemeris seam + Calculation kernel).
+Last updated: 2026-07-06 (swe-dashboard/23: per-tab trace wiring).
 
 ## Provider graph (data flow)
 
@@ -14,10 +14,6 @@ sweProvider (SwissEph)          ← swe_service.dart, conditional import
      │        │  wraps SwissEph in TracingSwissEph
      │        │  exposes: run(globals, (eph) => ...), runScoped(override, body)
      │        │  tabs receive the tracer as eph param (typed Ephemeris)
-     │        │
-     │        └── callTraceProvider (CallTrace?)
-     │                 reads runner.traceEntries + effectiveContext
-     │                 null when trace is empty; non-null once any tab computes
      │
      ├── effectiveContextProvider (EffectiveContext)
      │        merges contextBarState + flagBarState
@@ -82,7 +78,7 @@ Richer result shapes among the search / multi-call tabs:
 | `tracing_swiss_eph.dart` | `TracingSwissEph` | Production adapter. `implements Ephemeris`. Wraps `SwissEph` delegate, records CallEntry for every interface method. |
 | `fake_ephemeris.dart` | `FakeEphemeris` | Test adapter. `implements Ephemeris`. Optional `on*` callbacks per method; context setters record into `contextCalls`. |
 | `trace_model.dart` | `CallEntry`, `CallTrace`, `TraceSlice`, `CallCategory` | Immutable trace data. Category: context/flags/calc/teardown. |
-| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider`, `callTraceProvider` | Owns the TracingSwissEph singleton. `run()` applies globals then passes tracer to callback. |
+| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the TracingSwissEph singleton. `run()` applies globals then passes tracer to callback. |
 | `applied_globals.dart` | `AppliedGlobals` | Value object: ephePath, sidMode, topo, jplFile. |
 
 ## Conditional-import split (native/web)
@@ -137,6 +133,7 @@ methods backed by unified `SymbolPair`-valued maps.
 | `flag_state.dart` | `FlagBarState` — selected flags |
 | `flag_provider.dart` | `FlagBarNotifier` — auto-links locked flags from context via ref.listen |
 | `active_tab.dart` | `activeTabIdProvider` — tracks currently selected tab |
+| `active_tab_trace.dart` | `activeTraceSourceProvider`, `activeTabTraceProvider` — StateProvider indirection: app_shell sets the per-tab trace source on tab switch; flag bar watches the derived provider |
 
 ## Context bar widgets (lib/widgets/context_bar/)
 
@@ -167,7 +164,7 @@ controller, focus node, and sync/commit logic.
 | File | Tests |
 |------|-------|
 | `test/tracing_swiss_eph_test.dart` | TracingSwissEph: traced methods record CallEntry, untraced don't, error path, tab tag |
-| `test/ephemeris_runner_tracing_test.dart` | EphemerisRunner: _apply records setup, run/runScoped delegation, clearTrace, numeric accuracy |
+| `test/ephemeris_runner_tracing_test.dart` | EphemerisRunner: _apply records setup, run/runScoped delegation, tab tagging, numeric accuracy |
 | `test/trace_model_test.dart` | CallEntry, CallTrace, TraceSlice filtering |
 | `test/c_emitter_test.dart` | CEmitter rendering |
 | `test/dart_emitter_test.dart` | DartEmitter rendering |
