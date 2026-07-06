@@ -246,3 +246,49 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     );
   }
 }
+
+class TableViewFormatTrailing extends ConsumerWidget {
+  const TableViewFormatTrailing({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final formatStyle = ButtonStyle(
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.labelSmall),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 4),
+      ),
+      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
+    );
+    final format = ref.watch(tableViewFormatProvider);
+    final outcome = ref.watch(tableViewResultsProvider);
+    final bodies = ref.watch(tableViewBodiesProvider);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SegmentedButton<DisplayFormat>(
+          segments: DisplayFormat.values
+              .map((f) => ButtonSegment(value: f, label: Text(f.label)))
+              .toList(),
+          selected: {format},
+          onSelectionChanged: (s) =>
+              ref.read(tableViewFormatProvider.notifier).state = s.first,
+          style: formatStyle,
+        ),
+        const SizedBox(width: 8),
+        ExportButton(
+          hasResults: switch (outcome) {
+            CalcOk(value: final r) => r.isNotEmpty,
+            CalcSweError() => false,
+          },
+          getRows: () => switch (outcome) {
+            CalcOk(value: final r) => tableViewToExportRows(r, bodies, format),
+            CalcSweError() => [],
+          },
+          filenameStem: 'swe_table',
+        ),
+      ],
+    );
+  }
+}

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
+import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'planets_provider.dart';
 
@@ -387,4 +389,51 @@ String _bodyLabel(int body) {
   // Asteroid by MPC number?
   if (body >= seAstOffset) return '#${body - seAstOffset}';
   return 'Body $body';
+}
+
+class PlanetsFormatTrailing extends ConsumerWidget {
+  const PlanetsFormatTrailing({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final formatStyle = ButtonStyle(
+      visualDensity: VisualDensity.compact,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.labelSmall),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 4),
+      ),
+      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
+    );
+    final format = ref.watch(planetsFormatProvider);
+    final outcome = ref.watch(planetsResultsProvider);
+    final results = switch (outcome) {
+      CalcOk(value: final v) => v,
+      CalcSweError() => const <PlanetResult>[],
+    };
+    final jd = ref.watch(contextBarProvider).jdUt;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SegmentedButton<DisplayFormat>(
+          segments: DisplayFormat.values
+              .map((f) => ButtonSegment(value: f, label: Text(f.label)))
+              .toList(),
+          selected: {format},
+          onSelectionChanged: (s) =>
+              ref.read(planetsFormatProvider.notifier).state = s.first,
+          style: formatStyle,
+        ),
+        const SizedBox(width: 8),
+        ExportButton(
+          hasResults: results.isNotEmpty,
+          getRows: () => planetsToExportRows(results, format),
+          filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',
+          disabledTooltip: outcome is CalcSweError
+              ? 'Export disabled: calculation error'
+              : null,
+        ),
+      ],
+    );
+  }
 }

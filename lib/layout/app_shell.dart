@@ -1,50 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'tab_definitions.dart';
+import 'tab_registry.dart';
 import 'responsive_layout.dart';
 import '../core/active_tab.dart';
 import '../core/active_tab_trace.dart';
-import '../core/calculation/calc_outcome.dart';
 import '../core/ephemeris/trace_model.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
-import '../core/context_provider.dart';
-import '../core/display_format.dart';
-import '../widgets/export_button.dart';
 import '../widgets/flag_bar/flag_bar.dart';
-import '../tabs/ayanamsa/ayanamsa_provider.dart';
-import '../tabs/crossings/crossings_provider.dart';
-import '../tabs/dates/dates_provider.dart';
-import '../tabs/differential/differential_provider.dart';
-import '../tabs/eclipses/eclipses_provider.dart';
-import '../tabs/heliacal/heliacal_provider.dart';
-import '../tabs/houses/houses_provider.dart';
-import '../tabs/nodes_apsides/nodes_apsides_provider.dart';
-import '../tabs/phenomena/phenomena_provider.dart';
-import '../tabs/planets/planets_provider.dart';
-import '../tabs/planets/planets_tab.dart';
-import '../tabs/rise_set/rise_set_provider.dart';
-import '../tabs/stars/stars_provider.dart';
-import '../tabs/houses/houses_tab.dart';
-import '../tabs/ayanamsa/ayanamsa_tab.dart';
-import '../tabs/dates/dates_tab.dart';
-import '../tabs/differential/differential_tab.dart';
-import '../tabs/math/math_tab.dart';
-import '../tabs/phenomena/phenomena_tab.dart';
-import '../tabs/nodes_apsides/nodes_apsides_tab.dart';
-import '../tabs/coordinates/coordinates_tab.dart';
-import '../tabs/rise_set/rise_set_tab.dart';
-import '../tabs/stars/stars_tab.dart';
-import '../tabs/crossings/crossings_tab.dart';
-import '../tabs/heliacal/heliacal_tab.dart';
-import '../tabs/eclipses/eclipses_tab.dart';
-import '../tabs/table_view/table_view_tab.dart';
-import '../tabs/table_view/table_view_provider.dart';
-import '../tabs/config/config_tab.dart';
-import '../tabs/planetocentric/planetocentric_tab.dart';
-import '../tabs/planetocentric/planetocentric_provider.dart';
-import '../widgets/ephe_manager/ephe_manager_screen.dart';
 
 final selectedTabProvider = StateProvider<AppTab>((ref) {
   final persistence = ref.read(persistenceProvider);
@@ -95,26 +60,8 @@ class _AppShellState extends ConsumerState<AppShell>
     });
   }
 
-  static Provider<CallTrace>? _traceForTab(AppTab tab) => switch (tab) {
-    AppTab.planets => planetsTraceProvider,
-    AppTab.houses => housesTraceProvider,
-    AppTab.ayanamsa => ayanamsaTraceProvider,
-    AppTab.riseSet => riseSetTraceProvider,
-    AppTab.eclipses => eclipsesTraceProvider,
-    AppTab.stars => starTraceProvider,
-    AppTab.crossings => crossingTraceProvider,
-    AppTab.dates => datesTraceProvider,
-    AppTab.nodesApsides => nodesApsTraceProvider,
-    AppTab.heliacal => heliacalTraceProvider,
-    AppTab.phenomena => phenomenaTraceProvider,
-    AppTab.differential => diffTraceProvider,
-    AppTab.planetocentric => planetocentricTraceProvider,
-    AppTab.coordinates ||
-    AppTab.tableView ||
-    AppTab.math ||
-    AppTab.config ||
-    AppTab.ephemerisManager => null,
-  };
+  static Provider<CallTrace>? _traceForTab(AppTab tab) =>
+      tabDescriptorMap[tab]?.traceProvider;
 
   @override
   void dispose() {
@@ -217,161 +164,8 @@ class _AppShellState extends ConsumerState<AppShell>
     );
   }
 
-  /// Format toggle + export button for tabs that use the flag bar.
-  Widget? _buildFlagBarTrailing(AppTab tab) {
-    final formatStyle = ButtonStyle(
-      visualDensity: VisualDensity.compact,
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      textStyle: WidgetStatePropertyAll(Theme.of(context).textTheme.labelSmall),
-      padding: const WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 4),
-      ),
-      minimumSize: const WidgetStatePropertyAll(Size(0, 32)),
-    );
-
-    switch (tab) {
-      case AppTab.planets:
-        return Consumer(
-          builder: (context, ref, _) {
-            final format = ref.watch(planetsFormatProvider);
-            final outcome = ref.watch(planetsResultsProvider);
-            final results = switch (outcome) {
-              CalcOk(value: final v) => v,
-              CalcSweError() => const <PlanetResult>[],
-            };
-            final jd = ref.watch(contextBarProvider).jdUt;
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<DisplayFormat>(
-                  segments: DisplayFormat.values
-                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                      .toList(),
-                  selected: {format},
-                  onSelectionChanged: (s) =>
-                      ref.read(planetsFormatProvider.notifier).state = s.first,
-                  style: formatStyle,
-                ),
-                const SizedBox(width: 8),
-                ExportButton(
-                  hasResults: results.isNotEmpty,
-                  getRows: () => planetsToExportRows(results, format),
-                  filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',
-                  disabledTooltip: outcome is CalcSweError
-                      ? 'Export disabled: calculation error'
-                      : null,
-                ),
-              ],
-            );
-          },
-        );
-      case AppTab.houses:
-        return Consumer(
-          builder: (context, ref, _) {
-            final format = ref.watch(housesFormatProvider);
-            final outcome = ref.watch(housesResultProvider);
-            final jd = ref.watch(contextBarProvider).jdUt;
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<DisplayFormat>(
-                  segments: DisplayFormat.values
-                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                      .toList(),
-                  selected: {format},
-                  onSelectionChanged: (s) =>
-                      ref.read(housesFormatProvider.notifier).state = s.first,
-                  style: formatStyle,
-                ),
-                const SizedBox(width: 8),
-                ExportButton(
-                  hasResults: outcome is CalcOk<HousesCalcResult>,
-                  getRows: () => switch (outcome) {
-                    CalcOk(value: final r) => housesToExportRows(r, format),
-                    CalcSweError() => [],
-                  },
-                  filenameStem: 'swe_houses_${jd.toStringAsFixed(4)}',
-                ),
-              ],
-            );
-          },
-        );
-      case AppTab.tableView:
-        return Consumer(
-          builder: (context, ref, _) {
-            final format = ref.watch(tableViewFormatProvider);
-            final outcome = ref.watch(tableViewResultsProvider);
-            final bodies = ref.watch(tableViewBodiesProvider);
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<DisplayFormat>(
-                  segments: DisplayFormat.values
-                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                      .toList(),
-                  selected: {format},
-                  onSelectionChanged: (s) =>
-                      ref.read(tableViewFormatProvider.notifier).state =
-                          s.first,
-                  style: formatStyle,
-                ),
-                const SizedBox(width: 8),
-                ExportButton(
-                  hasResults: switch (outcome) {
-                    CalcOk(value: final r) => r.isNotEmpty,
-                    CalcSweError() => false,
-                  },
-                  getRows: () => switch (outcome) {
-                    CalcOk(value: final r) => tableViewToExportRows(
-                      r,
-                      bodies,
-                      format,
-                    ),
-                    CalcSweError() => [],
-                  },
-                  filenameStem: 'swe_table',
-                ),
-              ],
-            );
-          },
-        );
-      case AppTab.planetocentric:
-        return Consumer(
-          builder: (context, ref, _) {
-            final format = ref.watch(planetocentricFormatProvider);
-            final outcome = ref.watch(planetocentricResultsProvider);
-            final results = switch (outcome) {
-              CalcOk(value: final v) => v,
-              CalcSweError() => const <PlanetoCentricResult>[],
-            };
-            final jd = ref.watch(contextBarProvider).jdUt;
-            return Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SegmentedButton<DisplayFormat>(
-                  segments: DisplayFormat.values
-                      .map((f) => ButtonSegment(value: f, label: Text(f.label)))
-                      .toList(),
-                  selected: {format},
-                  onSelectionChanged: (s) =>
-                      ref.read(planetocentricFormatProvider.notifier).state =
-                          s.first,
-                  style: formatStyle,
-                ),
-                const SizedBox(width: 8),
-                ExportButton(
-                  hasResults: results.isNotEmpty,
-                  getRows: () => planetocentricToExportRows(results, format),
-                  filenameStem: 'swe_planetocentric_${jd.toStringAsFixed(4)}',
-                ),
-              ],
-            );
-          },
-        );
-      default:
-        return null;
-    }
-  }
+  Widget? _buildFlagBarTrailing(AppTab tab) =>
+      tabDescriptorMap[tab]?.flagBarTrailing?.call();
 }
 
 class _AllTabsBar extends StatelessWidget implements PreferredSizeWidget {
@@ -467,26 +261,7 @@ class _TabContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return switch (tab) {
-      AppTab.planets => const PlanetsTab(),
-      AppTab.houses => const HousesTab(),
-      AppTab.ayanamsa => const AyanamsaTab(),
-      AppTab.dates => const DatesTab(),
-      AppTab.differential => const DifferentialTab(),
-      AppTab.math => const MathTab(),
-      AppTab.phenomena => const PhenomenaTab(),
-      AppTab.nodesApsides => const NodesApsidesTab(),
-      AppTab.coordinates => const CoordinatesTab(),
-      AppTab.riseSet => const RiseSetTab(),
-      AppTab.stars => const StarsTab(),
-      AppTab.crossings => const CrossingsTab(),
-      AppTab.heliacal => const HeliacalTab(),
-      AppTab.eclipses => const EclipsesTab(),
-      AppTab.tableView => const TableViewTab(),
-      AppTab.planetocentric => const PlanetoCentricTab(),
-      AppTab.config => const ConfigTab(),
-      AppTab.ephemerisManager => const EphemerisManagerScreen(),
-    };
+    return tabDescriptorMap[tab]!.content();
   }
 }
 
