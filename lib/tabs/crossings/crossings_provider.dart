@@ -69,10 +69,14 @@ CrossingResult computeCrossing({
   required String helioBodyName,
   required double utcOffset,
 }) {
+  final hasBary = iflag & seFlgBaryCtr != 0;
   final hasNonGeoFrame = iflag & (seFlgHelCtr | seFlgBaryCtr) != 0;
 
   switch (type) {
     case CrossingType.sunCross:
+      if (hasBary) {
+        throw SweException('Sun crossings do not support barycentric frame', 0);
+      }
       final jd = eph.solCrossUt(longitude, jdUt, iflag);
       return CrossingResult(
         crossingJd: jd,
