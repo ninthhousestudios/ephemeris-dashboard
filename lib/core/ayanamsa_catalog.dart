@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Ninth House Studios LLC
+
 /// Canonical catalog of ayanamsa modes supported by Swiss Ephemeris.
 ///
 /// Single source of truth for both the context-bar selector and the

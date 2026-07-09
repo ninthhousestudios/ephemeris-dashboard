@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Ninth House Studios LLC
+
 import 'tab_definitions.dart';
 import 'tab_descriptor.dart';
 import '../tabs/ayanamsa/ayanamsa_provider.dart';

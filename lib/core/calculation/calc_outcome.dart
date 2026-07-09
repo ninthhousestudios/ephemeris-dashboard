@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Ninth House Studios LLC
+
 /// Outcome of a tab calculation. Per ADR-0001, results are always a
 /// projection of the current Context — there is no "not run" state.
 sealed class CalcOutcome<T> {

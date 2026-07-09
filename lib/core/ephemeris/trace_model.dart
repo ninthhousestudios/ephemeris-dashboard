@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Ninth House Studios LLC
+
 import '../calc_context.dart';
 import 'swe_symbol_catalog.dart';
 

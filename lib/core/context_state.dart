@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Ninth House Studios LLC
+
 /// Immutable state for the global context bar.
 ///
 /// All calculation tabs read from this shared state by default.
