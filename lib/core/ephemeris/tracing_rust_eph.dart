@@ -39,6 +39,10 @@ class TracingRustEph implements Ephemeris {
     _engine.close();
   }
 
+  static Never _translateAndThrow(rs.SweException e) {
+    throw SweException(e.message, -1);
+  }
+
   rs.EphemerisConfig _buildConfig() {
     return rs.EphemerisConfig(
       ephePath: _ephePath,
@@ -173,6 +177,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -227,6 +232,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -282,6 +288,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -332,6 +339,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -458,6 +466,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -515,6 +524,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -548,6 +558,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -582,6 +593,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -635,6 +647,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -715,6 +728,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -777,6 +791,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -844,6 +859,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -886,6 +902,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -945,6 +962,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1022,6 +1040,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1086,6 +1105,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1162,6 +1182,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1240,6 +1261,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1320,6 +1342,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1383,6 +1406,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1437,6 +1461,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1489,6 +1514,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1531,6 +1557,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1571,6 +1598,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1613,6 +1641,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1688,6 +1717,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
@@ -1779,6 +1809,7 @@ class TracingRustEph implements Ephemeris {
           errorMessage: e.toString(),
         ),
       );
+      if (e is rs.SweException) _translateAndThrow(e);
       rethrow;
     }
   }
