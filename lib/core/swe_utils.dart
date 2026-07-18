@@ -50,6 +50,26 @@ class SweUtils {
     return rs.houseName(system);
   }
 
+  double radNorm(double x) {
+    var result = x % (2 * 3.14159265358979323846);
+    if (result < 0) result += 2 * 3.14159265358979323846;
+    return result;
+  }
+
+  double degMidp(double x1, double x0) {
+    var d = degnorm(x1 - x0);
+    if (d >= 180) d -= 360;
+    return degnorm(x0 + d / 2);
+  }
+
+  double radMidp(double x1, double x0) {
+    const twoPi = 2 * 3.14159265358979323846;
+    var d = (x1 - x0) % twoPi;
+    if (d < 0) d += twoPi;
+    if (d >= 3.14159265358979323846) d -= twoPi;
+    return radNorm(x0 + d / 2);
+  }
+
   SplitDegResult splitDeg(double degrees, int roundFlag) {
     final r = rs.splitDegrees(degrees, rs.SplitDegFlags(roundFlag));
     return SplitDegResult(
