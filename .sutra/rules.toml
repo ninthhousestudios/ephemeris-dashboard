@@ -24,7 +24,7 @@
 
 [[constraint]]
 kind = "confined_external"
-crates = ["swisseph"]
+crates = ["swisseph", "swisseph_rs"]
 allowed_in = ["lib/core/**"]
 name = "swisseph-behind-ephemeris-seam"
 severity = "blocking"  # engine calls through Ephemeris seam (swe-dashboard/12-14); constants re-exported via lib/core/swe_constants.dart (swe-dashboard/22).
