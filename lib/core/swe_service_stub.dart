@@ -8,4 +8,4 @@ Future<String?> initNativeEphePath() =>
     throw UnsupportedError('Not available on web');
 
 /// Load the swisseph_rs WASM module for web.
-Future<void> initWasm() => initializeWasm();
+Future<void> initWasm() => initializeWasm('swisseph_ffi.js');
