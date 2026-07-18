@@ -44,6 +44,7 @@ bool get hasEpheFiles => _ephePath != null;
 String? get bundledEphePath => _ephePath;
 
 /// SweUtils backed by the runner's rs.Ephemeris — for untraced utility calls.
+/// Resolves the engine lazily per call so it tracks engine rebuilds.
 final sweProvider = Provider<SweUtils>((ref) {
-  return SweUtils(ref.watch(ephemerisRunnerProvider).engine);
+  return SweUtils(ref.watch(ephemerisRunnerProvider));
 });

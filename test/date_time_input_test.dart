@@ -2,8 +2,8 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 import 'package:swe_dashboard/core/date_time_input.dart';
+import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/jd_utils.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
 
@@ -152,7 +152,7 @@ void main() {
 
     setUp(() {
       try {
-        jdUtils = JdUtils(SweUtils(rs.Ephemeris(rs.EphemerisConfig())));
+        jdUtils = JdUtils(SweUtils(EphemerisRunner()));
       } catch (_) {
         // Native library not available on this platform
       }

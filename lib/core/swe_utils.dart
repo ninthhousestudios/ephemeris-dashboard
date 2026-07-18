@@ -4,6 +4,7 @@
 import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 
 import 'ephemeris/result_types.dart';
+import 'ephemeris/runner.dart';
 
 /// Dashboard-owned facade over the untraced SwissEph utility surface.
 ///
@@ -12,9 +13,11 @@ import 'ephemeris/result_types.dart';
 /// the same call names, backed by swisseph_rs. Tab call sites switch to this
 /// at cutover (S4).
 class SweUtils {
-  SweUtils(this._engine);
+  SweUtils(this._runner);
 
-  final rs.Ephemeris _engine;
+  final EphemerisRunner _runner;
+
+  rs.Ephemeris get _engine => _runner.engine;
 
   String getPlanetName(int body) {
     return _engine.getPlanetName(rs.Body.fromRawId(body));

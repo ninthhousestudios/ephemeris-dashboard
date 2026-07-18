@@ -86,17 +86,44 @@ void _scanOneDir(
     if (parsed.family == BodyFamily.jpl) {
       entries.add(_enrichJplFromCatalog(parsedWithSubdir));
     } else {
-      entries.add(_probeSeFile(parsedWithSubdir));
+      entries.add(_probeSeFile(rootDir, parsedWithSubdir));
     }
   }
 }
 
-EpheFile _probeSeFile(EpheFile parsed) {
+/// SE1 files begin with the ASCII magic `SWISSEPH`.
+const _se1Magic = [0x53, 0x57, 0x49, 0x53, 0x53, 0x45, 0x50, 0x48]; // SWISSEPH
+
+EpheFile _probeSeFile(String rootDir, EpheFile parsed) {
   const minPlausibleBytes = 16 * 1024;
   if (parsed.sizeBytes > 0 && parsed.sizeBytes < minPlausibleBytes) {
     return parsed.copyWith(status: EpheFileStatus.corrupt);
   }
+  if (parsed.filename.endsWith('.se1')) {
+    final filePath = p.join(rootDir, parsed.relativePath);
+    try {
+      final file = File(filePath);
+      final raf = file.openSync();
+      try {
+        final header = raf.readSync(8);
+        if (header.length < 8 || !_matchesMagic(header)) {
+          return parsed.copyWith(status: EpheFileStatus.corrupt);
+        }
+      } finally {
+        raf.closeSync();
+      }
+    } catch (_) {
+      return parsed.copyWith(status: EpheFileStatus.corrupt);
+    }
+  }
   return parsed.copyWith(status: EpheFileStatus.installed);
+}
+
+bool _matchesMagic(List<int> header) {
+  for (var i = 0; i < _se1Magic.length; i++) {
+    if (header[i] != _se1Magic[i]) return false;
+  }
+  return true;
 }
 
 /// Fill in [startJd]/[endJd]/[startYear]/[endYear] for a JPL file from
