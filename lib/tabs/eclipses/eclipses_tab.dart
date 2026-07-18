@@ -9,6 +9,7 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../core/swe_utils.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
@@ -208,7 +209,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     );
   }
 
-  Widget _eclipseCard(BuildContext context, EclipseEvent e, SwissEph swe) {
+  Widget _eclipseCard(BuildContext context, EclipseEvent e, SweUtils swe) {
     final fields = <ResultField>[];
 
     if (e.error != null) {
@@ -307,7 +308,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     List<ResultField> fields,
     String label,
     double? jd,
-    SwissEph swe,
+    SweUtils swe,
   ) {
     if (jd == null) return;
     fields.add(ResultField(label: label, value: formatJdDateTime(swe, jd)));

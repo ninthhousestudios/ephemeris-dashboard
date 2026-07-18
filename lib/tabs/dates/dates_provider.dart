@@ -11,6 +11,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
+import '../../core/swe_utils.dart';
 
 /// Optional override JD — when non-null, use this instead of the context bar JD.
 final datesOverrideJdProvider = StateProvider<double?>((ref) => null);
@@ -113,7 +114,7 @@ class DatesResult {
 /// becomes an error string in the result rather than aborting the batch.
 DatesResult computeDates(
   Ephemeris eph,
-  SwissEph swe, {
+  SweUtils swe, {
   required double jdUt,
   required double geolon,
 }) {

@@ -2,11 +2,12 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 // ignore_for_file: avoid_print
-import 'package:swisseph/swisseph.dart';
+import 'package:swisseph_rs/swisseph_rs.dart' as rs;
+import 'package:swe_dashboard/core/ephemeris/tracing_rust_eph.dart';
 
 void main() {
-  final swe = SwissEph.find();
-  print('version: ${swe.version()}');
+  final swe = TracingRustEph();
+  print('version: ${rs.engineVersion}');
 
   for (final name in [
     'Aldebaran',

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:swisseph/src/constants.dart';
+import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/code_emitter.dart';

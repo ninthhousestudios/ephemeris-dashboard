@@ -4,6 +4,7 @@
 import '../../core/swe_constants.dart';
 
 import '../../core/export_service.dart';
+import '../../core/swe_utils.dart';
 import '../../widgets/result_card.dart';
 
 /// The math operations available on this tab.
@@ -34,7 +35,7 @@ enum MathOp {
 /// computes on demand.
 ///
 /// Compute a single math operation — pure function, no providers needed.
-List<ResultField> computeMathOp(SwissEph swe, MathOp op, double a, double b) {
+List<ResultField> computeMathOp(SweUtils swe, MathOp op, double a, double b) {
   try {
     switch (op) {
       case MathOp.degnorm:

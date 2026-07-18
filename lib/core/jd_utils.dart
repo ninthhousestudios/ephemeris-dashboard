@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'package:swisseph/swisseph.dart';
+import 'swe_utils.dart';
 
 /// DateTime ↔ Julian Day conversion helpers.
 ///
-/// Uses SwissEph.julday/revjul for astronomically correct conversions.
+/// Uses SweUtils.julday/revjul for astronomically correct conversions.
 class JdUtils {
   const JdUtils(this._swe);
-  final SwissEph _swe;
+  final SweUtils _swe;
 
   /// Convert a Dart [DateTime] (treated as UT) to Julian Day.
   double dateTimeToJd(DateTime dt) {
@@ -23,11 +23,6 @@ class JdUtils {
   /// Convert a Julian Day to Dart [DateTime] (UT).
   DateTime jdToDateTime(double jd) {
     final result = _swe.revjul(jd);
-    // result.hour is fractional hours in [0, 24). Convert to whole milliseconds
-    // (rounded, not truncated) and add to midnight so DateTime carries across
-    // second/minute/hour/day boundaries. Truncating here dropped a second on
-    // round-trip values like 14:30:44.9999, and clamping ms to 999 masked it;
-    // rounding+carry also folds the hour == 24.0 case into the next day.
     final totalMs = (result.hour * 3600000).round();
     final midnight = DateTime.utc(result.year, result.month, result.day);
     return midnight.add(Duration(milliseconds: totalMs));
@@ -48,19 +43,9 @@ class JdUtils {
 
 String _p2(int n) => n.toString().padLeft(2, '0');
 
-/// Formats a Julian Day (UT) as a civil date-time string. Moment = JD canonical,
-/// civil derived (CONTEXT.md). Single source for every tab's JD→string variant:
-///
-/// - [seconds]: include `:SS` (and, when [utcOffset] is set, in the local bracket)
-/// - [utLabel]: append ` UT` to the UT portion
-/// - [utcOffset]: when non-zero, append `  (HH:MM[:SS] UTC±o)` local time
-/// - [emptyPlaceholder]: when non-null, return it for `NaN`/`0.0` JDs
-/// - [fallbackDigits]: `toStringAsFixed` precision when `revjul` throws
-///
-/// Uses the carry-safe [JdUtils.jdToDateTime] path, so hour == 24.0 rolls into
-/// the next day rather than rendering `24:00`.
+/// Formats a Julian Day (UT) as a civil date-time string.
 String formatJdDateTime(
-  SwissEph swe,
+  SweUtils swe,
   double jd, {
   bool seconds = true,
   bool utLabel = true,

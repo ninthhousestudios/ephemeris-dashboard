@@ -12,6 +12,7 @@ import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
+import '../../core/swe_utils.dart';
 
 // ── Eclipse search mode ──────────────────────────────────────────────────────
 
@@ -356,7 +357,7 @@ double? _nonZero(double v) => v == 0.0 ? null : v;
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
-List<ExportRow> eclipsesToExportRows(List<EclipseEvent> events, SwissEph swe) {
+List<ExportRow> eclipsesToExportRows(List<EclipseEvent> events, SweUtils swe) {
   return events.map((e) {
     final fields = <(String, String)>[('Type', e.eclipseTypeLabel)];
     if (e.error != null) {

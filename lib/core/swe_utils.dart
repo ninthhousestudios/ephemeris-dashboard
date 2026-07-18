@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'package:swisseph/swisseph.dart' show DateResult, SplitDegResult;
 import 'package:swisseph_rs/swisseph_rs.dart' as rs;
+
+import 'ephemeris/result_types.dart';
 
 /// Dashboard-owned facade over the untraced SwissEph utility surface.
 ///
@@ -80,4 +81,10 @@ class SweUtils {
       sign: r.sign,
     );
   }
+
+  String version() => rs.engineVersion;
+
+  double deltat(double jd) => _engine.deltaT(rs.JdUt1(jd));
+
+  rs.FixstarMagResult fixstar2Mag(String star) => _engine.fixstar2Mag(star);
 }

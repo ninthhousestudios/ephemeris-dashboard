@@ -12,6 +12,7 @@ import '../../core/context_provider.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../core/swe_utils.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
@@ -567,7 +568,7 @@ class _ResultsView extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     HeliacalCalcResult r,
-    SwissEph swe,
+    SweUtils swe,
     double utcOffset,
   ) {
     return ResultCard(
@@ -640,7 +641,7 @@ class _ResultsView extends ConsumerWidget {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-String _fmtHeliacalJd(SwissEph swe, double jd, double utcOffset) =>
+String _fmtHeliacalJd(SweUtils swe, double jd, double utcOffset) =>
     formatJdDateTime(
       swe,
       jd,

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'package:swisseph/swisseph.dart';
 import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 
 import 'ephemeris.dart';
+import 'result_types.dart';
 import 'swe_symbol_catalog.dart';
 import 'trace_model.dart';
 
@@ -16,6 +16,8 @@ class TracingRustEph implements Ephemeris {
   late rs.Ephemeris _engine;
   final List<CallEntry> _entries = [];
   String _tabTag = '';
+
+  rs.Ephemeris get engine => _engine;
 
   // Stored context (stateful → stateless bridge)
   String? _ephePath;
@@ -40,7 +42,7 @@ class TracingRustEph implements Ephemeris {
   }
 
   static Never _translateAndThrow(rs.SweException e) {
-    throw SweException(e.message, -1);
+    throw e;
   }
 
   rs.EphemerisConfig _buildConfig() {

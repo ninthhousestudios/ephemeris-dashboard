@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:swisseph/src/constants.dart';
+import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/code_emitter.dart';
@@ -207,7 +207,10 @@ void main() {
 
       final program = emitter.emitProgram(entries);
 
-      expect(program, contains("import 'package:swisseph/swisseph.dart'"));
+      expect(
+        program,
+        contains("import 'package:swisseph_rs/swisseph_rs.dart'"),
+      );
       expect(program, contains('void main()'));
       expect(program, contains('SwissEph()'));
       expect(program, contains('swe.close()'));

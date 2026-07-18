@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:swisseph/swisseph.dart';
+import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/core/ephemeris/fake_ephemeris.dart';
 import 'package:swe_dashboard/tabs/phenomena/phenomena_provider.dart';
 
@@ -39,7 +39,7 @@ void main() {
       final fake = FakeEphemeris()
         ..onPhenoUt = (jdUt, body, flags) {
           if (body == seMoon) {
-            throw const SweException('no phenomena for Moon', -1);
+            throw const InvalidArgException('no phenomena for Moon');
           }
           return _result(body);
         };

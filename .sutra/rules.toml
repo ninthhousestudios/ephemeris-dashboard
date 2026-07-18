@@ -24,11 +24,11 @@
 
 [[constraint]]
 kind = "confined_external"
-crates = ["swisseph", "swisseph_rs"]
-allowed_in = ["lib/core/**", "test/**"]
+crates = ["swisseph_rs"]
+allowed_in = ["lib/core/**", "test/**", "pubspec.yaml"]
 name = "swisseph-behind-ephemeris-seam"
-severity = "blocking"  # engine calls through Ephemeris seam (swe-dashboard/12-14); constants re-exported via lib/core/swe_constants.dart (swe-dashboard/22).
-provenance = "CONTEXT.md §Ephemeris; yojana:swe-dashboard/4 §Implementation ①"
+severity = "blocking"  # S4 cutover (swe-dashboard/29): package:swisseph removed; swisseph_rs confined behind Ephemeris seam + swe_constants.dart re-exports.
+provenance = "CONTEXT.md §Ephemeris; yojana:swe-dashboard/29"
 
 # ═══════════════════════════════════════════════════════════════════
 # Calculation kernel chokepoint (PRD module ②)
@@ -81,7 +81,7 @@ provenance = "yojana:swe-dashboard/4 §Implementation ⑥"
 [[constraint]]
 kind = "confined_external"
 crates = ["charts_dart"]
-allowed_in = ["lib/widgets/context_bar/**", "lib/core/**"]
+allowed_in = ["lib/widgets/context_bar/**", "lib/core/**", "pubspec.yaml"]
 name = "charts-dart-at-load-sites-only"
 severity = "blocking"  # already clean — locked now
 provenance = "CONTEXT.md §Chart; yojana:swe-dashboard/4 §Implementation ③"

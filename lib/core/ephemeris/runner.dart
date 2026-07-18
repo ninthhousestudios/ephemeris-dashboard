@@ -2,24 +2,25 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swisseph/swisseph.dart';
+import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 
 import '../calc_context.dart';
-import '../swe_service.dart';
 import '../ephe/dir_provider.dart';
 import 'applied_globals.dart';
 import 'ephemeris.dart';
 import 'trace_model.dart';
-import 'tracing_swiss_eph.dart';
+import 'tracing_rust_eph.dart';
 
 class EphemerisRunner {
-  EphemerisRunner(SwissEph swe) : _tracing = TracingSwissEph(swe);
+  EphemerisRunner() : _tracing = TracingRustEph();
 
-  final TracingSwissEph _tracing;
+  final TracingRustEph _tracing;
   AppliedGlobals? _last;
 
   List<CallEntry> get traceEntries => _tracing.entries;
   void setTabTag(String tag) => _tracing.setTabTag(tag);
+
+  rs.Ephemeris get engine => _tracing.engine;
 
   T run<T>(AppliedGlobals globals, T Function(Ephemeris eph) body) {
     if (_last != globals) {
@@ -55,10 +56,14 @@ class EphemerisRunner {
     }
     if (g.jplFile != null) _tracing.setJplFile(g.jplFile!);
   }
+
+  void close() => _tracing.close();
 }
 
 final ephemerisRunnerProvider = Provider<EphemerisRunner>((ref) {
-  return EphemerisRunner(ref.watch(sweProvider));
+  final runner = EphemerisRunner();
+  ref.onDispose(() => runner.close());
+  return runner;
 });
 
 final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {

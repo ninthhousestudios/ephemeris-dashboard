@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swisseph/swisseph.dart';
+import 'package:swisseph_rs/swisseph_rs.dart' show SweException;
 
 import '../calc_context.dart';
 import '../ephemeris/applied_globals.dart';

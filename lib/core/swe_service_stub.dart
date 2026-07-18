@@ -1,19 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'package:swisseph/swisseph.dart';
+import 'package:swisseph_rs/swisseph_rs.dart' show initializeWasm;
 
-/// Stub for web — these functions are never called on web,
-/// but the conditional import requires matching signatures.
-
-class NativeInitResult {
-  final String? ephePath;
-  final SwissEph? swe;
-  const NativeInitResult({this.ephePath, this.swe});
-}
-
-Future<NativeInitResult> initNativeEphePath() =>
+/// Initialize ephemeris path stub — not used on web.
+Future<String?> initNativeEphePath() =>
     throw UnsupportedError('Not available on web');
 
-SwissEph createDesktopSwissEph() =>
-    throw UnsupportedError('Not available on web');
+/// Load the swisseph_rs WASM module for web.
+Future<void> initWasm() => initializeWasm();

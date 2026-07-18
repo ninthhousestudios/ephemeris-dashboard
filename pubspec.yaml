@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
-  swisseph: ^0.5.1
   swisseph_rs: ^0.2.4
   charts_dart:
     git:

@@ -10,6 +10,7 @@ import '../../core/context_provider.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
+import '../../core/swe_utils.dart';
 
 // ── Input providers ──────────────────────────────────────────────────────────
 
@@ -156,7 +157,7 @@ final heliacalTraceProvider = Provider<CallTrace>(
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
-List<ExportRow> heliacalToExportRows(HeliacalCalcResult r, SwissEph swe) {
+List<ExportRow> heliacalToExportRows(HeliacalCalcResult r, SweUtils swe) {
   if (r.hasError) {
     return [
       ExportRow(

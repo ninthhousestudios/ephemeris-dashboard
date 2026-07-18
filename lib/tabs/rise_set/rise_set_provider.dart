@@ -12,6 +12,7 @@ import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../../core/swe_utils.dart';
 
 // ── rsmi type flags ───────────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ class RiseSetResult {
 
 // ── Computation ───────────────────────────────────────────────────────────────
 
-RiseSetDateTime? _toDateTime(SwissEph swe, double jd) {
+RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
   try {
     final r = swe.revjul(jd);
     return RiseSetDateTime(
@@ -159,7 +160,7 @@ RiseSetDateTime? _toDateTime(SwissEph swe, double jd) {
 /// batch. Returns (jd, returnFlag, dateTime) on success; (error) otherwise.
 ({double? jd, int? flag, RiseSetDateTime? dt, String? error}) _event(
   Ephemeris eph,
-  SwissEph swe, {
+  SweUtils swe, {
   required double jdUt,
   required int body,
   required int rsmi,

@@ -1051,7 +1051,7 @@ class DartEmitter implements CodeEmitter {
     Map<String, Object?> metadata = const {},
   }) {
     final buf = StringBuffer();
-    buf.writeln("import 'package:swisseph/swisseph.dart';");
+    buf.writeln("import 'package:swisseph_rs/swisseph_rs.dart';");
     buf.writeln();
     buf.writeln('void main() {');
     buf.writeln('  final swe = SwissEph();');

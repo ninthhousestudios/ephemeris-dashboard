@@ -263,7 +263,7 @@ final _starCalcProvider =
           jdUt: ctx.jdUt,
           iflag: flags.iflag,
           searchTerm: searchTerm,
-          getMagnitude: swe.fixstar2Mag,
+          getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
         ),
       );
     });

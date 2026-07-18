@@ -2,25 +2,23 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:swisseph/swisseph.dart';
+import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/core/ephemeris/ephemeris.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
 import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
-import 'package:swe_dashboard/core/ephemeris/tracing_swiss_eph.dart';
+import 'package:swe_dashboard/core/ephemeris/tracing_rust_eph.dart';
 
 void main() {
-  late SwissEph swe;
   late EphemerisRunner runner;
 
   setUp(() {
-    swe = SwissEph.find();
-    runner = EphemerisRunner(swe);
+    runner = EphemerisRunner();
   });
 
   tearDown(() {
-    swe.close();
+    runner.close();
   });
 
   group('_apply records setup calls', () {
@@ -85,7 +83,7 @@ void main() {
         return eph.calcUt(2460412.5, seSun, seFlgSpeed);
       });
 
-      expect(received, isA<TracingSwissEph>());
+      expect(received, isA<TracingRustEph>());
     });
 
     test('runScoped passes TracingSwissEph to body', () {
@@ -107,7 +105,7 @@ void main() {
         return eph.calcUt(2460412.5, seSun, seFlgSpeed);
       });
 
-      expect(received, isA<TracingSwissEph>());
+      expect(received, isA<TracingRustEph>());
     });
   });
 
@@ -198,7 +196,7 @@ void main() {
       );
     });
 
-    test('values match direct SwissEph calculation', () {
+    test('values match a direct engine calculation', () {
       final globals = AppliedGlobals(
         ephePath: null,
         sidMode: null,
@@ -213,8 +211,8 @@ void main() {
         (eph) => eph.calcUt(2460412.5, seSun, seFlgSwiEph | seFlgSpeed),
       );
 
-      // Compare with a fresh direct call
-      final direct = SwissEph.find();
+      // Compare with a fresh direct TracingRustEph call
+      final direct = TracingRustEph();
       try {
         final expected = direct.calcUt(
           2460412.5,

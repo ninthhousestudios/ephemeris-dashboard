@@ -14,6 +14,7 @@ import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../core/swe_utils.dart';
 
 enum CrossingType {
   sunCross('Sun crosses longitude'),
@@ -62,7 +63,7 @@ class CrossingResult {
 
 CrossingResult computeCrossing({
   required Ephemeris eph,
-  required SwissEph swe,
+  required SweUtils swe,
   required double jdUt,
   required int iflag,
   required CrossingType type,
@@ -73,7 +74,9 @@ CrossingResult computeCrossing({
   required double utcOffset,
 }) {
   if (iflag & (seFlgHelCtr | seFlgBaryCtr) != 0) {
-    throw SweException('Crossings require geocentric or topocentric origin', 0);
+    throw const InvalidArgException(
+      'Crossings require geocentric or topocentric origin',
+    );
   }
 
   switch (type) {

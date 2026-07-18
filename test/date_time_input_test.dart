@@ -2,9 +2,10 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:swisseph/swisseph.dart';
+import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 import 'package:swe_dashboard/core/date_time_input.dart';
 import 'package:swe_dashboard/core/jd_utils.dart';
+import 'package:swe_dashboard/core/swe_utils.dart';
 
 void main() {
   group('fmtDate', () {
@@ -147,20 +148,14 @@ void main() {
   });
 
   group('civil↔JD round-trip', () {
-    SwissEph? swe;
     JdUtils? jdUtils;
 
     setUp(() {
       try {
-        swe = SwissEph.find();
-        jdUtils = JdUtils(swe!);
+        jdUtils = JdUtils(SweUtils(rs.Ephemeris(rs.EphemerisConfig())));
       } catch (_) {
         // Native library not available on this platform
       }
-    });
-
-    tearDown(() {
-      swe?.close();
     });
 
     test('modern date round-trips through JD', () {

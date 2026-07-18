@@ -3,13 +3,12 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/swe_constants.dart';
-
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/swe_service.dart';
+import '../../core/swe_utils.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
@@ -255,7 +254,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
   }
 }
 
-String _bodyLabel(SwissEph swe, int body) {
+String _bodyLabel(SweUtils swe, int body) {
   try {
     return swe.getPlanetName(body);
   } catch (_) {

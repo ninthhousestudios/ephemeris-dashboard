@@ -19,7 +19,7 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 
 | # | Claim (quote / source) | Bucket | Mechanism | Status |
 |---|---|---|---|---|
-| 1 | "SwissEph routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ① | a | `confined_external swisseph allowed_in=lib/core/**` | live, **blocking** (engine calls routed @ `/12`-`/14`; constants re-exported via `lib/core/swe_constants.dart` @ `/22`) |
+| 1 | "Engine routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ① | a | `confined_external swisseph_rs allowed_in=lib/core/**` | live, **blocking** (S4 cutover @ `/29`: package:swisseph removed; swisseph_rs confined behind Ephemeris seam + swe_constants.dart re-exports) |
 | 2 | "Tabs use the kernel, not the runner" — PRD ② | a | `forbidden_dep lib/tabs/** → runner.dart` | live, **advisory** → blocking @ `/11` |
 | 3 | "Tabs are independent" — PRD §Problem | a | `no_cycles lib/tabs` | live, **blocking** (clean today) |
 | 4 | "Context bar / shell cycle removed" — PRD ⑥ | a | `no_cycles lib/widgets/context_bar` | live, **advisory** → blocking @ `/17` (1 cycle today) |

@@ -2,12 +2,11 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swisseph/swisseph.dart';
-
 import 'context_state.dart';
 import 'jd_utils.dart';
 import 'persistence.dart';
 import 'swe_service.dart';
+import 'swe_utils.dart';
 import 'chart_io.dart';
 
 /// Global context bar state provider.
@@ -20,7 +19,7 @@ final contextBarProvider =
 
 /// Manages context bar state with bidirectional JD ↔ DateTime sync.
 class ContextBarNotifier extends StateNotifier<ContextBarState> {
-  ContextBarNotifier(SwissEph swe, this._persistence)
+  ContextBarNotifier(SweUtils swe, this._persistence)
     : _jdUtils = JdUtils(swe),
       super(_initialState(swe)) {
     restoreFromPersistence();
@@ -29,7 +28,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   final JdUtils _jdUtils;
   final PersistenceService _persistence;
 
-  static ContextBarState _initialState(SwissEph swe) {
+  static ContextBarState _initialState(SweUtils swe) {
     final now = DateTime.now().toUtc();
     final jdUtils = JdUtils(swe);
     final jd = jdUtils.dateTimeToJd(now);

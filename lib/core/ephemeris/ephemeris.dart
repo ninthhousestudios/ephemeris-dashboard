@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'package:swisseph/swisseph.dart';
+import 'result_types.dart';
 
 abstract class Ephemeris {
   // Context setters (Applied Globals)
