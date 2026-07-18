@@ -20,6 +20,8 @@ class TracingRustEph implements Ephemeris {
   // Stored context (stateful → stateless bridge)
   String? _ephePath;
   rs.SiderealMode? _sidMode;
+  rs.SiderealBits _sidBits = rs.SiderealBits.none;
+  bool _sidT0IsUt = false;
   double _t0 = 0;
   double _ayanT0 = 0;
   double? _geolon;
@@ -44,6 +46,8 @@ class TracingRustEph implements Ephemeris {
       siderealMode: _sidMode,
       siderealT0: _t0,
       siderealAyanT0: _ayanT0,
+      siderealBits: _sidBits,
+      siderealT0IsUt: _sidT0IsUt,
       topographic: (_geolon != null)
           ? rs.TopoPosition(
               longitude: _geolon!,
@@ -55,8 +59,9 @@ class TracingRustEph implements Ephemeris {
   }
 
   void _rebuildEngine() {
+    final replacement = rs.Ephemeris(_buildConfig());
     _engine.close();
-    _engine = rs.Ephemeris(_buildConfig());
+    _engine = replacement;
   }
 
   // --------------- Context setters ---------------
@@ -85,10 +90,13 @@ class TracingRustEph implements Ephemeris {
         traceId: '$_tabTag:set_sid_mode',
       ),
     );
+    final modeIndex = sidMode & 0xFF;
     _sidMode = rs.SiderealMode.values.firstWhere(
-      (m) => m.value == (sidMode & 0xFF),
+      (m) => m.value == modeIndex,
       orElse: () => rs.SiderealMode.faganBradley,
     );
+    _sidBits = rs.SiderealBits(sidMode & ~0xFF);
+    _sidT0IsUt = (sidMode & 1024) != 0; // SE_SIDBIT_USER_UT
     _t0 = t0;
     _ayanT0 = ayanT0;
     _rebuildEngine();
