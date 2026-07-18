@@ -314,11 +314,14 @@ class TracingRustEph implements Ephemeris {
   AyanamsaResult getAyanamsaExUt(double jdUt, int flags) {
     final traceId = '$_tabTag:get_ayanamsa_ex_ut';
     try {
-      final ayanamsa = _engine.getAyanamsaUt(
+      final (:ayanamsa, :flagsUsed) = _engine.getAyanamsaUt(
         rs.JdUt1(jdUt),
         rs.CalcFlags(flags),
       );
-      final result = AyanamsaResult(ayanamsa: ayanamsa, returnFlag: flags);
+      final result = AyanamsaResult(
+        ayanamsa: ayanamsa,
+        returnFlag: flagsUsed.value,
+      );
       _entries.add(
         CallEntry(
           functionName: TracedFunction.sweGetAyanamsaExUt,
