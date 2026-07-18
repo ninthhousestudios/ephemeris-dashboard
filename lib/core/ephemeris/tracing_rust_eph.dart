@@ -484,42 +484,106 @@ class TracingRustEph implements Ephemeris {
     return result;
   }
 
-  // --------------- Families not in scope for S2 ---------------
-
-  @override
-  double gauquelinSector(
-    double jdUt,
-    int body,
-    int flags,
-    int method, {
-    required double geolon,
-    required double geolat,
-    double geoalt = 0,
-    double atpress = 1013.25,
-    double attemp = 15.0,
-    String? starName,
-  }) {
-    throw UnsupportedError('TracingRustEph: gauquelinSector not yet bridged');
-  }
-
-  @override
-  FixstarResult fixstar2Ut(String star, double jdUt, int flags) {
-    throw UnsupportedError('TracingRustEph: fixstar2Ut not yet bridged');
-  }
+  // --------------- Crossings ---------------
 
   @override
   double solCrossUt(double longitude, double jdUt, int flags) {
-    throw UnsupportedError('TracingRustEph: solCrossUt not yet bridged');
+    final traceId = '$_tabTag:sol_cross_ut';
+    try {
+      final result = _engine.solcrossUt(
+        longitude,
+        rs.JdUt1(jdUt),
+        rs.CalcFlags(flags),
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolcrossUt,
+          args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolcrossUt,
+          args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
   double moonCrossUt(double longitude, double jdUt, int flags) {
-    throw UnsupportedError('TracingRustEph: moonCrossUt not yet bridged');
+    final traceId = '$_tabTag:moon_cross_ut';
+    try {
+      final result = _engine.mooncrossUt(
+        longitude,
+        rs.JdUt1(jdUt),
+        rs.CalcFlags(flags),
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweMooncrossUt,
+          args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweMooncrossUt,
+          args: {'longitude': longitude, 'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
   MoonNodeCrossResult moonCrossNodeUt(double jdUt, int flags) {
-    throw UnsupportedError('TracingRustEph: moonCrossNodeUt not yet bridged');
+    final traceId = '$_tabTag:moon_cross_node_ut';
+    try {
+      final r = _engine.mooncrossNodeUt(rs.JdUt1(jdUt), rs.CalcFlags(flags));
+      final result = MoonNodeCrossResult(
+        jdUt: r.jd,
+        longitude: r.longitude,
+        latitude: r.latitude,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweMooncrossNodeUt,
+          args: {'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweMooncrossNodeUt,
+          args: {'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -530,8 +594,52 @@ class TracingRustEph implements Ephemeris {
     int flags,
     int dir,
   ) {
-    throw UnsupportedError('TracingRustEph: helioCrossUt not yet bridged');
+    final traceId = '$_tabTag:helio_cross_ut:body=$body';
+    try {
+      final result = _engine.helioCrossUt(
+        rs.Body.fromRawId(body),
+        longitude,
+        rs.JdUt1(jdUt),
+        rs.CalcFlags(flags),
+        dir: dir,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweHeliocrossUt,
+          args: {
+            'body': body,
+            'longitude': longitude,
+            'jdUt': jdUt,
+            'iflag': flags,
+            'dir': dir,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweHeliocrossUt,
+          args: {
+            'body': body,
+            'longitude': longitude,
+            'jdUt': jdUt,
+            'iflag': flags,
+            'dir': dir,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
+
+  // --------------- Eclipses ---------------
 
   @override
   SolarEclipseLocalResult solEclipseWhenLoc(
@@ -542,7 +650,73 @@ class TracingRustEph implements Ephemeris {
     double geoalt = 0,
     bool backward = false,
   }) {
-    throw UnsupportedError('TracingRustEph: solEclipseWhenLoc not yet bridged');
+    final traceId = '$_tabTag:sol_eclipse_when_loc';
+    try {
+      final r = _engine.solEclipseWhenLoc(
+        rs.JdUt1(jdStart),
+        rs.CalcFlags(flags),
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        backward: backward,
+      );
+      final result = SolarEclipseLocalResult(
+        maxEclipse: r.timeMaximum,
+        firstContact: r.timeFirstContact,
+        secondContact: r.timeSecondContact,
+        thirdContact: r.timeThirdContact,
+        fourthContact: r.timeFourthContact,
+        sunrise: r.timeSunrise,
+        sunset: r.timeSunset,
+        magnitude: r.attr.magnitude,
+        diameterRatio: r.attr.diameterRatio,
+        obscuration: r.attr.obscuration,
+        coreShadowKm: r.attr.coreDiameterKm,
+        sunAzimuth: r.attr.azimuth,
+        sunTrueAltitude: r.attr.trueAltitude,
+        sunApparentAltitude: r.attr.apparentAltitude,
+        moonSunAngle: r.attr.elongation,
+        magnitudeNasa: r.attr.nasaMagnitude,
+        sarosSeries: r.attr.sarosSeries,
+        sarosMember: r.attr.sarosMember,
+        returnFlag: r.flags.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseWhenLoc,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseWhenLoc,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -552,9 +726,59 @@ class TracingRustEph implements Ephemeris {
     int eclType = 0,
     bool backward = false,
   }) {
-    throw UnsupportedError(
-      'TracingRustEph: solEclipseWhenGlob not yet bridged',
-    );
+    final traceId = '$_tabTag:sol_eclipse_when_glob';
+    try {
+      final r = _engine.solEclipseWhenGlob(
+        rs.JdUt1(jdStart),
+        rs.CalcFlags(flags),
+        eclType: rs.EclipseFlags(eclType),
+        backward: backward,
+      );
+      final result = SolarEclipseGlobalResult(
+        maxEclipse: r.timeMaximum,
+        localNoon: r.timeRaConjunction,
+        begin: r.timeBegin,
+        end: r.timeEnd,
+        totalityBegin: r.timeTotalityBegin,
+        totalityEnd: r.timeTotalityEnd,
+        centerLineBegin: r.timeCenterlineBegin,
+        centerLineEnd: r.timeCenterlineEnd,
+        annularTotalBegin: 0,
+        annularTotalEnd: 0,
+        returnFlag: r.flags.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseWhenGlob,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'eclType': eclType,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseWhenGlob,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'eclType': eclType,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -565,12 +789,105 @@ class TracingRustEph implements Ephemeris {
     required double geolat,
     double geoalt = 0,
   }) {
-    throw UnsupportedError('TracingRustEph: solEclipseHow not yet bridged');
+    final traceId = '$_tabTag:sol_eclipse_how';
+    try {
+      final r = _engine.solEclipseHow(
+        rs.JdUt1(jdUt),
+        rs.CalcFlags(flags),
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+      );
+      final result = SolarEclipseAttrResult(
+        magnitude: r.magnitude,
+        diameterRatio: r.diameterRatio,
+        obscuration: r.obscuration,
+        coreShadowKm: r.coreDiameterKm,
+        sunAzimuth: r.azimuth,
+        sunTrueAltitude: r.trueAltitude,
+        sunApparentAltitude: r.apparentAltitude,
+        moonSunAngle: r.elongation,
+        magnitudeNasa: r.nasaMagnitude,
+        sarosSeries: r.sarosSeries,
+        sarosMember: r.sarosMember,
+        returnFlag: r.flags.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseHow,
+          args: {
+            'jdUt': jdUt,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseHow,
+          args: {
+            'jdUt': jdUt,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
   EclipseWhereResult solEclipseWhere(double jdUt, int flags) {
-    throw UnsupportedError('TracingRustEph: solEclipseWhere not yet bridged');
+    final traceId = '$_tabTag:sol_eclipse_where';
+    try {
+      final r = _engine.solEclipseWhere(rs.JdUt1(jdUt), rs.CalcFlags(flags));
+      final result = EclipseWhereResult(
+        geolon: r.centralLongitude,
+        geolat: r.centralLatitude,
+        magnitude: 0,
+        diameterRatio: 0,
+        obscuration: 0,
+        coreShadowKm: r.coreDiameterKm,
+        sunAzimuth: 0,
+        sunTrueAltitude: 0,
+        sunApparentAltitude: 0,
+        moonSunAngle: 0,
+        returnFlag: r.flags.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseWhere,
+          args: {'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSolEclipseWhere,
+          args: {'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -580,7 +897,56 @@ class TracingRustEph implements Ephemeris {
     int eclType = 0,
     bool backward = false,
   }) {
-    throw UnsupportedError('TracingRustEph: lunEclipseWhen not yet bridged');
+    final traceId = '$_tabTag:lun_eclipse_when';
+    try {
+      final r = _engine.lunEclipseWhen(
+        rs.JdUt1(jdStart),
+        rs.CalcFlags(flags),
+        eclType: rs.EclipseFlags(eclType),
+        backward: backward,
+      );
+      final result = LunarEclipseGlobalResult(
+        maxEclipse: r.timeMaximum,
+        partialBegin: r.timePartialBegin,
+        partialEnd: r.timePartialEnd,
+        totalityBegin: r.timeTotalityBegin,
+        totalityEnd: r.timeTotalityEnd,
+        penumbralBegin: r.timePenumbralBegin,
+        penumbralEnd: r.timePenumbralEnd,
+        returnFlag: r.flags.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweLunEclipseWhen,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'eclType': eclType,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweLunEclipseWhen,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'eclType': eclType,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -592,7 +958,72 @@ class TracingRustEph implements Ephemeris {
     double geoalt = 0,
     bool backward = false,
   }) {
-    throw UnsupportedError('TracingRustEph: lunEclipseWhenLoc not yet bridged');
+    final traceId = '$_tabTag:lun_eclipse_when_loc';
+    try {
+      final r = _engine.lunEclipseWhenLoc(
+        rs.JdUt1(jdStart),
+        rs.CalcFlags(flags),
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        backward: backward,
+      );
+      final result = LunarEclipseLocalResult(
+        maxEclipse: r.timeMaximum,
+        partialBegin: r.timePartialBegin,
+        partialEnd: r.timePartialEnd,
+        totalityBegin: r.timeTotalityBegin,
+        totalityEnd: r.timeTotalityEnd,
+        penumbralBegin: r.timePenumbralBegin,
+        penumbralEnd: r.timePenumbralEnd,
+        moonrise: r.timeMoonrise,
+        moonset: r.timeMoonset,
+        umbralMagnitude: r.attr.umbralMagnitude,
+        penumbralMagnitude: r.attr.penumbralMagnitude,
+        moonAzimuth: r.attr.azimuth,
+        moonTrueAltitude: r.attr.trueAltitude,
+        moonApparentAltitude: r.attr.apparentAltitude,
+        moonOppositionAngle: r.attr.distanceFromOpposition,
+        sarosSeries: r.attr.sarosSeries,
+        sarosMember: r.attr.sarosMember,
+        returnFlag: r.flags.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweLunEclipseWhenLoc,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweLunEclipseWhenLoc,
+          args: {
+            'jdStart': jdStart,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'backward': backward,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -603,8 +1034,63 @@ class TracingRustEph implements Ephemeris {
     required double geolat,
     double geoalt = 0,
   }) {
-    throw UnsupportedError('TracingRustEph: lunEclipseHow not yet bridged');
+    final traceId = '$_tabTag:lun_eclipse_how';
+    try {
+      final r = _engine.lunEclipseHow(
+        rs.JdUt1(jdUt),
+        rs.CalcFlags(flags),
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+      );
+      final result = LunarEclipseAttrResult(
+        umbralMagnitude: r.umbralMagnitude,
+        penumbralMagnitude: r.penumbralMagnitude,
+        moonAzimuth: r.azimuth,
+        moonTrueAltitude: r.trueAltitude,
+        moonApparentAltitude: r.apparentAltitude,
+        moonOppositionAngle: r.distanceFromOpposition,
+        sarosSeries: r.sarosSeries,
+        sarosMember: r.sarosMember,
+        returnFlag: r.flags.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweLunEclipseHow,
+          args: {
+            'jdUt': jdUt,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweLunEclipseHow,
+          args: {
+            'jdUt': jdUt,
+            'iflag': flags,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
+
+  // --------------- Rise/set ---------------
 
   @override
   RiseTransResult riseTrans(
@@ -619,7 +1105,65 @@ class TracingRustEph implements Ephemeris {
     double atpress = 1013.25,
     double attemp = 15.0,
   }) {
-    throw UnsupportedError('TracingRustEph: riseTrans not yet bridged');
+    final traceId = '$_tabTag:rise_trans:body=$body,rsmi=$rsmi';
+    try {
+      final r = _engine.riseTrans(
+        rs.JdUt1(jdUt),
+        rs.Body.fromRawId(body),
+        rs.CalcFlags(epheflag),
+        rs.RiseSetFlags(rsmi),
+        starname: starName,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+      );
+      final result = RiseTransResult(transitTime: r.time, returnFlag: 0);
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweRiseTrans,
+          args: {
+            'jdUt': jdUt,
+            'body': body,
+            'starName': starName,
+            'epheflag': epheflag,
+            'rsmi': rsmi,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweRiseTrans,
+          args: {
+            'jdUt': jdUt,
+            'body': body,
+            'starName': starName,
+            'epheflag': epheflag,
+            'rsmi': rsmi,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -636,8 +1180,71 @@ class TracingRustEph implements Ephemeris {
     double attemp = 15.0,
     required double horizonHeight,
   }) {
-    throw UnsupportedError('TracingRustEph: riseTransTrueHor not yet bridged');
+    final traceId = '$_tabTag:rise_trans_true_hor:body=$body,rsmi=$rsmi';
+    try {
+      final r = _engine.riseTransTrueHor(
+        rs.JdUt1(jdUt),
+        rs.Body.fromRawId(body),
+        rs.CalcFlags(epheflag),
+        rs.RiseSetFlags(rsmi),
+        starname: starName,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+        horhgt: horizonHeight,
+      );
+      final result = RiseTransResult(transitTime: r.time, returnFlag: 0);
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweRiseTransTrueHor,
+          args: {
+            'jdUt': jdUt,
+            'body': body,
+            'starName': starName,
+            'epheflag': epheflag,
+            'rsmi': rsmi,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+            'horizonHeight': horizonHeight,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweRiseTransTrueHor,
+          args: {
+            'jdUt': jdUt,
+            'body': body,
+            'starName': starName,
+            'epheflag': epheflag,
+            'rsmi': rsmi,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+            'horizonHeight': horizonHeight,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
+
+  // --------------- Horizon ---------------
 
   @override
   AzAltResult azAlt(
@@ -652,7 +1259,69 @@ class TracingRustEph implements Ephemeris {
     required double bodyLat,
     double bodyDist = 1.0,
   }) {
-    throw UnsupportedError('TracingRustEph: azAlt not yet bridged');
+    final traceId = '$_tabTag:azalt:flag=$calcFlag';
+    try {
+      final dir = calcFlag == 0 ? rs.AzAltDir.eclToHor : rs.AzAltDir.equToHor;
+      final r = _engine.azalt(
+        rs.JdUt1(jdUt),
+        dir,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+        xin0: bodyLon,
+        xin1: bodyLat,
+      );
+      final result = AzAltResult(
+        azimuth: r.azimuth,
+        trueAltitude: r.trueAltitude,
+        apparentAltitude: r.apparentAltitude,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweAzalt,
+          args: {
+            'jdUt': jdUt,
+            'calcFlag': calcFlag,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+            'bodyLon': bodyLon,
+            'bodyLat': bodyLat,
+            'bodyDist': bodyDist,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweAzalt,
+          args: {
+            'jdUt': jdUt,
+            'calcFlag': calcFlag,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+            'bodyLon': bodyLon,
+            'bodyLat': bodyLat,
+            'bodyDist': bodyDist,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -665,19 +1334,163 @@ class TracingRustEph implements Ephemeris {
     required double azimuth,
     required double altitude,
   }) {
-    throw UnsupportedError('TracingRustEph: azAltRev not yet bridged');
+    final traceId = '$_tabTag:azalt_rev:flag=$calcFlag';
+    try {
+      final dir = calcFlag == 0 ? rs.HorDir.horToEcl : rs.HorDir.horToEqu;
+      final r = _engine.azaltRev(
+        rs.JdUt1(jdUt),
+        dir,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        azimuth: azimuth,
+        trueAltitude: altitude,
+      );
+      final result = AzAltRevResult(lon: r.lon, lat: r.lat);
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweAzaltRev,
+          args: {
+            'jdUt': jdUt,
+            'calcFlag': calcFlag,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'azimuth': azimuth,
+            'altitude': altitude,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweAzaltRev,
+          args: {
+            'jdUt': jdUt,
+            'calcFlag': calcFlag,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'azimuth': azimuth,
+            'altitude': altitude,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
+  }
+
+  // --------------- Nodes, orbits, phenomena ---------------
+
+  CalcResult _calcResultFrom6(List<double> v) {
+    return CalcResult(
+      longitude: v[0],
+      latitude: v[1],
+      distance: v[2],
+      longitudeSpeed: v[3],
+      latitudeSpeed: v[4],
+      distanceSpeed: v[5],
+      returnFlag: 0,
+    );
   }
 
   @override
   NodeApsResult nodApsUt(double jdUt, int body, int flags, int method) {
-    throw UnsupportedError('TracingRustEph: nodApsUt not yet bridged');
+    final traceId = '$_tabTag:nod_aps_ut:body=$body';
+    try {
+      final r = _engine.nodApsUt(
+        rs.JdUt1(jdUt),
+        rs.Body.fromRawId(body),
+        rs.CalcFlags(flags),
+        rs.NodApsMethod(method),
+      );
+      final result = NodeApsResult(
+        ascending: _calcResultFrom6(r.ascending),
+        descending: _calcResultFrom6(r.descending),
+        perihelion: _calcResultFrom6(r.perihelion),
+        aphelion: _calcResultFrom6(r.aphelion),
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweNodApsUt,
+          args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweNodApsUt,
+          args: {'jdUt': jdUt, 'body': body, 'iflag': flags, 'method': method},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
   OrbitalElementsResult getOrbitalElements(double jdEt, int body, int flags) {
-    throw UnsupportedError(
-      'TracingRustEph: getOrbitalElements not yet bridged',
-    );
+    final traceId = '$_tabTag:get_orbital_elements:body=$body';
+    try {
+      final r = _engine.getOrbitalElements(
+        rs.JdTt(jdEt),
+        rs.Body.fromRawId(body),
+        rs.CalcFlags(flags),
+      );
+      final result = OrbitalElementsResult(
+        semimajorAxis: r.semiMajorAxis,
+        eccentricity: r.eccentricity,
+        inclination: r.inclination,
+        ascendingNode: r.ascendingNode,
+        argPeriapsis: r.argPerihelion,
+        lonPeriapsis: r.perihelionLon,
+        meanAnomalyEpoch: r.meanAnomaly,
+        trueAnomalyEpoch: r.trueAnomaly,
+        eccentricAnomalyEpoch: r.eccentricAnomaly,
+        meanLongitudeEpoch: r.meanLongitude,
+        siderealPeriodYears: r.siderealPeriod,
+        meanDailyMotion: r.meanDailyMotion,
+        tropicalPeriodYears: r.tropicalPeriod,
+        synodicPeriodDays: r.synodicPeriod,
+        perihelionPassage: r.perihelionPassage,
+        perihelionDistance: r.perihelionDistance,
+        aphelionDistance: r.aphelionDistance,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweGetOrbitalElements,
+          args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweGetOrbitalElements,
+          args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
@@ -686,15 +1499,209 @@ class TracingRustEph implements Ephemeris {
     int body,
     int flags,
   ) {
-    throw UnsupportedError(
-      'TracingRustEph: orbitMaxMinTrueDistance not yet bridged',
-    );
+    final traceId = '$_tabTag:orbit_max_min_true_distance:body=$body';
+    try {
+      final r = _engine.orbitMaxMinTrueDistance(
+        rs.JdTt(jdEt),
+        rs.Body.fromRawId(body),
+        rs.CalcFlags(flags),
+      );
+      final result = OrbitDistanceResult(
+        maxDist: r.max,
+        minDist: r.min,
+        trueDist: r.trueDist,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweOrbitMaxMinTrueDistance,
+          args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweOrbitMaxMinTrueDistance,
+          args: {'jdEt': jdEt, 'body': body, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 
   @override
   PhenoResult phenoUt(double jdUt, int body, int flags) {
-    throw UnsupportedError('TracingRustEph: phenoUt not yet bridged');
+    final traceId = '$_tabTag:pheno_ut:body=$body';
+    try {
+      final r = _engine.phenoUt(
+        rs.JdUt1(jdUt),
+        rs.Body.fromRawId(body),
+        rs.CalcFlags(flags),
+      );
+      final result = PhenoResult(
+        phaseAngle: r.phaseAngle,
+        phase: r.phase,
+        elongation: r.elongation,
+        apparentDiameter: r.apparentDiameter,
+        apparentMagnitude: r.apparentMagnitude,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.swePhenoUt,
+          args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.swePhenoUt,
+          args: {'jdUt': jdUt, 'body': body, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
+
+  // --------------- Stars ---------------
+
+  @override
+  FixstarResult fixstar2Ut(String star, double jdUt, int flags) {
+    final traceId = '$_tabTag:fixstar2_ut:star=$star';
+    try {
+      final r = _engine.fixstar2Ut(star, rs.JdUt1(jdUt), rs.CalcFlags(flags));
+      final result = FixstarResult(
+        starName: r.starName,
+        longitude: r.longitude,
+        latitude: r.latitude,
+        distance: r.distance,
+        longitudeSpeed: r.longitudeSpeed,
+        latitudeSpeed: r.latitudeSpeed,
+        distanceSpeed: r.distanceSpeed,
+        returnFlag: r.flagsUsed.value,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweFixstar2Ut,
+          args: {'star': star, 'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+          returnFlag: result.returnFlag,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweFixstar2Ut,
+          args: {'star': star, 'jdUt': jdUt, 'iflag': flags},
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
+  }
+
+  // --------------- Gauquelin ---------------
+
+  @override
+  double gauquelinSector(
+    double jdUt,
+    int body,
+    int flags,
+    int method, {
+    required double geolon,
+    required double geolat,
+    double geoalt = 0,
+    double atpress = 1013.25,
+    double attemp = 15.0,
+    String? starName,
+  }) {
+    final traceId = '$_tabTag:gauquelin_sector:body=$body';
+    try {
+      final result = _engine.gauquelinSector(
+        rs.JdUt1(jdUt),
+        rs.Body.fromRawId(body),
+        rs.CalcFlags(flags),
+        method,
+        geolon,
+        geolat,
+        geoalt,
+        atpress: atpress,
+        attemp: attemp,
+        starname: starName,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweGauquelinSector,
+          args: {
+            'jdUt': jdUt,
+            'body': body,
+            'iflag': flags,
+            'method': method,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+            'starName': starName,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweGauquelinSector,
+          args: {
+            'jdUt': jdUt,
+            'body': body,
+            'iflag': flags,
+            'method': method,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'atpress': atpress,
+            'attemp': attemp,
+            'starName': starName,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
+  }
+
+  // --------------- Heliacal ---------------
+
+  static const _heliacalEventTypes = {
+    1: rs.HeliacalEventType.morningFirst,
+    2: rs.HeliacalEventType.eveningLast,
+    3: rs.HeliacalEventType.eveningFirst,
+    4: rs.HeliacalEventType.morningLast,
+    5: rs.HeliacalEventType.acronychalRising,
+    6: rs.HeliacalEventType.acronychalSetting,
+  };
 
   @override
   HeliacalResult heliacalUt(
@@ -708,6 +1715,71 @@ class TracingRustEph implements Ephemeris {
     required int typeEvent,
     int flags = 0,
   }) {
-    throw UnsupportedError('TracingRustEph: heliacalUt not yet bridged');
+    final traceId = '$_tabTag:heliacal_ut:obj=$objectName,event=$typeEvent';
+    try {
+      final eventType =
+          _heliacalEventTypes[typeEvent] ?? rs.HeliacalEventType.morningFirst;
+      final r = _engine.heliacalUt(
+        rs.JdUt1(jdStart),
+        objectName,
+        eventType,
+        rs.CalcFlags(flags),
+        rs.HeliacalFlags.none,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        pressure: atmo.pressure,
+        temperature: atmo.temperature,
+        humidity: atmo.humidity,
+        extinction: atmo.extinction,
+        age: observer.age,
+        snellenRatio: observer.snellenRatio,
+        opticType: observer.monoNoBino,
+        aperture: observer.telescopeDia,
+        magnification: observer.telescopeMag,
+      );
+      final result = HeliacalResult(
+        startVisible: r.startVisible,
+        bestVisible: r.optimumVisibility,
+        endVisible: r.endVisible,
+      );
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweHeliacalUt,
+          args: {
+            'jdStart': jdStart,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'objectName': objectName,
+            'typeEvent': typeEvent,
+            'iflag': flags,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          result: result,
+        ),
+      );
+      return result;
+    } catch (e) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweHeliacalUt,
+          args: {
+            'jdStart': jdStart,
+            'geolon': geolon,
+            'geolat': geolat,
+            'geoalt': geoalt,
+            'objectName': objectName,
+            'typeEvent': typeEvent,
+            'iflag': flags,
+          },
+          category: CallCategory.calc,
+          traceId: traceId,
+          errorMessage: e.toString(),
+        ),
+      );
+      rethrow;
+    }
   }
 }
