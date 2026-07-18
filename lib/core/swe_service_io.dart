@@ -25,10 +25,16 @@ Future<String?> initNativeEphePath() async {
     }
   }
 
-  // --- Desktop dev mode: find swisseph package in pub cache ---
+  // --- Desktop dev mode: project assets/ephe or swisseph_rs pub cache ---
   // macOS skipped — it uses the asset-extraction path below (app sandbox
   // blocks access to CWD/.dart_tool/ anyway).
   if (Platform.isLinux || Platform.isWindows) {
+    // Project-local assets/ephe (has sefstars.txt + bundled .se1 files).
+    final cwdAssets = '${Directory.current.path}/assets/ephe';
+    if (_isValidEpheDir(cwdAssets)) {
+      return cwdAssets;
+    }
+
     final pkgConfigPath = _findPackageConfig();
     if (pkgConfigPath != null) {
       final config =
@@ -37,18 +43,6 @@ Future<String?> initNativeEphePath() async {
       final packages = config['packages'] as List<dynamic>;
       for (final pkg in packages) {
         if (pkg['name'] == 'swisseph_rs') {
-          final rootUri = pkg['rootUri'] as String;
-          var pkgRoot = Uri.parse(rootUri).toFilePath();
-          if (!pkgRoot.endsWith('/')) pkgRoot = '$pkgRoot/';
-          final epheDir = '${pkgRoot}ephe';
-          if (_isValidEpheDir(epheDir)) {
-            return epheDir;
-          }
-        }
-      }
-      // Fall back to legacy swisseph package path if rs doesn't bundle ephe.
-      for (final pkg in packages) {
-        if (pkg['name'] == 'swisseph') {
           final rootUri = pkg['rootUri'] as String;
           var pkgRoot = Uri.parse(rootUri).toFilePath();
           if (!pkgRoot.endsWith('/')) pkgRoot = '$pkgRoot/';

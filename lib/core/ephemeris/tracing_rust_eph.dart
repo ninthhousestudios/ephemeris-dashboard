@@ -298,18 +298,17 @@ class TracingRustEph implements Ephemeris {
   @override
   double getAyanamsaUt(double jdUt) {
     final traceId = '$_tabTag:get_ayanamsa_ut';
-    final dt = _engine.deltaT(rs.JdUt1(jdUt));
-    final result = _engine.getAyanamsa(rs.JdTt(jdUt + dt));
+    final r = _engine.getAyanamsaUt(rs.JdUt1(jdUt), rs.CalcFlags(0));
     _entries.add(
       CallEntry(
         functionName: TracedFunction.sweGetAyanamsaUt,
         args: {'jdUt': jdUt},
         category: CallCategory.calc,
         traceId: traceId,
-        result: result,
+        result: r.ayanamsa,
       ),
     );
-    return result;
+    return r.ayanamsa;
   }
 
   @override
