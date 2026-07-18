@@ -21,6 +21,7 @@ class TracingRustEph implements Ephemeris {
 
   // Stored context (stateful → stateless bridge)
   String? _ephePath;
+  rs.EphemerisSource _epheSource = rs.EphemerisSource.moshier;
   rs.SiderealMode? _sidMode;
   rs.SiderealBits _sidBits = rs.SiderealBits.none;
   bool _sidT0IsUt = false;
@@ -47,6 +48,7 @@ class TracingRustEph implements Ephemeris {
 
   rs.EphemerisConfig _buildConfig() {
     return rs.EphemerisConfig(
+      ephemerisSource: _epheSource,
       ephePath: _ephePath,
       jplFilename: _jplFile,
       siderealMode: _sidMode,
@@ -71,6 +73,10 @@ class TracingRustEph implements Ephemeris {
   }
 
   // --------------- Context setters ---------------
+
+  void setEpheSource(rs.EphemerisSource source) {
+    _epheSource = source;
+  }
 
   @override
   void setEphePath(String path) {

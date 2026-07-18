@@ -7,6 +7,7 @@ import '../context_state.dart';
 class AppliedGlobals {
   const AppliedGlobals({
     required this.ephePath,
+    required this.epheSource,
     required this.sidMode,
     required this.userAyanT0,
     required this.userAyanValue,
@@ -15,6 +16,7 @@ class AppliedGlobals {
   });
 
   final String? ephePath;
+  final EpheSource epheSource;
   final int? sidMode;
   final double userAyanT0;
   final double userAyanValue;
@@ -24,6 +26,7 @@ class AppliedGlobals {
   factory AppliedGlobals.fromContext(EffectiveContext ctx, String? ephePath) {
     return AppliedGlobals(
       ephePath: ephePath,
+      epheSource: ctx.epheSource,
       sidMode: ctx.zodiacRef == ZodiacRef.sidereal && ctx.ayanamsa >= 0
           ? ctx.ayanamsa
           : null,
@@ -41,6 +44,7 @@ class AppliedGlobals {
       identical(this, other) ||
       other is AppliedGlobals &&
           ephePath == other.ephePath &&
+          epheSource == other.epheSource &&
           sidMode == other.sidMode &&
           userAyanT0 == other.userAyanT0 &&
           userAyanValue == other.userAyanValue &&
@@ -48,6 +52,13 @@ class AppliedGlobals {
           jplFile == other.jplFile;
 
   @override
-  int get hashCode =>
-      Object.hash(ephePath, sidMode, userAyanT0, userAyanValue, topo, jplFile);
+  int get hashCode => Object.hash(
+    ephePath,
+    epheSource,
+    sidMode,
+    userAyanT0,
+    userAyanValue,
+    topo,
+    jplFile,
+  );
 }

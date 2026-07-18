@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
-import '../../core/swe_service.dart';
+import '../../core/ephe/scanner.dart';
 import 'labeled_dropdown.dart';
 
 class EpheSourceSelector extends ConsumerWidget {
@@ -15,17 +15,25 @@ class EpheSourceSelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final source = ref.watch(contextBarProvider.select((s) => s.epheSource));
-    final noFiles = !hasEpheFiles;
+    final available = ref.watch(availableEpheSourcesProvider);
+    final effectiveSource = available.contains(source)
+        ? source
+        : EpheSource.moshier;
 
-    // When no ephemeris files exist, force Moshier and disable the dropdown.
-    final effectiveSource = noFiles ? EpheSource.moshier : source;
+    if (effectiveSource != source) {
+      Future.microtask(
+        () => ref
+            .read(contextBarProvider.notifier)
+            .setEpheSource(effectiveSource),
+      );
+    }
 
     return LabeledDropdown<EpheSource>(
-      label: noFiles ? 'Ephe (Moshier only)' : 'Ephe',
+      label: available.length == 1 ? 'Ephe (Moshier only)' : 'Ephe',
       value: effectiveSource,
-      items: noFiles ? [EpheSource.moshier] : EpheSource.values,
+      items: EpheSource.values.where(available.contains).toList(),
       itemLabel: (s) => s.label,
-      onChanged: noFiles
+      onChanged: available.length <= 1
           ? null
           : (v) => ref.read(contextBarProvider.notifier).setEpheSource(v),
     );

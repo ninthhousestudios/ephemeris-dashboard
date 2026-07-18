@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import '../context_state.dart';
 import 'catalog.dart';
 import 'dir_provider.dart';
 import 'filename_parser.dart';
@@ -156,4 +157,29 @@ final ephemerisScanProvider = FutureProvider<EphemerisScan>((ref) async {
     return EphemerisScan(const [], DateTime.now(), '');
   }
   return scanEphemerisDirectory(path);
+});
+
+Set<EpheSource> availableEpheSources(EphemerisScan scan) {
+  final sources = {EpheSource.moshier};
+  final installed = scan.files.where(
+    (f) => f.status == EpheFileStatus.installed,
+  );
+  if (installed.any(
+    (f) => f.family == BodyFamily.planets || f.family == BodyFamily.moon,
+  )) {
+    sources.add(EpheSource.swissEph);
+  }
+  if (installed.any((f) => f.family == BodyFamily.jpl)) {
+    sources.add(EpheSource.jpl);
+  }
+  return sources;
+}
+
+final availableEpheSourcesProvider = Provider<Set<EpheSource>>((ref) {
+  final scan = ref.watch(ephemerisScanProvider);
+  return scan.when(
+    data: availableEpheSources,
+    loading: () => EpheSource.values.toSet(),
+    error: (_, _) => {EpheSource.moshier},
+  );
 });

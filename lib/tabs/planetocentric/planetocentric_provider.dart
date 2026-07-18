@@ -130,6 +130,7 @@ List<PlanetoCentricResult> computePlanetocentric({
         ),
       );
     } on SweException {
+      if (results.isEmpty) rethrow;
       results.add(
         PlanetoCentricResult(
           body: body,

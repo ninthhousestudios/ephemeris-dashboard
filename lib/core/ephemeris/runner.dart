@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 
 import '../calc_context.dart';
+import '../context_state.dart';
 import '../ephe/dir_provider.dart';
 import 'applied_globals.dart';
 import 'ephemeris.dart';
@@ -42,7 +43,14 @@ class EphemerisRunner {
     }
   }
 
+  static const _sourceMap = {
+    EpheSource.moshier: rs.EphemerisSource.moshier,
+    EpheSource.swissEph: rs.EphemerisSource.swiss,
+    EpheSource.jpl: rs.EphemerisSource.jpl,
+  };
+
   void _apply(AppliedGlobals g) {
+    _tracing.setEpheSource(_sourceMap[g.epheSource]!);
     if (g.ephePath != null) _tracing.setEphePath(g.ephePath!);
     if (g.sidMode != null) {
       if (g.sidMode == 255) {
