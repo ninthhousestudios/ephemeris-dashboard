@@ -12,10 +12,10 @@ Future<String?> initNativeEphePath() =>
 Future<void> initWasm() => initializeWasm('swisseph_ffi.js');
 
 /// Load bundled .se1/sefstars.txt from Flutter assets into Emscripten MEMFS.
-/// Returns the MEMFS path ('/ephe') on success, null if no files found.
-Future<String?> loadBundledEpheFiles() async {
+/// Returns (MEMFS path, loaded filenames) on success, null path if no files.
+Future<(String?, List<String>)> loadBundledEpheFiles() async {
   final names = await _listEpheAssets();
-  if (names.isEmpty) return null;
+  if (names.isEmpty) return (null, const <String>[]);
   await Future.wait(
     names.map((name) async {
       final data = await rootBundle.load('assets/ephe/$name');
@@ -25,7 +25,7 @@ Future<String?> loadBundledEpheFiles() async {
       );
     }),
   );
-  return '/ephe';
+  return ('/ephe', names);
 }
 
 Future<List<String>> _listEpheAssets() async {

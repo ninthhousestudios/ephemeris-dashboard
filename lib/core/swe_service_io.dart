@@ -95,7 +95,8 @@ Future<String?> initNativeEphePath() async {
 Future<void> initWasm() => throw UnsupportedError('initWasm is web-only');
 
 /// Web MEMFS loader stub — not used on native.
-Future<String?> loadBundledEpheFiles() async => null;
+Future<(String?, List<String>)> loadBundledEpheFiles() async =>
+    (null, const <String>[]);
 
 /// Find .dart_tool/package_config.json from CWD or by walking up from exe.
 String? _findPackageConfig() {

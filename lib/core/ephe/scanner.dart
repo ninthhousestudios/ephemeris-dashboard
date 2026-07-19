@@ -25,7 +25,7 @@ class EphemerisScan {
 /// trust filename-derived metadata.
 Future<EphemerisScan> scanEphemerisDirectory(String dir) async {
   if (kIsWeb) {
-    return EphemerisScan(const [], DateTime.now(), dir);
+    return _scanWebMemfs(dir);
   }
   final directory = Directory(dir);
   if (!directory.existsSync()) {
@@ -40,6 +40,16 @@ Future<EphemerisScan> scanEphemerisDirectory(String dir) async {
     final subName = p.basename(sub.path);
     if (!RegExp(r'^ast\d+$').hasMatch(subName)) continue;
     _scanOneDir(dir, subName, sub, entries);
+  }
+  return EphemerisScan(entries, DateTime.now(), dir);
+}
+
+EphemerisScan _scanWebMemfs(String dir) {
+  final entries = <EpheFile>[];
+  for (final name in webEpheFilenames) {
+    final parsed = parseEpheFilename(name, 0);
+    if (parsed == null) continue;
+    entries.add(parsed.copyWith(status: EpheFileStatus.installed));
   }
   return EphemerisScan(entries, DateTime.now(), dir);
 }
@@ -177,13 +187,6 @@ Set<EpheSource> availableEpheSources(EphemerisScan scan) {
 }
 
 final availableEpheSourcesProvider = Provider<Set<EpheSource>>((ref) {
-  if (kIsWeb) {
-    // Scanner can't probe MEMFS; derive from whether files were staged.
-    // JPL excluded on web (300 MB+, no upstream support).
-    return hasEpheFiles
-        ? {EpheSource.moshier, EpheSource.swissEph}
-        : {EpheSource.moshier};
-  }
   final scan = ref.watch(ephemerisScanProvider);
   return scan.when(
     data: availableEpheSources,

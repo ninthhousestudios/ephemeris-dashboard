@@ -28,7 +28,9 @@ Future<void> initSweEphePath() async {
   // --- Web: WASM + load bundled ephe into MEMFS ---
   if (kIsWeb) {
     await io.initWasm();
-    _ephePath = await io.loadBundledEpheFiles();
+    final (path, names) = await io.loadBundledEpheFiles();
+    _ephePath = path;
+    _webEpheFilenames = names;
     return;
   }
 
@@ -38,6 +40,10 @@ Future<void> initSweEphePath() async {
 
 /// Whether .se1 ephemeris files were found at startup.
 bool get hasEpheFiles => _ephePath != null;
+
+/// Filenames loaded into MEMFS on web (empty on native).
+List<String> _webEpheFilenames = const [];
+List<String> get webEpheFilenames => _webEpheFilenames;
 
 /// Bundled ephe path resolved at startup (null on web / when nothing found).
 /// Consumers (e.g. resolvedEphePathProvider) use this as a fallback when
