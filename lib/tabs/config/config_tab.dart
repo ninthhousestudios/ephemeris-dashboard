@@ -102,8 +102,7 @@ class ConfigTab extends ConsumerWidget {
                   ),
                   const Divider(height: 24),
                   Text(
-                    'The Swiss Ephemeris (C library and Rust '
-                    'transliteration) is '
+                    'The Swiss Ephemeris C library is '
                     'Copyright \u00a9 1997\u20132021 Astrodienst AG, '
                     'licensed under AGPL-3.0.',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -138,13 +137,19 @@ class ConfigTab extends ConsumerWidget {
                   const SizedBox(height: 8),
                   _repoLink(
                     theme,
-                    'swisseph_rs (Dart/Rust)',
-                    'https://gitlab.com/ninthhouse/swisseph_rs',
+                    'swisseph_rs.dart (Dart bindings)',
+                    'https://github.com/ninthhousestudios/swisseph_rs.dart',
                   ),
                   const SizedBox(height: 8),
                   _repoLink(
                     theme,
-                    'Swiss Ephemeris (C library)',
+                    'swisseph-rs (Rust engine)',
+                    'https://github.com/ninthhousestudios/swisseph-rs',
+                  ),
+                  const SizedBox(height: 8),
+                  _repoLink(
+                    theme,
+                    'Swiss Ephemeris (original C library)',
                     'https://github.com/aloistr/swisseph',
                   ),
                 ],
@@ -164,9 +169,9 @@ class ConfigTab extends ConsumerWidget {
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 12),
-                  _infoRow(theme, 'Version', info.version),
+                  _infoRow(theme, 'swisseph-rs', info.version),
                   const SizedBox(height: 4),
-                  _infoRow(theme, 'Dart Package', 'swisseph_rs 0.2.4'),
+                  _infoRow(theme, 'swisseph_rs.dart', '0.2.4'),
                 ],
               ),
             ),
