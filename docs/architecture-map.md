@@ -3,14 +3,14 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-19 (swe-dashboard/32: engine migration docs, ADR-0002).
+Last updated: 2026-07-19 (swe-dashboard/33: statelessize Ephemeris seam).
 
 ## Provider graph (data flow)
 
 ```
 ephemerisRunnerProvider (EphemerisRunner)
-     │  owns TracingRustEph (stateless rs.Ephemeris, adapter-local config)
-     │  exposes: run(globals, (eph) => ...), runScoped(override, body)
+     │  owns TracingRustEph (stateless rs.Ephemeris, per-instance config)
+     │  apply(globals) diffs and calls reconfigure(config) if changed
      │  tabs receive the tracer as eph param (typed Ephemeris)
      │
 effectiveContextProvider (EffectiveContext)
@@ -19,7 +19,7 @@ effectiveContextProvider (EffectiveContext)
      │
 appliedGlobalsProvider (AppliedGlobals)
      │  from effectiveContext + resolvedEphePath
-     │  runner._apply() diffs and calls _rebuildEngine() if changed
+     │  equatable cache key; toEphemerisConfig() builds rs.EphemerisConfig
 ```
 
 ## Calculation kernel (lib/core/calculation/)
@@ -27,7 +27,7 @@ appliedGlobalsProvider (AppliedGlobals)
 | File | Key types | Role |
 |------|-----------|------|
 | `calc_outcome.dart` | `CalcOutcome<T>`, `CalcOk<T>`, `CalcSweError<T>` | Sealed result type. No "not run" variant — per ADR-0001, a tab's result provider is always a projection of the current Context. |
-| `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcScoped<T>`, `ScopedRun` | Free function (not a provider factory): tab-tag -> apply-globals -> execute compute lambda -> envelope in `CalcOutcome`. Synchronous. Each tab's result provider watches its own inputs and calls this with a compute lambda; per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. Both variants funnel through a shared private `_runTabCalc` envelope. |
+| `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcWithOverrides<T>` | Free function (not a provider factory): apply globals → execute compute lambda → envelope in `CalcOutcome`. Synchronous. Each tab's result provider watches its own inputs and calls this with a compute lambda; per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. Both variants funnel through a shared private `_runTabCalc` envelope. |
 
 **Migrated to the kernel:** `planets`, `differential`, `phenomena`,
 `planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`,
@@ -40,13 +40,11 @@ Watches `contextBarProvider` + `flagBarProvider` directly; no
 `safeGetName` helper in `lib/core/body_utils.dart` (was duplicated in 4
 provider files).
 
-**Scoped-globals path (`runTabCalcScoped`):** `ayanamsa` needs a per-mode
-`setSidMode` override around each `getAyanamsaUt`. `runTabCalcScoped` applies
-the base Context globals once (establishing the restore target) then hands the
-compute lambda a `ScopedRun` — the runner's `runScoped` capability — so each
-mode's override is restored to the Context sidMode in a `finally` instead of
-leaking into the process-wide C state. The lambda still only ever sees
-`Ephemeris`, never `EphemerisRunner`, keeping the seam intact.
+**Per-mode overrides (`runTabCalcWithOverrides`):** `ayanamsa` needs a
+per-mode sidereal config override around each `getAyanamsaUt`. Uses
+`AppliedGlobals.withSidMode()` to build per-mode config, then
+`reconfigure` callback to swap the engine config per iteration. No
+save/restore — each reconfigure is independent.
 
 **Deliberate non-kernel tabs:** `math` is a JUSTIFIED EXCEPTION — a stateless
 calculator over user-typed inputs; untraced pure math (`degnorm`/`splitDeg`/…)
@@ -72,12 +70,12 @@ Richer result shapes among the search / multi-call tabs:
 
 | File | Key types | Role |
 |------|-----------|------|
-| `ephemeris.dart` | `Ephemeris` | Abstract interface — context setters + ~35 calculation methods. The seam between tabs and the engine. |
-| `tracing_rust_eph.dart` | `TracingRustEph` | Production adapter. `implements Ephemeris`. Wraps `rs.Ephemeris` (stateless Rust engine); rebuilds on config change. Records CallEntry for every interface method. |
-| `fake_ephemeris.dart` | `FakeEphemeris` | Test adapter. `implements Ephemeris`. Optional `on*` callbacks per method; context setters record into `contextCalls`. |
+| `ephemeris.dart` | `Ephemeris` | Abstract interface — ~35 calculation methods (no context setters). The seam between tabs and the engine. |
+| `tracing_rust_eph.dart` | `TracingRustEph` | Production adapter. `implements Ephemeris`. Wraps `rs.Ephemeris` (stateless Rust engine); `reconfigure(EphemerisConfig)` swaps engine. Records CallEntry for every interface method. No stored config state. |
+| `fake_ephemeris.dart` | `FakeEphemeris` | Test adapter. `implements Ephemeris`. Optional `on*` callbacks per method. |
 | `trace_model.dart` | `CallEntry`, `CallTrace`, `TraceSlice`, `CallCategory` | Immutable trace data. Category: context/flags/calc/teardown. |
-| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the TracingRustEph singleton. `run()` applies globals (rebuilds engine if config changed) then passes tracer to callback. |
-| `applied_globals.dart` | `AppliedGlobals` | Value object: ephePath, sidMode, topo, jplFile. Used for diffing — triggers `_rebuildEngine()` on change. |
+| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the TracingRustEph singleton. `apply(globals)` diffs AppliedGlobals, calls `reconfigure` if changed. |
+| `applied_globals.dart` | `AppliedGlobals` | Equatable value object: ephePath, sidMode, topo, jplFile. `toEphemerisConfig()` builds `rs.EphemerisConfig`. `withSidMode()` for per-mode overrides. |
 
 ## Conditional-import split (native/web)
 
@@ -96,7 +94,7 @@ on native it locates the bundle or dev-mode package path.
 
 Tabs access the engine two ways:
 
-1. **Via runner.run** (traced): `runner.run(globals, (eph) => eph.calcUt(...))`.
+1. **Via runTabCalc** (traced): `runTabCalc(ref, tabTag: ..., compute: (eph) => eph.calcUt(...))`.
    The `eph` is `TracingRustEph`, inferred-typed as `Ephemeris`.
    Methods used: calcUt, calcPctr, houses, getAyanamsaUt, deltat, sidTime,
    nodApsUt, getOrbitalElements, fixstar2Ut, azAlt, azAltRev, cotrans, refrac,
@@ -159,8 +157,8 @@ controller, focus node, and sync/commit logic.
 
 | File | Tests |
 |------|-------|
-| `test/tracing_rust_eph_test.dart` | TracingRustEph: traced methods record CallEntry, untraced don't, error path, tab tag |
-| `test/ephemeris_runner_tracing_test.dart` | EphemerisRunner: _apply records setup, run/runScoped delegation, tab tagging, numeric accuracy |
+| `test/tracing_rust_eph_test.dart` | TracingRustEph: traced methods record CallEntry, reconfigure, error path, tab tag |
+| `test/ephemeris_runner_tracing_test.dart` | EphemerisRunner: apply configures engine, skips on unchanged globals, tab tagging, numeric accuracy |
 | `test/trace_model_test.dart` | CallEntry, CallTrace, TraceSlice filtering |
 | `test/swe_symbol_catalog_test.dart` | SweSymbolCatalog mappings |
 | `test/goldens/*.dart` | Widget golden image tests (54 PNGs, 3 sizes x 2 themes) |
