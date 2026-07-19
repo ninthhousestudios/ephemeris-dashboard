@@ -19,15 +19,16 @@ String? _ephePath;
 /// ephemeris data files (.se1 + sefstars.txt) to a filesystem directory
 /// that the C library can read.
 ///
-/// - **Web:** loads WASM module, uses Moshier mode (no ephe files).
+/// - **Web:** loads WASM module, stages bundled .se1 files into MEMFS.
 /// - **Linux/macOS/Windows desktop:** checks release bundle, then dev-mode
 ///   .dart_tool/package_config.json.
 /// - **Android/iOS:** copies bundled assets/ephe/ to the app's support
 ///   directory on first launch (skips if already present).
 Future<void> initSweEphePath() async {
-  // --- Web: WASM + Moshier mode (no filesystem) ---
+  // --- Web: WASM + load bundled ephe into MEMFS ---
   if (kIsWeb) {
     await io.initWasm();
+    _ephePath = await io.loadBundledEpheFiles();
     return;
   }
 

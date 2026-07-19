@@ -24,7 +24,7 @@ class LibraryInfo {
 /// OFF-PATTERN by design (swe-dashboard/14): a library-metadata reader, not a
 /// Calculation. Reads sweProvider for version/body-name strings only — no
 /// Context dependency, no Applied Globals, no kernel, no trace. Kept as a plain
-/// Provider. (The `_ephePath` stub still returns null → 'unknown'; out of scope.)
+/// Provider.
 final libraryInfoProvider = Provider<LibraryInfo>((ref) {
   final swe = ref.read(sweProvider);
 
@@ -46,14 +46,7 @@ final libraryInfoProvider = Provider<LibraryInfo>((ref) {
 
   return LibraryInfo(
     version: version,
-    ephePath: _ephePath ?? 'unknown',
+    ephePath: bundledEphePath ?? 'none (Moshier mode)',
     bodies: bodies,
   );
 });
-
-// Expose the resolved ephe path.
-String? get _ephePath {
-  // We can't directly access the private _ephePath in swe_service,
-  // but we can read the environment. Use a simple approach.
-  return null;
-}

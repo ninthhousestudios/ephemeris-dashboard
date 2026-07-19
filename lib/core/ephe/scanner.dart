@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../context_state.dart';
+import '../swe_service.dart';
 import 'catalog.dart';
 import 'dir_provider.dart';
 import 'filename_parser.dart';
@@ -176,6 +177,13 @@ Set<EpheSource> availableEpheSources(EphemerisScan scan) {
 }
 
 final availableEpheSourcesProvider = Provider<Set<EpheSource>>((ref) {
+  if (kIsWeb) {
+    // Scanner can't probe MEMFS; derive from whether files were staged.
+    // JPL excluded on web (300 MB+, no upstream support).
+    return hasEpheFiles
+        ? {EpheSource.moshier, EpheSource.swissEph}
+        : {EpheSource.moshier};
+  }
   final scan = ref.watch(ephemerisScanProvider);
   return scan.when(
     data: availableEpheSources,

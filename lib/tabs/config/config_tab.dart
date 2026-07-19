@@ -37,8 +37,8 @@ class ConfigTab extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'All calculations use the Swiss Ephemeris C library '
-                    'via FFI through the swisseph.dart package.',
+                    'All calculations use the Swiss Ephemeris via the '
+                    'swisseph_rs Dart/Rust package.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -102,7 +102,8 @@ class ConfigTab extends ConsumerWidget {
                   ),
                   const Divider(height: 24),
                   Text(
-                    'The Swiss Ephemeris C library is '
+                    'The Swiss Ephemeris (C library and Rust '
+                    'transliteration) is '
                     'Copyright \u00a9 1997\u20132021 Astrodienst AG, '
                     'licensed under AGPL-3.0.',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -137,8 +138,8 @@ class ConfigTab extends ConsumerWidget {
                   const SizedBox(height: 8),
                   _repoLink(
                     theme,
-                    'swisseph.dart',
-                    'https://gitlab.com/ninthhouse/swisseph.dart',
+                    'swisseph_rs (Dart/Rust)',
+                    'https://gitlab.com/ninthhouse/swisseph_rs',
                   ),
                   const SizedBox(height: 8),
                   _repoLink(
@@ -165,7 +166,7 @@ class ConfigTab extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _infoRow(theme, 'Version', info.version),
                   const SizedBox(height: 4),
-                  _infoRow(theme, 'Dart Package', 'swisseph 0.4.4'),
+                  _infoRow(theme, 'Dart Package', 'swisseph_rs 0.2.4'),
                 ],
               ),
             ),

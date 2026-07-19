@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/core/ephemeris/ephemeris.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
+import 'package:swe_dashboard/core/context_state.dart' show EpheSource;
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
 import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
@@ -25,6 +26,7 @@ void main() {
     test('setSidMode is recorded when globals have sidMode', () {
       final globals = AppliedGlobals(
         ephePath: null,
+        epheSource: EpheSource.moshier,
         sidMode: 1,
         userAyanT0: 0,
         userAyanValue: 0,
@@ -49,6 +51,7 @@ void main() {
     test('setTopo is recorded when globals have topo', () {
       final globals = AppliedGlobals(
         ephePath: null,
+        epheSource: EpheSource.moshier,
         sidMode: null,
         userAyanT0: 0,
         userAyanValue: 0,
@@ -70,6 +73,7 @@ void main() {
     test('run passes TracingSwissEph to body', () {
       final globals = AppliedGlobals(
         ephePath: null,
+        epheSource: EpheSource.moshier,
         sidMode: null,
         userAyanT0: 0,
         userAyanValue: 0,
@@ -89,6 +93,7 @@ void main() {
     test('runScoped passes TracingSwissEph to body', () {
       final globals = AppliedGlobals(
         ephePath: null,
+        epheSource: EpheSource.moshier,
         sidMode: null,
         userAyanT0: 0,
         userAyanValue: 0,
@@ -113,6 +118,7 @@ void main() {
     test('setTabTag propagates to trace entries', () {
       final globals = AppliedGlobals(
         ephePath: null,
+        epheSource: EpheSource.moshier,
         sidMode: 1,
         userAyanT0: 0,
         userAyanValue: 0,
@@ -134,6 +140,7 @@ void main() {
     test('trace contains setup calls before calc calls', () {
       final globals = AppliedGlobals(
         ephePath: null,
+        epheSource: EpheSource.moshier,
         sidMode: 1,
         userAyanT0: 0,
         userAyanValue: 0,
@@ -158,6 +165,7 @@ void main() {
     test('planets-style calc with all setup types in order', () {
       final globals = AppliedGlobals(
         ephePath: '/tmp/ephe',
+        epheSource: EpheSource.moshier,
         sidMode: 1,
         userAyanT0: 0,
         userAyanValue: 0,
@@ -199,6 +207,7 @@ void main() {
     test('values match a direct engine calculation', () {
       final globals = AppliedGlobals(
         ephePath: null,
+        epheSource: EpheSource.moshier,
         sidMode: null,
         userAyanT0: 0,
         userAyanValue: 0,
