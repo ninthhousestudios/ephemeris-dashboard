@@ -82,11 +82,10 @@ class FileInUseIndicator extends ConsumerWidget {
     final file = ref.watch(activeFileProvider(BodyFamily.planets));
     if (file == null) {
       return (
-        'Moshier',
-        theme.colorScheme.tertiaryContainer,
-        theme.colorScheme.onTertiaryContainer,
-        'No Swiss Ephemeris file covers JD ${jdUt.toStringAsFixed(2)} — '
-            'the analytical Moshier model will be used.',
+        'Swiss Eph',
+        theme.colorScheme.secondaryContainer,
+        theme.colorScheme.onSecondaryContainer,
+        'Swiss Ephemeris mode — specific file not resolved by scanner.',
       );
     }
     return (
