@@ -3,12 +3,10 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/swe_constants.dart';
-import 'package:swe_dashboard/core/ephemeris/ephemeris.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/context_state.dart' show EpheSource;
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
 import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
-import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
 import 'package:swe_dashboard/core/ephemeris/tracing_rust_eph.dart';
 
 void main() {
@@ -22,9 +20,18 @@ void main() {
     runner.close();
   });
 
-  group('_apply records setup calls', () {
-    test('setSidMode is recorded when globals have sidMode', () {
-      final globals = AppliedGlobals(
+  group('apply configures engine', () {
+    test('apply with sidereal globals produces sidereal results', () {
+      final tropical = AppliedGlobals(
+        ephePath: null,
+        epheSource: EpheSource.moshier,
+        sidMode: null,
+        userAyanT0: 0,
+        userAyanValue: 0,
+        topo: null,
+        jplFile: null,
+      );
+      final sidereal = AppliedGlobals(
         ephePath: null,
         epheSource: EpheSource.moshier,
         sidMode: 1,
@@ -34,83 +41,41 @@ void main() {
         jplFile: null,
       );
 
-      runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
+      runner.apply(tropical);
+      final tropResult = runner.tracing.calcUt(2460412.5, seSun, seFlgSpeed);
+      runner.traceEntries.clear();
 
-      final entries = runner.traceEntries;
-      expect(
-        entries.where((e) => e.functionName == TracedFunction.sweSetSidMode),
-        hasLength(1),
+      runner.apply(sidereal);
+      final sidResult = runner.tracing.calcUt(
+        2460412.5,
+        seSun,
+        seFlgSpeed | seFlgSidereal,
       );
-      final setup = entries.firstWhere(
-        (e) => e.functionName == TracedFunction.sweSetSidMode,
-      );
-      expect(setup.category, equals(CallCategory.context));
-      expect(setup.args['sidMode'], equals(1));
+
+      expect(tropResult.longitude, isNot(equals(sidResult.longitude)));
     });
 
-    test('setTopo is recorded when globals have topo', () {
+    test('apply skips reconfigure when globals unchanged', () {
       final globals = AppliedGlobals(
         ephePath: null,
         epheSource: EpheSource.moshier,
         sidMode: null,
         userAyanT0: 0,
         userAyanValue: 0,
-        topo: (lon: -0.1278, lat: 51.5074, alt: 0.0),
+        topo: null,
         jplFile: null,
       );
 
-      runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
-
-      final entries = runner.traceEntries;
-      expect(
-        entries.where((e) => e.functionName == TracedFunction.sweSetTopo),
-        hasLength(1),
-      );
+      runner.apply(globals);
+      final engineBefore = runner.tracing.engine;
+      runner.apply(globals);
+      expect(identical(runner.tracing.engine, engineBefore), isTrue);
     });
   });
 
-  group('body closures receive TracingSwissEph', () {
-    test('run passes TracingSwissEph to body', () {
-      final globals = AppliedGlobals(
-        ephePath: null,
-        epheSource: EpheSource.moshier,
-        sidMode: null,
-        userAyanT0: 0,
-        userAyanValue: 0,
-        topo: null,
-        jplFile: null,
-      );
-
-      Ephemeris? received;
-      runner.run(globals, (eph) {
-        received = eph;
-        return eph.calcUt(2460412.5, seSun, seFlgSpeed);
-      });
-
-      expect(received, isA<TracingRustEph>());
-    });
-
-    test('runScoped passes TracingSwissEph to body', () {
-      final globals = AppliedGlobals(
-        ephePath: null,
-        epheSource: EpheSource.moshier,
-        sidMode: null,
-        userAyanT0: 0,
-        userAyanValue: 0,
-        topo: null,
-        jplFile: null,
-      );
-
-      // Need to run once first so _last is set for the finally block
-      runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
-
-      Ephemeris? received;
-      runner.runScoped((eph) {}, (eph) {
-        received = eph;
-        return eph.calcUt(2460412.5, seSun, seFlgSpeed);
-      });
-
-      expect(received, isA<TracingRustEph>());
+  group('tracing exposes TracingRustEph', () {
+    test('tracing returns TracingRustEph', () {
+      expect(runner.tracing, isA<TracingRustEph>());
     });
   });
 
@@ -119,7 +84,7 @@ void main() {
       final globals = AppliedGlobals(
         ephePath: null,
         epheSource: EpheSource.moshier,
-        sidMode: 1,
+        sidMode: null,
         userAyanT0: 0,
         userAyanValue: 0,
         topo: null,
@@ -127,7 +92,8 @@ void main() {
       );
 
       runner.setTabTag('planets');
-      runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
+      runner.apply(globals);
+      runner.tracing.calcUt(2460412.5, seSun, seFlgSpeed);
 
       final calcEntry = runner.traceEntries.firstWhere(
         (e) => e.functionName == TracedFunction.sweCalcUt,
@@ -136,74 +102,7 @@ void main() {
     });
   });
 
-  group('integration: trace ordering', () {
-    test('trace contains setup calls before calc calls', () {
-      final globals = AppliedGlobals(
-        ephePath: null,
-        epheSource: EpheSource.moshier,
-        sidMode: 1,
-        userAyanT0: 0,
-        userAyanValue: 0,
-        topo: (lon: -0.1278, lat: 51.5074, alt: 0.0),
-        jplFile: null,
-      );
-
-      runner.setTabTag('planets');
-      runner.run(globals, (eph) => eph.calcUt(2460412.5, seSun, seFlgSpeed));
-
-      final names = runner.traceEntries.map((e) => e.functionName).toList();
-      expect(
-        names,
-        containsAllInOrder([
-          TracedFunction.sweSetSidMode,
-          TracedFunction.sweSetTopo,
-          TracedFunction.sweCalcUt,
-        ]),
-      );
-    });
-
-    test('planets-style calc with all setup types in order', () {
-      final globals = AppliedGlobals(
-        ephePath: '/tmp/ephe',
-        epheSource: EpheSource.moshier,
-        sidMode: 1,
-        userAyanT0: 0,
-        userAyanValue: 0,
-        topo: (lon: -0.1278, lat: 51.5074, alt: 0.0),
-        jplFile: 'de441.eph',
-      );
-
-      runner.setTabTag('planets');
-
-      // Simulate planets tab: multiple bodies
-      runner.run(globals, (eph) {
-        eph.calcUt(2460412.5, seSun, seFlgSpeed);
-        eph.calcUt(2460412.5, seMoon, seFlgSpeed);
-        return null;
-      });
-
-      final names = runner.traceEntries.map((e) => e.functionName).toList();
-
-      // Setup calls come first in _apply order, then calc calls
-      expect(
-        names,
-        containsAllInOrder([
-          TracedFunction.sweSetEphePath,
-          TracedFunction.sweSetSidMode,
-          TracedFunction.sweSetTopo,
-          TracedFunction.sweSetJplFile,
-          TracedFunction.sweCalcUt,
-          TracedFunction.sweCalcUt,
-        ]),
-      );
-
-      // All entries tagged with 'planets'
-      expect(
-        runner.traceEntries.every((e) => e.traceId.startsWith('planets:')),
-        isTrue,
-      );
-    });
-
+  group('integration: calc values', () {
     test('values match a direct engine calculation', () {
       final globals = AppliedGlobals(
         ephePath: null,
@@ -215,12 +114,13 @@ void main() {
         jplFile: null,
       );
 
-      final traced = runner.run(
-        globals,
-        (eph) => eph.calcUt(2460412.5, seSun, seFlgSwiEph | seFlgSpeed),
+      runner.apply(globals);
+      final traced = runner.tracing.calcUt(
+        2460412.5,
+        seSun,
+        seFlgSwiEph | seFlgSpeed,
       );
 
-      // Compare with a fresh direct TracingRustEph call
       final direct = TracingRustEph();
       try {
         final expected = direct.calcUt(

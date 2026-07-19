@@ -29,8 +29,10 @@ void main() {
     }
   }
 
-  // Also try with setEphePath pointing to the ephe dir
-  swe.setEphePath('/home/josh/nhs/soft/swisseph/ephe');
+  // Also try with ephePath configured
+  swe.reconfigure(
+    const rs.EphemerisConfig(ephePath: '/home/josh/nhs/soft/swisseph/ephe'),
+  );
   print('\n--- With ephePath set ---');
   for (final name in ['Aldebaran', 'Sirius', 'Spica', 'Regulus', 'Vega']) {
     try {

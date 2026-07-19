@@ -4,8 +4,7 @@
 /// Immutable state for the global context bar.
 ///
 /// All calculation tabs read from this shared state by default.
-/// C globals (setSidMode, setEphePath, etc.) are NOT set here —
-/// they are set atomically at each calculation point.
+/// Engine configuration is derived from this via AppliedGlobals.
 const Object _sentinel = Object();
 
 class ContextBarState {

@@ -9,28 +9,14 @@ import 'swe_symbol_catalog.dart';
 import 'trace_model.dart';
 
 class TracingRustEph implements Ephemeris {
-  TracingRustEph() {
-    _engine = rs.Ephemeris(_buildConfig());
-  }
+  TracingRustEph([rs.EphemerisConfig? config])
+    : _engine = rs.Ephemeris(config ?? const rs.EphemerisConfig());
 
-  late rs.Ephemeris _engine;
+  rs.Ephemeris _engine;
   final List<CallEntry> _entries = [];
   String _tabTag = '';
 
   rs.Ephemeris get engine => _engine;
-
-  // Stored context (stateful → stateless bridge)
-  String? _ephePath;
-  rs.EphemerisSource _epheSource = rs.EphemerisSource.moshier;
-  rs.SiderealMode? _sidMode;
-  rs.SiderealBits _sidBits = rs.SiderealBits.none;
-  bool _sidT0IsUt = false;
-  double _t0 = 0;
-  double _ayanT0 = 0;
-  double? _geolon;
-  double? _geolat;
-  double? _geoalt;
-  String? _jplFile;
 
   List<CallEntry> get entries => _entries;
 
@@ -38,182 +24,18 @@ class TracingRustEph implements Ephemeris {
 
   void clearEntries() => _entries.clear();
 
+  void reconfigure(rs.EphemerisConfig config) {
+    final replacement = rs.Ephemeris(config);
+    _engine.close();
+    _engine = replacement;
+  }
+
   void close() {
     _engine.close();
   }
 
   static Never _translateAndThrow(rs.SweException e) {
     throw e;
-  }
-
-  rs.EphemerisConfig _buildConfig() {
-    return rs.EphemerisConfig(
-      ephemerisSource: _epheSource,
-      ephePath: _ephePath,
-      jplFilename: _jplFile,
-      siderealMode: _sidMode,
-      siderealT0: _t0,
-      siderealAyanT0: _ayanT0,
-      siderealBits: _sidBits,
-      siderealT0IsUt: _sidT0IsUt,
-      topographic: (_geolon != null)
-          ? rs.TopoPosition(
-              longitude: _geolon!,
-              latitude: _geolat!,
-              altitude: _geoalt!,
-            )
-          : null,
-    );
-  }
-
-  void _rebuildEngine() {
-    final replacement = rs.Ephemeris(_buildConfig());
-    _engine.close();
-    _engine = replacement;
-  }
-
-  // --------------- Context setters ---------------
-
-  void setEpheSource(rs.EphemerisSource source) {
-    _epheSource = source;
-  }
-
-  @override
-  void setEphePath(String path) {
-    _entries.add(
-      CallEntry(
-        functionName: TracedFunction.sweSetEphePath,
-        args: {'path': path},
-        category: CallCategory.context,
-        traceId: '$_tabTag:set_ephe_path',
-      ),
-    );
-    _ephePath = path;
-    _rebuildEngine();
-  }
-
-  @override
-  void setSidMode(int sidMode, {double t0 = 0, double ayanT0 = 0}) {
-    _entries.add(
-      CallEntry(
-        functionName: TracedFunction.sweSetSidMode,
-        args: {'sidMode': sidMode, 't0': t0, 'ayanT0': ayanT0},
-        category: CallCategory.context,
-        traceId: '$_tabTag:set_sid_mode',
-      ),
-    );
-    _applySidMode(sidMode, t0, ayanT0);
-    _rebuildEngine();
-  }
-
-  void _applySidMode(int sidMode, double t0, double ayanT0) {
-    final modeIndex = sidMode & 0xFF;
-    _sidMode = rs.SiderealMode.values.firstWhere(
-      (m) => m.value == modeIndex,
-      orElse: () => rs.SiderealMode.faganBradley,
-    );
-    _sidBits = rs.SiderealBits(sidMode & ~0xFF);
-    _sidT0IsUt = (sidMode & 1024) != 0; // SE_SIDBIT_USER_UT
-    _t0 = t0;
-    _ayanT0 = ayanT0;
-  }
-
-  @override
-  void setTopo(double geolon, double geolat, double geoalt) {
-    _entries.add(
-      CallEntry(
-        functionName: TracedFunction.sweSetTopo,
-        args: {'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt},
-        category: CallCategory.context,
-        traceId: '$_tabTag:set_topo',
-      ),
-    );
-    _geolon = geolon;
-    _geolat = geolat;
-    _geoalt = geoalt;
-    _rebuildEngine();
-  }
-
-  @override
-  void setJplFile(String filename) {
-    _entries.add(
-      CallEntry(
-        functionName: TracedFunction.sweSetJplFile,
-        args: {'filename': filename},
-        category: CallCategory.context,
-        traceId: '$_tabTag:set_jpl_file',
-      ),
-    );
-    _jplFile = filename;
-    _rebuildEngine();
-  }
-
-  /// Atomically apply all globals and rebuild the engine once.
-  /// Used by EphemerisRunner._apply to avoid intermediate rebuilds
-  /// with partially-applied state.
-  void applyGlobals({
-    required rs.EphemerisSource source,
-    String? ephePath,
-    String? jplFile,
-    int? sidMode,
-    double userAyanT0 = 0,
-    double userAyanValue = 0,
-    ({double lon, double lat, double alt})? topo,
-  }) {
-    _epheSource = source;
-    if (ephePath != null) {
-      _entries.add(
-        CallEntry(
-          functionName: TracedFunction.sweSetEphePath,
-          args: {'path': ephePath},
-          category: CallCategory.context,
-          traceId: '$_tabTag:set_ephe_path',
-        ),
-      );
-      _ephePath = ephePath;
-    }
-    if (sidMode != null) {
-      _entries.add(
-        CallEntry(
-          functionName: TracedFunction.sweSetSidMode,
-          args: {'sidMode': sidMode, 't0': userAyanT0, 'ayanT0': userAyanValue},
-          category: CallCategory.context,
-          traceId: '$_tabTag:set_sid_mode',
-        ),
-      );
-      _applySidMode(sidMode == 255 ? 255 : sidMode, userAyanT0, userAyanValue);
-    } else {
-      _sidMode = null;
-    }
-    if (topo != null) {
-      _entries.add(
-        CallEntry(
-          functionName: TracedFunction.sweSetTopo,
-          args: {'geolon': topo.lon, 'geolat': topo.lat, 'geoalt': topo.alt},
-          category: CallCategory.context,
-          traceId: '$_tabTag:set_topo',
-        ),
-      );
-      _geolon = topo.lon;
-      _geolat = topo.lat;
-      _geoalt = topo.alt;
-    } else {
-      _geolon = null;
-      _geolat = null;
-      _geoalt = null;
-    }
-    _jplFile = jplFile;
-    if (jplFile != null) {
-      _entries.add(
-        CallEntry(
-          functionName: TracedFunction.sweSetJplFile,
-          args: {'filename': jplFile},
-          category: CallCategory.context,
-          traceId: '$_tabTag:set_jpl_file',
-        ),
-      );
-    }
-    _rebuildEngine();
   }
 
   // --------------- Core calculation families ---------------

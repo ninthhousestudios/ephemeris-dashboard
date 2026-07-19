@@ -5,6 +5,7 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 import 'package:swe_dashboard/core/ephemeris/result_types.dart';
 import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
@@ -26,24 +27,6 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('trace recording', () {
-    test('context setters record entries with correct category', () {
-      rust.setTabTag('test');
-      rust.setEphePath('/tmp/ephe');
-      rust.setSidMode(1, t0: 0, ayanT0: 0);
-      rust.setTopo(13.41, 52.52, 34.0);
-      rust.setJplFile('de431.eph');
-
-      expect(rust.entries.length, 4);
-      expect(
-        rust.entries.every((e) => e.category == CallCategory.context),
-        isTrue,
-      );
-      expect(rust.entries[0].functionName, TracedFunction.sweSetEphePath);
-      expect(rust.entries[1].functionName, TracedFunction.sweSetSidMode);
-      expect(rust.entries[2].functionName, TracedFunction.sweSetTopo);
-      expect(rust.entries[3].functionName, TracedFunction.sweSetJplFile);
-    });
-
     test('calcUt records calc entry with traceId', () {
       rust.setTabTag('planets');
       rust.clearEntries();
@@ -150,7 +133,9 @@ void main() {
     const flags = 256 | 65536; // seFlgSpeed | seFlgSidereal
 
     setUp(() {
-      rust.setSidMode(1); // Lahiri
+      rust.reconfigure(
+        const rs.EphemerisConfig(siderealMode: rs.SiderealMode.lahiri),
+      );
     });
 
     test('calcUt Sun sidereal', () {
@@ -174,7 +159,15 @@ void main() {
     const flags = 256 | 32768; // seFlgSpeed | seFlgTopoctr
 
     setUp(() {
-      rust.setTopo(13.41, 52.52, 34.0);
+      rust.reconfigure(
+        rs.EphemerisConfig(
+          topographic: rs.TopoPosition(
+            longitude: 13.41,
+            latitude: 52.52,
+            altitude: 34.0,
+          ),
+        ),
+      );
     });
 
     test('calcUt Moon topocentric', () {
@@ -379,7 +372,7 @@ void main() {
         '/home/josh/.local/share/studio.ninthhouse.ephemeris_dashboard/ephe';
 
     test('fixstar2Ut Sirius', () {
-      rust.setEphePath(ephePath);
+      rust.reconfigure(rs.EphemerisConfig(ephePath: ephePath));
       rust.clearEntries();
 
       final r = rust.fixstar2Ut('Sirius', jd, flags);

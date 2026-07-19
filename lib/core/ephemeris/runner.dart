@@ -2,7 +2,6 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 
 import '../calc_context.dart';
 import '../context_state.dart';
@@ -10,7 +9,6 @@ import '../ephe/dir_provider.dart';
 import '../ephe/scanner.dart';
 import '../ephe/types.dart';
 import 'applied_globals.dart';
-import 'ephemeris.dart';
 import 'trace_model.dart';
 import 'tracing_rust_eph.dart';
 
@@ -23,45 +21,14 @@ class EphemerisRunner {
   List<CallEntry> get traceEntries => _tracing.entries;
   void setTabTag(String tag) => _tracing.setTabTag(tag);
 
-  rs.Ephemeris get engine => _tracing.engine;
-
-  T run<T>(AppliedGlobals globals, T Function(Ephemeris eph) body) {
+  void apply(AppliedGlobals globals) {
     if (_last != globals) {
-      _apply(globals);
+      _tracing.reconfigure(globals.toEphemerisConfig());
       _last = globals;
     }
-    return body(_tracing);
   }
 
-  T runScoped<T>(
-    void Function(Ephemeris eph) override,
-    T Function(Ephemeris eph) body,
-  ) {
-    override(_tracing);
-    try {
-      return body(_tracing);
-    } finally {
-      if (_last != null) _apply(_last!);
-    }
-  }
-
-  static const _sourceMap = {
-    EpheSource.moshier: rs.EphemerisSource.moshier,
-    EpheSource.swissEph: rs.EphemerisSource.swiss,
-    EpheSource.jpl: rs.EphemerisSource.jpl,
-  };
-
-  void _apply(AppliedGlobals g) {
-    _tracing.applyGlobals(
-      source: _sourceMap[g.epheSource]!,
-      ephePath: g.ephePath,
-      jplFile: g.jplFile,
-      sidMode: g.sidMode,
-      userAyanT0: g.userAyanT0,
-      userAyanValue: g.userAyanValue,
-      topo: g.topo,
-    );
-  }
+  TracingRustEph get tracing => _tracing;
 
   void close() => _tracing.close();
 }

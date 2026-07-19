@@ -4,15 +4,6 @@
 import 'result_types.dart';
 
 abstract class Ephemeris {
-  // Context setters (Applied Globals)
-
-  void setEphePath(String path);
-  void setSidMode(int sidMode, {double t0, double ayanT0});
-  void setTopo(double geolon, double geolat, double geoalt);
-  void setJplFile(String filename);
-
-  // Calculation methods
-
   CalcResult calcUt(double jdUt, int body, int flags);
   CalcResult calcPctr(double jdEt, int body, int centerBody, int flags);
 

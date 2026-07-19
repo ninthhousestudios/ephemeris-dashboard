@@ -17,29 +17,6 @@ void main() {
     expect(fake, isA<Ephemeris>());
   });
 
-  group('context setters', () {
-    test('record calls for assertion', () {
-      fake.setSidMode(1);
-      fake.setTopo(13.4, 52.5, 0);
-      fake.setEphePath('/ephe');
-      fake.setJplFile('jplde431.eph');
-
-      expect(fake.contextCalls, hasLength(4));
-      expect(fake.contextCalls[0].method, 'setSidMode');
-      expect(fake.contextCalls[0].args['sidMode'], 1);
-      expect(fake.contextCalls[1].method, 'setTopo');
-      expect(fake.contextCalls[1].args['geolon'], 13.4);
-      expect(fake.contextCalls[2].method, 'setEphePath');
-      expect(fake.contextCalls[3].method, 'setJplFile');
-    });
-
-    test('setSidMode records t0 and ayanT0', () {
-      fake.setSidMode(255, t0: 2451545.0, ayanT0: 23.5);
-      expect(fake.contextCalls.first.args['t0'], 2451545.0);
-      expect(fake.contextCalls.first.args['ayanT0'], 23.5);
-    });
-  });
-
   group('scripted calculation methods', () {
     test('calcUt returns scripted value', () {
       fake.onCalcUt = (jdUt, body, flags) => CalcResult(

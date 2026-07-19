@@ -9,6 +9,7 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 
@@ -50,9 +51,8 @@ final selectedAyanamsasProvider = StateProvider<List<int>>(
 /// Compare mode toggle.
 final ayanamsaCompareModeProvider = StateProvider<bool>((ref) => false);
 
-/// Runs the scoped-globals kernel once per recompute; results + trace derive
-/// from this. Each mode gets its own `setSidMode` override scoped to a single
-/// `getAyanamsaUt`, restored to the Context sidMode afterwards.
+/// Runs the kernel once per recompute; results + trace derive from this.
+/// Each mode reconfigures the engine with a per-mode sidMode override.
 final _ayanamsaCalcProvider =
     Provider<
       ({CalcOutcome<List<AyanamsaCalcResult>> outcome, CallTrace trace})
@@ -67,25 +67,23 @@ final _ayanamsaCalcProvider =
           ? ayanamsaModesFor(includeUser: hasUserParams).keys.toList()
           : selected;
 
-      return runTabCalcScoped(
+      final baseGlobals = ref.watch(appliedGlobalsProvider);
+      return runTabCalcWithOverrides(
         ref,
         tabTag: 'ayanamsa',
-        compute: (scoped) {
+        compute: (eph, reconfigure) {
           final results = <AyanamsaCalcResult>[];
           for (final sidMode in modes) {
             try {
-              // JD is canonical: ctx.jdUt is the Moment the Context projects.
-              final value = scoped((eph) {
-                if (sidMode == ayanamsaUserId) {
-                  eph.setSidMode(
-                    sidMode,
-                    t0: ctx.userAyanT0,
-                    ayanT0: ctx.userAyanValue,
-                  );
-                } else {
-                  eph.setSidMode(sidMode);
-                }
-              }, (eph) => eph.getAyanamsaUt(ctx.jdUt));
+              final modeGlobals = sidMode == ayanamsaUserId
+                  ? baseGlobals.withSidMode(
+                      sidMode,
+                      t0: ctx.userAyanT0,
+                      ayanT0: ctx.userAyanValue,
+                    )
+                  : baseGlobals.withSidMode(sidMode);
+              reconfigure(modeGlobals);
+              final value = eph.getAyanamsaUt(ctx.jdUt);
               results.add(
                 AyanamsaCalcResult(
                   sidMode: sidMode,

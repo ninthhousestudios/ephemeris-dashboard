@@ -5,34 +5,6 @@ import 'ephemeris.dart';
 import 'result_types.dart';
 
 class FakeEphemeris implements Ephemeris {
-  final List<({String method, Map<String, Object?> args})> contextCalls = [];
-
-  // Context setters — record for assertion
-
-  @override
-  void setEphePath(String path) =>
-      contextCalls.add((method: 'setEphePath', args: {'path': path}));
-
-  @override
-  void setSidMode(int sidMode, {double t0 = 0, double ayanT0 = 0}) =>
-      contextCalls.add((
-        method: 'setSidMode',
-        args: {'sidMode': sidMode, 't0': t0, 'ayanT0': ayanT0},
-      ));
-
-  @override
-  void setTopo(double geolon, double geolat, double geoalt) =>
-      contextCalls.add((
-        method: 'setTopo',
-        args: {'geolon': geolon, 'geolat': geolat, 'geoalt': geoalt},
-      ));
-
-  @override
-  void setJplFile(String filename) =>
-      contextCalls.add((method: 'setJplFile', args: {'filename': filename}));
-
-  // Calculation methods — optional callbacks
-
   CalcResult Function(double jdUt, int body, int flags)? onCalcUt;
   CalcResult Function(double jdEt, int body, int centerBody, int flags)?
   onCalcPctr;
