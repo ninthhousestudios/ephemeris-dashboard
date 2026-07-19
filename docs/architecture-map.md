@@ -111,13 +111,12 @@ Tabs access the engine two ways:
 
 | File | Key types |
 |------|-----------|
-| `swe_symbol_catalog.dart` | `TracedFunction` (39-value enum), `SweSymbolCatalog` — registry of traced SwissEph calls |
+| `swe_symbol_catalog.dart` | `TracedFunction` (39-value plain enum) — canonical registry of traced SwissEph calls |
 
-`TracedFunction` is the canonical registry of all traced SwissEph calls.
+`TracedFunction` is the identity type for traced calls.
 `CallEntry.functionName` is `TracedFunction` (not `String`), so recording
-(`TracingRustEph`) derives from the catalog. Code emission (C/Dart emitters)
-was removed — the catalog still carries `CodeTarget`/`SymbolPair` emission
-surface pending cleanup (see swe-dashboard/36).
+(`TracingRustEph`) is exhaustive-switch safe. Emission API surface (CodeTarget,
+SymbolPair, C/Dart maps) removed in swe-dashboard/36.
 
 ## Context subsystem (lib/core/)
 
