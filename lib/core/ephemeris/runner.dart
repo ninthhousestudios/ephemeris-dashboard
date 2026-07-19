@@ -7,6 +7,8 @@ import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 import '../calc_context.dart';
 import '../context_state.dart';
 import '../ephe/dir_provider.dart';
+import '../ephe/scanner.dart';
+import '../ephe/types.dart';
 import 'applied_globals.dart';
 import 'ephemeris.dart';
 import 'trace_model.dart';
@@ -50,19 +52,15 @@ class EphemerisRunner {
   };
 
   void _apply(AppliedGlobals g) {
-    _tracing.setEpheSource(_sourceMap[g.epheSource]!);
-    if (g.ephePath != null) _tracing.setEphePath(g.ephePath!);
-    if (g.sidMode != null) {
-      if (g.sidMode == 255) {
-        _tracing.setSidMode(255, t0: g.userAyanT0, ayanT0: g.userAyanValue);
-      } else {
-        _tracing.setSidMode(g.sidMode!);
-      }
-    }
-    if (g.topo != null) {
-      _tracing.setTopo(g.topo!.lon, g.topo!.lat, g.topo!.alt);
-    }
-    if (g.jplFile != null) _tracing.setJplFile(g.jplFile!);
+    _tracing.applyGlobals(
+      source: _sourceMap[g.epheSource]!,
+      ephePath: g.ephePath,
+      jplFile: g.jplFile,
+      sidMode: g.sidMode,
+      userAyanT0: g.userAyanT0,
+      userAyanValue: g.userAyanValue,
+      topo: g.topo,
+    );
   }
 
   void close() => _tracing.close();
@@ -75,8 +73,28 @@ final ephemerisRunnerProvider = Provider<EphemerisRunner>((ref) {
 });
 
 final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
-  return AppliedGlobals.fromContext(
-    ref.watch(effectiveContextProvider),
-    ref.watch(resolvedEphePathProvider),
-  );
+  final ctx = ref.watch(effectiveContextProvider);
+  final ephePath = ref.watch(resolvedEphePathProvider);
+  var globals = AppliedGlobals.fromContext(ctx, ephePath);
+  if (globals.epheSource == EpheSource.jpl && globals.jplFile == null) {
+    final scan = ref.watch(ephemerisScanProvider).valueOrNull;
+    if (scan != null) {
+      final jplFiles = scan.files.where(
+        (f) =>
+            f.family == BodyFamily.jpl && f.status == EpheFileStatus.installed,
+      );
+      if (jplFiles.isNotEmpty) {
+        globals = AppliedGlobals(
+          ephePath: globals.ephePath,
+          epheSource: globals.epheSource,
+          sidMode: globals.sidMode,
+          userAyanT0: globals.userAyanT0,
+          userAyanValue: globals.userAyanValue,
+          topo: globals.topo,
+          jplFile: jplFiles.first.filename,
+        );
+      }
+    }
+  }
+  return globals;
 });

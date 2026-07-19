@@ -180,7 +180,9 @@ Set<EpheSource> availableEpheSources(EphemerisScan scan) {
   )) {
     sources.add(EpheSource.swissEph);
   }
-  if (installed.any((f) => f.family == BodyFamily.jpl)) {
+  // JPL excluded on web (300 MB+, no upstream support).
+  // On native, only expose JPL when a concrete .eph file is installed.
+  if (!kIsWeb && installed.any((f) => f.family == BodyFamily.jpl)) {
     sources.add(EpheSource.jpl);
   }
   return sources;

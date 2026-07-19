@@ -102,6 +102,11 @@ class TracingRustEph implements Ephemeris {
         traceId: '$_tabTag:set_sid_mode',
       ),
     );
+    _applySidMode(sidMode, t0, ayanT0);
+    _rebuildEngine();
+  }
+
+  void _applySidMode(int sidMode, double t0, double ayanT0) {
     final modeIndex = sidMode & 0xFF;
     _sidMode = rs.SiderealMode.values.firstWhere(
       (m) => m.value == modeIndex,
@@ -111,7 +116,6 @@ class TracingRustEph implements Ephemeris {
     _sidT0IsUt = (sidMode & 1024) != 0; // SE_SIDBIT_USER_UT
     _t0 = t0;
     _ayanT0 = ayanT0;
-    _rebuildEngine();
   }
 
   @override
@@ -141,6 +145,74 @@ class TracingRustEph implements Ephemeris {
       ),
     );
     _jplFile = filename;
+    _rebuildEngine();
+  }
+
+  /// Atomically apply all globals and rebuild the engine once.
+  /// Used by EphemerisRunner._apply to avoid intermediate rebuilds
+  /// with partially-applied state.
+  void applyGlobals({
+    required rs.EphemerisSource source,
+    String? ephePath,
+    String? jplFile,
+    int? sidMode,
+    double userAyanT0 = 0,
+    double userAyanValue = 0,
+    ({double lon, double lat, double alt})? topo,
+  }) {
+    _epheSource = source;
+    if (ephePath != null) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSetEphePath,
+          args: {'path': ephePath},
+          category: CallCategory.context,
+          traceId: '$_tabTag:set_ephe_path',
+        ),
+      );
+      _ephePath = ephePath;
+    }
+    if (sidMode != null) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSetSidMode,
+          args: {'sidMode': sidMode, 't0': userAyanT0, 'ayanT0': userAyanValue},
+          category: CallCategory.context,
+          traceId: '$_tabTag:set_sid_mode',
+        ),
+      );
+      _applySidMode(sidMode == 255 ? 255 : sidMode, userAyanT0, userAyanValue);
+    } else {
+      _sidMode = null;
+    }
+    if (topo != null) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSetTopo,
+          args: {'geolon': topo.lon, 'geolat': topo.lat, 'geoalt': topo.alt},
+          category: CallCategory.context,
+          traceId: '$_tabTag:set_topo',
+        ),
+      );
+      _geolon = topo.lon;
+      _geolat = topo.lat;
+      _geoalt = topo.alt;
+    } else {
+      _geolon = null;
+      _geolat = null;
+      _geoalt = null;
+    }
+    _jplFile = jplFile;
+    if (jplFile != null) {
+      _entries.add(
+        CallEntry(
+          functionName: TracedFunction.sweSetJplFile,
+          args: {'filename': jplFile},
+          category: CallCategory.context,
+          traceId: '$_tabTag:set_jpl_file',
+        ),
+      );
+    }
     _rebuildEngine();
   }
 
