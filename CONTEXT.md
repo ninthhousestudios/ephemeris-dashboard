@@ -26,18 +26,21 @@ The observer point on Earth — latitude, longitude, and altitude — used for
 topocentric calculations and as part of the **Context**.
 
 **Applied Globals**:
-The process-wide Swiss Ephemeris C state (ephemeris path, sidereal mode,
-topocentric position, JPL file) set from the **Context** at calculation time. Named
-because it is a hazard: this state is global and drifts across await points.
-_Avoid_: globals, C state.
+The engine configuration snapshot (ephemeris path, sidereal mode, topocentric
+position, JPL file) derived from the **Context** at calculation time. With
+`swisseph_rs` this is adapter-local (per-instance config on `TracingRustEph`),
+not process-wide C state — the drift-across-await hazard is gone (ADR-0002).
+The `AppliedGlobals` value object is used for diffing: when it changes, the
+engine instance is rebuilt.
+_Avoid_: globals, C state (legacy terms from the old engine).
 
 ### Ephemeris and frame
 
 **Ephemeris**:
 The calculator — the abstraction that computes positions and phenomena for a
-**Moment** under the **Applied Globals**. The Wave-1 seam is an `Ephemeris`
-interface; the production adapter wraps the Swiss Ephemeris FFI object and records
-calls, the test adapter is a fake.
+**Moment** under the **Applied Globals**. The seam is an `Ephemeris` interface;
+the production adapter (`TracingRustEph`) wraps a stateless `rs.Ephemeris`
+instance from `swisseph_rs` and records calls; the test adapter is a fake.
 _Avoid_: bare "ephemeris" for the data (that is the **Ephemeris Source**).
 
 **Ephemeris Source**:

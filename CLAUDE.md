@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Flutter cross-platform GUI for the Swiss Ephemeris via [swisseph.dart](https://pub.dev/packages/swisseph) 0.2.0. Pure astronomical values, no interpretation. Riverpod for state management (StateNotifier, no codegen).
+Flutter cross-platform GUI for the Swiss Ephemeris via [swisseph_rs](https://pub.dev/packages/swisseph_rs) (stateless Rust engine, per-instance config). Pure astronomical values, no interpretation. Riverpod for state management (StateNotifier, no codegen).
 
 ## Project Structure
 
@@ -10,7 +10,7 @@ Flutter cross-platform GUI for the Swiss Ephemeris via [swisseph.dart](https://p
 lib/
   main.dart, app.dart              # Entry point, MaterialApp
   core/                            # Shared state & services
-    swe_service.dart               #   sweProvider (SwissEph.find())
+    swe_service.dart               #   sweProvider (SweUtils), initSweEphePath
     context_state.dart             #   Immutable ContextBarState
     context_provider.dart          #   ContextBarNotifier (JD/DateTime/location)
     calc_context.dart              #   EffectiveContext (merges context + flags)
@@ -52,10 +52,10 @@ This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must 
 ## Key Architecture Decisions
 
 1. **Reactive projection (ADR-0001)** — Results are a pure function of the Context and Flags, recomputed on change. No explicit Calculate button, no staleness.
-2. **Applied Globals** — the Context is set into the process-wide SwissEph C state at calculation time, atomically and synchronously (see invariants below)
+2. **Stateless engine (ADR-0002)** — `TracingRustEph` wraps `rs.Ephemeris` with adapter-local config; no process-wide C globals. Config changes rebuild the engine instance.
 3. **Locked Flags** (formerly "auto-managed flags") — sidereal, topocentric, helio, bary, ephe-source flags are a pure function of the Context; the context bar owns them (shown as disabled chips with lock icon)
 4. **Flag bar uses `ref.listen`** (not `ref.watch` in notifier) for auto-linking to avoid infinite loops
-5. **swisseph from pub.dev** — not a local path dependency
+5. **swisseph_rs from pub.dev** — not a local path dependency
 
 ## Architecture refactor (in progress)
 
@@ -85,14 +85,16 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
 `docs/enforcement-ledger.md`. The behavioral ones below are not graph-expressible
 — honor them:
 
-- **Synchronous Applied Globals** — each recompute is synchronous; never set the
-  SwissEph C globals across an `await` (they drift). (ADR-0001)
+- **Synchronous recompute** — each recompute is synchronous for trace-slice
+  coherence: a tab's trace must capture exactly the calls from one compute pass.
+  (Supersedes the ADR-0001 "Applied Globals never set across an await" hazard —
+  that hazard is gone with stateless `swisseph_rs`; see ADR-0002.)
 - **JD is canonical** — the Moment is a Julian Day; civil date/time/offset is a
   derived, advisory view. Editing a civil field computes a new Moment.
 - **Locked Flags are a pure function of the Context** — one source of truth, not a
   hand-maintained set.
-- **SwissEph behind the Ephemeris seam** — reach the engine through the `Ephemeris`
-  interface; `package:swisseph` is confined to `lib/core/**` (forbidden in
+- **swisseph_rs behind the Ephemeris seam** — reach the engine through the `Ephemeris`
+  interface; `package:swisseph_rs` is confined to `lib/core/**` (forbidden in
   `lib/tabs/` and `lib/widgets/` — blocking; enforced by `.sutra/rules.toml`,
   constants re-exported via `lib/core/swe_constants.dart`).
 
@@ -124,7 +126,9 @@ Single-context layout. See `docs/agents/domain.md`.
 
 ## SwissEph state & frames
 
-SwissEph config is process-wide C globals that drift across await points and
-Android resume, and longitude frames (tropical/sidereal, ecliptic/equatorial)
-are easy to confuse across engine bridges. Before touching ephemeris-adjacent
-code, read ~/soft/manas/docs/lessons/swisseph-state-discipline.md.
+With `swisseph_rs`, engine config is adapter-local (per-instance `EphemerisConfig`),
+not process-wide C globals. The drift-across-await hazard documented in
+~/soft/manas/docs/lessons/swisseph-state-discipline.md no longer applies to this
+app (see ADR-0002). The lessons doc remains relevant for any project still on the
+C-FFI `swisseph` package. Longitude frame confusion (tropical/sidereal,
+ecliptic/equatorial) still applies — the Ephemeris seam's context setters gate this.

@@ -3,25 +3,23 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-06 (swe-dashboard/16: tab registry).
+Last updated: 2026-07-19 (swe-dashboard/32: engine migration docs, ADR-0002).
 
 ## Provider graph (data flow)
 
 ```
-sweProvider (SwissEph)          ← swe_service.dart, conditional import
+ephemerisRunnerProvider (EphemerisRunner)
+     │  owns TracingRustEph (stateless rs.Ephemeris, adapter-local config)
+     │  exposes: run(globals, (eph) => ...), runScoped(override, body)
+     │  tabs receive the tracer as eph param (typed Ephemeris)
      │
-     ├── ephemerisRunnerProvider (EphemerisRunner)
-     │        │  wraps SwissEph in TracingSwissEph
-     │        │  exposes: run(globals, (eph) => ...), runScoped(override, body)
-     │        │  tabs receive the tracer as eph param (typed Ephemeris)
+effectiveContextProvider (EffectiveContext)
+     │  merges contextBarState + flagBarState
+     │  ← contextBarProvider + flagBarProvider
      │
-     ├── effectiveContextProvider (EffectiveContext)
-     │        merges contextBarState + flagBarState
-     │        ← contextBarProvider + flagBarProvider
-     │
-     └── appliedGlobalsProvider (AppliedGlobals)
-              from effectiveContext + resolvedEphePath
-              runner._apply() sets these into SwissEph C state
+appliedGlobalsProvider (AppliedGlobals)
+     │  from effectiveContext + resolvedEphePath
+     │  runner._apply() diffs and calls _rebuildEngine() if changed
 ```
 
 ## Calculation kernel (lib/core/calculation/)
@@ -74,38 +72,40 @@ Richer result shapes among the search / multi-call tabs:
 
 | File | Key types | Role |
 |------|-----------|------|
-| `ephemeris.dart` | `Ephemeris` | Abstract interface — 4 context setters + ~35 calculation methods. The seam between tabs and the engine. |
-| `tracing_swiss_eph.dart` | `TracingSwissEph` | Production adapter. `implements Ephemeris`. Wraps `SwissEph` delegate, records CallEntry for every interface method. |
+| `ephemeris.dart` | `Ephemeris` | Abstract interface — context setters + ~35 calculation methods. The seam between tabs and the engine. |
+| `tracing_rust_eph.dart` | `TracingRustEph` | Production adapter. `implements Ephemeris`. Wraps `rs.Ephemeris` (stateless Rust engine); rebuilds on config change. Records CallEntry for every interface method. |
 | `fake_ephemeris.dart` | `FakeEphemeris` | Test adapter. `implements Ephemeris`. Optional `on*` callbacks per method; context setters record into `contextCalls`. |
 | `trace_model.dart` | `CallEntry`, `CallTrace`, `TraceSlice`, `CallCategory` | Immutable trace data. Category: context/flags/calc/teardown. |
-| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the TracingSwissEph singleton. `run()` applies globals then passes tracer to callback. |
-| `applied_globals.dart` | `AppliedGlobals` | Value object: ephePath, sidMode, topo, jplFile. |
+| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the TracingRustEph singleton. `run()` applies globals (rebuilds engine if config changed) then passes tracer to callback. |
+| `applied_globals.dart` | `AppliedGlobals` | Value object: ephePath, sidMode, topo, jplFile. Used for diffing — triggers `_rebuildEngine()` on change. |
 
 ## Conditional-import split (native/web)
 
 ```
 swe_service.dart          ← public API: sweProvider, initSweEphePath
-  imports swe_service_io.dart      (native: dart:io, loads FFI library)
-       if (js_interop) swe_service_stub.dart  (web: throws UnsupportedError)
+  imports swe_service_io.dart      (native: dart:io, resolves ephe path)
+       if (js_interop) swe_service_stub.dart  (web: WASM init + MEMFS)
 ```
 
-`sweProvider` returns `SwissEph` (concrete FFI type). On web, `_preloadedSwe` is
-set by `SwissEph.load()` in `initSweEphePath()` before `runApp()`. On native
-desktop, `createDesktopSwissEph()` loads the library synchronously.
+`sweProvider` returns `SweUtils` (untraced utility calls backed by the runner's
+`rs.Ephemeris`). `initSweEphePath()` resolves or extracts ephemeris data files
+at startup — on web it loads the WASM module and stages `.se1` files into MEMFS;
+on native it locates the bundle or dev-mode package path.
 
 ## Tab calling patterns
 
 Tabs access the engine two ways:
 
 1. **Via runner.run** (traced): `runner.run(globals, (eph) => eph.calcUt(...))`.
-   The `eph` is `TracingSwissEph`, inferred-typed (not explicitly `SwissEph`).
+   The `eph` is `TracingRustEph`, inferred-typed as `Ephemeris`.
    Methods used: calcUt, calcPctr, houses, getAyanamsaUt, deltat, sidTime,
    nodApsUt, getOrbitalElements, fixstar2Ut, azAlt, azAltRev, cotrans, refrac,
    phenoUt, riseTrans, solCrossUt, moonCrossUt, moonCrossNodeUt, helioCrossUt,
    heliacalUt.
 
-2. **Direct on swe** (untraced): `swe.getPlanetName(body)`, `swe.revjul(jd)`,
-   `swe.degnorm(x)`, `swe.houseName(hsys)`, etc. Pure utilities and metadata.
+2. **Via SweUtils** (untraced): `swe.getPlanetName(body)`, `swe.revjul(jd)`,
+   `swe.degnorm(x)`, `swe.houseName(hsys)`, etc. Pure utilities and metadata,
+   delegated to the runner's `rs.Ephemeris` instance.
 
 ## Code emission (lib/core/ephemeris/)
 
@@ -163,7 +163,7 @@ controller, focus node, and sync/commit logic.
 
 | File | Tests |
 |------|-------|
-| `test/tracing_swiss_eph_test.dart` | TracingSwissEph: traced methods record CallEntry, untraced don't, error path, tab tag |
+| `test/tracing_rust_eph_test.dart` | TracingRustEph: traced methods record CallEntry, untraced don't, error path, tab tag |
 | `test/ephemeris_runner_tracing_test.dart` | EphemerisRunner: _apply records setup, run/runScoped delegation, tab tagging, numeric accuracy |
 | `test/trace_model_test.dart` | CallEntry, CallTrace, TraceSlice filtering |
 | `test/c_emitter_test.dart` | CEmitter rendering |

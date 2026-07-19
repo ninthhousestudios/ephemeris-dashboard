@@ -19,14 +19,14 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 
 | # | Claim (quote / source) | Bucket | Mechanism | Status |
 |---|---|---|---|---|
-| 1 | "Engine routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ① | a | `confined_external swisseph_rs allowed_in=lib/core/**` | live, **blocking** (S4 cutover @ `/29`: package:swisseph removed; swisseph_rs confined behind Ephemeris seam + swe_constants.dart re-exports) |
+| 1 | "Engine routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ①, ADR-0002 | a | `confined_external swisseph_rs allowed_in=lib/core/**` | live, **blocking** (cutover complete @ `/29`; documented `/32`) |
 | 2 | "Tabs use the kernel, not the runner" — PRD ② | a | `forbidden_dep lib/tabs/** → runner.dart` | live, **advisory** → blocking @ `/11` |
 | 3 | "Tabs are independent" — PRD §Problem | a | `no_cycles lib/tabs` | live, **blocking** (clean today) |
 | 4 | "Context bar / shell cycle removed" — PRD ⑥ | a | `no_cycles lib/widgets/context_bar` | live, **advisory** → blocking @ `/17` (1 cycle today) |
 | 5 | "Calculation kernel stays acyclic" — PRD ② | a | `no_cycles lib/core/calculation` | live, **blocking** (bound @ `/7`) |
 | 6 | "Kernel/Ephemeris are not god-hubs" — refactor goal | a | `max_fan_in run_tab_calc.dart threshold=30` | live, **advisory** (bound @ `/11`) |
 | 7 | "No in-tree chart parsers" — PRD ③ | a | `confined_external charts_dart allowed_in=lib/widgets/context_bar/**,lib/core/**` | live, **blocking** (clean today, bound @ `/9`) |
-| 8 | "Each recompute synchronous; Applied Globals never set across an await" — ADR-0001 | c | CLAUDE.md invariant | routed → CLAUDE.md |
+| 8 | "Each recompute synchronous for trace-slice coherence" — ADR-0002 supersedes ADR-0001 C-global hazard | c | CLAUDE.md invariant | routed → CLAUDE.md (rewritten `/32`) |
 | 9 | "JD is canonical; civil is derived" — CONTEXT §Moment | c | CLAUDE.md invariant | routed → CLAUDE.md |
 | 10 | "Locked Flags are a pure function of the Context" — CONTEXT §Locked Flag | c | CLAUDE.md invariant | routed → CLAUDE.md |
 | 11 | "Reactive projection — no explicit Calculate trigger" — ADR-0001 | c | CLAUDE.md (Decision #1 update @ `/15`) | routed → CLAUDE.md |
