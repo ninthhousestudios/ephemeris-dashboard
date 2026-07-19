@@ -20,11 +20,11 @@ import 'calc_outcome.dart';
   final runner = ref.watch(ephemerisRunnerProvider);
   final ectx = ref.watch(effectiveContextProvider);
   runner.setTabTag(tabTag);
-  runner.apply(globals);
 
   final entriesBefore = runner.traceEntries.length;
   CalcOutcome<T> outcome;
   try {
+    runner.apply(globals);
     outcome = CalcOk(execute(runner, globals));
   } on SweException catch (e) {
     outcome = CalcSweError(e.message);
@@ -53,10 +53,14 @@ import 'calc_outcome.dart';
 ({CalcOutcome<T> outcome, CallTrace trace}) runTabCalcWithOverrides<T>(
   Ref ref, {
   required String tabTag,
-  required T Function(Ephemeris eph, void Function(AppliedGlobals) reconfigure)
+  required T Function(
+    Ephemeris eph,
+    AppliedGlobals baseGlobals,
+    void Function(AppliedGlobals) reconfigure,
+  )
   compute,
 }) => _runTabCalc(ref, tabTag, (runner, baseGlobals) {
-  return compute(runner.tracing, (overrideGlobals) {
+  return compute(runner.tracing, baseGlobals, (overrideGlobals) {
     runner.apply(overrideGlobals);
   });
 });

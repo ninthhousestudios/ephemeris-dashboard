@@ -9,7 +9,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 
@@ -67,11 +66,10 @@ final _ayanamsaCalcProvider =
           ? ayanamsaModesFor(includeUser: hasUserParams).keys.toList()
           : selected;
 
-      final baseGlobals = ref.watch(appliedGlobalsProvider);
       return runTabCalcWithOverrides(
         ref,
         tabTag: 'ayanamsa',
-        compute: (eph, reconfigure) {
+        compute: (eph, baseGlobals, reconfigure) {
           final results = <AyanamsaCalcResult>[];
           for (final sidMode in modes) {
             try {

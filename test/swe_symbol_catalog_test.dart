@@ -5,25 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
 
 void main() {
-  test('TracedFunction has 39 values', () {
-    expect(TracedFunction.values, hasLength(39));
+  test('TracedFunction has 35 values', () {
+    expect(TracedFunction.values, hasLength(35));
   });
 
   test('TracedFunction names are unique', () {
     final names = TracedFunction.values.map((e) => e.name).toSet();
     expect(names, hasLength(TracedFunction.values.length));
-  });
-
-  test('all context-setter functions are present', () {
-    expect(
-      TracedFunction.values,
-      containsAll([
-        TracedFunction.sweSetEphePath,
-        TracedFunction.sweSetSidMode,
-        TracedFunction.sweSetTopo,
-        TracedFunction.sweSetJplFile,
-      ]),
-    );
   });
 
   test('all calculation functions are present', () {

@@ -53,9 +53,9 @@ void main() {
     test('holds entries and context', () {
       final entries = [
         _entry(
-          functionName: TracedFunction.sweSetTopo,
+          functionName: TracedFunction.sweTimeEqu,
           category: CallCategory.context,
-          traceId: 'ctx:set_topo',
+          traceId: 'ctx:time_equ',
         ),
         _entry(
           functionName: TracedFunction.sweCalcUt,
@@ -86,19 +86,19 @@ void main() {
       trace = CallTrace(
         entries: [
           _entry(
-            functionName: TracedFunction.sweSetEphePath,
+            functionName: TracedFunction.sweSidtime,
             category: CallCategory.flags,
-            traceId: 'ctx:set_ephe_path',
+            traceId: 'ctx:sid_time',
           ),
           _entry(
-            functionName: TracedFunction.sweSetSidMode,
+            functionName: TracedFunction.sweDeltat,
             category: CallCategory.context,
-            traceId: 'ctx:set_sid_mode',
+            traceId: 'ctx:deltat',
           ),
           _entry(
-            functionName: TracedFunction.sweSetTopo,
+            functionName: TracedFunction.sweTimeEqu,
             category: CallCategory.context,
-            traceId: 'ctx:set_topo',
+            traceId: 'ctx:time_equ',
           ),
           _entry(
             functionName: TracedFunction.sweCalcUt,
