@@ -107,19 +107,17 @@ Tabs access the engine two ways:
    `swe.degnorm(x)`, `swe.houseName(hsys)`, etc. Pure utilities and metadata,
    delegated to the runner's `rs.Ephemeris` instance.
 
-## Code emission (lib/core/ephemeris/)
+## Symbol catalog (lib/core/ephemeris/)
 
 | File | Key types |
 |------|-----------|
-| `swe_symbol_catalog.dart` | `CodeTarget`, `TracedFunction` (39-value enum), `SymbolPair`, `SweSymbolCatalog` — single source of truth for SE constants and traced functions |
-| `code_emitter.dart` | `CodeEmitter` (abstract), `CEmitter`, `DartEmitter` — renders CallTrace → C/Dart source via exhaustive switch on `TracedFunction` |
+| `swe_symbol_catalog.dart` | `TracedFunction` (39-value enum), `SweSymbolCatalog` — registry of traced SwissEph calls |
 
 `TracedFunction` is the canonical registry of all traced SwissEph calls.
-`CallEntry.functionName` is `TracedFunction` (not `String`), so both recording
-(`TracingSwissEph`) and emission derive from the catalog. Emitter switches are
-Dart 3 exhaustive switch expressions — a missing case is a compile error.
-Constant lookups (bodies, flags, sidModes) use `CodeTarget`-parameterized
-methods backed by unified `SymbolPair`-valued maps.
+`CallEntry.functionName` is `TracedFunction` (not `String`), so recording
+(`TracingRustEph`) derives from the catalog. Code emission (C/Dart emitters)
+was removed — the catalog still carries `CodeTarget`/`SymbolPair` emission
+surface pending cleanup (see swe-dashboard/36).
 
 ## Context subsystem (lib/core/)
 
@@ -150,7 +148,6 @@ controller, focus node, and sync/commit logic.
 | `context_utc_field.dart` | `ContextUtcField` — UTC offset text + half-hour dropdown |
 | `context_jd_field.dart` | `ContextJdField` — Julian Day text input |
 | `context_location_field.dart` | `ContextLocationField(LocationFieldKind)` — lat/lon/alt/city, parameterized |
-| `code_language_selector.dart` | `CodeLanguageSelector` — code emitter language picker |
 | `origin_selector.dart` | `OriginSelector` — geocentric/topocentric/helio dropdown |
 | `zodiac_ref_selector.dart` | `ZodiacRefSelector` — tropical/sidereal dropdown |
 | `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
@@ -166,8 +163,6 @@ controller, focus node, and sync/commit logic.
 | `test/tracing_rust_eph_test.dart` | TracingRustEph: traced methods record CallEntry, untraced don't, error path, tab tag |
 | `test/ephemeris_runner_tracing_test.dart` | EphemerisRunner: _apply records setup, run/runScoped delegation, tab tagging, numeric accuracy |
 | `test/trace_model_test.dart` | CallEntry, CallTrace, TraceSlice filtering |
-| `test/c_emitter_test.dart` | CEmitter rendering |
-| `test/dart_emitter_test.dart` | DartEmitter rendering |
 | `test/swe_symbol_catalog_test.dart` | SweSymbolCatalog mappings |
 | `test/goldens/*.dart` | Widget golden image tests (54 PNGs, 3 sizes x 2 themes) |
 
