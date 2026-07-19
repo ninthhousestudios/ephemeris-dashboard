@@ -6,12 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'eclipses_provider.dart';
@@ -293,14 +291,6 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
       subtitle: scopeLabel,
       flagHex: '0x${e.returnFlag.toRadixString(16).toUpperCase()}',
       fields: fields,
-      onCode: () {
-        final trace = ref.read(eclipsesTraceProvider);
-        final slice = trace.sliceByTab('eclipses');
-        if (slice.entries.isEmpty) return;
-        final emitter = ref.read(selectedEmitterProvider);
-        final code = slice.entries.map(emitter.emitSnippet).join('\n');
-        showCodeModal(context, code: code, languageLabel: emitter.displayName);
-      },
     );
   }
 

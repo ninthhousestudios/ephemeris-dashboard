@@ -7,11 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'coordinates_provider.dart';
@@ -212,7 +209,6 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
               ),
             ),
             _resultSection(outcome, fmt, theme, colorScheme),
-            _codeButton(ref, azAltTraceProvider, 'coord-azalt'),
           ],
         ),
       ),
@@ -329,7 +325,6 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
               ),
             ),
             _resultSection(outcome, fmt, theme, colorScheme),
-            _codeButton(ref, coTransTraceProvider, 'coord-cotrans'),
           ],
         ),
       ),
@@ -429,7 +424,6 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
               ),
             ),
             _resultSection(outcome, fmt, theme, colorScheme),
-            _codeButton(ref, refracTraceProvider, 'coord-refrac'),
           ],
         ),
       ),
@@ -513,35 +507,6 @@ Widget _resultRow(ResultField f, ThemeData theme, ColorScheme colorScheme) {
           ),
         ),
       ],
-    ),
-  );
-}
-
-Widget _codeButton(
-  WidgetRef ref,
-  Provider<CallTrace> traceProvider,
-  String tabTag,
-) {
-  final trace = ref.watch(traceProvider);
-  final slice = trace.sliceByTab(tabTag);
-  if (slice.entries.isEmpty) return const SizedBox.shrink();
-
-  return Builder(
-    builder: (context) => Align(
-      alignment: Alignment.centerRight,
-      child: IconButton(
-        icon: const Icon(Icons.code, size: 16),
-        tooltip: 'View code',
-        onPressed: () {
-          final emitter = ref.read(selectedEmitterProvider);
-          final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(
-            context,
-            code: code,
-            languageLabel: emitter.displayName,
-          );
-        },
-      ),
     ),
   );
 }

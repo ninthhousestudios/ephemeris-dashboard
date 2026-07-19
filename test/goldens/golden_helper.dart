@@ -240,13 +240,11 @@ ResultCard fakeResultCard({
   String subtitle = 'calcUt(0)',
   String flagHex = '0x2',
   DisplayFormat format = DisplayFormat.dms,
-  bool showActions = false,
 }) {
   return ResultCard(
     title: title,
     subtitle: subtitle,
     flagHex: flagHex,
-    onCode: showActions ? () {} : null,
     fields: const [
       ResultField(label: 'Longitude', value: "4° 35' 00.00\"", rawValue: 4.583),
       ResultField(label: 'Latitude', value: "0° 00' 00.72\"", rawValue: 0.0002),

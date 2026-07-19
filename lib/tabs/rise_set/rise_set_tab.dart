@@ -7,9 +7,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'rise_set_provider.dart';
@@ -382,18 +380,6 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             ? '0x${flag.toRadixString(16).toUpperCase()}'
             : null,
         fields: fields,
-        onCode: () {
-          final trace = ref.read(riseSetTraceProvider);
-          final slice = trace.sliceByTab('riseSet');
-          if (slice.entries.isEmpty) return;
-          final emitter = ref.read(selectedEmitterProvider);
-          final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(
-            context,
-            code: code,
-            languageLabel: emitter.displayName,
-          );
-        },
       ),
     );
   }

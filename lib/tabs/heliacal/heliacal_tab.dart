@@ -9,12 +9,10 @@ import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../stars/stars_provider.dart' show StarCatalogEntry, starCatalog;
@@ -515,18 +513,6 @@ class _ResultsView extends ConsumerWidget {
                 rawValue: double.nan,
               ),
             ],
-            onCode: () {
-              final trace = ref.read(heliacalTraceProvider);
-              final slice = trace.sliceByTab('heliacal');
-              if (slice.entries.isEmpty) return;
-              final emitter = ref.read(selectedEmitterProvider);
-              final code = slice.entries.map(emitter.emitSnippet).join('\n');
-              showCodeModal(
-                context,
-                code: code,
-                languageLabel: emitter.displayName,
-              );
-            },
           ),
         ),
       );
@@ -591,14 +577,6 @@ class _ResultsView extends ConsumerWidget {
           rawValue: r.endVisibleJd,
         ),
       ],
-      onCode: () {
-        final trace = ref.read(heliacalTraceProvider);
-        final slice = trace.sliceByTab('heliacal');
-        if (slice.entries.isEmpty) return;
-        final emitter = ref.read(selectedEmitterProvider);
-        final code = slice.entries.map(emitter.emitSnippet).join('\n');
-        showCodeModal(context, code: code, languageLabel: emitter.displayName);
-      },
     );
   }
 
@@ -627,14 +605,6 @@ class _ResultsView extends ConsumerWidget {
           rawValue: r.endVisibleJd,
         ),
       ],
-      onCode: () {
-        final trace = ref.read(heliacalTraceProvider);
-        final slice = trace.sliceByTab('heliacal');
-        if (slice.entries.isEmpty) return;
-        final emitter = ref.read(selectedEmitterProvider);
-        final code = slice.entries.map(emitter.emitSnippet).join('\n');
-        showCodeModal(context, code: code, languageLabel: emitter.displayName);
-      },
     );
   }
 }

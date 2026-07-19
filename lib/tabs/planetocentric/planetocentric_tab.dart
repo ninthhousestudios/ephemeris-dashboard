@@ -6,11 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'planetocentric_provider.dart';
@@ -230,20 +228,6 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                       rawValue: r.speedDist,
                     ),
                   ],
-                  onCode: () {
-                    final trace = ref.read(planetocentricTraceProvider);
-                    final slice = trace.sliceByTab('planetocentric');
-                    if (slice.entries.isEmpty) return;
-                    final emitter = ref.read(selectedEmitterProvider);
-                    final code = slice.entries
-                        .map(emitter.emitSnippet)
-                        .join('\n');
-                    showCodeModal(
-                      context,
-                      code: code,
-                      languageLabel: emitter.displayName,
-                    );
-                  },
                 ),
               );
             }).toList(),

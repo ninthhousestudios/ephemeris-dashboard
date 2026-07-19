@@ -7,9 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'ayanamsa_provider.dart';
@@ -195,20 +193,6 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                       rawValue: r.value,
                     ),
                   ],
-                  onCode: () {
-                    final trace = ref.read(ayanamsaTraceProvider);
-                    final slice = trace.sliceByTab('ayanamsa');
-                    if (slice.entries.isEmpty) return;
-                    final emitter = ref.read(selectedEmitterProvider);
-                    final code = slice.entries
-                        .map(emitter.emitSnippet)
-                        .join('\n');
-                    showCodeModal(
-                      context,
-                      code: code,
-                      languageLabel: emitter.displayName,
-                    );
-                  },
                 ),
               );
             }).toList(),

@@ -8,11 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'dates_provider.dart';
@@ -357,14 +355,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                 rawValue: double.nan,
               ),
             ],
-      onCode: () {
-        final trace = ref.read(datesTraceProvider);
-        final slice = trace.sliceByTab('dates');
-        if (slice.entries.isEmpty) return;
-        final emitter = ref.read(selectedEmitterProvider);
-        final code = slice.entries.map(emitter.emitSnippet).join('\n');
-        showCodeModal(context, code: code, languageLabel: emitter.displayName);
-      },
     );
   }
 
@@ -384,14 +374,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
           rawValue: r.jdEt,
         ),
       ],
-      onCode: () {
-        final trace = ref.read(datesTraceProvider);
-        final slice = trace.sliceByTab('dates');
-        if (slice.entries.isEmpty) return;
-        final emitter = ref.read(selectedEmitterProvider);
-        final code = slice.entries.map(emitter.emitSnippet).join('\n');
-        showCodeModal(context, code: code, languageLabel: emitter.displayName);
-      },
     );
   }
 
@@ -437,14 +419,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             rawValue: r.equationOfTimeMinutes,
           ),
       ],
-      onCode: () {
-        final trace = ref.read(datesTraceProvider);
-        final slice = trace.sliceByTab('dates');
-        if (slice.entries.isEmpty) return;
-        final emitter = ref.read(selectedEmitterProvider);
-        final code = slice.entries.map(emitter.emitSnippet).join('\n');
-        showCodeModal(context, code: code, languageLabel: emitter.displayName);
-      },
     );
   }
 
@@ -478,14 +452,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             rawValue: r.latToLmt,
           ),
       ],
-      onCode: () {
-        final trace = ref.read(datesTraceProvider);
-        final slice = trace.sliceByTab('dates');
-        if (slice.entries.isEmpty) return;
-        final emitter = ref.read(selectedEmitterProvider);
-        final code = slice.entries.map(emitter.emitSnippet).join('\n');
-        showCodeModal(context, code: code, languageLabel: emitter.displayName);
-      },
     );
   }
 }

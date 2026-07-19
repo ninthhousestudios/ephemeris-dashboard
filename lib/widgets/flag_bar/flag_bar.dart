@@ -6,11 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/swe_constants.dart';
 
-import '../../core/active_tab_trace.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/flag_definitions.dart';
 import '../../core/flag_provider.dart';
-import '../code_modal.dart';
 import 'flag_group.dart';
 import 'flag_toggle.dart';
 
@@ -92,25 +89,6 @@ class FlagBar extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.code, size: 18),
-              tooltip: 'View tab code',
-              visualDensity: VisualDensity.compact,
-              onPressed: ref.watch(activeTabTraceProvider) == null
-                  ? null
-                  : () {
-                      final trace = ref.read(activeTabTraceProvider);
-                      if (trace == null || trace.entries.isEmpty) return;
-                      final emitter = ref.read(selectedEmitterProvider);
-                      final code = emitter.emitProgram(trace.entries);
-                      showCodeModal(
-                        context,
-                        code: code,
-                        languageLabel: emitter.displayName,
-                      );
-                    },
-            ),
           ],
         ),
       ),

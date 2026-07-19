@@ -10,11 +10,9 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../../tabs/planets/planets_provider.dart'
@@ -560,18 +558,6 @@ class _DiffResults extends ConsumerWidget {
           flagHex:
               '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
               '0x${result.returnFlagB.toRadixString(16).toUpperCase()}',
-          onCode: () {
-            final trace = ref.read(diffTraceProvider);
-            final slice = trace.sliceByTab('differential');
-            if (slice.entries.isEmpty) return;
-            final emitter = ref.read(selectedEmitterProvider);
-            final code = slice.entries.map(emitter.emitSnippet).join('\n');
-            showCodeModal(
-              context,
-              code: code,
-              languageLabel: emitter.displayName,
-            );
-          },
           fields: [
             ResultField(
               label: 'Lon ${result.nameA}',

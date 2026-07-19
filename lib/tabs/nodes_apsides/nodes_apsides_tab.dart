@@ -8,9 +8,7 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'nodes_apsides_provider.dart';
@@ -271,19 +269,6 @@ class _NodesResults extends ConsumerWidget {
             : 1;
         final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
 
-        void onCode() {
-          final trace = ref.read(nodesApsTraceProvider);
-          final slice = trace.sliceByTab('nodesApsides');
-          if (slice.entries.isEmpty) return;
-          final emitter = ref.read(selectedEmitterProvider);
-          final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(
-            context,
-            code: code,
-            languageLabel: emitter.displayName,
-          );
-        }
-
         final cards = <Widget>[
           SizedBox(
             width: cardWidth,
@@ -292,7 +277,6 @@ class _NodesResults extends ConsumerWidget {
               flagHex:
                   '0x${result.ascending.returnFlag.toRadixString(16).toUpperCase()}',
               fields: posFields(result.ascending),
-              onCode: onCode,
             ),
           ),
           SizedBox(
@@ -302,7 +286,6 @@ class _NodesResults extends ConsumerWidget {
               flagHex:
                   '0x${result.descending.returnFlag.toRadixString(16).toUpperCase()}',
               fields: posFields(result.descending),
-              onCode: onCode,
             ),
           ),
           SizedBox(
@@ -312,7 +295,6 @@ class _NodesResults extends ConsumerWidget {
               flagHex:
                   '0x${result.perihelion.returnFlag.toRadixString(16).toUpperCase()}',
               fields: posFields(result.perihelion),
-              onCode: onCode,
             ),
           ),
           SizedBox(
@@ -322,7 +304,6 @@ class _NodesResults extends ConsumerWidget {
               flagHex:
                   '0x${result.aphelion.returnFlag.toRadixString(16).toUpperCase()}',
               fields: posFields(result.aphelion),
-              onCode: onCode,
             ),
           ),
         ];
@@ -334,7 +315,6 @@ class _NodesResults extends ConsumerWidget {
               width: cardWidth,
               child: ResultCard(
                 title: '${result.bodyName} — Orbital Elements',
-                onCode: onCode,
                 fields: [
                   ResultField(
                     label: 'Semi-major Axis (AU)',
@@ -433,7 +413,6 @@ class _NodesResults extends ConsumerWidget {
               width: cardWidth,
               child: ResultCard(
                 title: '${result.bodyName} — Distance Extremes',
-                onCode: onCode,
                 fields: [
                   ResultField(
                     label: 'Max True Distance (AU)',

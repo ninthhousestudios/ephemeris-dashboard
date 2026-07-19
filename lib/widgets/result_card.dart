@@ -28,14 +28,12 @@ class ResultCard extends StatelessWidget {
     this.subtitle,
     this.flagHex,
     required this.fields,
-    this.onCode,
   });
 
   final String title;
   final String? subtitle;
   final String? flagHex;
   final List<ResultField> fields;
-  final VoidCallback? onCode;
 
   @override
   Widget build(BuildContext context) {
@@ -152,11 +150,6 @@ class ResultCard extends StatelessWidget {
                       }
                     }
                   },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.code, size: 18),
-                  tooltip: 'View code',
-                  onPressed: onCode,
                 ),
               ],
             ),

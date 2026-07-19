@@ -7,10 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../core/persistence.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'houses_provider.dart';
@@ -139,20 +137,6 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                             rawValue: result.cusps[i],
                           ),
                         ],
-                        onCode: () {
-                          final trace = ref.read(housesTraceProvider);
-                          final slice = trace.sliceByTab('houses');
-                          if (slice.entries.isEmpty) return;
-                          final emitter = ref.read(selectedEmitterProvider);
-                          final code = slice.entries
-                              .map(emitter.emitSnippet)
-                              .join('\n');
-                          showCodeModal(
-                            context,
-                            code: code,
-                            languageLabel: emitter.displayName,
-                          );
-                        },
                       ),
                     ),
                 ],
@@ -188,20 +172,6 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                     rawValue: result.equatorialAsc,
                   ),
                 ],
-                onCode: () {
-                  final trace = ref.read(housesTraceProvider);
-                  final slice = trace.sliceByTab('houses');
-                  if (slice.entries.isEmpty) return;
-                  final emitter = ref.read(selectedEmitterProvider);
-                  final code = slice.entries
-                      .map(emitter.emitSnippet)
-                      .join('\n');
-                  showCodeModal(
-                    context,
-                    code: code,
-                    languageLabel: emitter.displayName,
-                  );
-                },
               ),
             ],
           ),

@@ -8,9 +8,7 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'planets_provider.dart';
@@ -294,21 +292,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                   title: r.bodyName,
                   subtitle: 'calcUt(${r.body})',
                   flagHex: '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
-                  onCode: () {
-                    final traceId = 'planets:calc_ut:body=${r.body}';
-                    final trace = ref.read(planetsTraceProvider);
-                    final slice = trace.sliceByTraceId(traceId);
-                    if (slice.entries.isEmpty) return;
-                    final emitter = ref.read(selectedEmitterProvider);
-                    final code = slice.entries
-                        .map(emitter.emitSnippet)
-                        .join('\n');
-                    showCodeModal(
-                      context,
-                      code: code,
-                      languageLabel: emitter.displayName,
-                    );
-                  },
                   fields: r.errorMessage != null
                       ? [ResultField(label: 'Error', value: r.errorMessage!)]
                       : [

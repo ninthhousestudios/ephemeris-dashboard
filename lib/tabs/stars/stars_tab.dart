@@ -6,9 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/emitter_provider.dart';
 import '../../layout/responsive_layout.dart';
-import '../../widgets/code_modal.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'stars_provider.dart';
@@ -289,18 +287,6 @@ class _StarsTabState extends ConsumerState<StarsTab> {
             rawValue: result.speedDist,
           ),
         ],
-        onCode: () {
-          final trace = ref.read(starTraceProvider);
-          final slice = trace.sliceByTab('stars');
-          if (slice.entries.isEmpty) return;
-          final emitter = ref.read(selectedEmitterProvider);
-          final code = slice.entries.map(emitter.emitSnippet).join('\n');
-          showCodeModal(
-            context,
-            code: code,
-            languageLabel: emitter.displayName,
-          );
-        },
       ),
     );
   }

@@ -14,7 +14,6 @@ import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
 import '../chart_file_dialog.dart';
 import 'ayanamsa_selector.dart';
-import 'code_language_selector.dart';
 import 'context_date_field.dart';
 import 'context_jd_field.dart';
 import 'context_location_field.dart';
@@ -215,14 +214,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               }),
             ],
           ),
-          // ── Secondary: code language, ephemeris badge ──
-          const Row(
-            children: [
-              CodeLanguageSelector(),
-              SizedBox(width: 8),
-              Flexible(child: FileInUseIndicator()),
-            ],
-          ),
+          // ── Secondary: ephemeris badge ──
+          const Row(children: [Flexible(child: FileInUseIndicator())]),
           const SizedBox(height: 4),
           // Date | Time
           const Row(
@@ -330,8 +323,6 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                           onPressed: _openChart,
                         ),
                         const SizedBox(width: 4),
-                        const CodeLanguageSelector(),
-                        const SizedBox(width: 8),
                         const Flexible(child: FileInUseIndicator()),
                         const SizedBox(width: 8),
                         dateTimeIconButton(Icons.update, 'Set to now', () {
