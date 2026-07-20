@@ -14,6 +14,9 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/ephe/catalog.dart';
+import '../../core/ephe/scanner.dart';
+import '../../core/ephe/types.dart';
 import '../../core/swe_service.dart';
 import '../planets/planets_provider.dart';
 
@@ -120,16 +123,20 @@ const namedComets = <int, String>{
 
 final otherBodiesSelectionProvider = StateProvider<List<int>>((ref) => <int>[]);
 
-/// Planet moon body IDs (9000–9999) currently selected. Consumed by the
-/// engine config so swisseph_rs pre-opens the sat/ files.
+/// Planet moon body IDs (9000–9999) currently selected, filtered to only
+/// those whose sat/ files are installed. swisseph_rs fails engine creation
+/// if a declared file is missing.
 final selectedPlanetMoonIdsProvider = Provider<List<int>>((ref) {
   final all = ref.watch(otherBodiesSelectionProvider);
   final moons = all.where((id) => id >= sePlmoonOffset && id < seAstOffset);
-  return moons.isEmpty ? const [] : moons.toList();
+  if (moons.isEmpty) return const [];
+  final installed = _installedFilenames(ref);
+  return moons.where((id) => installed.contains('sepm$id.se1')).toList();
 });
 
-/// Asteroid MPC numbers selected across all tabs. swisseph_rs needs these
-/// in EphemerisConfig.asteroidNumbers to pre-open per-asteroid files.
+/// Asteroid MPC numbers selected across all tabs, filtered to only those
+/// whose files are installed. swisseph_rs fails engine creation if a
+/// declared file is missing.
 final selectedAsteroidMpcProvider = Provider<List<int>>((ref) {
   final planetsBodies = ref.watch(selectedBodiesProvider);
   final otherBodies = ref.watch(otherBodiesSelectionProvider);
@@ -140,8 +147,22 @@ final selectedAsteroidMpcProvider = Provider<List<int>>((ref) {
   for (final id in otherBodies) {
     if (id >= seAstOffset) mpcs.add(id - seAstOffset);
   }
-  return mpcs.isEmpty ? const [] : mpcs.toList();
+  if (mpcs.isEmpty) return const [];
+  final installed = _installedFilenames(ref);
+  return mpcs.where((mpc) {
+    final fn = asteroidFilenameFor(mpc);
+    return installed.contains(fn);
+  }).toList();
 });
+
+Set<String> _installedFilenames(Ref ref) {
+  final scan = ref.watch(ephemerisScanProvider).valueOrNull;
+  if (scan == null) return const {};
+  return {
+    for (final f in scan.files)
+      if (f.status == EpheFileStatus.installed) f.filename,
+  };
+}
 
 // ── Result type (shared with planets) ──
 
