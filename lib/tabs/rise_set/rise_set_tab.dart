@@ -493,7 +493,19 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Text(group.target.label, style: theme.textTheme.titleMedium),
+            child: Row(
+              children: [
+                Text(group.target.label, style: theme.textTheme.titleMedium),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  onPressed: () => _removeTarget(group.target),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Remove',
+                ),
+              ],
+            ),
           ),
           Wrap(
             spacing: 4,
