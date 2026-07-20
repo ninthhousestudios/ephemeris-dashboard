@@ -310,7 +310,9 @@ final _riseSetCalcProvider =
       final attemp = ref.watch(riseSetAttempProvider);
       final modifiers = ref.watch(riseSetModifiersProvider);
 
-      final jdUt = ctx.jdUt;
+      // Start from midnight UT of the context date so all four events
+      // (rise, set, transits) land on the same calendar day.
+      final jdUt = (ctx.jdUt + 0.5).floorToDouble() - 0.5;
       final geolon = ctx.longitude;
       final geolat = ctx.latitude;
       final geoalt = ctx.altitude;
