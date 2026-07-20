@@ -205,56 +205,75 @@ final asteroidCatalog = <CatalogEntry>[
 
 // ── Planetary moons & COB (sat/ subdir) ──
 
-const _satelliteSeed = <(int, String)>[
-  (9401, 'Phobos'),
-  (9402, 'Deimos'),
-  (9501, 'Io'),
-  (9502, 'Europa'),
-  (9503, 'Ganymede'),
-  (9504, 'Callisto'),
-  (9599, 'Jupiter COB'),
-  (9601, 'Mimas'),
-  (9602, 'Enceladus'),
-  (9603, 'Tethys'),
-  (9604, 'Dione'),
-  (9605, 'Rhea'),
-  (9606, 'Titan'),
-  (9607, 'Hyperion'),
-  (9608, 'Iapetus'),
-  (9699, 'Saturn COB'),
-  (9701, 'Ariel'),
-  (9702, 'Umbriel'),
-  (9703, 'Titania'),
-  (9704, 'Oberon'),
-  (9705, 'Miranda'),
-  (9799, 'Uranus COB'),
-  (9801, 'Triton'),
-  (9802, 'Nereid'),
-  (9808, 'Proteus'),
-  (9899, 'Neptune COB'),
-  (9901, 'Charon'),
-  (9902, 'Nix'),
-  (9903, 'Hydra'),
-  (9904, 'Kerberos'),
-  (9905, 'Styx'),
-  (9999, 'Pluto COB'),
+class MoonGroup {
+  const MoonGroup(this.parent, this.moons);
+  final String parent;
+  final List<({int bodyId, String name})> moons;
+}
+
+const planetaryMoonGroups = <MoonGroup>[
+  MoonGroup('Mars', [
+    (bodyId: 9401, name: 'Phobos'),
+    (bodyId: 9402, name: 'Deimos'),
+  ]),
+  MoonGroup('Jupiter', [
+    (bodyId: 9501, name: 'Io'),
+    (bodyId: 9502, name: 'Europa'),
+    (bodyId: 9503, name: 'Ganymede'),
+    (bodyId: 9504, name: 'Callisto'),
+    (bodyId: 9599, name: 'Jupiter COB'),
+  ]),
+  MoonGroup('Saturn', [
+    (bodyId: 9601, name: 'Mimas'),
+    (bodyId: 9602, name: 'Enceladus'),
+    (bodyId: 9603, name: 'Tethys'),
+    (bodyId: 9604, name: 'Dione'),
+    (bodyId: 9605, name: 'Rhea'),
+    (bodyId: 9606, name: 'Titan'),
+    (bodyId: 9607, name: 'Hyperion'),
+    (bodyId: 9608, name: 'Iapetus'),
+    (bodyId: 9699, name: 'Saturn COB'),
+  ]),
+  MoonGroup('Uranus', [
+    (bodyId: 9701, name: 'Ariel'),
+    (bodyId: 9702, name: 'Umbriel'),
+    (bodyId: 9703, name: 'Titania'),
+    (bodyId: 9704, name: 'Oberon'),
+    (bodyId: 9705, name: 'Miranda'),
+    (bodyId: 9799, name: 'Uranus COB'),
+  ]),
+  MoonGroup('Neptune', [
+    (bodyId: 9801, name: 'Triton'),
+    (bodyId: 9802, name: 'Nereid'),
+    (bodyId: 9808, name: 'Proteus'),
+    (bodyId: 9899, name: 'Neptune COB'),
+  ]),
+  MoonGroup('Pluto', [
+    (bodyId: 9901, name: 'Charon'),
+    (bodyId: 9902, name: 'Nix'),
+    (bodyId: 9903, name: 'Hydra'),
+    (bodyId: 9904, name: 'Kerberos'),
+    (bodyId: 9905, name: 'Styx'),
+    (bodyId: 9999, name: 'Pluto COB'),
+  ]),
 ];
 
 final satelliteCatalog = <CatalogEntry>[
-  for (final (bodyId, name) in _satelliteSeed)
-    CatalogEntry(
-      filename: 'sepm$bodyId.se1',
-      family: BodyFamily.satellite,
-      url:
-          'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/sat/sepm$bodyId.se1',
-      subdir: 'sat',
-      displayName: name,
-    ),
+  for (final g in planetaryMoonGroups)
+    for (final m in g.moons)
+      CatalogEntry(
+        filename: 'sepm${m.bodyId}.se1',
+        family: BodyFamily.satellite,
+        url:
+            'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/sat/sepm${m.bodyId}.se1',
+        subdir: 'sat',
+        displayName: m.name,
+      ),
 ];
 
 // ── Comets (pseudo-MPC numbers, stored as numbered asteroids in ast999/) ──
 
-const _cometSeed = <(int, String)>[
+const cometSeed = <(int, String)>[
   (999032, '67P/Churyumov-Gerasimenko'),
   (999043, 'C/2020 F3 (NEOWISE)'),
   (999044, '1P/Halley'),
@@ -264,7 +283,7 @@ const _cometSeed = <(int, String)>[
 ];
 
 final cometCatalog = <CatalogEntry>[
-  for (final (mpc, name) in _cometSeed)
+  for (final (mpc, name) in cometSeed)
     asteroidCatalogEntryFor(mpc, displayName: name)!,
 ];
 

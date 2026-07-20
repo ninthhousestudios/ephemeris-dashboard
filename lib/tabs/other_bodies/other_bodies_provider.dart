@@ -4,6 +4,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
+import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/body_utils.dart';
@@ -15,65 +16,7 @@ import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/ephe/catalog.dart';
-import '../../core/ephe/scanner.dart';
-import '../../core/ephe/types.dart';
 import '../../core/swe_service.dart';
-import '../planets/planets_provider.dart';
-
-// ── Planetary moon body IDs (SE_PLMOON_OFFSET + planet*100 + moon) ──
-
-class MoonGroup {
-  const MoonGroup(this.parent, this.moons);
-  final String parent;
-  final List<({int bodyId, String name})> moons;
-}
-
-final planetaryMoonGroups = <MoonGroup>[
-  MoonGroup('Mars', [
-    (bodyId: 9401, name: 'Phobos'),
-    (bodyId: 9402, name: 'Deimos'),
-  ]),
-  MoonGroup('Jupiter', [
-    (bodyId: 9501, name: 'Io'),
-    (bodyId: 9502, name: 'Europa'),
-    (bodyId: 9503, name: 'Ganymede'),
-    (bodyId: 9504, name: 'Callisto'),
-    (bodyId: 9599, name: 'Jupiter COB'),
-  ]),
-  MoonGroup('Saturn', [
-    (bodyId: 9601, name: 'Mimas'),
-    (bodyId: 9602, name: 'Enceladus'),
-    (bodyId: 9603, name: 'Tethys'),
-    (bodyId: 9604, name: 'Dione'),
-    (bodyId: 9605, name: 'Rhea'),
-    (bodyId: 9606, name: 'Titan'),
-    (bodyId: 9607, name: 'Hyperion'),
-    (bodyId: 9608, name: 'Iapetus'),
-    (bodyId: 9699, name: 'Saturn COB'),
-  ]),
-  MoonGroup('Uranus', [
-    (bodyId: 9701, name: 'Ariel'),
-    (bodyId: 9702, name: 'Umbriel'),
-    (bodyId: 9703, name: 'Titania'),
-    (bodyId: 9704, name: 'Oberon'),
-    (bodyId: 9705, name: 'Miranda'),
-    (bodyId: 9799, name: 'Uranus COB'),
-  ]),
-  MoonGroup('Neptune', [
-    (bodyId: 9801, name: 'Triton'),
-    (bodyId: 9802, name: 'Nereid'),
-    (bodyId: 9808, name: 'Proteus'),
-    (bodyId: 9899, name: 'Neptune COB'),
-  ]),
-  MoonGroup('Pluto', [
-    (bodyId: 9901, name: 'Charon'),
-    (bodyId: 9902, name: 'Nix'),
-    (bodyId: 9903, name: 'Hydra'),
-    (bodyId: 9904, name: 'Kerberos'),
-    (bodyId: 9905, name: 'Styx'),
-    (bodyId: 9999, name: 'Pluto COB'),
-  ]),
-];
 
 final _allMoonBodyIds = <int, String>{
   for (final g in planetaryMoonGroups)
@@ -108,61 +51,11 @@ const otherBodiesNamedAsteroids = <int, String>{
   225088: 'Gonggong',
 };
 
-// ── Named comets (pseudo-MPC numbers) ──
+// ── Named comets (pseudo-MPC numbers, derived from catalog) ──
 
-const namedComets = <int, String>{
-  999032: '67P/Churyumov-Ger.',
-  999043: 'C/2020 F3 (NEOWISE)',
-  999044: '1P/Halley',
-  999045: "1I/'Oumuamua",
-  999046: 'Hale-Bopp',
-  999047: 'West',
+final namedComets = <int, String>{
+  for (final (mpc, name) in cometSeed) mpc: name,
 };
-
-// ── Selection state ──
-
-final otherBodiesSelectionProvider = StateProvider<List<int>>((ref) => <int>[]);
-
-/// Planet moon body IDs (9000–9999) currently selected, filtered to only
-/// those whose sat/ files are installed. swisseph_rs fails engine creation
-/// if a declared file is missing.
-final selectedPlanetMoonIdsProvider = Provider<List<int>>((ref) {
-  final all = ref.watch(otherBodiesSelectionProvider);
-  final moons = all.where((id) => id >= sePlmoonOffset && id < seAstOffset);
-  if (moons.isEmpty) return const [];
-  final installed = _installedFilenames(ref);
-  return moons.where((id) => installed.contains('sepm$id.se1')).toList();
-});
-
-/// Asteroid MPC numbers selected across all tabs, filtered to only those
-/// whose files are installed. swisseph_rs fails engine creation if a
-/// declared file is missing.
-final selectedAsteroidMpcProvider = Provider<List<int>>((ref) {
-  final planetsBodies = ref.watch(selectedBodiesProvider);
-  final otherBodies = ref.watch(otherBodiesSelectionProvider);
-  final mpcs = <int>{};
-  for (final id in planetsBodies) {
-    if (id >= seAstOffset) mpcs.add(id - seAstOffset);
-  }
-  for (final id in otherBodies) {
-    if (id >= seAstOffset) mpcs.add(id - seAstOffset);
-  }
-  if (mpcs.isEmpty) return const [];
-  final installed = _installedFilenames(ref);
-  return mpcs.where((mpc) {
-    final fn = asteroidFilenameFor(mpc);
-    return installed.contains(fn);
-  }).toList();
-});
-
-Set<String> _installedFilenames(Ref ref) {
-  final scan = ref.watch(ephemerisScanProvider).valueOrNull;
-  if (scan == null) return const {};
-  return {
-    for (final f in scan.files)
-      if (f.status == EpheFileStatus.installed) f.filename,
-  };
-}
 
 // ── Result type (shared with planets) ──
 

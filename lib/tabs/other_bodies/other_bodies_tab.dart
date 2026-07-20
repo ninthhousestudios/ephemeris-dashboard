@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
+import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephe/catalog.dart';
 import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -195,7 +197,8 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
         Row(
           children: [
             SizedBox(
-              width: 140,
+              width: (140 * MediaQuery.textScalerOf(context).scale(1.0))
+                  .floorToDouble(),
               child: TextField(
                 controller: _asteroidController,
                 decoration: const InputDecoration(
@@ -251,7 +254,8 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
         Row(
           children: [
             SizedBox(
-              width: 140,
+              width: (140 * MediaQuery.textScalerOf(context).scale(1.0))
+                  .floorToDouble(),
               child: TextField(
                 controller: _cometController,
                 decoration: const InputDecoration(

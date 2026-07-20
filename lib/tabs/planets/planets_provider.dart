@@ -4,6 +4,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
+import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/body_utils.dart';
@@ -148,11 +149,6 @@ final namedAsteroids = <int, String>{
   90377: 'Sedna',
   90482: 'Orcus',
 };
-
-/// Currently selected bodies.
-final selectedBodiesProvider = StateProvider<List<int>>(
-  (ref) => [seSun, seMoon, seMercury, seVenus, seMars, seJupiter, seSaturn],
-);
 
 /// Pure compute step: runs calcUt for each body, capturing per-body
 /// SweExceptions as an `errorMessage` instead of failing the whole batch.

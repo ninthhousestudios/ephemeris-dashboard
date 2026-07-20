@@ -8,7 +8,7 @@ import '../context_state.dart';
 import '../ephe/dir_provider.dart';
 import '../ephe/scanner.dart';
 import '../ephe/types.dart';
-import '../../tabs/other_bodies/other_bodies_provider.dart';
+import '../body_selection.dart';
 import 'applied_globals.dart';
 import 'trace_model.dart';
 import 'tracing_rust_eph.dart';
