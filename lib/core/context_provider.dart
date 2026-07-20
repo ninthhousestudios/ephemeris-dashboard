@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'ayanamsa_catalog.dart';
 import 'context_state.dart';
 import 'jd_utils.dart';
 import 'persistence.dart';
@@ -49,6 +50,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
       zodiacRef: overrides['zodiacRef'] as ZodiacRef?,
       eqRef: overrides['eqRef'] as EqRef?,
       ayanamsa: overrides['ayanamsa'] as int?,
+      lastSiderealAyanamsa: overrides['lastSiderealAyanamsa'] as int?,
       userAyanT0: overrides['userAyanT0'] as double?,
       userAyanValue: overrides['userAyanValue'] as double?,
       epheSource: hasEpheFiles
@@ -130,7 +132,23 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   }
 
   void setZodiacRef(ZodiacRef zodiacRef) {
-    state = state.copyWith(zodiacRef: zodiacRef);
+    if (zodiacRef == ZodiacRef.sidereal &&
+        state.zodiacRef == ZodiacRef.tropical) {
+      state = state.copyWith(
+        zodiacRef: zodiacRef,
+        ayanamsa: state.lastSiderealAyanamsa,
+      );
+    } else if (zodiacRef == ZodiacRef.tropical &&
+        state.zodiacRef == ZodiacRef.sidereal) {
+      final stash = state.ayanamsa >= 0 ? state.ayanamsa : 0;
+      state = state.copyWith(
+        zodiacRef: zodiacRef,
+        lastSiderealAyanamsa: stash,
+        ayanamsa: ayanamsaTropicalId,
+      );
+    } else {
+      state = state.copyWith(zodiacRef: zodiacRef);
+    }
     _save();
   }
 
@@ -140,7 +158,10 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   }
 
   void setAyanamsa(int sidMode) {
-    state = state.copyWith(ayanamsa: sidMode);
+    state = state.copyWith(
+      ayanamsa: sidMode,
+      lastSiderealAyanamsa: sidMode >= 0 ? sidMode : state.lastSiderealAyanamsa,
+    );
     _save();
   }
 

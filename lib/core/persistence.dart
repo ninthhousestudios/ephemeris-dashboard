@@ -29,6 +29,7 @@ class PersistenceService {
     _prefs.setString('ctx_zodiac_ref', s.zodiacRef.name);
     _prefs.setString('ctx_eq_ref', s.eqRef.name);
     _prefs.setInt('ctx_ayanamsa', s.ayanamsa);
+    _prefs.setInt('ctx_last_sidereal_ayanamsa', s.lastSiderealAyanamsa);
     _prefs.setDouble('ctx_user_ayan_t0', s.userAyanT0);
     _prefs.setDouble('ctx_user_ayan_value', s.userAyanValue);
     _prefs.setString('ctx_ephe_source', s.epheSource.name);
@@ -74,6 +75,9 @@ class PersistenceService {
     }
     if (_prefs.containsKey('ctx_ayanamsa')) {
       map['ayanamsa'] = _prefs.getInt('ctx_ayanamsa');
+    }
+    if (_prefs.containsKey('ctx_last_sidereal_ayanamsa')) {
+      map['lastSiderealAyanamsa'] = _prefs.getInt('ctx_last_sidereal_ayanamsa');
     }
     if (_prefs.containsKey('ctx_user_ayan_t0')) {
       map['userAyanT0'] = _prefs.getDouble('ctx_user_ayan_t0');

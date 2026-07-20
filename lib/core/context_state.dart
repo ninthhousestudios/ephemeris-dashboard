@@ -21,6 +21,8 @@ class ContextBarState {
     this.eqRef = EqRef.trueEquinox,
     this.ayanamsa =
         -1, // -1 = none; 0+ = SE_SIDM_* constant (only meaningful when sidereal)
+    this.lastSiderealAyanamsa =
+        0, // remembered choice when switching back to sidereal
     this.userAyanT0 = 0.0,
     this.userAyanValue = 0.0,
     this.epheSource = EpheSource.moshier,
@@ -42,6 +44,8 @@ class ContextBarState {
   final ZodiacRef zodiacRef;
   final EqRef eqRef;
   final int ayanamsa; // SE_SIDM_* constant (when sidereal); 255 = user-defined
+  final int
+  lastSiderealAyanamsa; // stashed sidereal choice (survives tropical toggle)
   final double userAyanT0; // reference JD for SE_SIDM_USER
   final double userAyanValue; // ayanamsa value at t0, degrees
   final EpheSource epheSource;
@@ -60,6 +64,7 @@ class ContextBarState {
     ZodiacRef? zodiacRef,
     EqRef? eqRef,
     int? ayanamsa,
+    int? lastSiderealAyanamsa,
     double? userAyanT0,
     double? userAyanValue,
     EpheSource? epheSource,
@@ -77,6 +82,7 @@ class ContextBarState {
       zodiacRef: zodiacRef ?? this.zodiacRef,
       eqRef: eqRef ?? this.eqRef,
       ayanamsa: ayanamsa ?? this.ayanamsa,
+      lastSiderealAyanamsa: lastSiderealAyanamsa ?? this.lastSiderealAyanamsa,
       userAyanT0: userAyanT0 ?? this.userAyanT0,
       userAyanValue: userAyanValue ?? this.userAyanValue,
       epheSource: epheSource ?? this.epheSource,
@@ -101,6 +107,7 @@ class ContextBarState {
           zodiacRef == other.zodiacRef &&
           eqRef == other.eqRef &&
           ayanamsa == other.ayanamsa &&
+          lastSiderealAyanamsa == other.lastSiderealAyanamsa &&
           userAyanT0 == other.userAyanT0 &&
           userAyanValue == other.userAyanValue &&
           epheSource == other.epheSource &&
@@ -119,6 +126,7 @@ class ContextBarState {
     zodiacRef,
     eqRef,
     ayanamsa,
+    lastSiderealAyanamsa,
     userAyanT0,
     userAyanValue,
     epheSource,
