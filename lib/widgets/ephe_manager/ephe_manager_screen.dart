@@ -11,7 +11,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ephe/catalog.dart';
 import '../../core/ephe/dir_provider.dart';
-import '../../layout/responsive_layout.dart';
 import '../../core/ephe/downloader.dart';
 import '../../core/ephe/scanner.dart';
 import '../../core/ephe/types.dart';
@@ -73,46 +72,34 @@ class _EphemerisManagerScreenState
         final allFiles = [..._buildAllFiles(scan)];
         // Drop stale selection IDs (files that no longer exist in the view).
         _selected.retainAll(allFiles.map((f) => f.filename).toSet());
-        final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
-        final listView = Builder(
-          builder: (_) {
-            final seFiles = _collectSeFiles(scan);
-            final jplFiles = _collectJplFiles(scan);
-            final astFiles = _collectAsteroidFiles(scan);
-            final satFiles = _collectSatelliteFiles(scan);
-            final cometFiles = _collectCometFiles(scan);
-            return ListView(
-              shrinkWrap: isMobile,
-              physics: isMobile ? const NeverScrollableScrollPhysics() : null,
-              children: [
-                _buildDirectoryHeader(settings, resolved ?? ''),
-                const Divider(height: 1),
-                _sectionHeader('Swiss Ephemeris', seFiles),
-                for (final f in seFiles) _rowFor(f),
-                const Divider(height: 1),
-                _sectionHeader('JPL', jplFiles),
-                for (final f in jplFiles) _rowFor(f),
-                const Divider(height: 1),
-                _sectionHeader(
-                  'Asteroids',
-                  astFiles,
-                  extraActions: _asteroidExtraActions(),
-                ),
-                for (final f in astFiles) _rowFor(f),
-                const Divider(height: 1),
-                _sectionHeader('Planetary Moons', satFiles),
-                for (final f in satFiles) _rowFor(f),
-                const Divider(height: 1),
-                _sectionHeader('Comets', cometFiles),
-                for (final f in cometFiles) _rowFor(f),
-              ],
-            );
-          },
-        );
+        final seFiles = _collectSeFiles(scan);
+        final jplFiles = _collectJplFiles(scan);
+        final astFiles = _collectAsteroidFiles(scan);
+        final satFiles = _collectSatelliteFiles(scan);
+        final cometFiles = _collectCometFiles(scan);
         return Column(
           children: [
             if (_selected.isNotEmpty) _buildSelectionToolbar(allFiles),
-            if (isMobile) listView else Expanded(child: listView),
+            _buildDirectoryHeader(settings, resolved ?? ''),
+            const Divider(height: 1),
+            _sectionHeader('Swiss Ephemeris', seFiles),
+            for (final f in seFiles) _rowFor(f),
+            const Divider(height: 1),
+            _sectionHeader('JPL', jplFiles),
+            for (final f in jplFiles) _rowFor(f),
+            const Divider(height: 1),
+            _sectionHeader(
+              'Asteroids',
+              astFiles,
+              extraActions: _asteroidExtraActions(),
+            ),
+            for (final f in astFiles) _rowFor(f),
+            const Divider(height: 1),
+            _sectionHeader('Planetary Moons', satFiles),
+            for (final f in satFiles) _rowFor(f),
+            const Divider(height: 1),
+            _sectionHeader('Comets', cometFiles),
+            for (final f in cometFiles) _rowFor(f),
           ],
         );
       },
