@@ -88,6 +88,11 @@ class FlagBarState {
         break;
     }
 
+    // Equinox reference
+    if (ctx.eqRef == EqRef.meanEquinox) {
+      locked |= seFlgNoNut;
+    }
+
     // Ephemeris source
     switch (ctx.epheSource) {
       case EpheSource.swissEph:
