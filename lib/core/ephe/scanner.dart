@@ -38,7 +38,7 @@ Future<EphemerisScan> scanEphemerisDirectory(String dir) async {
   for (final sub in directory.listSync()) {
     if (sub is! Directory) continue;
     final subName = p.basename(sub.path);
-    if (!RegExp(r'^ast\d+$').hasMatch(subName)) continue;
+    if (!RegExp(r'^(ast\d+|sat)$').hasMatch(subName)) continue;
     _scanOneDir(dir, subName, sub, entries);
   }
   return EphemerisScan(entries, DateTime.now(), dir);

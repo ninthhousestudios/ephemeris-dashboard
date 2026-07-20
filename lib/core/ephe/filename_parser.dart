@@ -12,6 +12,7 @@ import 'types.dart';
 ///   * `seplmNN.se1`  — planets, BCE chunk [-(NN*100 - 1), -(NN*100 - 1) + 599]
 ///   * `semo_NN.se1` / `semomNN.se1` — moon (same numbering as planets)
 ///   * `seas_NN.se1` / `seasmNN.se1` — main asteroids
+///   * `sepm9NNN.se1` — planetary moon / COB files (in `sat/` subdir)
 ///   * `seNNNNs.se1` / `seNNNN.se1` — per-asteroid files (MPC NNNNN);
 ///     live in `astX/` subdirs (X = MPC ~/ 1000).
 ///   * `deNNN.eph`, `deNNNe.eph`, `deNNNt.eph` — JPL DE files
@@ -38,6 +39,21 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
     return EpheFile(
       filename: filename,
       family: BodyFamily.jpl,
+      startJd: 0,
+      endJd: 0,
+      startYear: 0,
+      endYear: 0,
+      sizeBytes: sizeBytes,
+      status: EpheFileStatus.installed,
+    );
+  }
+
+  // Planetary moon / COB files: sepm9NNN.se1 (in sat/ subdir).
+  final satMatch = RegExp(r'^sepm(\d{4})\.se1$').firstMatch(filename);
+  if (satMatch != null) {
+    return EpheFile(
+      filename: filename,
+      family: BodyFamily.satellite,
       startJd: 0,
       endJd: 0,
       startYear: 0,

@@ -79,6 +79,8 @@ class _EphemerisManagerScreenState
             final seFiles = _collectSeFiles(scan);
             final jplFiles = _collectJplFiles(scan);
             final astFiles = _collectAsteroidFiles(scan);
+            final satFiles = _collectSatelliteFiles(scan);
+            final cometFiles = _collectCometFiles(scan);
             return ListView(
               shrinkWrap: isMobile,
               physics: isMobile ? const NeverScrollableScrollPhysics() : null,
@@ -97,6 +99,12 @@ class _EphemerisManagerScreenState
                   extraActions: _asteroidExtraActions(),
                 ),
                 for (final f in astFiles) _rowFor(f),
+                const Divider(height: 1),
+                _sectionHeader('Planetary Moons', satFiles),
+                for (final f in satFiles) _rowFor(f),
+                const Divider(height: 1),
+                _sectionHeader('Comets', cometFiles),
+                for (final f in cometFiles) _rowFor(f),
               ],
             );
           },
@@ -119,6 +127,7 @@ class _EphemerisManagerScreenState
           f.family == BodyFamily.moon ||
           f.family == BodyFamily.mainAsteroids ||
           f.family == BodyFamily.numberedAsteroid ||
+          f.family == BodyFamily.satellite ||
           f.family == BodyFamily.fixedStars ||
           f.family == BodyFamily.jpl,
     );
@@ -129,6 +138,12 @@ class _EphemerisManagerScreenState
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing);
     yield* asteroidCatalog
+        .where((c) => !installedByName.containsKey(c.filename))
+        .map(_catalogToMissing);
+    yield* satelliteCatalog
+        .where((c) => !installedByName.containsKey(c.filename))
+        .map(_catalogToMissing);
+    yield* cometCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing);
   }
@@ -407,6 +422,47 @@ class _EphemerisManagerScreenState
             .toList()
           ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
     return [...installed, ...missing];
+  }
+
+  List<EpheFile> _collectSatelliteFiles(EphemerisScan scan) {
+    final installedByName = {for (final f in scan.files) f.filename: f};
+    final installed =
+        scan.files
+            .where(
+              (f) =>
+                  f.family == BodyFamily.satellite ||
+                  (f.status == EpheFileStatus.partial &&
+                      f.filename.startsWith('sepm9')),
+            )
+            .toList()
+          ..sort((a, b) => a.filename.compareTo(b.filename));
+    final missing =
+        satelliteCatalog
+            .where((c) => !installedByName.containsKey(c.filename))
+            .map(_catalogToMissing)
+            .toList()
+          ..sort((a, b) => a.filename.compareTo(b.filename));
+    return [...installed, ...missing];
+  }
+
+  List<EpheFile> _collectCometFiles(EphemerisScan scan) {
+    final installedByName = {for (final f in scan.files) f.filename: f};
+    final installed = scan.files.where((f) => _isCometFile(f.filename)).toList()
+      ..sort((a, b) => a.filename.compareTo(b.filename));
+    final missing =
+        cometCatalog
+            .where((c) => !installedByName.containsKey(c.filename))
+            .map(_catalogToMissing)
+            .toList()
+          ..sort((a, b) => a.filename.compareTo(b.filename));
+    return [...installed, ...missing];
+  }
+
+  static bool _isCometFile(String filename) {
+    final m = RegExp(r'^s?e?(\d+)s?\.se1$').firstMatch(filename);
+    if (m == null) return false;
+    final n = int.tryParse(m.group(1)!);
+    return n != null && n >= 999000 && n < 1000000;
   }
 
   List<Widget> _asteroidExtraActions() {
