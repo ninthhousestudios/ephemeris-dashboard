@@ -9,6 +9,8 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../stars/stars_provider.dart'
+    show StarCatalogEntry, commonStars, starCatalogProvider;
 import 'rise_set_provider.dart';
 
 // ── Body list ─────────────────────────────────────────────────────────────────
@@ -54,11 +56,75 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   final _atpressController = TextEditingController(text: '1013.25');
   final _attempController = TextEditingController(text: '15.0');
 
+  final _starSearchController = TextEditingController();
+  final _starFocusNode = FocusNode();
+  List<StarCatalogEntry> _starSuggestions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _starSearchController.addListener(_onStarSearchChanged);
+    _starFocusNode.addListener(() {
+      if (!_starFocusNode.hasFocus) {
+        setState(() => _starSuggestions = []);
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _starSearchController.removeListener(_onStarSearchChanged);
+    _starSearchController.dispose();
+    _starFocusNode.dispose();
     _atpressController.dispose();
     _attempController.dispose();
     super.dispose();
+  }
+
+  void _onStarSearchChanged() {
+    final q = _starSearchController.text.trim();
+    if (q.isEmpty) {
+      setState(() => _starSuggestions = []);
+      return;
+    }
+    final lower = q.toLowerCase();
+    final bayerQ = lower.startsWith(',') ? lower.substring(1) : lower;
+    final catalog = ref.read(starCatalogProvider);
+    setState(() {
+      _starSuggestions = catalog.where((e) {
+        return e.commonName.toLowerCase().contains(lower) ||
+            e.bayerDesig.toLowerCase().contains(bayerQ);
+      }).toList();
+    });
+  }
+
+  void _selectStarSuggestion(StarCatalogEntry entry) {
+    _starSearchController.text = entry.commonName;
+    _starSearchController.selection = TextSelection.collapsed(
+      offset: entry.commonName.length,
+    );
+    ref.read(riseSetStarNameProvider.notifier).state = entry.commonName;
+    setState(() => _starSuggestions = []);
+  }
+
+  void _commitStarSearch() {
+    final term = _starSearchController.text.trim();
+    ref.read(riseSetStarNameProvider.notifier).state = term.isEmpty
+        ? null
+        : term;
+    setState(() => _starSuggestions = []);
+  }
+
+  void _setStarPreset(String name) {
+    _starSearchController.text = name;
+    ref.read(riseSetStarNameProvider.notifier).state = name;
+    setState(() => _starSuggestions = []);
+  }
+
+  void _clearStar() {
+    _starSearchController.clear();
+    ref.read(riseSetStarNameProvider.notifier).state = null;
+    setState(() => _starSuggestions = []);
   }
 
   void _commitFields() {
@@ -97,6 +163,9 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
       color: theme.colorScheme.onSurfaceVariant,
     );
 
+    final starName = ref.watch(riseSetStarNameProvider);
+    final isStarMode = starName != null;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -114,15 +183,107 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                     padding: const EdgeInsets.only(right: 4),
                     child: ChoiceChip(
                       label: Text(b.$2),
-                      selected: body == b.$1,
-                      onSelected: (_) =>
-                          ref.read(riseSetBodyProvider.notifier).state = b.$1,
+                      selected: !isStarMode && body == b.$1,
+                      onSelected: (_) {
+                        _clearStar();
+                        ref.read(riseSetBodyProvider.notifier).state = b.$1;
+                      },
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+        // ── Star preset chips ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text('Star ', style: theme.textTheme.labelLarge),
+                const SizedBox(width: 4),
+                ...commonStars.map(
+                  (name) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(name),
+                      selected: isStarMode && starName == name,
+                      onSelected: (_) => _setStarPreset(name),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // ── Star search bar with autocomplete ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+          child: Row(
+            children: [
+              const SizedBox(width: 40),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _starSearchController,
+                      focusNode: _starFocusNode,
+                      style: theme.textTheme.bodySmall,
+                      decoration: InputDecoration(
+                        hintText: 'Search star name, Bayer, or HIP number',
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                        suffixIcon: isStarMode
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: _clearStar,
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              )
+                            : null,
+                      ),
+                      onSubmitted: (_) => _commitStarSearch(),
+                    ),
+                    if (_starSuggestions.isNotEmpty)
+                      Material(
+                        elevation: 4,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: _starSuggestions.length,
+                            itemBuilder: (context, index) {
+                              final entry = _starSuggestions[index];
+                              return ListTile(
+                                dense: true,
+                                title: Text(entry.commonName),
+                                trailing: Text(
+                                  entry.bayerDesig,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                onTap: () => _selectStarSuggestion(entry),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         // ── Modifier chips ──

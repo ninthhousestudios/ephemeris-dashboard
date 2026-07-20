@@ -37,6 +37,9 @@ const int rsBitHinduRising = 32768;
 /// Selected body for rise/set calculation.
 final riseSetBodyProvider = StateProvider<int>((ref) => seSun);
 
+/// Optional star name for fixed-star rise/set. When non-null, overrides body.
+final riseSetStarNameProvider = StateProvider<String?>((ref) => null);
+
 /// Atmospheric pressure (hPa).
 final riseSetAtpressProvider = StateProvider<double>((ref) => 1013.25);
 
@@ -170,11 +173,13 @@ RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
   required double geoalt,
   required double atpress,
   required double attemp,
+  String? starName,
 }) {
   try {
     final r = eph.riseTrans(
       jdUt,
       body,
+      starName: starName,
       epheflag: epheflag,
       rsmi: rsmi,
       geolon: geolon,
@@ -200,6 +205,7 @@ final _riseSetCalcProvider =
       final flags = ref.watch(flagBarProvider);
       final swe = ref.read(sweProvider);
       final body = ref.watch(riseSetBodyProvider);
+      final starName = ref.watch(riseSetStarNameProvider);
       final atpress = ref.watch(riseSetAtpressProvider);
       final attemp = ref.watch(riseSetAttempProvider);
       final modifiers = ref.watch(riseSetModifiersProvider);
@@ -222,6 +228,7 @@ final _riseSetCalcProvider =
             swe,
             jdUt: jdUt,
             body: body,
+            starName: starName,
             rsmi: rsmi | modifiers,
             epheflag: epheflag,
             geolon: geolon,
