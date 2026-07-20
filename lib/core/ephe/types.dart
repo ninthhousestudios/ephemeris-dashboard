@@ -21,6 +21,9 @@ enum BodyFamily {
 
   /// Per-asteroid files (`seNNNNs.se1`) in `astX/` subdirs (X = mpc ~/ 1000).
   numberedAsteroid,
+
+  /// Planetary moon / COB files (`sepm9NNN.se1`) in the `sat/` subdir.
+  satellite,
   fixedStars,
   jpl,
   unknown,

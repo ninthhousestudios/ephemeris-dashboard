@@ -203,13 +203,80 @@ final asteroidCatalog = <CatalogEntry>[
     asteroidCatalogEntryFor(mpc, displayName: name)!,
 ];
 
+// ── Planetary moons & COB (sat/ subdir) ──
+
+const _satelliteSeed = <(int, String)>[
+  (9401, 'Phobos'),
+  (9402, 'Deimos'),
+  (9501, 'Io'),
+  (9502, 'Europa'),
+  (9503, 'Ganymede'),
+  (9504, 'Callisto'),
+  (9599, 'Jupiter COB'),
+  (9601, 'Mimas'),
+  (9602, 'Enceladus'),
+  (9603, 'Tethys'),
+  (9604, 'Dione'),
+  (9605, 'Rhea'),
+  (9606, 'Titan'),
+  (9607, 'Hyperion'),
+  (9608, 'Iapetus'),
+  (9699, 'Saturn COB'),
+  (9701, 'Ariel'),
+  (9702, 'Umbriel'),
+  (9703, 'Titania'),
+  (9704, 'Oberon'),
+  (9705, 'Miranda'),
+  (9799, 'Uranus COB'),
+  (9801, 'Triton'),
+  (9802, 'Nereid'),
+  (9808, 'Proteus'),
+  (9899, 'Neptune COB'),
+  (9901, 'Charon'),
+  (9902, 'Nix'),
+  (9903, 'Hydra'),
+  (9904, 'Kerberos'),
+  (9905, 'Styx'),
+  (9999, 'Pluto COB'),
+];
+
+final satelliteCatalog = <CatalogEntry>[
+  for (final (bodyId, name) in _satelliteSeed)
+    CatalogEntry(
+      filename: 'sepm$bodyId.se1',
+      family: BodyFamily.satellite,
+      url:
+          'https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/sat/sepm$bodyId.se1',
+      subdir: 'sat',
+      displayName: name,
+    ),
+];
+
+// ── Comets (pseudo-MPC numbers, stored as numbered asteroids in ast999/) ──
+
+const _cometSeed = <(int, String)>[
+  (999032, '67P/Churyumov-Gerasimenko'),
+  (999043, 'C/2020 F3 (NEOWISE)'),
+  (999044, '1P/Halley'),
+  (999045, "1I/'Oumuamua"),
+  (999046, 'Hale-Bopp'),
+  (999047, 'West'),
+];
+
+final cometCatalog = <CatalogEntry>[
+  for (final (mpc, name) in _cometSeed)
+    asteroidCatalogEntryFor(mpc, displayName: name)!,
+];
+
 /// Full catalog of files offered for download (JPL + SE extensions +
-/// seeded asteroids). On-the-fly MPC entries come from
-/// [asteroidCatalogEntryFor], not this list.
+/// seeded asteroids + satellites + comets). On-the-fly MPC entries come
+/// from [asteroidCatalogEntryFor], not this list.
 List<CatalogEntry> get fullCatalog => [
   ...jplCatalog,
   ...seCatalog,
   ...asteroidCatalog,
+  ...satelliteCatalog,
+  ...cometCatalog,
 ];
 
 CatalogEntry? catalogEntryFor(String filename) {
