@@ -107,10 +107,6 @@ void _scanOneDir(
 const _se1Magic = [0x53, 0x57, 0x49, 0x53, 0x53, 0x45, 0x50, 0x48]; // SWISSEPH
 
 EpheFile _probeSeFile(String rootDir, EpheFile parsed) {
-  const minPlausibleBytes = 16 * 1024;
-  if (parsed.sizeBytes > 0 && parsed.sizeBytes < minPlausibleBytes) {
-    return parsed.copyWith(status: EpheFileStatus.corrupt);
-  }
   if (parsed.filename.endsWith('.se1')) {
     final filePath = p.join(rootDir, parsed.relativePath);
     try {
