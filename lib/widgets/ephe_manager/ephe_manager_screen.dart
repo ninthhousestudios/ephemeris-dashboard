@@ -409,9 +409,11 @@ class _EphemerisManagerScreenState
         scan.files
             .where(
               (f) =>
-                  f.family == BodyFamily.numberedAsteroid ||
+                  (f.family == BodyFamily.numberedAsteroid &&
+                      !_isCometMpc(f.mpcNumber)) ||
                   (f.status == EpheFileStatus.partial &&
-                      RegExp(r'^se?\d+s?\.se1$').hasMatch(f.filename)),
+                      RegExp(r'^se?\d+s?\.se1$').hasMatch(f.filename) &&
+                      !_isCometFile(f.filename)),
             )
             .toList()
           ..sort((a, b) => (a.mpcNumber ?? 0).compareTo(b.mpcNumber ?? 0));
@@ -457,6 +459,9 @@ class _EphemerisManagerScreenState
           ..sort((a, b) => a.filename.compareTo(b.filename));
     return [...installed, ...missing];
   }
+
+  static bool _isCometMpc(int? mpc) =>
+      mpc != null && mpc >= 999000 && mpc < 1000000;
 
   static bool _isCometFile(String filename) {
     final m = RegExp(r'^s?e?(\d+)s?\.se1$').firstMatch(filename);
