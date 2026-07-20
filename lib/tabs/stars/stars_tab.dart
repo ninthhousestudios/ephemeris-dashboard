@@ -61,33 +61,46 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     });
   }
 
+  void _addStar(String name) {
+    final current = ref.read(selectedStarsProvider);
+    if (!current.contains(name)) {
+      ref.read(selectedStarsProvider.notifier).state = [...current, name];
+    }
+    _searchController.clear();
+    ref.read(starSearchProvider.notifier).state = '';
+    setState(() => _suggestions = []);
+  }
+
+  void _removeStar(String name) {
+    final current = ref.read(selectedStarsProvider);
+    ref.read(selectedStarsProvider.notifier).state = current
+        .where((s) => s != name)
+        .toList();
+  }
+
   void _calculate() {
     final term = _searchController.text.trim();
-    if (term.isNotEmpty) {
-      ref.read(starSearchProvider.notifier).state = term;
-    }
-    setState(() => _suggestions = []);
+    if (term.isNotEmpty) _addStar(term);
   }
 
   void _selectSuggestion(StarCatalogEntry entry) {
-    _searchController.text = entry.commonName;
-    _searchController.selection = TextSelection.collapsed(
-      offset: entry.commonName.length,
-    );
-    ref.read(starSearchProvider.notifier).state = entry.commonName;
-    setState(() => _suggestions = []);
+    _addStar(entry.commonName);
   }
 
-  void _setStarPreset(String name) {
-    _searchController.text = name;
-    ref.read(starSearchProvider.notifier).state = name;
-    setState(() => _suggestions = []);
+  void _toggleStarPreset(String name) {
+    final current = ref.read(selectedStarsProvider);
+    if (current.contains(name)) {
+      _removeStar(name);
+    } else {
+      ref.read(selectedStarsProvider.notifier).state = [...current, name];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final fmt = ref.watch(starsFormatProvider);
+    final selectedStars = ref.watch(selectedStarsProvider);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -173,16 +186,14 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                   builder: (context, ref, _) {
                     final outcome = ref.watch(starResultProvider);
                     final fmt2 = ref.watch(starsFormatProvider);
-                    final result = switch (outcome) {
+                    final results = switch (outcome) {
                       CalcOk(value: final r) => r,
-                      CalcSweError() => null,
+                      CalcSweError() => const <StarResult>[],
                     };
                     return ExportButton(
-                      hasResults: result != null,
-                      getRows: () =>
-                          result != null ? starToExportRows(result, fmt2) : [],
-                      filenameStem:
-                          'swe_star_${result?.resolvedName ?? 'unknown'}',
+                      hasResults: results.isNotEmpty,
+                      getRows: () => starToExportRows(results, fmt2),
+                      filenameStem: 'swe_stars',
                     );
                   },
                 ),
@@ -199,9 +210,10 @@ class _StarsTabState extends ConsumerState<StarsTab> {
               children: commonStars.map((name) {
                 return Padding(
                   padding: const EdgeInsets.only(right: 4),
-                  child: ActionChip(
+                  child: FilterChip(
                     label: Text(name),
-                    onPressed: () => _setStarPreset(name),
+                    selected: selectedStars.contains(name),
+                    onSelected: (_) => _toggleStarPreset(name),
                     visualDensity: VisualDensity.compact,
                   ),
                 );
@@ -227,63 +239,102 @@ class _StarsTabState extends ConsumerState<StarsTab> {
           style: TextStyle(color: theme.colorScheme.error),
         ),
       ),
-      CalcOk(value: null) => Center(
-        child: Text(
-          'Star not found — check the name or catalog number',
-          style: TextStyle(color: theme.colorScheme.error),
-        ),
-      ),
-      CalcOk(value: final result) => _buildResultCard(result!, fmt),
+      CalcOk(value: final results) =>
+        results.isEmpty
+            ? const Center(child: Text('No stars selected'))
+            : _buildResultCards(results, fmt),
     };
   }
 
-  Widget _buildResultCard(StarResult result, DisplayFormat fmt) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(8),
-      child: ResultCard(
-        title: result.resolvedName,
-        subtitle: 'fixstar2Ut("${result.searchTerm}")',
-        flagHex: '0x${result.returnFlag.toRadixString(16).toUpperCase()}',
-        fields: [
-          ResultField(
-            label: 'Longitude',
-            value: formatAngle(result.longitude, fmt),
-            rawValue: result.longitude,
+  Widget _buildResultCards(List<StarResult> results, DisplayFormat fmt) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cols = constraints.maxWidth > 1200
+            ? 3
+            : constraints.maxWidth > 600
+            ? 2
+            : 1;
+        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(8),
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: results.map((r) {
+              return SizedBox(
+                width: cardWidth,
+                child: Stack(
+                  children: [
+                    ResultCard(
+                      title: r.resolvedName,
+                      subtitle: 'fixstar2Ut("${r.searchTerm}")',
+                      flagHex:
+                          '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
+                      fields: r.errorMessage != null
+                          ? [
+                              ResultField(
+                                label: 'Error',
+                                value: r.errorMessage!,
+                              ),
+                            ]
+                          : [
+                              ResultField(
+                                label: 'Longitude',
+                                value: formatAngle(r.longitude, fmt),
+                                rawValue: r.longitude,
+                              ),
+                              ResultField(
+                                label: 'Latitude',
+                                value: formatAngle(r.latitude, fmt),
+                                rawValue: r.latitude,
+                              ),
+                              ResultField(
+                                label: 'Distance',
+                                value: formatDistance(r.distance, fmt),
+                                rawValue: r.distance,
+                              ),
+                              ResultField(
+                                label: 'Magnitude',
+                                value: r.magnitude.isNaN
+                                    ? '—'
+                                    : r.magnitude.toStringAsFixed(2),
+                                rawValue: r.magnitude,
+                              ),
+                              ResultField(
+                                label: 'Spd Lon',
+                                value: formatSpeed(r.speedLon, fmt),
+                                rawValue: r.speedLon,
+                              ),
+                              ResultField(
+                                label: 'Spd Lat',
+                                value: formatSpeed(r.speedLat, fmt),
+                                rawValue: r.speedLat,
+                              ),
+                              ResultField(
+                                label: 'Spd Dist',
+                                value: formatSpeed(r.speedDist, fmt),
+                                rawValue: r.speedDist,
+                              ),
+                            ],
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        tooltip: 'Remove ${r.resolvedName}',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _removeStar(r.searchTerm),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
-          ResultField(
-            label: 'Latitude',
-            value: formatAngle(result.latitude, fmt),
-            rawValue: result.latitude,
-          ),
-          ResultField(
-            label: 'Distance',
-            value: formatDistance(result.distance, fmt),
-            rawValue: result.distance,
-          ),
-          ResultField(
-            label: 'Magnitude',
-            value: result.magnitude.isNaN
-                ? '—'
-                : result.magnitude.toStringAsFixed(2),
-            rawValue: result.magnitude,
-          ),
-          ResultField(
-            label: 'Spd Lon',
-            value: formatSpeed(result.speedLon, fmt),
-            rawValue: result.speedLon,
-          ),
-          ResultField(
-            label: 'Spd Lat',
-            value: formatSpeed(result.speedLat, fmt),
-            rawValue: result.speedLat,
-          ),
-          ResultField(
-            label: 'Spd Dist',
-            value: formatSpeed(result.speedDist, fmt),
-            rawValue: result.speedDist,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

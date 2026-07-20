@@ -34,11 +34,48 @@ const int rsBitHinduRising = 32768;
 
 // ── State providers ───────────────────────────────────────────────────────────
 
-/// Selected body for rise/set calculation.
-final riseSetBodyProvider = StateProvider<int>((ref) => seSun);
+/// One rise/set/transit target: a body or a fixed star.
+class RiseSetTarget {
+  const RiseSetTarget.body(this.bodyId) : starName = null;
+  const RiseSetTarget.star(this.starName) : bodyId = seSun;
 
-/// Optional star name for fixed-star rise/set. When non-null, overrides body.
-final riseSetStarNameProvider = StateProvider<String?>((ref) => null);
+  final int bodyId;
+  final String? starName;
+
+  bool get isStar => starName != null;
+
+  String get label => isStar ? starName! : _bodyName(bodyId);
+
+  @override
+  bool operator ==(Object other) =>
+      other is RiseSetTarget &&
+      other.bodyId == bodyId &&
+      other.starName == starName;
+
+  @override
+  int get hashCode => Object.hash(bodyId, starName);
+}
+
+const Map<int, String> _bodyNames = {
+  seSun: 'Sun',
+  seMoon: 'Moon',
+  seMercury: 'Mercury',
+  seVenus: 'Venus',
+  seMars: 'Mars',
+  seJupiter: 'Jupiter',
+  seSaturn: 'Saturn',
+  seUranus: 'Uranus',
+  seNeptune: 'Neptune',
+  sePluto: 'Pluto',
+};
+
+String _bodyName(int bodyId) => _bodyNames[bodyId] ?? 'Body $bodyId';
+
+/// Active rise/set targets (bodies and/or stars), each computed and shown as
+/// its own result group.
+final riseSetTargetsProvider = StateProvider<List<RiseSetTarget>>(
+  (ref) => [const RiseSetTarget.body(seSun)],
+);
 
 /// Atmospheric pressure (hPa).
 final riseSetAtpressProvider = StateProvider<double>((ref) => 1013.25);
@@ -199,13 +236,76 @@ RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
   }
 }
 
+/// Rise/set/transit result for one target, paired with the target itself.
+class RiseSetGroupResult {
+  const RiseSetGroupResult({required this.target, required this.result});
+
+  final RiseSetTarget target;
+  final RiseSetResult result;
+}
+
+RiseSetResult _computeOne(
+  Ephemeris eph,
+  SweUtils swe, {
+  required RiseSetTarget target,
+  required double jdUt,
+  required int modifiers,
+  required int epheflag,
+  required double geolon,
+  required double geolat,
+  required double geoalt,
+  required double atpress,
+  required double attemp,
+}) {
+  ({double? jd, int? flag, RiseSetDateTime? dt, String? error}) run(int rsmi) =>
+      _event(
+        eph,
+        swe,
+        jdUt: jdUt,
+        body: target.bodyId,
+        starName: target.starName,
+        rsmi: rsmi | modifiers,
+        epheflag: epheflag,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        atpress: atpress,
+        attemp: attemp,
+      );
+
+  final rise = run(rsCalcRise);
+  final set = run(rsCalcSet);
+  final upper = run(rsCalcMtransit);
+  final lower = run(rsCalcItransit);
+
+  return RiseSetResult(
+    riseJd: rise.jd,
+    riseDateTime: rise.dt,
+    riseFlag: rise.flag,
+    riseError: rise.error,
+    setJd: set.jd,
+    setDateTime: set.dt,
+    setFlag: set.flag,
+    setError: set.error,
+    upperTransitJd: upper.jd,
+    upperTransitDateTime: upper.dt,
+    upperTransitFlag: upper.flag,
+    upperTransitError: upper.error,
+    lowerTransitJd: lower.jd,
+    lowerTransitDateTime: lower.dt,
+    lowerTransitFlag: lower.flag,
+    lowerTransitError: lower.error,
+  );
+}
+
 final _riseSetCalcProvider =
-    Provider<({CalcOutcome<RiseSetResult> outcome, CallTrace trace})>((ref) {
+    Provider<
+      ({CalcOutcome<List<RiseSetGroupResult>> outcome, CallTrace trace})
+    >((ref) {
       final ctx = ref.watch(contextBarProvider);
       final flags = ref.watch(flagBarProvider);
       final swe = ref.read(sweProvider);
-      final body = ref.watch(riseSetBodyProvider);
-      final starName = ref.watch(riseSetStarNameProvider);
+      final targets = ref.watch(riseSetTargetsProvider);
       final atpress = ref.watch(riseSetAtpressProvider);
       final attemp = ref.watch(riseSetAttempProvider);
       final modifiers = ref.watch(riseSetModifiersProvider);
@@ -221,52 +321,33 @@ final _riseSetCalcProvider =
         ref,
         tabTag: 'riseSet',
         compute: (eph) {
-          ({double? jd, int? flag, RiseSetDateTime? dt, String? error}) run(
-            int rsmi,
-          ) => _event(
-            eph,
-            swe,
-            jdUt: jdUt,
-            body: body,
-            starName: starName,
-            rsmi: rsmi | modifiers,
-            epheflag: epheflag,
-            geolon: geolon,
-            geolat: geolat,
-            geoalt: geoalt,
-            atpress: atpress,
-            attemp: attemp,
-          );
-
-          final rise = run(rsCalcRise);
-          final set = run(rsCalcSet);
-          final upper = run(rsCalcMtransit);
-          final lower = run(rsCalcItransit);
-
-          return RiseSetResult(
-            riseJd: rise.jd,
-            riseDateTime: rise.dt,
-            riseFlag: rise.flag,
-            riseError: rise.error,
-            setJd: set.jd,
-            setDateTime: set.dt,
-            setFlag: set.flag,
-            setError: set.error,
-            upperTransitJd: upper.jd,
-            upperTransitDateTime: upper.dt,
-            upperTransitFlag: upper.flag,
-            upperTransitError: upper.error,
-            lowerTransitJd: lower.jd,
-            lowerTransitDateTime: lower.dt,
-            lowerTransitFlag: lower.flag,
-            lowerTransitError: lower.error,
-          );
+          return [
+            for (final target in targets)
+              RiseSetGroupResult(
+                target: target,
+                result: _computeOne(
+                  eph,
+                  swe,
+                  target: target,
+                  jdUt: jdUt,
+                  modifiers: modifiers,
+                  epheflag: epheflag,
+                  geolon: geolon,
+                  geolat: geolat,
+                  geoalt: geoalt,
+                  atpress: atpress,
+                  attemp: attemp,
+                ),
+              ),
+          ];
         },
       );
     });
 
 /// Rise/set/transit result provider.
-final riseSetResultProvider = Provider<CalcOutcome<RiseSetResult>>((ref) {
+final riseSetResultProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
+  ref,
+) {
   return ref.watch(_riseSetCalcProvider.select((c) => c.outcome));
 });
 
@@ -281,41 +362,44 @@ String _jdStr(double? jd) => jd != null ? jd.toStringAsFixed(8) : '—';
 
 String _dtStr(RiseSetDateTime? dt) => dt?.formatted() ?? '—';
 
-List<ExportRow> riseSetToExportRows(RiseSetResult result) {
+List<ExportRow> riseSetToExportRows(List<RiseSetGroupResult> groups) {
   return [
-    ExportRow(
-      header: 'Rise',
-      fields: [
-        ('JD', _jdStr(result.riseJd)),
-        ('Date/Time', _dtStr(result.riseDateTime)),
-        if (result.riseError != null) ('Error', result.riseError!),
-      ],
-    ),
-    ExportRow(
-      header: 'Set',
-      fields: [
-        ('JD', _jdStr(result.setJd)),
-        ('Date/Time', _dtStr(result.setDateTime)),
-        if (result.setError != null) ('Error', result.setError!),
-      ],
-    ),
-    ExportRow(
-      header: 'Upper Transit',
-      fields: [
-        ('JD', _jdStr(result.upperTransitJd)),
-        ('Date/Time', _dtStr(result.upperTransitDateTime)),
-        if (result.upperTransitError != null)
-          ('Error', result.upperTransitError!),
-      ],
-    ),
-    ExportRow(
-      header: 'Lower Transit',
-      fields: [
-        ('JD', _jdStr(result.lowerTransitJd)),
-        ('Date/Time', _dtStr(result.lowerTransitDateTime)),
-        if (result.lowerTransitError != null)
-          ('Error', result.lowerTransitError!),
-      ],
-    ),
+    for (final group in groups) ...[
+      ExportRow(
+        header: '${group.target.label} — Rise',
+        fields: [
+          ('JD', _jdStr(group.result.riseJd)),
+          ('Date/Time', _dtStr(group.result.riseDateTime)),
+          if (group.result.riseError != null)
+            ('Error', group.result.riseError!),
+        ],
+      ),
+      ExportRow(
+        header: '${group.target.label} — Set',
+        fields: [
+          ('JD', _jdStr(group.result.setJd)),
+          ('Date/Time', _dtStr(group.result.setDateTime)),
+          if (group.result.setError != null) ('Error', group.result.setError!),
+        ],
+      ),
+      ExportRow(
+        header: '${group.target.label} — Upper Transit',
+        fields: [
+          ('JD', _jdStr(group.result.upperTransitJd)),
+          ('Date/Time', _dtStr(group.result.upperTransitDateTime)),
+          if (group.result.upperTransitError != null)
+            ('Error', group.result.upperTransitError!),
+        ],
+      ),
+      ExportRow(
+        header: '${group.target.label} — Lower Transit',
+        fields: [
+          ('JD', _jdStr(group.result.lowerTransitJd)),
+          ('Date/Time', _dtStr(group.result.lowerTransitDateTime)),
+          if (group.result.lowerTransitError != null)
+            ('Error', group.result.lowerTransitError!),
+        ],
+      ),
+    ],
   ];
 }

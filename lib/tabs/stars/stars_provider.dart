@@ -64,8 +64,14 @@ final starCatalogProvider = Provider<List<StarCatalogEntry>>((ref) {
   return _parseSefstars(file.readAsStringSync());
 });
 
-/// Current star search term (name or catalog number).
+/// Current star search term (name or catalog number), bound to the search
+/// text field. Submitting adds the term to [selectedStarsProvider].
 final starSearchProvider = StateProvider<String>((ref) => 'Aldebaran');
+
+/// Star names/search terms currently computed and shown as cards.
+final selectedStarsProvider = StateProvider<List<String>>(
+  (ref) => ['Aldebaran'],
+);
 
 /// Display format for star results.
 final starsFormatProvider = StateProvider<DisplayFormat>(
@@ -85,6 +91,7 @@ class StarResult {
     required this.speedDist,
     required this.magnitude,
     required this.returnFlag,
+    this.errorMessage,
   });
 
   final String searchTerm;
@@ -97,6 +104,10 @@ class StarResult {
   final double speedDist;
   final double magnitude;
   final int returnFlag;
+
+  /// When non-null, the star lookup failed for this search term. UI shows
+  /// this in place of the numeric fields.
+  final String? errorMessage;
 }
 
 /// Pure compute: resolve a fixed star by name, with Bayer-prefix retry.
@@ -160,27 +171,78 @@ StarResult? computeStar({
   );
 }
 
+/// Pure compute step: resolves each selected star, capturing per-star
+/// lookup failures (no match or SweException) as an `errorMessage` instead
+/// of failing the whole batch.
+List<StarResult> computeStars({
+  required Ephemeris eph,
+  required double jdUt,
+  required int iflag,
+  required List<String> searchTerms,
+  required double Function(String) getMagnitude,
+}) {
+  return searchTerms.map((term) {
+    try {
+      final result = computeStar(
+        eph: eph,
+        jdUt: jdUt,
+        iflag: iflag,
+        searchTerm: term,
+        getMagnitude: getMagnitude,
+      );
+      if (result != null) return result;
+      return StarResult(
+        searchTerm: term,
+        resolvedName: term,
+        longitude: double.nan,
+        latitude: double.nan,
+        distance: double.nan,
+        speedLon: double.nan,
+        speedLat: double.nan,
+        speedDist: double.nan,
+        magnitude: double.nan,
+        returnFlag: -1,
+        errorMessage: 'Star not found — check the name or catalog number',
+      );
+    } on SweException catch (e) {
+      return StarResult(
+        searchTerm: term,
+        resolvedName: term,
+        longitude: double.nan,
+        latitude: double.nan,
+        distance: double.nan,
+        speedLon: double.nan,
+        speedLat: double.nan,
+        speedDist: double.nan,
+        magnitude: double.nan,
+        returnFlag: -1,
+        errorMessage: e.message,
+      );
+    }
+  }).toList();
+}
+
 final _starCalcProvider =
-    Provider<({CalcOutcome<StarResult?> outcome, CallTrace trace})>((ref) {
+    Provider<({CalcOutcome<List<StarResult>> outcome, CallTrace trace})>((ref) {
       final ctx = ref.watch(contextBarProvider);
       final flags = ref.watch(flagBarProvider);
       final swe = ref.read(sweProvider);
-      final searchTerm = ref.watch(starSearchProvider);
+      final searchTerms = ref.watch(selectedStarsProvider);
 
       return runTabCalc(
         ref,
         tabTag: 'stars',
-        compute: (eph) => computeStar(
+        compute: (eph) => computeStars(
           eph: eph,
           jdUt: ctx.jdUt,
           iflag: flags.iflag,
-          searchTerm: searchTerm,
+          searchTerms: searchTerms,
           getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
         ),
       );
     });
 
-final starResultProvider = Provider<CalcOutcome<StarResult?>>((ref) {
+final starResultProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
   return ref.watch(_starCalcProvider.select((c) => c.outcome));
 });
 
@@ -188,10 +250,10 @@ final starTraceProvider = Provider<CallTrace>((ref) {
   return ref.watch(_starCalcProvider.select((c) => c.trace));
 });
 
-/// Convert a star result to export rows.
-List<ExportRow> starToExportRows(StarResult result, DisplayFormat fmt) {
-  return [
-    ExportRow(
+/// Convert star results to export rows.
+List<ExportRow> starToExportRows(List<StarResult> results, DisplayFormat fmt) {
+  return results.map((result) {
+    return ExportRow(
       header: result.resolvedName,
       fields: [
         ('Longitude', formatAngle(result.longitude, fmt)),
@@ -205,6 +267,6 @@ List<ExportRow> starToExportRows(StarResult result, DisplayFormat fmt) {
         ('Spd Lat', formatSpeed(result.speedLat, fmt)),
         ('Spd Dist', formatSpeed(result.speedDist, fmt)),
       ],
-    ),
-  ];
+    );
+  }).toList();
 }

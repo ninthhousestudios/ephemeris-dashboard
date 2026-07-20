@@ -98,32 +98,49 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     });
   }
 
+  void _addTarget(RiseSetTarget target) {
+    final current = ref.read(riseSetTargetsProvider);
+    if (current.contains(target)) return;
+    ref.read(riseSetTargetsProvider.notifier).state = [...current, target];
+  }
+
+  void _removeTarget(RiseSetTarget target) {
+    final current = ref.read(riseSetTargetsProvider);
+    ref.read(riseSetTargetsProvider.notifier).state = current
+        .where((t) => t != target)
+        .toList();
+  }
+
+  void _toggleBodyTarget(int bodyId, bool on) {
+    final target = RiseSetTarget.body(bodyId);
+    if (on) {
+      _addTarget(target);
+    } else {
+      _removeTarget(target);
+    }
+  }
+
+  void _toggleStarTarget(String name, bool on) {
+    final target = RiseSetTarget.star(name);
+    if (on) {
+      _addTarget(target);
+    } else {
+      _removeTarget(target);
+    }
+  }
+
   void _selectStarSuggestion(StarCatalogEntry entry) {
-    _starSearchController.text = entry.commonName;
-    _starSearchController.selection = TextSelection.collapsed(
-      offset: entry.commonName.length,
-    );
-    ref.read(riseSetStarNameProvider.notifier).state = entry.commonName;
+    _starSearchController.clear();
+    _addTarget(RiseSetTarget.star(entry.commonName));
     setState(() => _starSuggestions = []);
   }
 
   void _commitStarSearch() {
     final term = _starSearchController.text.trim();
-    ref.read(riseSetStarNameProvider.notifier).state = term.isEmpty
-        ? null
-        : term;
-    setState(() => _starSuggestions = []);
-  }
-
-  void _setStarPreset(String name) {
-    _starSearchController.text = name;
-    ref.read(riseSetStarNameProvider.notifier).state = name;
-    setState(() => _starSuggestions = []);
-  }
-
-  void _clearStar() {
-    _starSearchController.clear();
-    ref.read(riseSetStarNameProvider.notifier).state = null;
+    if (term.isNotEmpty) {
+      _addTarget(RiseSetTarget.star(term));
+      _starSearchController.clear();
+    }
     setState(() => _starSuggestions = []);
   }
 
@@ -156,15 +173,12 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final body = ref.watch(riseSetBodyProvider);
+    final targets = ref.watch(riseSetTargetsProvider);
     final modifiers = ref.watch(riseSetModifiersProvider);
     final outcome = ref.watch(riseSetResultProvider);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-
-    final starName = ref.watch(riseSetStarNameProvider);
-    final isStarMode = starName != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -181,13 +195,10 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                 ..._bodies.map(
                   (b) => Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: ChoiceChip(
+                    child: FilterChip(
                       label: Text(b.$2),
-                      selected: !isStarMode && body == b.$1,
-                      onSelected: (_) {
-                        _clearStar();
-                        ref.read(riseSetBodyProvider.notifier).state = b.$1;
-                      },
+                      selected: targets.contains(RiseSetTarget.body(b.$1)),
+                      onSelected: (on) => _toggleBodyTarget(b.$1, on),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
@@ -208,10 +219,10 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                 ...commonStars.map(
                   (name) => Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: ChoiceChip(
+                    child: FilterChip(
                       label: Text(name),
-                      selected: isStarMode && starName == name,
-                      onSelected: (_) => _setStarPreset(name),
+                      selected: targets.contains(RiseSetTarget.star(name)),
+                      onSelected: (on) => _toggleStarTarget(name, on),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
@@ -243,10 +254,13 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                         ),
                         border: const OutlineInputBorder(),
                         isDense: true,
-                        suffixIcon: isStarMode
+                        suffixIcon: _starSearchController.text.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.clear, size: 18),
-                                onPressed: _clearStar,
+                                onPressed: () {
+                                  _starSearchController.clear();
+                                  setState(() => _starSuggestions = []);
+                                },
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
                               )
@@ -322,7 +336,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                 ),
                 const SizedBox(width: 4),
                 ExportButton(
-                  hasResults: outcome is CalcOk<RiseSetResult>,
+                  hasResults: outcome is CalcOk<List<RiseSetGroupResult>>,
                   filenameStem: 'rise_set',
                   getRows: () => switch (outcome) {
                     CalcOk(value: final r) => riseSetToExportRows(r),
@@ -434,28 +448,52 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     );
   }
 
-  Widget _buildResults(CalcOutcome<RiseSetResult> outcome) {
+  Widget _buildResults(CalcOutcome<List<RiseSetGroupResult>> outcome) {
     switch (outcome) {
       case CalcSweError(:final message):
         return Center(child: Text('Calculation error: $message'));
-      case CalcOk(value: final result):
-        return _buildResultCards(result);
+      case CalcOk(value: final groups):
+        if (groups.isEmpty) {
+          return const Center(child: Text('Select a body or star.'));
+        }
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final cols = constraints.maxWidth > 900
+                ? 4
+                : constraints.maxWidth > 600
+                ? 2
+                : 1;
+            final cardWidth =
+                (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final group in groups)
+                    _buildResultGroup(group, cardWidth),
+                ],
+              ),
+            );
+          },
+        );
     }
   }
 
-  Widget _buildResultCards(RiseSetResult result) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 900
-            ? 4
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
+  Widget _buildResultGroup(RiseSetGroupResult group, double cardWidth) {
+    final theme = Theme.of(context);
+    final result = group.result;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Text(group.target.label, style: theme.textTheme.titleMedium),
+          ),
+          Wrap(
             spacing: 4,
             runSpacing: 4,
             children: [
@@ -493,8 +531,8 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
               ),
             ],
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 
