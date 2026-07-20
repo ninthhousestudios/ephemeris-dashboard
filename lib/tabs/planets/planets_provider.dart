@@ -262,7 +262,9 @@ String _describeBodyError(int body, String rawMessage) {
   if (body >= seAstOffset) {
     final mpc = body - seAstOffset;
     final sub = mpc ~/ 1000;
-    final fname = 'se${mpc.toString().padLeft(6, '0')}s.se1';
+    final prefix = mpc >= 100000 ? 's' : 'se';
+    final digits = mpc >= 100000 ? 6 : 5;
+    final fname = '$prefix${mpc.toString().padLeft(digits, '0')}s.se1';
     return 'Missing asteroid file $fname (ast$sub/). '
         'Open the Ephemeris tab to download or drop it in. '
         'SE error: $rawMessage';
