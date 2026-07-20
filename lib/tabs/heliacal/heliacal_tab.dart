@@ -74,7 +74,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _starController.addListener(_onStarChanged);
     _starFocusNode.addListener(() {
       if (!_starFocusNode.hasFocus) {
-        setState(() => _starSuggestions = []);
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _starSuggestions = []);
+        });
       }
     });
     _pressureController = TextEditingController(text: '1013.25');

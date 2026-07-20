@@ -66,7 +66,9 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     _starSearchController.addListener(_onStarSearchChanged);
     _starFocusNode.addListener(() {
       if (!_starFocusNode.hasFocus) {
-        setState(() => _starSuggestions = []);
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _starSuggestions = []);
+        });
       }
     });
   }

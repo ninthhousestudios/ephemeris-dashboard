@@ -31,7 +31,9 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     _searchController.addListener(_onSearchChanged);
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus) {
-        setState(() => _suggestions = []);
+        Future.delayed(const Duration(milliseconds: 200), () {
+          if (mounted) setState(() => _suggestions = []);
+        });
       }
     });
   }
