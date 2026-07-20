@@ -15,6 +15,7 @@ class AppliedGlobals {
     required this.userAyanValue,
     required this.topo,
     required this.jplFile,
+    this.asteroidNumbers = const [],
     this.planetMoonNumbers = const [],
   });
 
@@ -25,11 +26,13 @@ class AppliedGlobals {
   final double userAyanValue;
   final ({double lon, double lat, double alt})? topo;
   final String? jplFile;
+  final List<int> asteroidNumbers;
   final List<int> planetMoonNumbers;
 
   factory AppliedGlobals.fromContext(
     EffectiveContext ctx,
     String? ephePath, {
+    List<int> asteroidNumbers = const [],
     List<int> planetMoonNumbers = const [],
   }) {
     return AppliedGlobals(
@@ -44,6 +47,7 @@ class AppliedGlobals {
           ? (lon: ctx.longitude, lat: ctx.latitude, alt: ctx.altitude)
           : null,
       jplFile: ctx.epheSource == EpheSource.jpl ? ctx.jplFilename : null,
+      asteroidNumbers: asteroidNumbers,
       planetMoonNumbers: planetMoonNumbers,
     );
   }
@@ -89,6 +93,7 @@ class AppliedGlobals {
               altitude: topo!.alt,
             )
           : null,
+      asteroidNumbers: asteroidNumbers,
       planetMoonNumbers: planetMoonNumbers,
     );
   }
@@ -106,6 +111,7 @@ class AppliedGlobals {
       userAyanValue: ayanT0,
       topo: topo,
       jplFile: jplFile,
+      asteroidNumbers: asteroidNumbers,
       planetMoonNumbers: planetMoonNumbers,
     );
   }
@@ -121,6 +127,7 @@ class AppliedGlobals {
           userAyanValue == other.userAyanValue &&
           topo == other.topo &&
           jplFile == other.jplFile &&
+          _listEq(asteroidNumbers, other.asteroidNumbers) &&
           _listEq(planetMoonNumbers, other.planetMoonNumbers);
 
   @override
@@ -132,6 +139,7 @@ class AppliedGlobals {
     userAyanValue,
     topo,
     jplFile,
+    Object.hashAll(asteroidNumbers),
     Object.hashAll(planetMoonNumbers),
   );
 }

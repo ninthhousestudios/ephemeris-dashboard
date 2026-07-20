@@ -15,6 +15,7 @@ import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../planets/planets_provider.dart';
 
 // ── Planetary moon body IDs (SE_PLMOON_OFFSET + planet*100 + moon) ──
 
@@ -125,6 +126,21 @@ final selectedPlanetMoonIdsProvider = Provider<List<int>>((ref) {
   final all = ref.watch(otherBodiesSelectionProvider);
   final moons = all.where((id) => id >= sePlmoonOffset && id < seAstOffset);
   return moons.isEmpty ? const [] : moons.toList();
+});
+
+/// Asteroid MPC numbers selected across all tabs. swisseph_rs needs these
+/// in EphemerisConfig.asteroidNumbers to pre-open per-asteroid files.
+final selectedAsteroidMpcProvider = Provider<List<int>>((ref) {
+  final planetsBodies = ref.watch(selectedBodiesProvider);
+  final otherBodies = ref.watch(otherBodiesSelectionProvider);
+  final mpcs = <int>{};
+  for (final id in planetsBodies) {
+    if (id >= seAstOffset) mpcs.add(id - seAstOffset);
+  }
+  for (final id in otherBodies) {
+    if (id >= seAstOffset) mpcs.add(id - seAstOffset);
+  }
+  return mpcs.isEmpty ? const [] : mpcs.toList();
 });
 
 // ── Result type (shared with planets) ──

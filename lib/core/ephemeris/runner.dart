@@ -44,9 +44,11 @@ final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
   final ctx = ref.watch(effectiveContextProvider);
   final ephePath = ref.watch(resolvedEphePathProvider);
   final moonIds = ref.watch(selectedPlanetMoonIdsProvider);
+  final asteroidMpcs = ref.watch(selectedAsteroidMpcProvider);
   var globals = AppliedGlobals.fromContext(
     ctx,
     ephePath,
+    asteroidNumbers: asteroidMpcs,
     planetMoonNumbers: moonIds,
   );
   if (globals.epheSource == EpheSource.jpl && globals.jplFile == null) {
@@ -65,6 +67,7 @@ final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
           userAyanValue: globals.userAyanValue,
           topo: globals.topo,
           jplFile: jplFiles.first.filename,
+          asteroidNumbers: globals.asteroidNumbers,
           planetMoonNumbers: globals.planetMoonNumbers,
         );
       }
