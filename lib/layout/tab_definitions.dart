@@ -9,6 +9,7 @@ enum AppTab {
   ayanamsa('Ayanamsa', Icons.rotate_right, hasFlags: false),
   riseSet('Rise/Set', Icons.wb_twilight, hasFlags: false),
   eclipses('Eclipses', Icons.brightness_2, hasFlags: false),
+  otherBodies('Other Bodies', Icons.blur_on, hasFlags: true),
   stars('Stars', Icons.star, hasFlags: true),
   crossings('Crossings', Icons.compare_arrows, hasFlags: true),
   tableView('Table', Icons.table_chart, hasFlags: true),

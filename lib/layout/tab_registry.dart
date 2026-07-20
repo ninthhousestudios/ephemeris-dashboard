@@ -20,6 +20,8 @@ import '../tabs/heliacal/heliacal_tab.dart';
 import '../tabs/houses/houses_provider.dart';
 import '../tabs/houses/houses_tab.dart';
 import '../tabs/math/math_tab.dart';
+import '../tabs/other_bodies/other_bodies_provider.dart';
+import '../tabs/other_bodies/other_bodies_tab.dart';
 import '../tabs/nodes_apsides/nodes_apsides_provider.dart';
 import '../tabs/nodes_apsides/nodes_apsides_tab.dart';
 import '../tabs/phenomena/phenomena_provider.dart';
@@ -62,6 +64,12 @@ final List<TabDescriptor> tabRegistry = [
     tab: AppTab.eclipses,
     content: () => const EclipsesTab(),
     traceProvider: eclipsesTraceProvider,
+  ),
+  TabDescriptor(
+    tab: AppTab.otherBodies,
+    content: () => const OtherBodiesTab(),
+    traceProvider: otherBodiesTraceProvider,
+    flagBarTrailing: () => const OtherBodiesFormatTrailing(),
   ),
   TabDescriptor(
     tab: AppTab.stars,

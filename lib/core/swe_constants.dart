@@ -41,6 +41,7 @@ const seApollon = 44;
 const seAdmetos = 45;
 const seVulkanus = 46;
 const sePoseidon = 47;
+const sePlmoonOffset = 9000;
 const seAstOffset = 10000;
 
 // Ephemeris selection
