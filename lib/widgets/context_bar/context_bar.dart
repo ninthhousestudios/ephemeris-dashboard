@@ -2,7 +2,8 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -48,7 +49,9 @@ class _ContextBarState extends ConsumerState<ContextBar> {
 
   Future<void> _openChart() async {
     final useFilePicker =
-        kIsWeb || ResponsiveLayout.of(context) == ScreenSize.mobile;
+        kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     if (useFilePicker) {
       await _openChartWithPicker();
