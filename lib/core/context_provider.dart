@@ -178,6 +178,11 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     _save();
   }
 
+  void setJplFilename(String? filename) {
+    state = state.copyWith(jplFilename: filename);
+    _save();
+  }
+
   /// Load context from a parsed chart file.
   void loadFromChart(ChartData chart) {
     final utcDt = chart.utcDateTime;

@@ -188,6 +188,24 @@ Set<EpheSource> availableEpheSources(EphemerisScan scan) {
   return sources;
 }
 
+final installedJplFilesProvider = Provider<List<String>>((ref) {
+  final scan = ref.watch(ephemerisScanProvider);
+  return scan.when(
+    data: (s) =>
+        s.files
+            .where(
+              (f) =>
+                  f.family == BodyFamily.jpl &&
+                  f.status == EpheFileStatus.installed,
+            )
+            .map((f) => f.filename)
+            .toList()
+          ..sort(),
+    loading: () => const [],
+    error: (_, _) => const [],
+  );
+});
+
 final availableEpheSourcesProvider = Provider<Set<EpheSource>>((ref) {
   final scan = ref.watch(ephemerisScanProvider);
   return scan.when(

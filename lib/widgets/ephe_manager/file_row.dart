@@ -131,13 +131,17 @@ class EpheFileRow extends StatelessWidget {
   }
 }
 
-/// Show the pretty display name ('Eros (433)') for asteroid entries when
-/// we have one in the catalog; otherwise fall back to the filename.
 String _label(EpheFile f) {
   if (f.family == BodyFamily.numberedAsteroid) {
     final entry = catalogEntryFor(f.filename);
     if (entry?.displayName != null) return entry!.displayName!;
     if (f.mpcNumber != null) return '#${f.mpcNumber}  (${f.filename})';
+  }
+  if (f.family == BodyFamily.satellite) {
+    final entry = catalogEntryFor(f.filename);
+    if (entry?.displayName != null) {
+      return '${entry!.displayName!}  (${f.filename})';
+    }
   }
   return f.filename;
 }

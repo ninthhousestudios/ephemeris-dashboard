@@ -74,6 +74,12 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AppTab>(selectedTabProvider, (_, tab) {
+      final idx = _allTabs.indexOf(tab);
+      if (idx >= 0 && _tabController.index != idx) {
+        _tabController.animateTo(idx);
+      }
+    });
     final selectedTab = ref.watch(selectedTabProvider);
     final screenSize = ResponsiveLayout.of(context);
 

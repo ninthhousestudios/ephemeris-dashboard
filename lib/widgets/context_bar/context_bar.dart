@@ -21,6 +21,7 @@ import 'context_time_field.dart';
 import 'context_utc_field.dart';
 import 'ephe_source_selector.dart';
 import 'eq_ref_selector.dart';
+import 'jpl_file_selector.dart';
 import 'file_in_use_indicator.dart';
 import 'origin_selector.dart';
 import 'zodiac_ref_selector.dart';
@@ -278,7 +279,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             children: [
               Expanded(child: EpheSourceSelector()),
               SizedBox(width: 8),
-              Expanded(child: SizedBox.shrink()),
+              Expanded(child: JplFileSelector()),
             ],
           ),
         ],
@@ -405,7 +406,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         SizedBox(width: _colGap),
                         Expanded(child: EpheSourceSelector()),
                         SizedBox(width: _colGap),
-                        Expanded(child: SizedBox.shrink()),
+                        Expanded(child: JplFileSelector()),
                       ],
                     ),
                   ],
