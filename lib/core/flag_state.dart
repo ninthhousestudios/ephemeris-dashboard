@@ -90,7 +90,7 @@ class FlagBarState {
 
     // Equinox reference
     if (ctx.eqRef == EqRef.meanEquinox) {
-      locked |= seFlgNoNut;
+      locked |= seFlgJ2000;
     }
 
     // Ephemeris source
