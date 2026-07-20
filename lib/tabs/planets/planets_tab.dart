@@ -22,14 +22,6 @@ class PlanetsTab extends ConsumerStatefulWidget {
 
 class _PlanetsTabState extends ConsumerState<PlanetsTab> {
   bool _showExtraBodies = false;
-  bool _showAsteroids = false;
-  final _asteroidController = TextEditingController();
-
-  @override
-  void dispose() {
-    _asteroidController.dispose();
-    super.dispose();
-  }
 
   void _toggleBody(int body) {
     final current = ref.read(selectedBodiesProvider);
@@ -41,14 +33,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
 
   void _applyPreset(BodyPreset preset) {
     ref.read(selectedBodiesProvider.notifier).state = List.of(preset.bodies);
-  }
-
-  void _addAsteroid(int mpcNumber) {
-    final bodyId = asteroidOffset + mpcNumber;
-    final current = ref.read(selectedBodiesProvider);
-    if (!current.contains(bodyId)) {
-      ref.read(selectedBodiesProvider.notifier).state = [...current, bodyId];
-    }
   }
 
   @override
@@ -159,81 +143,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                     );
                   }).toList(),
                 ),
-                const SizedBox(height: 4),
-                // Asteroids disclosure
-                InkWell(
-                  onTap: () => setState(() => _showAsteroids = !_showAsteroids),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        _showAsteroids ? Icons.expand_less : Icons.expand_more,
-                        size: 18,
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Asteroids (by MPC number)',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_showAsteroids) ...[
-                  const SizedBox(height: 4),
-                  // Named asteroid quick-add chips
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: namedAsteroids.entries.map((e) {
-                      final bodyId = asteroidOffset + e.key;
-                      return FilterChip(
-                        label: Text(e.value),
-                        selected: selectedBodies.contains(bodyId),
-                        onSelected: (_) {
-                          if (selectedBodies.contains(bodyId)) {
-                            _toggleBody(bodyId);
-                          } else {
-                            _addAsteroid(e.key);
-                          }
-                        },
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 4),
-                  // Custom MPC number entry
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 140,
-                        child: TextField(
-                          controller: _asteroidController,
-                          decoration: const InputDecoration(
-                            hintText: 'MPC #',
-                            isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 6,
-                            ),
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                          onSubmitted: (_) => _addCustomAsteroid(),
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: const Icon(Icons.add, size: 18),
-                        tooltip: 'Add asteroid by MPC number',
-                        onPressed: _addCustomAsteroid,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ],
-                  ),
-                ],
               ],
             ],
           ),
@@ -244,15 +153,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         if (isMobile) _buildResults() else Expanded(child: _buildResults()),
       ],
     );
-  }
-
-  void _addCustomAsteroid() {
-    final text = _asteroidController.text.trim();
-    final num = int.tryParse(text);
-    if (num != null && num > 0) {
-      _addAsteroid(num);
-      _asteroidController.clear();
-    }
   }
 
   Widget _buildResults() {
