@@ -8,6 +8,7 @@ import '../context_state.dart';
 import '../ephe/dir_provider.dart';
 import '../ephe/scanner.dart';
 import '../ephe/types.dart';
+import '../../tabs/other_bodies/other_bodies_provider.dart';
 import 'applied_globals.dart';
 import 'trace_model.dart';
 import 'tracing_rust_eph.dart';
@@ -42,7 +43,12 @@ final ephemerisRunnerProvider = Provider<EphemerisRunner>((ref) {
 final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
   final ctx = ref.watch(effectiveContextProvider);
   final ephePath = ref.watch(resolvedEphePathProvider);
-  var globals = AppliedGlobals.fromContext(ctx, ephePath);
+  final moonIds = ref.watch(selectedPlanetMoonIdsProvider);
+  var globals = AppliedGlobals.fromContext(
+    ctx,
+    ephePath,
+    planetMoonNumbers: moonIds,
+  );
   if (globals.epheSource == EpheSource.jpl && globals.jplFile == null) {
     final scan = ref.watch(ephemerisScanProvider).valueOrNull;
     if (scan != null) {
@@ -59,6 +65,7 @@ final appliedGlobalsProvider = Provider<AppliedGlobals>((ref) {
           userAyanValue: globals.userAyanValue,
           topo: globals.topo,
           jplFile: jplFiles.first.filename,
+          planetMoonNumbers: globals.planetMoonNumbers,
         );
       }
     }

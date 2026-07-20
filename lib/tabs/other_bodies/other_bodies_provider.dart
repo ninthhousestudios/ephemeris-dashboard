@@ -119,6 +119,14 @@ const namedComets = <int, String>{
 
 final otherBodiesSelectionProvider = StateProvider<List<int>>((ref) => <int>[]);
 
+/// Planet moon body IDs (9000–9999) currently selected. Consumed by the
+/// engine config so swisseph_rs pre-opens the sat/ files.
+final selectedPlanetMoonIdsProvider = Provider<List<int>>((ref) {
+  final all = ref.watch(otherBodiesSelectionProvider);
+  final moons = all.where((id) => id >= sePlmoonOffset && id < seAstOffset);
+  return moons.isEmpty ? const [] : moons.toList();
+});
+
 // ── Result type (shared with planets) ──
 
 class OtherBodyResult {

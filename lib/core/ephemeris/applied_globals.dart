@@ -15,6 +15,7 @@ class AppliedGlobals {
     required this.userAyanValue,
     required this.topo,
     required this.jplFile,
+    this.planetMoonNumbers = const [],
   });
 
   final String? ephePath;
@@ -24,8 +25,13 @@ class AppliedGlobals {
   final double userAyanValue;
   final ({double lon, double lat, double alt})? topo;
   final String? jplFile;
+  final List<int> planetMoonNumbers;
 
-  factory AppliedGlobals.fromContext(EffectiveContext ctx, String? ephePath) {
+  factory AppliedGlobals.fromContext(
+    EffectiveContext ctx,
+    String? ephePath, {
+    List<int> planetMoonNumbers = const [],
+  }) {
     return AppliedGlobals(
       ephePath: ephePath,
       epheSource: ctx.epheSource,
@@ -38,6 +44,7 @@ class AppliedGlobals {
           ? (lon: ctx.longitude, lat: ctx.latitude, alt: ctx.altitude)
           : null,
       jplFile: ctx.epheSource == EpheSource.jpl ? ctx.jplFilename : null,
+      planetMoonNumbers: planetMoonNumbers,
     );
   }
 
@@ -82,6 +89,7 @@ class AppliedGlobals {
               altitude: topo!.alt,
             )
           : null,
+      planetMoonNumbers: planetMoonNumbers,
     );
   }
 
@@ -98,6 +106,7 @@ class AppliedGlobals {
       userAyanValue: ayanT0,
       topo: topo,
       jplFile: jplFile,
+      planetMoonNumbers: planetMoonNumbers,
     );
   }
 
@@ -111,7 +120,8 @@ class AppliedGlobals {
           userAyanT0 == other.userAyanT0 &&
           userAyanValue == other.userAyanValue &&
           topo == other.topo &&
-          jplFile == other.jplFile;
+          jplFile == other.jplFile &&
+          _listEq(planetMoonNumbers, other.planetMoonNumbers);
 
   @override
   int get hashCode => Object.hash(
@@ -122,5 +132,15 @@ class AppliedGlobals {
     userAyanValue,
     topo,
     jplFile,
+    Object.hashAll(planetMoonNumbers),
   );
+}
+
+bool _listEq(List<int> a, List<int> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
 }
