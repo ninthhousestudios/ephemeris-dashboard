@@ -9,7 +9,6 @@ import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'planets_provider.dart';
@@ -40,7 +39,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
   Widget build(BuildContext context) {
     final selectedBodies = ref.watch(selectedBodiesProvider);
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -151,7 +149,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         const SizedBox(height: 4),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
+        _buildResults(),
       ],
     );
   }

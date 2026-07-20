@@ -8,7 +8,6 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'nodes_apsides_provider.dart';
@@ -67,7 +66,6 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -193,10 +191,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          const _NodesResults()
-        else
-          Expanded(child: const _NodesResults()),
+        const _NodesResults(),
       ],
     );
   }

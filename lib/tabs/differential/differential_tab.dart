@@ -12,7 +12,6 @@ import '../../core/date_time_input.dart';
 import '../../core/display_format.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../../tabs/planets/planets_provider.dart'
@@ -184,7 +183,6 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -342,7 +340,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile) _DiffResults() else Expanded(child: _DiffResults()),
+        _DiffResults(),
       ],
     );
   }

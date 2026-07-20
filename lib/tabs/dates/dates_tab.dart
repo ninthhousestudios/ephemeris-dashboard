@@ -10,7 +10,6 @@ import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'dates_provider.dart';
@@ -153,7 +152,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -260,7 +258,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
+        _buildResults(),
       ],
     );
   }

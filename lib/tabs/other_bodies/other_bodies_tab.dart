@@ -10,7 +10,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/catalog.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'other_bodies_provider.dart';
@@ -63,7 +62,6 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
   Widget build(BuildContext context) {
     final selected = ref.watch(otherBodiesSelectionProvider);
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -99,7 +97,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
         ),
         const SizedBox(height: 4),
         const Divider(height: 1),
-        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
+        _buildResults(),
       ],
     );
   }

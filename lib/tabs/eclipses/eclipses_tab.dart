@@ -9,7 +9,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'eclipses_provider.dart';
@@ -30,7 +29,6 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     final filter = ref.watch(eclipseFilterProvider);
     final count = ref.watch(eclipseCountProvider);
     final outcome = ref.watch(eclipseResultsProvider);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -157,10 +155,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
         ),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile)
-          _buildResults(outcome)
-        else
-          Expanded(child: _buildResults(outcome)),
+        _buildResults(outcome),
       ],
     );
   }

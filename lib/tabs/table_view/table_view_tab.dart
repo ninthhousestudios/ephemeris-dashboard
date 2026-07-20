@@ -4,7 +4,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
@@ -52,7 +51,6 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -179,10 +177,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
         ),
         const Divider(height: 1),
         // ── Data table ──
-        if (isMobile)
-          _buildTable(outcome, selectedBodies, format)
-        else
-          Expanded(child: _buildTable(outcome, selectedBodies, format)),
+        _buildTable(outcome, selectedBodies, format),
       ],
     );
   }

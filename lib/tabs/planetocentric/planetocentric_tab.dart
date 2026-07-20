@@ -8,7 +8,6 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'planetocentric_provider.dart';
@@ -37,7 +36,6 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     final center = ref.watch(planetocentricCenterProvider);
     final swe = ref.read(sweProvider);
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -151,7 +149,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         const SizedBox(height: 4),
         const Divider(height: 1),
         // ── Results ──
-        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
+        _buildResults(),
       ],
     );
   }

@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'ayanamsa_provider.dart';
@@ -33,7 +32,6 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
     final compareMode = ref.watch(ayanamsaCompareModeProvider);
     final selected = ref.watch(selectedAyanamsasProvider);
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     return Column(
       children: [
@@ -143,7 +141,7 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
         ),
         const Divider(height: 1),
         // Results
-        if (isMobile) _buildResults() else Expanded(child: _buildResults()),
+        _buildResults(),
       ],
     );
   }

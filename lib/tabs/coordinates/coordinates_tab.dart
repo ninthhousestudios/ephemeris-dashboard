@@ -8,7 +8,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
-import '../../layout/responsive_layout.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'coordinates_provider.dart';
@@ -21,7 +20,6 @@ class CoordinatesTab extends ConsumerWidget {
     final fmt = ref.watch(coordFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
     final theme = Theme.of(context);
-    final isMobile = ResponsiveLayout.of(context) == ScreenSize.mobile;
 
     final azAltOutcome = ref.watch(azAltResultProvider);
     final coTransOutcome = ref.watch(coTransResultProvider);
@@ -75,7 +73,7 @@ class CoordinatesTab extends ConsumerWidget {
           ),
         ),
         const Divider(height: 1),
-        if (isMobile) _buildCardsGrid() else Expanded(child: _buildCardsGrid()),
+        _buildCardsGrid(),
       ],
     );
   }
