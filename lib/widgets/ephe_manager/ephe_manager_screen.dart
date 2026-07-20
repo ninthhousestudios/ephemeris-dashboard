@@ -78,6 +78,7 @@ class _EphemerisManagerScreenState
         final satFiles = _collectSatelliteFiles(scan);
         final cometFiles = _collectCometFiles(scan);
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (_selected.isNotEmpty) _buildSelectionToolbar(allFiles),
             _buildDirectoryHeader(settings, resolved ?? ''),
