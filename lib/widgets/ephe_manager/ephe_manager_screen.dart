@@ -119,6 +119,9 @@ class _EphemerisManagerScreenState
           f.family == BodyFamily.fixedStars ||
           f.family == BodyFamily.jpl,
     );
+    if (!installedByName.containsKey(fixedStarsCatalog.filename)) {
+      yield _catalogToMissing(fixedStarsCatalog);
+    }
     yield* seCatalog
         .where((c) => !installedByName.containsKey(c.filename))
         .map(_catalogToMissing);
