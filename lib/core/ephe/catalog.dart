@@ -287,10 +287,19 @@ final cometCatalog = <CatalogEntry>[
     asteroidCatalogEntryFor(mpc, displayName: name)!,
 ];
 
+const fixedStarsCatalog = CatalogEntry(
+  filename: 'sefstars.txt',
+  family: BodyFamily.fixedStars,
+  url:
+      'https://raw.githubusercontent.com/ninthhousestudios/swe-dashboard/main/assets/ephe/sefstars.txt',
+  displayName: 'Fixed Stars Catalog',
+);
+
 /// Full catalog of files offered for download (JPL + SE extensions +
-/// seeded asteroids + satellites + comets). On-the-fly MPC entries come
-/// from [asteroidCatalogEntryFor], not this list.
+/// seeded asteroids + satellites + comets + fixed stars). On-the-fly MPC
+/// entries come from [asteroidCatalogEntryFor], not this list.
 List<CatalogEntry> get fullCatalog => [
+  fixedStarsCatalog,
   ...jplCatalog,
   ...seCatalog,
   ...asteroidCatalog,
