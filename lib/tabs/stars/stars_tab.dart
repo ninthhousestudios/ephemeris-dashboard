@@ -52,8 +52,9 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     }
     final lower = q.toLowerCase();
     final bayerQ = lower.startsWith(',') ? lower.substring(1) : lower;
+    final catalog = ref.read(starCatalogProvider);
     setState(() {
-      _suggestions = starCatalog.where((e) {
+      _suggestions = catalog.where((e) {
         return e.commonName.toLowerCase().contains(lower) ||
             e.bayerDesig.toLowerCase().contains(bayerQ);
       }).toList();

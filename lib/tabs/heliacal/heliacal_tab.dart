@@ -14,7 +14,8 @@ import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
-import '../stars/stars_provider.dart' show StarCatalogEntry, starCatalog;
+import '../stars/stars_provider.dart'
+    show StarCatalogEntry, starCatalogProvider;
 import 'heliacal_provider.dart';
 
 const _eventTypes = [
@@ -107,8 +108,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     }
     final lower = q.toLowerCase();
     final bayerQ = lower.startsWith(',') ? lower.substring(1) : lower;
+    final catalog = ref.read(starCatalogProvider);
     setState(() {
-      _starSuggestions = starCatalog.where((e) {
+      _starSuggestions = catalog.where((e) {
         return e.commonName.toLowerCase().contains(lower) ||
             e.bayerDesig.toLowerCase().contains(bayerQ);
       }).toList();

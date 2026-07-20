@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
@@ -8,6 +10,7 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephe/dir_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
@@ -42,115 +45,24 @@ class StarCatalogEntry {
   String get bayerSearch => ',$bayerDesig';
 }
 
-/// Catalog of stars with common names and Bayer designations,
-/// sourced from sefstars.txt. Covers the major named stars.
-const starCatalog = [
-  StarCatalogEntry('Aldebaran', 'alTau'),
-  StarCatalogEntry('Algol', 'bePer'),
-  StarCatalogEntry('Antares', 'alSco'),
-  StarCatalogEntry('Regulus', 'alLeo'),
-  StarCatalogEntry('Sirius', 'alCMa'),
-  StarCatalogEntry('Spica', 'alVir'),
-  StarCatalogEntry('Arcturus', 'alBoo'),
-  StarCatalogEntry('Vega', 'alLyr'),
-  StarCatalogEntry('Capella', 'alAur'),
-  StarCatalogEntry('Rigel', 'bOri'),
-  StarCatalogEntry('Betelgeuse', 'alOri'),
-  StarCatalogEntry('Pollux', 'bGem'),
-  StarCatalogEntry('Canopus', 'alCar'),
-  StarCatalogEntry('Fomalhaut', 'alPsA'),
-  StarCatalogEntry('Deneb', 'alCyg'),
-  StarCatalogEntry('Altair', 'alAql'),
-  StarCatalogEntry('Castor', 'alGem'),
-  StarCatalogEntry('Procyon', 'alCMi'),
-  StarCatalogEntry('Achernar', 'alEri'),
-  StarCatalogEntry('Acrux', 'alCru'),
-  StarCatalogEntry('Polaris', 'alUMi'),
-  StarCatalogEntry('Mimosa', 'beCru'),
-  StarCatalogEntry('Hadar', 'beCen'),
-  StarCatalogEntry('Bellatrix', 'gOri'),
-  StarCatalogEntry('Alnilam', 'epOri'),
-  StarCatalogEntry('Alnitak', 'zeOri'),
-  StarCatalogEntry('Mintaka', 'deOri'),
-  StarCatalogEntry('Saiph', 'kaOri'),
-  StarCatalogEntry('Dubhe', 'alUMa'),
-  StarCatalogEntry('Merak', 'beUMa'),
-  StarCatalogEntry('Alioth', 'epUMa'),
-  StarCatalogEntry('Mizar', 'zeUMa'),
-  StarCatalogEntry('Alkaid', 'etUMa'),
-  StarCatalogEntry('Denebola', 'beLeo'),
-  StarCatalogEntry('Alphard', 'alHya'),
-  StarCatalogEntry('Rasalhague', 'alOph'),
-  StarCatalogEntry('Shaula', 'laScor'),
-  StarCatalogEntry('Sargas', 'thSco'),
-  StarCatalogEntry('Kaus Australis', 'epSgr'),
-  StarCatalogEntry('Nunki', 'siSgr'),
-  StarCatalogEntry('Algieba', 'gaLeo'),
-  StarCatalogEntry('Zubenelgenubi', 'alLib'),
-  StarCatalogEntry('Zubeneschamali', 'beLib'),
-  StarCatalogEntry('Unukalhai', 'alSer'),
-  StarCatalogEntry('Alphecca', 'alCrB'),
-  StarCatalogEntry('Dschubba', 'deSco'),
-  StarCatalogEntry('Sabik', 'etOph'),
-  StarCatalogEntry('Yed Prior', 'deOph'),
-  StarCatalogEntry('Yed Posterior', 'epOph'),
-  StarCatalogEntry('Scheat', 'bePeg'),
-  StarCatalogEntry('Markab', 'alPeg'),
-  StarCatalogEntry('Algenib', 'gaPeg'),
-  StarCatalogEntry('Alpheratz', 'alAnd'),
-  StarCatalogEntry('Mirach', 'beAnd'),
-  StarCatalogEntry('Almach', 'gaAnd'),
-  StarCatalogEntry('Hamal', 'alAri'),
-  StarCatalogEntry('Sheratan', 'beAri'),
-  StarCatalogEntry('Menkalinan', 'beAur'),
-  StarCatalogEntry('Alhena', 'gaGem'),
-  StarCatalogEntry('Wezen', 'deCMa'),
-  StarCatalogEntry('Adhara', 'epCMa'),
-  StarCatalogEntry('Aludra', 'etCMa'),
-  StarCatalogEntry('Naos', 'zePup'),
-  StarCatalogEntry('Suhail', 'laVel'),
-  StarCatalogEntry('Avior', 'epCar'),
-  StarCatalogEntry('Miaplacidus', 'beCar'),
-  StarCatalogEntry('Aspidiske', 'ioCar'),
-  StarCatalogEntry('Gacrux', 'gaCru'),
-  StarCatalogEntry('Rigil Kentaurus', 'alCen'),
-  StarCatalogEntry('Toliman', 'al2Cen'),
-  StarCatalogEntry('Agena', 'beCen'),
-  StarCatalogEntry('Kochab', 'beUMi'),
-  StarCatalogEntry('Eltanin', 'gaDra'),
-  StarCatalogEntry('Thuban', 'alDra'),
-  StarCatalogEntry('Enif', 'epPeg'),
-  StarCatalogEntry('Sadalmelik', 'alAqr'),
-  StarCatalogEntry('Sadalsuud', 'beAqr'),
-  StarCatalogEntry('Deneb Algedi', 'deCap'),
-  StarCatalogEntry('Nashira', 'gaCap'),
-  StarCatalogEntry('Acubens', 'alCnc'),
-  StarCatalogEntry('Asellus Borealis', 'gaCnc'),
-  StarCatalogEntry('Asellus Australis', 'deCnc'),
-  StarCatalogEntry('Zaniah', 'etVir'),
-  StarCatalogEntry('Vindemiatrix', 'epVir'),
-  StarCatalogEntry('Algorab', 'deCrv'),
-  StarCatalogEntry('Gienah', 'gaCrv'),
-  StarCatalogEntry('Cor Caroli', 'alCVn'),
-  StarCatalogEntry('Zosma', 'deLeo'),
-  StarCatalogEntry('Chara', 'beCVn'),
-  StarCatalogEntry('Alderamin', 'alCep'),
-  StarCatalogEntry('Errai', 'gaCep'),
-  StarCatalogEntry('Diphda', 'beCet'),
-  StarCatalogEntry('Menkar', 'alCet'),
-  StarCatalogEntry('Mira', 'omiCet'),
-  StarCatalogEntry('Acamar', 'thEri'),
-  StarCatalogEntry('Ankaa', 'alPhe'),
-  StarCatalogEntry('Schedar', 'alCas'),
-  StarCatalogEntry('Caph', 'beCas'),
-  StarCatalogEntry('Ruchbah', 'deCas'),
-  StarCatalogEntry('Navi', 'gaCas'),
-  StarCatalogEntry('Peacock', 'alPav'),
-  StarCatalogEntry('Alnair', 'alGru'),
-  // Fomalhaut already in commonStars — removed duplicate (was misspelled "Formalhaut")
-  StarCatalogEntry('Al Niyat', 'si1Sco'),
-  StarCatalogEntry('Gal. Center', 'SgrA*'),
-];
+List<StarCatalogEntry> _parseSefstars(String contents) {
+  final entries = <StarCatalogEntry>[];
+  for (final line in contents.split('\n')) {
+    if (line.isEmpty || line.startsWith('#')) continue;
+    final fields = line.split(',');
+    if (fields.length < 2) continue;
+    entries.add(StarCatalogEntry(fields[0].trim(), fields[1].trim()));
+  }
+  return entries;
+}
+
+final starCatalogProvider = Provider<List<StarCatalogEntry>>((ref) {
+  final ephePath = ref.watch(resolvedEphePathProvider);
+  if (ephePath == null) return const [];
+  final file = File('$ephePath/sefstars.txt');
+  if (!file.existsSync()) return const [];
+  return _parseSefstars(file.readAsStringSync());
+});
 
 /// Current star search term (name or catalog number).
 final starSearchProvider = StateProvider<String>((ref) => 'Aldebaran');
