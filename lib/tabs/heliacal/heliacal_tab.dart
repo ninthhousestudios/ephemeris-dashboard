@@ -127,22 +127,33 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _recomputeDebounce = Timer(const Duration(milliseconds: 400), apply);
   }
 
-  void _selectStarSuggestion(StarCatalogEntry entry) {
-    _recomputeDebounce?.cancel();
-    _starController.text = entry.commonName;
-    _starController.selection = TextSelection.collapsed(
-      offset: entry.commonName.length,
-    );
-    ref.read(heliacalStarProvider.notifier).state = entry.commonName;
-    setState(() => _starSuggestions = []);
+  void _addTarget(String name) {
+    final current = ref.read(heliacalTargetsProvider);
+    if (current.contains(name)) return;
+    ref.read(heliacalTargetsProvider.notifier).state = [...current, name];
   }
 
-  void _selectBody(String name) {
+  void _removeTarget(String name) {
+    final current = ref.read(heliacalTargetsProvider);
+    ref.read(heliacalTargetsProvider.notifier).state = current
+        .where((t) => t != name)
+        .toList();
+  }
+
+  void _toggleTarget(String name) {
+    final current = ref.read(heliacalTargetsProvider);
+    if (current.contains(name)) {
+      _removeTarget(name);
+    } else {
+      _addTarget(name);
+    }
+  }
+
+  void _selectStarSuggestion(StarCatalogEntry entry) {
     _recomputeDebounce?.cancel();
-    ref.read(heliacalStarProvider.notifier).state = name;
-    // Clear the custom star field when selecting a chip
+    _addTarget(entry.commonName);
     _starController.clear();
-    setState(() => _showStarInput = false);
+    setState(() => _starSuggestions = []);
   }
 
   @override
@@ -153,12 +164,12 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
       color: theme.colorScheme.onSurfaceVariant,
     );
 
-    final selectedStar = ref.watch(heliacalStarProvider);
+    final targets = ref.watch(heliacalTargetsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Body chips (matching Planets tab) ──
+        // ── Body chips (multi-select) ──
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
           child: SingleChildScrollView(
@@ -170,10 +181,10 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                 ..._heliacalBodies.map(
                   (b) => Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: ChoiceChip(
+                    child: FilterChip(
                       label: Text(b.$2),
-                      selected: selectedStar == b.$2,
-                      onSelected: (_) => _selectBody(b.$2),
+                      selected: targets.contains(b.$2),
+                      onSelected: (_) => _toggleTarget(b.$2),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),
@@ -232,18 +243,11 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                               ),
                               border: OutlineInputBorder(),
                             ),
-                            onChanged: (v) => _debouncedSet(
-                              () =>
-                                  ref
-                                      .read(heliacalStarProvider.notifier)
-                                      .state = v
-                                      .trim(),
-                            ),
                             onSubmitted: (v) {
                               if (v.trim().isNotEmpty) {
                                 _recomputeDebounce?.cancel();
-                                ref.read(heliacalStarProvider.notifier).state =
-                                    v.trim();
+                                _addTarget(v.trim());
+                                _starController.clear();
                               }
                             },
                           ),
@@ -313,15 +317,15 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                 const SizedBox(width: 8),
                 Consumer(
                   builder: (context, ref, _) {
-                    final result = switch (ref.watch(heliacalResultProvider)) {
+                    final results = switch (ref.watch(heliacalResultProvider)) {
                       CalcOk(:final value) => value,
                       CalcSweError() => null,
                     };
                     final jd = ref.watch(contextBarProvider).jdUt;
                     return ExportButton(
-                      hasResults: result != null && !result.hasError,
-                      getRows: () => result != null
-                          ? heliacalToExportRows(result, ref.read(sweProvider))
+                      hasResults: results != null && results.isNotEmpty,
+                      getRows: () => results != null
+                          ? heliacalToExportRows(results, ref.read(sweProvider))
                           : [],
                       filenameStem: 'swe_heliacal_${jd.toStringAsFixed(4)}',
                     );
@@ -484,38 +488,26 @@ class _ResultsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final result = switch (ref.watch(heliacalResultProvider)) {
+    final results = switch (ref.watch(heliacalResultProvider)) {
       CalcOk(:final value) => value,
-      // Catastrophic kernel-level failure (lambda folds normal errors into
-      // HeliacalCalcResult.error, so this is only a backstop).
-      CalcSweError(:final message) => HeliacalCalcResult(
-        objectName: ref.read(heliacalStarProvider),
-        eventType: ref.read(heliacalEventTypeProvider),
-        startVisibleJd: double.nan,
-        bestVisibleJd: double.nan,
-        endVisibleJd: double.nan,
-        error: message,
-      ),
+      CalcSweError(:final message) => <HeliacalCalcResult>[
+        HeliacalCalcResult(
+          objectName: '(error)',
+          eventType: ref.read(heliacalEventTypeProvider),
+          startVisibleJd: double.nan,
+          bestVisibleJd: double.nan,
+          endVisibleJd: double.nan,
+          error: message,
+        ),
+      ],
     };
 
-    if (result.hasError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ResultCard(
-            title: result.objectName,
-            subtitle: HeliacalCalcResult.eventLabel(result.eventType),
-            fields: [
-              ResultField(
-                label: 'Error',
-                value: result.error!,
-                rawValue: double.nan,
-              ),
-            ],
-          ),
-        ),
-      );
+    if (results.isEmpty) {
+      return const Center(child: Text('Select a body or star.'));
     }
+
+    final swe = ref.read(sweProvider);
+    final utcOffset = ref.read(contextBarProvider).utcOffset;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -524,24 +516,11 @@ class _ResultsView extends ConsumerWidget {
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(
-                width: cardWidth,
-                child: _buildEventCard(
-                  context,
-                  ref,
-                  result,
-                  ref.read(sweProvider),
-                  ref.read(contextBarProvider).utcOffset,
-                ),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildJdCard(context, ref, result),
-              ),
+              for (final r in results)
+                _buildResultGroup(context, ref, r, swe, utcOffset, cardWidth),
             ],
           ),
         );
@@ -549,16 +528,77 @@ class _ResultsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildEventCard(
+  Widget _buildResultGroup(
     BuildContext context,
     WidgetRef ref,
     HeliacalCalcResult r,
     SweUtils swe,
     double utcOffset,
+    double cardWidth,
   ) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Text(r.objectName, style: theme.textTheme.titleMedium),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  onPressed: () {
+                    final current = ref.read(heliacalTargetsProvider);
+                    ref.read(heliacalTargetsProvider.notifier).state = current
+                        .where((t) => t != r.objectName)
+                        .toList();
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  tooltip: 'Remove',
+                ),
+              ],
+            ),
+          ),
+          if (r.hasError)
+            SizedBox(
+              width: cardWidth,
+              child: ResultCard(
+                title: r.objectName,
+                subtitle: HeliacalCalcResult.eventLabel(r.eventType),
+                fields: [
+                  ResultField(
+                    label: 'Error',
+                    value: r.error!,
+                    rawValue: double.nan,
+                  ),
+                ],
+              ),
+            )
+          else
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: [
+                SizedBox(
+                  width: cardWidth,
+                  child: _buildEventCard(r, swe, utcOffset),
+                ),
+                SizedBox(width: cardWidth, child: _buildJdCard(r)),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEventCard(HeliacalCalcResult r, SweUtils swe, double utcOffset) {
     return ResultCard(
-      title: r.objectName,
-      subtitle: HeliacalCalcResult.eventLabel(r.eventType),
+      title: HeliacalCalcResult.eventLabel(r.eventType),
+      subtitle: 'heliacalUt("${r.objectName}")',
       fields: [
         ResultField(
           label: 'Start Visible',
@@ -579,14 +619,10 @@ class _ResultsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildJdCard(
-    BuildContext context,
-    WidgetRef ref,
-    HeliacalCalcResult r,
-  ) {
+  Widget _buildJdCard(HeliacalCalcResult r) {
     return ResultCard(
       title: 'Julian Days',
-      subtitle: 'heliacalUt result',
+      subtitle: r.objectName,
       fields: [
         ResultField(
           label: 'Start (JD)',

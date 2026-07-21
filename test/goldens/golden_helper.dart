@@ -129,13 +129,15 @@ final fakeAyanamsaResults = [
   const AyanamsaCalcResult(sidMode: 3, name: 'Raman', value: 22.375),
 ];
 
-const fakeHeliacalResult = HeliacalCalcResult(
-  objectName: 'Venus',
-  eventType: seHeliacalRising,
-  startVisibleJd: 2451545.5,
-  bestVisibleJd: 2451545.6,
-  endVisibleJd: 2451545.7,
-);
+const fakeHeliacalResults = [
+  HeliacalCalcResult(
+    objectName: 'Venus',
+    eventType: seHeliacalRising,
+    startVisibleJd: 2451545.5,
+    bestVisibleJd: 2451545.6,
+    endVisibleJd: 2451545.7,
+  ),
+];
 
 // ── Provider overrides ──
 
@@ -152,7 +154,7 @@ final ayanamsaResultsOverride = ayanamsaResultsProvider.overrideWith(
 );
 
 final heliacalResultOverride = heliacalResultProvider.overrideWith(
-  (ref) => CalcOk(fakeHeliacalResult),
+  (ref) => CalcOk(fakeHeliacalResults),
 );
 
 /// All overrides needed for tab-level tests.

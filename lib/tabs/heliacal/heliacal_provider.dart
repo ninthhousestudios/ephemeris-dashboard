@@ -7,6 +7,7 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
+import '../../core/ephemeris/ephemeris.dart';
 import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
@@ -14,8 +15,10 @@ import '../../core/swe_utils.dart';
 
 // ── Input providers ──────────────────────────────────────────────────────────
 
-/// The star or planet name to search for (e.g. 'Venus', 'Sirius').
-final heliacalStarProvider = StateProvider<String>((ref) => 'Venus');
+/// Selected bodies/stars for heliacal calculation.
+final heliacalTargetsProvider = StateProvider<List<String>>(
+  (ref) => const ['Venus'],
+);
 
 /// Heliacal event type:
 /// 1 = seHeliacalRising, 2 = seHeliacalSetting,
@@ -76,16 +79,63 @@ class HeliacalCalcResult {
 
 // ── Result provider ──────────────────────────────────────────────────────────
 
-/// Runs the kernel once per recompute; result + trace derive from this.
-/// The compute lambda catches per-call failures and folds them into
-/// `HeliacalCalcResult.error`, so the outcome is (almost) always `CalcOk`;
-/// the kernel's `SweException` catch is only a backstop.
+HeliacalCalcResult _computeOne(
+  Ephemeris eph,
+  double jdUt,
+  double geolon,
+  double geolat,
+  double geoalt,
+  AtmoConditions atmo,
+  ObserverConditions observer,
+  String name,
+  int typeEvent,
+) {
+  try {
+    final r = eph.heliacalUt(
+      jdUt,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atmo: atmo,
+      observer: observer,
+      objectName: name,
+      typeEvent: typeEvent,
+    );
+    return HeliacalCalcResult(
+      objectName: name,
+      eventType: typeEvent,
+      startVisibleJd: r.startVisible,
+      bestVisibleJd: r.bestVisible,
+      endVisibleJd: r.endVisible,
+    );
+  } on SweException catch (e) {
+    return HeliacalCalcResult(
+      objectName: name,
+      eventType: typeEvent,
+      startVisibleJd: double.nan,
+      bestVisibleJd: double.nan,
+      endVisibleJd: double.nan,
+      error: e.message,
+    );
+  } catch (e) {
+    return HeliacalCalcResult(
+      objectName: name,
+      eventType: typeEvent,
+      startVisibleJd: double.nan,
+      bestVisibleJd: double.nan,
+      endVisibleJd: double.nan,
+      error: e.toString(),
+    );
+  }
+}
+
+/// Runs the kernel once per recompute; iterates over all selected targets.
 final _heliacalCalcProvider =
-    Provider<({CalcOutcome<HeliacalCalcResult> outcome, CallTrace trace})>((
-      ref,
-    ) {
+    Provider<
+      ({CalcOutcome<List<HeliacalCalcResult>> outcome, CallTrace trace})
+    >((ref) {
       final ctx = ref.watch(contextBarProvider);
-      final objectName = ref.watch(heliacalStarProvider).trim();
+      final targets = ref.watch(heliacalTargetsProvider);
       final typeEvent = ref.watch(heliacalEventTypeProvider);
 
       final atmo = AtmoConditions(
@@ -98,55 +148,30 @@ final _heliacalCalcProvider =
         age: ref.watch(heliacalObserverAgeProvider),
         snellenRatio: ref.watch(heliacalSnellenRatioProvider),
       );
-      final name = objectName.isEmpty ? 'Venus' : objectName;
 
       return runTabCalc(
         ref,
         tabTag: 'heliacal',
-        compute: (eph) {
-          try {
-            final r = eph.heliacalUt(
-              ctx.jdUt,
-              geolon: ctx.longitude,
-              geolat: ctx.latitude,
-              geoalt: ctx.altitude,
-              atmo: atmo,
-              observer: observer,
-              objectName: name,
-              typeEvent: typeEvent,
-            );
-            return HeliacalCalcResult(
-              objectName: name,
-              eventType: typeEvent,
-              startVisibleJd: r.startVisible,
-              bestVisibleJd: r.bestVisible,
-              endVisibleJd: r.endVisible,
-            );
-          } on SweException catch (e) {
-            return HeliacalCalcResult(
-              objectName: name,
-              eventType: typeEvent,
-              startVisibleJd: double.nan,
-              bestVisibleJd: double.nan,
-              endVisibleJd: double.nan,
-              error: e.message,
-            );
-          } catch (e) {
-            return HeliacalCalcResult(
-              objectName: name,
-              eventType: typeEvent,
-              startVisibleJd: double.nan,
-              bestVisibleJd: double.nan,
-              endVisibleJd: double.nan,
-              error: e.toString(),
-            );
-          }
-        },
+        compute: (eph) => targets
+            .map(
+              (name) => _computeOne(
+                eph,
+                ctx.jdUt,
+                ctx.longitude,
+                ctx.latitude,
+                ctx.altitude,
+                atmo,
+                observer,
+                name,
+                typeEvent,
+              ),
+            )
+            .toList(),
       );
     });
 
-/// Heliacal calculation result.
-final heliacalResultProvider = Provider<CalcOutcome<HeliacalCalcResult>>(
+/// Heliacal calculation results (one per target).
+final heliacalResultProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>(
   (ref) => ref.watch(_heliacalCalcProvider.select((c) => c.outcome)),
 );
 
@@ -157,17 +182,10 @@ final heliacalTraceProvider = Provider<CallTrace>(
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
-List<ExportRow> heliacalToExportRows(HeliacalCalcResult r, SweUtils swe) {
-  if (r.hasError) {
-    return [
-      ExportRow(
-        header:
-            '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
-        fields: [('Error', r.error!)],
-      ),
-    ];
-  }
-
+List<ExportRow> heliacalToExportRows(
+  List<HeliacalCalcResult> results,
+  SweUtils swe,
+) {
   String jdToDateStr(double jd) => formatJdDateTime(
     swe,
     jd,
@@ -176,17 +194,29 @@ List<ExportRow> heliacalToExportRows(HeliacalCalcResult r, SweUtils swe) {
     fallbackDigits: 4,
   );
 
-  return [
-    ExportRow(
-      header: '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
-      fields: [
-        ('Start Visible', jdToDateStr(r.startVisibleJd)),
-        ('Start Visible (JD)', r.startVisibleJd.toStringAsFixed(6)),
-        ('Best Visible', jdToDateStr(r.bestVisibleJd)),
-        ('Best Visible (JD)', r.bestVisibleJd.toStringAsFixed(6)),
-        ('End Visible', jdToDateStr(r.endVisibleJd)),
-        ('End Visible (JD)', r.endVisibleJd.toStringAsFixed(6)),
-      ],
-    ),
-  ];
+  return results.expand((r) {
+    if (r.hasError) {
+      return [
+        ExportRow(
+          header:
+              '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
+          fields: [('Error', r.error!)],
+        ),
+      ];
+    }
+    return [
+      ExportRow(
+        header:
+            '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
+        fields: [
+          ('Start Visible', jdToDateStr(r.startVisibleJd)),
+          ('Start Visible (JD)', r.startVisibleJd.toStringAsFixed(6)),
+          ('Best Visible', jdToDateStr(r.bestVisibleJd)),
+          ('Best Visible (JD)', r.bestVisibleJd.toStringAsFixed(6)),
+          ('End Visible', jdToDateStr(r.endVisibleJd)),
+          ('End Visible (JD)', r.endVisibleJd.toStringAsFixed(6)),
+        ],
+      ),
+    ];
+  }).toList();
 }
