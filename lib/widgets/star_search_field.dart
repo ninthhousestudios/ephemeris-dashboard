@@ -26,8 +26,10 @@ class StarSearchField extends ConsumerStatefulWidget {
 class _StarSearchFieldState extends ConsumerState<StarSearchField> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  final _scrollController = ScrollController();
   List<StarCatalogEntry> _suggestions = [];
   int _selectedIndex = -1;
+  static const _itemHeight = 40.0;
 
   @override
   void initState() {
@@ -52,6 +54,7 @@ class _StarSearchFieldState extends ConsumerState<StarSearchField> {
     _controller.removeListener(_onSearchChanged);
     _controller.dispose();
     _focusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -104,6 +107,7 @@ class _StarSearchFieldState extends ConsumerState<StarSearchField> {
       setState(() {
         _selectedIndex = (_selectedIndex + 1).clamp(0, _suggestions.length - 1);
       });
+      _ensureVisible();
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -113,6 +117,7 @@ class _StarSearchFieldState extends ConsumerState<StarSearchField> {
           _suggestions.length - 1,
         );
       });
+      _ensureVisible();
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -123,6 +128,18 @@ class _StarSearchFieldState extends ConsumerState<StarSearchField> {
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  void _ensureVisible() {
+    if (_selectedIndex < 0 || !_scrollController.hasClients) return;
+    final target = _selectedIndex * _itemHeight;
+    final viewport = _scrollController.position.viewportDimension;
+    final offset = _scrollController.offset;
+    if (target < offset) {
+      _scrollController.jumpTo(target);
+    } else if (target + _itemHeight > offset + viewport) {
+      _scrollController.jumpTo(target + _itemHeight - viewport);
+    }
   }
 
   @override
@@ -174,14 +191,18 @@ class _StarSearchFieldState extends ConsumerState<StarSearchField> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 200),
               child: ListView.builder(
+                controller: _scrollController,
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
+                itemExtent: _itemHeight,
                 itemCount: _suggestions.length,
                 itemBuilder: (context, index) {
                   final entry = _suggestions[index];
+                  final isSelected = index == _selectedIndex;
                   return ListTile(
                     dense: true,
-                    selected: index == _selectedIndex,
+                    selected: isSelected,
+                    selectedTileColor: theme.colorScheme.primary.withAlpha(30),
                     title: Text(entry.commonName),
                     trailing: Text(
                       entry.bayerDesig,
