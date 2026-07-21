@@ -23,9 +23,6 @@ class OtherBodiesTab extends ConsumerStatefulWidget {
 }
 
 class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
-  bool _showMoons = false;
-  bool _showAsteroids = false;
-  bool _showComets = false;
   final _asteroidController = TextEditingController();
   final _cometController = TextEditingController();
 
@@ -71,28 +68,15 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSection(
-                theme: theme,
-                label: 'Planetary Moons',
-                expanded: _showMoons,
-                onToggle: () => setState(() => _showMoons = !_showMoons),
-                child: _buildMoonSection(selected, theme),
-              ),
-              _buildSection(
-                theme: theme,
-                label: 'Asteroids',
-                expanded: _showAsteroids,
-                onToggle: () =>
-                    setState(() => _showAsteroids = !_showAsteroids),
-                child: _buildAsteroidSection(selected, theme),
-              ),
-              _buildSection(
-                theme: theme,
-                label: 'Comets',
-                expanded: _showComets,
-                onToggle: () => setState(() => _showComets = !_showComets),
-                child: _buildCometSection(selected, theme),
-              ),
+              _sectionHeader('Planetary Moons', theme),
+              const SizedBox(height: 4),
+              _buildMoonSection(selected, theme),
+              _sectionHeader('Asteroids', theme),
+              const SizedBox(height: 4),
+              _buildAsteroidSection(selected, theme),
+              _sectionHeader('Comets', theme),
+              const SizedBox(height: 4),
+              _buildCometSection(selected, theme),
             ],
           ),
         ),
@@ -103,39 +87,15 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     );
   }
 
-  Widget _buildSection({
-    required ThemeData theme,
-    required String label,
-    required bool expanded,
-    required VoidCallback onToggle,
-    required Widget child,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 4),
-        InkWell(
-          onTap: onToggle,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                expanded ? Icons.expand_less : Icons.expand_more,
-                size: 18,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
+  Widget _sectionHeader(String label, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
         ),
-        if (expanded) ...[const SizedBox(height: 4), child],
-      ],
+      ),
     );
   }
 
