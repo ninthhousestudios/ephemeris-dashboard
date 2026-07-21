@@ -54,7 +54,9 @@ class _EphemerisManagerScreenState
           padding: EdgeInsets.all(24),
           child: Text(
             'The ephemeris file manager is only available on desktop. '
-            'The web build uses the analytical Moshier model.',
+            'The web build uses the built-in Swiss Ephemeris, but '
+            'cannot load additional ephemeris files (JPL, asteroids, '
+            'comets, planetary moons) from the browser.',
             textAlign: TextAlign.center,
           ),
         ),
