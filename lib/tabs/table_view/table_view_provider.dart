@@ -13,8 +13,9 @@ import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../core/display_format.dart';
+import '../other_bodies/other_bodies_provider.dart' show otherBodyName;
 
-// ── Selectable bodies ────────────────────────────────────────────────────────
+// ── Selectable bodies (planet chips) ────────────────────────────────────────
 
 const tableViewBodies = <(int, String)>[
   (seSun, 'Sun'),
@@ -53,6 +54,12 @@ final tableViewBodiesProvider = StateProvider<Set<int>>(
   (ref) => {seSun, seMoon},
 );
 
+/// Extra bodies (asteroids, comets, planetary moons) by body ID.
+final tableViewExtraBodiesProvider = StateProvider<Set<int>>((ref) => const {});
+
+/// Selected stars by name.
+final tableViewStarsProvider = StateProvider<List<String>>((ref) => const []);
+
 final tableViewStepValueProvider = StateProvider<double>((ref) => 1.0);
 
 final tableViewStepUnitProvider = StateProvider<StepUnit>(
@@ -80,20 +87,70 @@ final tableViewColumnsProvider = StateProvider<Set<TableColumn>>(
   (ref) => const {},
 );
 
+// ── Column key: unified identifier for body or star ─────────────────────────
+
+sealed class ColKey implements Comparable<ColKey> {
+  String get label;
+}
+
+class BodyCol implements ColKey {
+  const BodyCol(this.bodyId);
+  final int bodyId;
+
+  @override
+  String get label {
+    for (final b in tableViewBodies) {
+      if (b.$1 == bodyId) return b.$2;
+    }
+    return otherBodyName(bodyId);
+  }
+
+  @override
+  int compareTo(ColKey other) {
+    if (other is BodyCol) return bodyId.compareTo(other.bodyId);
+    return -1; // bodies before stars
+  }
+
+  @override
+  bool operator ==(Object other) => other is BodyCol && bodyId == other.bodyId;
+  @override
+  int get hashCode => bodyId.hashCode;
+}
+
+class StarCol implements ColKey {
+  const StarCol(this.starName);
+  final String starName;
+
+  @override
+  String get label => starName;
+
+  @override
+  int compareTo(ColKey other) {
+    if (other is StarCol) return starName.compareTo(other.starName);
+    return 1; // stars after bodies
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is StarCol && starName == other.starName;
+  @override
+  int get hashCode => starName.hashCode;
+}
+
 // ── Result model ─────────────────────────────────────────────────────────────
 
 class EphemerisRow {
   const EphemerisRow({
     required this.jd,
     required this.dateStr,
-    required this.bodyValues,
+    required this.values,
   });
 
   final double jd;
   final String dateStr;
 
-  /// Map from body ID to full calc result (or error string).
-  final Map<int, (CalcResult?, String?)> bodyValues;
+  /// Map from column key to full calc result (or error string).
+  final Map<ColKey, (CalcResult?, String?)> values;
 }
 
 // ── Computation ──────────────────────────────────────────────────────────────
@@ -106,6 +163,8 @@ final _tableViewCalcProvider =
       final flags = ref.watch(flagBarProvider);
       final swe = ref.read(sweProvider);
       final bodies = ref.watch(tableViewBodiesProvider);
+      final extraBodies = ref.watch(tableViewExtraBodiesProvider);
+      final stars = ref.watch(tableViewStarsProvider);
       final stepValue = ref.watch(tableViewStepValueProvider);
       final stepUnit = ref.watch(tableViewStepUnitProvider);
       final stepCount = ref.watch(tableViewStepCountProvider);
@@ -113,7 +172,7 @@ final _tableViewCalcProvider =
       final iflag = flags.iflag;
       final jdStart = ctx.jdUt;
       final stepJd = stepValue * stepUnit.jdFactor;
-      final sortedBodies = bodies.toList()..sort();
+      final allBodyIds = {...bodies, ...extraBodies}.toList()..sort();
 
       return runTabCalc(
         ref,
@@ -122,14 +181,36 @@ final _tableViewCalcProvider =
           final rows = <EphemerisRow>[];
           for (var i = 0; i < stepCount; i++) {
             final jd = jdStart + i * stepJd;
-            final bodyValues = <int, (CalcResult?, String?)>{};
+            final values = <ColKey, (CalcResult?, String?)>{};
 
-            for (final body in sortedBodies) {
+            for (final body in allBodyIds) {
+              final key = BodyCol(body);
               try {
                 final result = eph.calcUt(jd, body, iflag);
-                bodyValues[body] = (result, null);
+                values[key] = (result, null);
               } catch (e) {
-                bodyValues[body] = (null, e.toString());
+                values[key] = (null, e.toString());
+              }
+            }
+
+            for (final star in stars) {
+              final key = StarCol(star);
+              try {
+                final result = eph.fixstar2Ut(star, jd, iflag);
+                values[key] = (
+                  CalcResult(
+                    longitude: result.longitude,
+                    latitude: result.latitude,
+                    distance: result.distance,
+                    longitudeSpeed: result.longitudeSpeed,
+                    latitudeSpeed: result.latitudeSpeed,
+                    distanceSpeed: result.distanceSpeed,
+                    returnFlag: result.returnFlag,
+                  ),
+                  null,
+                );
+              } catch (e) {
+                values[key] = (null, e.toString());
               }
             }
 
@@ -142,7 +223,7 @@ final _tableViewCalcProvider =
                   utLabel: false,
                   fallbackDigits: 4,
                 ),
-                bodyValues: bodyValues,
+                values: values,
               ),
             );
           }
@@ -151,38 +232,43 @@ final _tableViewCalcProvider =
       );
     });
 
-/// Ephemeris table results (bodies × time steps). No trace provider — the
-/// table has no "view code" affordance.
+/// Ephemeris table results (bodies × time steps).
 final tableViewResultsProvider = Provider<CalcOutcome<List<EphemerisRow>>>((
   ref,
 ) {
   return ref.watch(_tableViewCalcProvider.select((c) => c.outcome));
 });
 
-// ── Export ────────────────────────────────────────────────────────────────────
+// ── Sorted column keys ──────────────────────────────────────────────────────
 
-String bodyName(int id) {
-  for (final b in tableViewBodies) {
-    if (b.$1 == id) return b.$2;
-  }
-  return 'Body $id';
+List<ColKey> tableViewSortedKeys(
+  Set<int> bodies,
+  Set<int> extraBodies,
+  List<String> stars,
+) {
+  final keys = <ColKey>[
+    for (final b in ({...bodies, ...extraBodies}.toList()..sort())) BodyCol(b),
+    for (final s in stars) StarCol(s),
+  ];
+  return keys;
 }
+
+// ── Export ────────────────────────────────────────────────────────────────────
 
 List<ExportRow> tableViewToExportRows(
   List<EphemerisRow> rows,
-  Set<int> bodies,
+  List<ColKey> keys,
   DisplayFormat format, {
   bool isXyz = false,
   Set<TableColumn> columns = const {},
 }) {
-  final sortedBodies = bodies.toList()..sort();
   return rows.map((row) {
     final fields = <(String, String)>[('JD', row.jd.toStringAsFixed(8))];
-    for (final body in sortedBodies) {
-      final val = row.bodyValues[body];
+    for (final key in keys) {
+      final val = row.values[key];
       if (val == null) continue;
       final (result, err) = val;
-      final name = bodyName(body);
+      final name = key.label;
       if (err != null) {
         fields.add((name, err));
         continue;
