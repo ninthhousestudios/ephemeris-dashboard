@@ -72,6 +72,8 @@ final defaultTargetBodies = [
 ];
 
 /// Extra target bodies (progressive disclosure).
+/// Only real physical bodies — mathematical points (nodes, apogees) have no
+/// heliocentric position and cannot be used with calcPctr.
 final extraTargetBodies = [
   seEarth,
   seChiron,
@@ -80,10 +82,6 @@ final extraTargetBodies = [
   sePallas,
   seJuno,
   seVesta,
-  seMeanNode,
-  seTrueNode,
-  seMeanApog,
-  seOscuApog,
 ];
 
 /// Selected center body (observer).
