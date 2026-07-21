@@ -73,7 +73,8 @@ CrossingResult computeCrossing({
   required String helioBodyName,
   required double utcOffset,
 }) {
-  if (iflag & (seFlgHelCtr | seFlgBaryCtr) != 0) {
+  if (type != CrossingType.helioCross &&
+      iflag & (seFlgHelCtr | seFlgBaryCtr) != 0) {
     throw const InvalidArgException(
       'Crossings require geocentric or topocentric origin',
     );
