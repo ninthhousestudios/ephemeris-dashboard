@@ -190,40 +190,55 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
             children: results.map((r) {
               return SizedBox(
                 width: cardWidth,
-                child: ResultCard(
-                  title: r.bodyName,
-                  subtitle: 'calcPctr(${r.body}, ${r.centerBody})',
-                  flagHex: '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
-                  fields: [
-                    ResultField(
-                      label: 'Longitude',
-                      value: formatAngle(r.longitude, format),
-                      rawValue: r.longitude,
+                child: Stack(
+                  children: [
+                    ResultCard(
+                      title: r.bodyName,
+                      subtitle: 'calcPctr(${r.body}, ${r.centerBody})',
+                      flagHex:
+                          '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
+                      fields: [
+                        ResultField(
+                          label: 'Longitude',
+                          value: formatAngle(r.longitude, format),
+                          rawValue: r.longitude,
+                        ),
+                        ResultField(
+                          label: 'Latitude',
+                          value: formatAngle(r.latitude, format),
+                          rawValue: r.latitude,
+                        ),
+                        ResultField(
+                          label: 'Distance',
+                          value: formatDistance(r.distance, format),
+                          rawValue: r.distance,
+                        ),
+                        ResultField(
+                          label: 'Spd Lon',
+                          value: formatSpeed(r.speedLon, format),
+                          rawValue: r.speedLon,
+                        ),
+                        ResultField(
+                          label: 'Spd Lat',
+                          value: formatSpeed(r.speedLat, format),
+                          rawValue: r.speedLat,
+                        ),
+                        ResultField(
+                          label: 'Spd Dist',
+                          value: formatSpeed(r.speedDist, format),
+                          rawValue: r.speedDist,
+                        ),
+                      ],
                     ),
-                    ResultField(
-                      label: 'Latitude',
-                      value: formatAngle(r.latitude, format),
-                      rawValue: r.latitude,
-                    ),
-                    ResultField(
-                      label: 'Distance',
-                      value: formatDistance(r.distance, format),
-                      rawValue: r.distance,
-                    ),
-                    ResultField(
-                      label: 'Spd Lon',
-                      value: formatSpeed(r.speedLon, format),
-                      rawValue: r.speedLon,
-                    ),
-                    ResultField(
-                      label: 'Spd Lat',
-                      value: formatSpeed(r.speedLat, format),
-                      rawValue: r.speedLat,
-                    ),
-                    ResultField(
-                      label: 'Spd Dist',
-                      value: formatSpeed(r.speedDist, format),
-                      rawValue: r.speedDist,
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        tooltip: 'Remove ${r.bodyName}',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _toggleBody(r.body),
+                      ),
                     ),
                   ],
                 ),

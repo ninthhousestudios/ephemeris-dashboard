@@ -210,38 +210,66 @@ class _ResultsView extends ConsumerWidget {
                       children: results.map((r) {
                         return SizedBox(
                           width: cardWidth,
-                          child: ResultCard(
-                            title: r.bodyName,
-                            subtitle: 'phenoUt(${r.body})',
-                            fields: [
-                              ResultField(
-                                label: 'Phase Angle',
-                                value: formatAngle(r.phaseAngle, format),
-                                rawValue: r.phaseAngle,
+                          child: Stack(
+                            children: [
+                              ResultCard(
+                                title: r.bodyName,
+                                subtitle: 'phenoUt(${r.body})',
+                                fields: [
+                                  ResultField(
+                                    label: 'Phase Angle',
+                                    value: formatAngle(r.phaseAngle, format),
+                                    rawValue: r.phaseAngle,
+                                  ),
+                                  ResultField(
+                                    label: 'Elongation',
+                                    value: formatAngle(r.elongation, format),
+                                    rawValue: r.elongation,
+                                  ),
+                                  ResultField(
+                                    label: 'App. Diameter',
+                                    value: formatAngle(
+                                      r.apparentDiameter,
+                                      format,
+                                    ),
+                                    rawValue: r.apparentDiameter,
+                                  ),
+                                  ResultField(
+                                    label: 'Phase (Illum.)',
+                                    value: r.phase.isNaN
+                                        ? 'NaN'
+                                        : r.phase.toStringAsFixed(6),
+                                    rawValue: r.phase,
+                                  ),
+                                  ResultField(
+                                    label: 'App. Magnitude',
+                                    value: r.apparentMagnitude.isNaN
+                                        ? 'NaN'
+                                        : r.apparentMagnitude.toStringAsFixed(
+                                            4,
+                                          ),
+                                    rawValue: r.apparentMagnitude,
+                                  ),
+                                ],
                               ),
-                              ResultField(
-                                label: 'Elongation',
-                                value: formatAngle(r.elongation, format),
-                                rawValue: r.elongation,
-                              ),
-                              ResultField(
-                                label: 'App. Diameter',
-                                value: formatAngle(r.apparentDiameter, format),
-                                rawValue: r.apparentDiameter,
-                              ),
-                              ResultField(
-                                label: 'Phase (Illum.)',
-                                value: r.phase.isNaN
-                                    ? 'NaN'
-                                    : r.phase.toStringAsFixed(6),
-                                rawValue: r.phase,
-                              ),
-                              ResultField(
-                                label: 'App. Magnitude',
-                                value: r.apparentMagnitude.isNaN
-                                    ? 'NaN'
-                                    : r.apparentMagnitude.toStringAsFixed(4),
-                                rawValue: r.apparentMagnitude,
+                              Positioned(
+                                top: 4,
+                                right: 4,
+                                child: IconButton(
+                                  icon: const Icon(Icons.close, size: 16),
+                                  tooltip: 'Remove ${r.bodyName}',
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () {
+                                    final current = ref.read(
+                                      phenomenaBodiesProvider,
+                                    );
+                                    ref
+                                        .read(phenomenaBodiesProvider.notifier)
+                                        .state = current
+                                        .where((b) => b != r.body)
+                                        .toList();
+                                  },
+                                ),
                               ),
                             ],
                           ),

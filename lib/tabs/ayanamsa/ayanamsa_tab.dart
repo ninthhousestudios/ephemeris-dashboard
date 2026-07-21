@@ -181,14 +181,28 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
             children: results.map((r) {
               return SizedBox(
                 width: cardWidth,
-                child: ResultCard(
-                  title: r.name,
-                  subtitle: 'SE_SIDM_${r.sidMode}',
-                  fields: [
-                    ResultField(
-                      label: 'Value',
-                      value: formatAngle(r.value, format),
-                      rawValue: r.value,
+                child: Stack(
+                  children: [
+                    ResultCard(
+                      title: r.name,
+                      subtitle: 'SE_SIDM_${r.sidMode}',
+                      fields: [
+                        ResultField(
+                          label: 'Value',
+                          value: formatAngle(r.value, format),
+                          rawValue: r.value,
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        tooltip: 'Remove ${r.name}',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _toggleAyanamsa(r.sidMode),
+                      ),
                     ),
                   ],
                 ),
