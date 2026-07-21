@@ -30,10 +30,6 @@ const _defaultBodies = <(int, String)>[
 ];
 
 const _extraBodies = <(int, String)>[
-  (seMeanNode, 'M.Node'),
-  (seTrueNode, 'T.Node'),
-  (seMeanApog, 'M.Lilith'),
-  (seOscuApog, 'O.Lilith'),
   (seEarth, 'Earth'),
   (seChiron, 'Chiron'),
   (sePholus, 'Pholus'),
@@ -41,14 +37,6 @@ const _extraBodies = <(int, String)>[
   (sePallas, 'Pallas'),
   (seJuno, 'Juno'),
   (seVesta, 'Vesta'),
-  (seCupido, 'Cupido'),
-  (seHades, 'Hades'),
-  (seZeus, 'Zeus'),
-  (seKronos, 'Kronos'),
-  (seApollon, 'Apollon'),
-  (seAdmetos, 'Admetos'),
-  (seVulkanus, 'Vulkanus'),
-  (sePoseidon, 'Poseidon'),
 ];
 
 const _methodOptions = <(int, String)>[
