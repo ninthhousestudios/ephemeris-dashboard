@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
@@ -8,6 +9,8 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../tabs/other_bodies/other_bodies_provider.dart'
+    show otherBodiesNamedAsteroids, namedComets;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'phenomena_provider.dart';
@@ -27,7 +30,22 @@ const _outerBodies = [
   (seNeptune, 'Neptune'),
   (sePluto, 'Pluto'),
   (seChiron, 'Chiron'),
+  (sePholus, 'Pholus'),
   (seCeres, 'Ceres'),
+  (sePallas, 'Pallas'),
+  (seJuno, 'Juno'),
+  (seVesta, 'Vesta'),
+];
+
+const _uranianBodies = [
+  (seCupido, 'Cupido'),
+  (seHades, 'Hades'),
+  (seZeus, 'Zeus'),
+  (seKronos, 'Kronos'),
+  (seApollon, 'Apollon'),
+  (seAdmetos, 'Admetos'),
+  (seVulkanus, 'Vulkanus'),
+  (sePoseidon, 'Poseidon'),
 ];
 
 class PhenomenaTab extends ConsumerStatefulWidget {
@@ -39,6 +57,15 @@ class PhenomenaTab extends ConsumerStatefulWidget {
 
 class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
   bool _showExtra = false;
+  final _asteroidController = TextEditingController();
+  final _cometController = TextEditingController();
+
+  @override
+  void dispose() {
+    _asteroidController.dispose();
+    _cometController.dispose();
+    super.dispose();
+  }
 
   void _toggleBody(int body) {
     final current = ref.read(phenomenaBodiesProvider);
@@ -46,6 +73,32 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
         ? current.where((b) => b != body).toList()
         : [...current, body];
     ref.read(phenomenaBodiesProvider.notifier).state = updated;
+  }
+
+  void _addAsteroid(int mpcNumber) {
+    final bodyId = seAstOffset + mpcNumber;
+    final current = ref.read(phenomenaBodiesProvider);
+    if (!current.contains(bodyId)) {
+      ref.read(phenomenaBodiesProvider.notifier).state = [...current, bodyId];
+    }
+  }
+
+  void _addCustomAsteroid() {
+    final text = _asteroidController.text.trim();
+    final num = int.tryParse(text);
+    if (num != null && num > 0) {
+      _addAsteroid(num);
+      _asteroidController.clear();
+    }
+  }
+
+  void _addCustomComet() {
+    final text = _cometController.text.trim();
+    final num = int.tryParse(text);
+    if (num != null && num > 0) {
+      _addAsteroid(num);
+      _cometController.clear();
+    }
   }
 
   @override
@@ -84,7 +137,7 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
             ),
           ),
         ),
-        // ── Progressive disclosure: outer bodies ──
+        // ── Progressive disclosure: more bodies ──
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Column(
@@ -107,6 +160,7 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
               ),
               if (_showExtra) ...[
                 const SizedBox(height: 4),
+                // Outer planets + minor planets
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
@@ -121,6 +175,134 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
                       )
                       .toList(),
                 ),
+                const SizedBox(height: 8),
+                // Uranian hypothetical points
+                Text('Uranian', style: labelStyle),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: _uranianBodies
+                      .map(
+                        (b) => FilterChip(
+                          label: Text(b.$2),
+                          selected: selectedBodies.contains(b.$1),
+                          onSelected: (_) => _toggleBody(b.$1),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      )
+                      .toList(),
+                ),
+                if (!kIsWeb) ...[
+                  const SizedBox(height: 8),
+                  // Asteroids
+                  Text('Asteroids', style: labelStyle),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: otherBodiesNamedAsteroids.entries.map((e) {
+                      final bodyId = seAstOffset + e.key;
+                      return FilterChip(
+                        label: Text(e.value),
+                        selected: selectedBodies.contains(bodyId),
+                        onSelected: (_) {
+                          if (selectedBodies.contains(bodyId)) {
+                            _toggleBody(bodyId);
+                          } else {
+                            _addAsteroid(e.key);
+                          }
+                        },
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width:
+                            (140 * MediaQuery.textScalerOf(context).scale(1.0))
+                                .floorToDouble(),
+                        child: TextField(
+                          controller: _asteroidController,
+                          decoration: const InputDecoration(
+                            hintText: 'MPC #',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          onSubmitted: (_) => _addCustomAsteroid(),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.add, size: 18),
+                        tooltip: 'Add asteroid by MPC number',
+                        onPressed: _addCustomAsteroid,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Comets
+                  Text('Comets', style: labelStyle),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: namedComets.entries.map((e) {
+                      final bodyId = seAstOffset + e.key;
+                      return FilterChip(
+                        label: Text(e.value),
+                        selected: selectedBodies.contains(bodyId),
+                        onSelected: (_) {
+                          if (selectedBodies.contains(bodyId)) {
+                            _toggleBody(bodyId);
+                          } else {
+                            _addAsteroid(e.key);
+                          }
+                        },
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width:
+                            (140 * MediaQuery.textScalerOf(context).scale(1.0))
+                                .floorToDouble(),
+                        child: TextField(
+                          controller: _cometController,
+                          decoration: const InputDecoration(
+                            hintText: 'Pseudo-MPC #',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          onSubmitted: (_) => _addCustomComet(),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.add, size: 18),
+                        tooltip: 'Add comet by pseudo-MPC number',
+                        onPressed: _addCustomComet,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ],
           ),
@@ -215,42 +397,55 @@ class _ResultsView extends ConsumerWidget {
                               ResultCard(
                                 title: r.bodyName,
                                 subtitle: 'phenoUt(${r.body})',
-                                fields: [
-                                  ResultField(
-                                    label: 'Phase Angle',
-                                    value: formatAngle(r.phaseAngle, format),
-                                    rawValue: r.phaseAngle,
-                                  ),
-                                  ResultField(
-                                    label: 'Elongation',
-                                    value: formatAngle(r.elongation, format),
-                                    rawValue: r.elongation,
-                                  ),
-                                  ResultField(
-                                    label: 'App. Diameter',
-                                    value: formatAngle(
-                                      r.apparentDiameter,
-                                      format,
-                                    ),
-                                    rawValue: r.apparentDiameter,
-                                  ),
-                                  ResultField(
-                                    label: 'Phase (Illum.)',
-                                    value: r.phase.isNaN
-                                        ? 'NaN'
-                                        : r.phase.toStringAsFixed(6),
-                                    rawValue: r.phase,
-                                  ),
-                                  ResultField(
-                                    label: 'App. Magnitude',
-                                    value: r.apparentMagnitude.isNaN
-                                        ? 'NaN'
-                                        : r.apparentMagnitude.toStringAsFixed(
-                                            4,
+                                fields: r.errorMessage != null
+                                    ? [
+                                        ResultField(
+                                          label: 'Error',
+                                          value: r.errorMessage!,
+                                          rawValue: double.nan,
+                                        ),
+                                      ]
+                                    : [
+                                        ResultField(
+                                          label: 'Phase Angle',
+                                          value: formatAngle(
+                                            r.phaseAngle,
+                                            format,
                                           ),
-                                    rawValue: r.apparentMagnitude,
-                                  ),
-                                ],
+                                          rawValue: r.phaseAngle,
+                                        ),
+                                        ResultField(
+                                          label: 'Elongation',
+                                          value: formatAngle(
+                                            r.elongation,
+                                            format,
+                                          ),
+                                          rawValue: r.elongation,
+                                        ),
+                                        ResultField(
+                                          label: 'App. Diameter',
+                                          value: formatAngle(
+                                            r.apparentDiameter,
+                                            format,
+                                          ),
+                                          rawValue: r.apparentDiameter,
+                                        ),
+                                        ResultField(
+                                          label: 'Phase (Illum.)',
+                                          value: r.phase.isNaN
+                                              ? 'n/a'
+                                              : r.phase.toStringAsFixed(6),
+                                          rawValue: r.phase,
+                                        ),
+                                        ResultField(
+                                          label: 'App. Magnitude',
+                                          value: r.apparentMagnitude.isNaN
+                                              ? 'n/a'
+                                              : r.apparentMagnitude
+                                                    .toStringAsFixed(4),
+                                          rawValue: r.apparentMagnitude,
+                                        ),
+                                      ],
                               ),
                               Positioned(
                                 top: 4,

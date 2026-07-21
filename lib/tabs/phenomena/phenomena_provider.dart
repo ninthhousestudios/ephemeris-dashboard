@@ -35,6 +35,7 @@ class PhenomenaResult {
     required this.apparentDiameter,
     required this.apparentMagnitude,
     required this.phase,
+    this.errorMessage,
   });
 
   final int body;
@@ -44,6 +45,7 @@ class PhenomenaResult {
   final double elongation;
   final double apparentDiameter;
   final double apparentMagnitude;
+  final String? errorMessage;
 }
 
 List<PhenomenaResult> computePhenomena({
@@ -65,7 +67,7 @@ List<PhenomenaResult> computePhenomena({
         apparentDiameter: r.apparentDiameter,
         apparentMagnitude: r.apparentMagnitude,
       );
-    } on SweException {
+    } on SweException catch (e) {
       return PhenomenaResult(
         body: body,
         bodyName: getName(body),
@@ -74,6 +76,7 @@ List<PhenomenaResult> computePhenomena({
         elongation: double.nan,
         apparentDiameter: double.nan,
         apparentMagnitude: double.nan,
+        errorMessage: describeBodyError(body, e.message),
       );
     }
   }).toList();
