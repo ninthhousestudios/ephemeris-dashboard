@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
@@ -173,6 +174,10 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     DisplayFormat format,
     List<PlanetoCentricResult> results,
   ) {
+    final flags = ref.watch(flagBarProvider);
+    final isXyz = flags.isXyz;
+    final lbl = coordLabels(flags.coordValue);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 1200
@@ -199,33 +204,60 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                           '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
                       fields: [
                         ResultField(
-                          label: 'Longitude',
-                          value: formatAngle(r.longitude, format),
+                          label: lbl.c1,
+                          value: isXyz
+                              ? formatAu(r.longitude, format)
+                              : formatAngle(r.longitude, format),
                           rawValue: r.longitude,
                         ),
                         ResultField(
-                          label: 'Latitude',
-                          value: formatAngle(r.latitude, format),
+                          label: lbl.c2,
+                          value: isXyz
+                              ? formatAu(r.latitude, format)
+                              : formatAngle(r.latitude, format),
                           rawValue: r.latitude,
                         ),
                         ResultField(
-                          label: 'Distance',
-                          value: formatDistance(r.distance, format),
+                          label: lbl.c3,
+                          value: isXyz
+                              ? formatAu(r.distance, format)
+                              : formatDistance(r.distance, format),
                           rawValue: r.distance,
                         ),
+                        if (isXyz)
+                          ResultField(
+                            label: 'Distance',
+                            value: formatEuclidean(
+                              r.longitude,
+                              r.latitude,
+                              r.distance,
+                              format,
+                            ),
+                            rawValue: euclideanDistance(
+                              r.longitude,
+                              r.latitude,
+                              r.distance,
+                            ),
+                          ),
                         ResultField(
-                          label: 'Spd Lon',
-                          value: formatSpeed(r.speedLon, format),
+                          label: lbl.sc1,
+                          value: isXyz
+                              ? formatAuSpeed(r.speedLon, format)
+                              : formatSpeed(r.speedLon, format),
                           rawValue: r.speedLon,
                         ),
                         ResultField(
-                          label: 'Spd Lat',
-                          value: formatSpeed(r.speedLat, format),
+                          label: lbl.sc2,
+                          value: isXyz
+                              ? formatAuSpeed(r.speedLat, format)
+                              : formatSpeed(r.speedLat, format),
                           rawValue: r.speedLat,
                         ),
                         ResultField(
-                          label: 'Spd Dist',
-                          value: formatSpeed(r.speedDist, format),
+                          label: lbl.sc3,
+                          value: isXyz
+                              ? formatAuSpeed(r.speedDist, format)
+                              : formatSpeed(r.speedDist, format),
                           rawValue: r.speedDist,
                         ),
                       ],
@@ -295,7 +327,15 @@ class PlanetoCentricFormatTrailing extends ConsumerWidget {
         const SizedBox(width: 8),
         ExportButton(
           hasResults: results.isNotEmpty,
-          getRows: () => planetocentricToExportRows(results, format),
+          getRows: () {
+            final f = ref.read(flagBarProvider);
+            return planetocentricToExportRows(
+              results,
+              format,
+              isXyz: f.isXyz,
+              coordValue: f.coordValue,
+            );
+          },
           filenameStem: 'swe_planetocentric_${jd.toStringAsFixed(4)}',
         ),
       ],

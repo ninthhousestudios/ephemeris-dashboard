@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
+import '../../core/flag_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'stars_provider.dart';
@@ -194,7 +195,15 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                     };
                     return ExportButton(
                       hasResults: results.isNotEmpty,
-                      getRows: () => starToExportRows(results, fmt2),
+                      getRows: () {
+                        final f = ref.read(flagBarProvider);
+                        return starToExportRows(
+                          results,
+                          fmt2,
+                          isXyz: f.isXyz,
+                          coordValue: f.coordValue,
+                        );
+                      },
                       filenameStem: 'swe_stars',
                     );
                   },
@@ -249,6 +258,10 @@ class _StarsTabState extends ConsumerState<StarsTab> {
   }
 
   Widget _buildResultCards(List<StarResult> results, DisplayFormat fmt) {
+    final flags = ref.watch(flagBarProvider);
+    final isXyz = flags.isXyz;
+    final lbl = coordLabels(flags.coordValue);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 1200
@@ -282,20 +295,42 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                             ]
                           : [
                               ResultField(
-                                label: 'Longitude',
-                                value: formatAngle(r.longitude, fmt),
+                                label: lbl.c1,
+                                value: isXyz
+                                    ? formatAu(r.longitude, fmt)
+                                    : formatAngle(r.longitude, fmt),
                                 rawValue: r.longitude,
                               ),
                               ResultField(
-                                label: 'Latitude',
-                                value: formatAngle(r.latitude, fmt),
+                                label: lbl.c2,
+                                value: isXyz
+                                    ? formatAu(r.latitude, fmt)
+                                    : formatAngle(r.latitude, fmt),
                                 rawValue: r.latitude,
                               ),
                               ResultField(
-                                label: 'Distance',
-                                value: formatDistance(r.distance, fmt),
+                                label: lbl.c3,
+                                value: isXyz
+                                    ? formatAu(r.distance, fmt)
+                                    : formatDistance(r.distance, fmt),
                                 rawValue: r.distance,
                               ),
+                              if (isXyz)
+                                ResultField(
+                                  label: 'Distance',
+                                  value: formatEuclidean(
+                                    r.longitude,
+                                    r.latitude,
+                                    r.distance,
+                                    fmt,
+                                    lightYears: true,
+                                  ),
+                                  rawValue: euclideanDistance(
+                                    r.longitude,
+                                    r.latitude,
+                                    r.distance,
+                                  ),
+                                ),
                               ResultField(
                                 label: 'Magnitude',
                                 value: r.magnitude.isNaN
@@ -304,18 +339,24 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                                 rawValue: r.magnitude,
                               ),
                               ResultField(
-                                label: 'Spd Lon',
-                                value: formatSpeed(r.speedLon, fmt),
+                                label: lbl.sc1,
+                                value: isXyz
+                                    ? formatAuSpeed(r.speedLon, fmt)
+                                    : formatSpeed(r.speedLon, fmt),
                                 rawValue: r.speedLon,
                               ),
                               ResultField(
-                                label: 'Spd Lat',
-                                value: formatSpeed(r.speedLat, fmt),
+                                label: lbl.sc2,
+                                value: isXyz
+                                    ? formatAuSpeed(r.speedLat, fmt)
+                                    : formatSpeed(r.speedLat, fmt),
                                 rawValue: r.speedLat,
                               ),
                               ResultField(
-                                label: 'Spd Dist',
-                                value: formatSpeed(r.speedDist, fmt),
+                                label: lbl.sc3,
+                                value: isXyz
+                                    ? formatAuSpeed(r.speedDist, fmt)
+                                    : formatSpeed(r.speedDist, fmt),
                                 rawValue: r.speedDist,
                               ),
                             ],

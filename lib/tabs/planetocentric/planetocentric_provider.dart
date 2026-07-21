@@ -189,19 +189,55 @@ final planetocentricTraceProvider = Provider<CallTrace>((ref) {
 
 List<ExportRow> planetocentricToExportRows(
   List<PlanetoCentricResult> results,
-  DisplayFormat fmt,
-) {
+  DisplayFormat fmt, {
+  bool isXyz = false,
+  int coordValue = 0,
+}) {
+  final lbl = coordLabels(coordValue);
   return results
       .map(
         (r) => ExportRow(
           header: '${r.bodyName} from ${r.centerName}',
           fields: [
-            ('Longitude', formatAngle(r.longitude, fmt)),
-            ('Latitude', formatAngle(r.latitude, fmt)),
-            ('Distance', formatDistance(r.distance, fmt)),
-            ('Spd Lon', formatSpeed(r.speedLon, fmt)),
-            ('Spd Lat', formatSpeed(r.speedLat, fmt)),
-            ('Spd Dist', formatSpeed(r.speedDist, fmt)),
+            (
+              lbl.c1,
+              isXyz
+                  ? formatAu(r.longitude, fmt)
+                  : formatAngle(r.longitude, fmt),
+            ),
+            (
+              lbl.c2,
+              isXyz ? formatAu(r.latitude, fmt) : formatAngle(r.latitude, fmt),
+            ),
+            (
+              lbl.c3,
+              isXyz
+                  ? formatAu(r.distance, fmt)
+                  : formatDistance(r.distance, fmt),
+            ),
+            if (isXyz)
+              (
+                'Distance',
+                formatEuclidean(r.longitude, r.latitude, r.distance, fmt),
+              ),
+            (
+              lbl.sc1,
+              isXyz
+                  ? formatAuSpeed(r.speedLon, fmt)
+                  : formatSpeed(r.speedLon, fmt),
+            ),
+            (
+              lbl.sc2,
+              isXyz
+                  ? formatAuSpeed(r.speedLat, fmt)
+                  : formatSpeed(r.speedLat, fmt),
+            ),
+            (
+              lbl.sc3,
+              isXyz
+                  ? formatAuSpeed(r.speedDist, fmt)
+                  : formatSpeed(r.speedDist, fmt),
+            ),
           ],
         ),
       )

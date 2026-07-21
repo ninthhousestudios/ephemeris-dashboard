@@ -127,17 +127,40 @@ final nodesApsTraceProvider = Provider<CallTrace>((ref) {
 });
 
 /// Convert a NodesApsResult to export rows.
-List<ExportRow> nodesApsToExportRows(NodesApsResult result, DisplayFormat fmt) {
+List<ExportRow> nodesApsToExportRows(
+  NodesApsResult result,
+  DisplayFormat fmt, {
+  bool isXyz = false,
+  int coordValue = 0,
+}) {
+  final lbl = coordLabels(coordValue);
   String deg(double v) => formatAngle(v, fmt);
   String raw(double v) => v.toStringAsFixed(8);
 
   List<(String, String)> posFields(CalcResult pos) => [
-    ('Longitude', deg(pos.longitude)),
-    ('Latitude', deg(pos.latitude)),
-    ('Distance (AU)', raw(pos.distance)),
-    ('Speed Lon', deg(pos.longitudeSpeed)),
-    ('Speed Lat', deg(pos.latitudeSpeed)),
-    ('Speed Dist', raw(pos.distanceSpeed)),
+    (lbl.c1, isXyz ? formatAu(pos.longitude, fmt) : deg(pos.longitude)),
+    (lbl.c2, isXyz ? formatAu(pos.latitude, fmt) : deg(pos.latitude)),
+    (
+      isXyz ? lbl.c3 : 'Distance (AU)',
+      isXyz ? formatAu(pos.distance, fmt) : raw(pos.distance),
+    ),
+    if (isXyz)
+      (
+        'Distance',
+        formatEuclidean(pos.longitude, pos.latitude, pos.distance, fmt),
+      ),
+    (
+      lbl.sc1,
+      isXyz ? formatAuSpeed(pos.longitudeSpeed, fmt) : deg(pos.longitudeSpeed),
+    ),
+    (
+      lbl.sc2,
+      isXyz ? formatAuSpeed(pos.latitudeSpeed, fmt) : deg(pos.latitudeSpeed),
+    ),
+    (
+      lbl.sc3,
+      isXyz ? formatAuSpeed(pos.distanceSpeed, fmt) : raw(pos.distanceSpeed),
+    ),
   ];
 
   final rows = <ExportRow>[

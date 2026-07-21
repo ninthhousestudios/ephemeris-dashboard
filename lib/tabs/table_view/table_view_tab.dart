@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/export_button.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
+import '../../core/flag_provider.dart';
 import 'table_view_provider.dart';
 
 class TableViewTab extends ConsumerStatefulWidget {
@@ -167,6 +168,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                       rows,
                       ref.read(tableViewBodiesProvider),
                       ref.read(tableViewFormatProvider),
+                      isXyz: ref.read(flagBarProvider).isXyz,
                     ),
                     CalcSweError() => [],
                   },
@@ -233,7 +235,13 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                   }
                   final (lon, err) = val;
                   return DataCell(
-                    Text(err ?? formatAngle(lon!, format), style: cellStyle),
+                    Text(
+                      err ??
+                          (ref.watch(flagBarProvider).isXyz
+                              ? formatAu(lon!, format)
+                              : formatAngle(lon!, format)),
+                      style: cellStyle,
+                    ),
                   );
                 }),
               ],
@@ -281,7 +289,12 @@ class TableViewFormatTrailing extends ConsumerWidget {
             CalcSweError() => false,
           },
           getRows: () => switch (outcome) {
-            CalcOk(value: final r) => tableViewToExportRows(r, bodies, format),
+            CalcOk(value: final r) => tableViewToExportRows(
+              r,
+              bodies,
+              format,
+              isXyz: ref.read(flagBarProvider).isXyz,
+            ),
             CalcSweError() => [],
           },
           filenameStem: 'swe_table',

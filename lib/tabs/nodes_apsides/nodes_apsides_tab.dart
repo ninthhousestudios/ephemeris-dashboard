@@ -8,6 +8,7 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/flag_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'nodes_apsides_provider.dart';
@@ -175,10 +176,13 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                 ExportButton(
                   hasResults: nodesOutcome is CalcOk<NodesApsResult>,
                   getRows: () {
+                    final f = ref.read(flagBarProvider);
                     return switch (nodesOutcome) {
                       CalcOk(value: final result) => nodesApsToExportRows(
                         result,
                         ref.read(nodesFormatProvider),
+                        isXyz: f.isXyz,
+                        coordValue: f.coordValue,
                       ),
                       CalcSweError() => [],
                     };
@@ -219,38 +223,63 @@ class _NodesResults extends ConsumerWidget {
     NodesApsResult result,
     DisplayFormat fmt,
   ) {
+    final flags = ref.watch(flagBarProvider);
+    final isXyz = flags.isXyz;
+    final lbl = coordLabels(flags.coordValue);
+
     String deg(double v) => formatAngle(v, fmt);
     String raw(double v) => v.toStringAsFixed(8);
 
     List<ResultField> posFields(CalcResult pos) => [
       ResultField(
-        label: 'Longitude',
-        value: deg(pos.longitude),
+        label: lbl.c1,
+        value: isXyz ? formatAu(pos.longitude, fmt) : deg(pos.longitude),
         rawValue: pos.longitude,
       ),
       ResultField(
-        label: 'Latitude',
-        value: deg(pos.latitude),
+        label: lbl.c2,
+        value: isXyz ? formatAu(pos.latitude, fmt) : deg(pos.latitude),
         rawValue: pos.latitude,
       ),
       ResultField(
-        label: 'Distance (AU)',
-        value: raw(pos.distance),
+        label: isXyz ? lbl.c3 : 'Distance (AU)',
+        value: isXyz ? formatAu(pos.distance, fmt) : raw(pos.distance),
         rawValue: pos.distance,
       ),
+      if (isXyz)
+        ResultField(
+          label: 'Distance',
+          value: formatEuclidean(
+            pos.longitude,
+            pos.latitude,
+            pos.distance,
+            fmt,
+          ),
+          rawValue: euclideanDistance(
+            pos.longitude,
+            pos.latitude,
+            pos.distance,
+          ),
+        ),
       ResultField(
-        label: 'Speed Lon',
-        value: deg(pos.longitudeSpeed),
+        label: lbl.sc1,
+        value: isXyz
+            ? formatAuSpeed(pos.longitudeSpeed, fmt)
+            : deg(pos.longitudeSpeed),
         rawValue: pos.longitudeSpeed,
       ),
       ResultField(
-        label: 'Speed Lat',
-        value: deg(pos.latitudeSpeed),
+        label: lbl.sc2,
+        value: isXyz
+            ? formatAuSpeed(pos.latitudeSpeed, fmt)
+            : deg(pos.latitudeSpeed),
         rawValue: pos.latitudeSpeed,
       ),
       ResultField(
-        label: 'Speed Dist',
-        value: raw(pos.distanceSpeed),
+        label: lbl.sc3,
+        value: isXyz
+            ? formatAuSpeed(pos.distanceSpeed, fmt)
+            : raw(pos.distanceSpeed),
         rawValue: pos.distanceSpeed,
       ),
     ];

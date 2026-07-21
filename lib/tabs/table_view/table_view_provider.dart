@@ -156,8 +156,9 @@ String bodyName(int id) {
 List<ExportRow> tableViewToExportRows(
   List<EphemerisRow> rows,
   Set<int> bodies,
-  DisplayFormat format,
-) {
+  DisplayFormat format, {
+  bool isXyz = false,
+}) {
   final sortedBodies = bodies.toList()..sort();
   return rows.map((row) {
     final fields = <(String, String)>[('JD', row.jd.toStringAsFixed(8))];
@@ -165,7 +166,10 @@ List<ExportRow> tableViewToExportRows(
       final val = row.bodyValues[body];
       if (val == null) continue;
       final (lon, err) = val;
-      fields.add((bodyName(body), err ?? formatAngle(lon!, format)));
+      fields.add((
+        bodyName(body),
+        err ?? (isXyz ? formatAu(lon!, format) : formatAngle(lon!, format)),
+      ));
     }
     return ExportRow(header: row.dateStr, fields: fields);
   }).toList();

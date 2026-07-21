@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'dart:math' show sqrt;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'swe_constants.dart';
 
 /// Per-tab display format provider (currently used by Planets tab).
 final planetsFormatProvider = StateProvider<DisplayFormat>(
@@ -50,6 +54,97 @@ String formatSpeed(double value, DisplayFormat format) {
       return '${value.toStringAsFixed(6)}°/day';
     case DisplayFormat.raw:
       return value.toStringAsFixed(12);
+  }
+}
+
+/// Coordinate labels that vary by coordinate mode.
+typedef CoordLabels = ({
+  String c1,
+  String c2,
+  String c3,
+  String sc1,
+  String sc2,
+  String sc3,
+});
+
+const CoordLabels _defaultLabels = (
+  c1: 'Longitude',
+  c2: 'Latitude',
+  c3: 'Distance',
+  sc1: 'Spd Lon',
+  sc2: 'Spd Lat',
+  sc3: 'Spd Dist',
+);
+
+const CoordLabels _xyzLabels = (
+  c1: 'X',
+  c2: 'Y',
+  c3: 'Z',
+  sc1: 'Spd X',
+  sc2: 'Spd Y',
+  sc3: 'Spd Z',
+);
+
+const CoordLabels _equatLabels = (
+  c1: 'Right Asc',
+  c2: 'Declination',
+  c3: 'Distance',
+  sc1: 'Spd RA',
+  sc2: 'Spd Dec',
+  sc3: 'Spd Dist',
+);
+
+CoordLabels coordLabels(int coordValue) => switch (coordValue) {
+  seFlgXyz => _xyzLabels,
+  seFlgEquatorial => _equatLabels,
+  _ => _defaultLabels,
+};
+
+/// Format a cartesian coordinate value (AU).
+String formatAu(double value, DisplayFormat format) {
+  switch (format) {
+    case DisplayFormat.dms:
+    case DisplayFormat.decimal:
+      return '${value.toStringAsFixed(8)} AU';
+    case DisplayFormat.raw:
+      return value.toStringAsFixed(12);
+  }
+}
+
+/// Format a cartesian speed value (AU/day).
+String formatAuSpeed(double value, DisplayFormat format) {
+  switch (format) {
+    case DisplayFormat.dms:
+    case DisplayFormat.decimal:
+      return '${value.toStringAsFixed(8)} AU/day';
+    case DisplayFormat.raw:
+      return value.toStringAsFixed(12);
+  }
+}
+
+const _parsecToLightYear = 3.26156;
+
+/// Euclidean distance from three cartesian components.
+double euclideanDistance(double x, double y, double z) =>
+    sqrt(x * x + y * y + z * z);
+
+/// Format a Euclidean distance, choosing AU or light-years.
+String formatEuclidean(
+  double x,
+  double y,
+  double z,
+  DisplayFormat format, {
+  bool lightYears = false,
+}) {
+  var d = euclideanDistance(x, y, z);
+  final unit = lightYears ? 'ly' : 'AU';
+  if (lightYears) d *= _parsecToLightYear;
+  switch (format) {
+    case DisplayFormat.dms:
+    case DisplayFormat.decimal:
+      return '${d.toStringAsFixed(8)} $unit';
+    case DisplayFormat.raw:
+      return d.toStringAsFixed(12);
   }
 }
 

@@ -251,21 +251,68 @@ final starTraceProvider = Provider<CallTrace>((ref) {
 });
 
 /// Convert star results to export rows.
-List<ExportRow> starToExportRows(List<StarResult> results, DisplayFormat fmt) {
+List<ExportRow> starToExportRows(
+  List<StarResult> results,
+  DisplayFormat fmt, {
+  bool isXyz = false,
+  int coordValue = 0,
+}) {
+  final lbl = coordLabels(coordValue);
   return results.map((result) {
     return ExportRow(
       header: result.resolvedName,
       fields: [
-        ('Longitude', formatAngle(result.longitude, fmt)),
-        ('Latitude', formatAngle(result.latitude, fmt)),
-        ('Distance', formatDistance(result.distance, fmt)),
+        (
+          lbl.c1,
+          isXyz
+              ? formatAu(result.longitude, fmt)
+              : formatAngle(result.longitude, fmt),
+        ),
+        (
+          lbl.c2,
+          isXyz
+              ? formatAu(result.latitude, fmt)
+              : formatAngle(result.latitude, fmt),
+        ),
+        (
+          lbl.c3,
+          isXyz
+              ? formatAu(result.distance, fmt)
+              : formatDistance(result.distance, fmt),
+        ),
+        if (isXyz)
+          (
+            'Distance',
+            formatEuclidean(
+              result.longitude,
+              result.latitude,
+              result.distance,
+              fmt,
+              lightYears: true,
+            ),
+          ),
         (
           'Magnitude',
           result.magnitude.isNaN ? '—' : result.magnitude.toStringAsFixed(2),
         ),
-        ('Spd Lon', formatSpeed(result.speedLon, fmt)),
-        ('Spd Lat', formatSpeed(result.speedLat, fmt)),
-        ('Spd Dist', formatSpeed(result.speedDist, fmt)),
+        (
+          lbl.sc1,
+          isXyz
+              ? formatAuSpeed(result.speedLon, fmt)
+              : formatSpeed(result.speedLon, fmt),
+        ),
+        (
+          lbl.sc2,
+          isXyz
+              ? formatAuSpeed(result.speedLat, fmt)
+              : formatSpeed(result.speedLat, fmt),
+        ),
+        (
+          lbl.sc3,
+          isXyz
+              ? formatAuSpeed(result.speedDist, fmt)
+              : formatSpeed(result.speedDist, fmt),
+        ),
       ],
     );
   }).toList();

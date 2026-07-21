@@ -36,6 +36,8 @@ class FlagBarState {
     return result;
   }
 
+  bool get isXyz => coordValue == seFlgXyz;
+
   /// Hex display of the composed flag.
   String get hexDisplay => '0x${iflag.toRadixString(16).toUpperCase()}';
 
