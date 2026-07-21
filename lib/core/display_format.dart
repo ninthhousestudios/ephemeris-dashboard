@@ -122,13 +122,14 @@ String formatAuSpeed(double value, DisplayFormat format) {
   }
 }
 
-const _parsecToLightYear = 3.26156;
+const _auPerLightYear = 63241.077;
 
 /// Euclidean distance from three cartesian components.
 double euclideanDistance(double x, double y, double z) =>
     sqrt(x * x + y * y + z * z);
 
 /// Format a Euclidean distance, choosing AU or light-years.
+/// SE returns all XYZ in AU; [lightYears] converts AU → ly.
 String formatEuclidean(
   double x,
   double y,
@@ -138,7 +139,7 @@ String formatEuclidean(
 }) {
   var d = euclideanDistance(x, y, z);
   final unit = lightYears ? 'ly' : 'AU';
-  if (lightYears) d *= _parsecToLightYear;
+  if (lightYears) d /= _auPerLightYear;
   switch (format) {
     case DisplayFormat.dms:
     case DisplayFormat.decimal:
