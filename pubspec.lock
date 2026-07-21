@@ -522,10 +522,10 @@ packages:
     dependency: "direct main"
     description:
       name: swisseph_rs
-      sha256: e723735f64952e7d839de9eef830b6c8c9dc68f50db6285ca74a1e23d4224dcf
+      sha256: "6a6c0ab1eaf4df4641d3baf8565e0de20b87b104e9a5689d920113f54540a0c3"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.6"
+    version: "0.2.7"
   term_glyph:
     dependency: transitive
     description:
