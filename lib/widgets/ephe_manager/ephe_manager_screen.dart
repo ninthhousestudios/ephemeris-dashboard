@@ -16,6 +16,7 @@ import '../../core/ephe/scanner.dart';
 import '../../core/ephe/types.dart';
 import '../../core/ephe/validation.dart';
 import '../../core/persistence.dart';
+import '../../core/swe_service.dart';
 import 'file_row.dart';
 import 'license_notice.dart';
 
@@ -149,9 +150,10 @@ class _EphemerisManagerScreenState
     final deletable = selectedFiles
         .where(
           (f) =>
-              statusOf(f) == EpheFileStatus.installed ||
-              statusOf(f) == EpheFileStatus.corrupt ||
-              statusOf(f) == EpheFileStatus.partial,
+              !_isBundledFile(f.filename) &&
+              (statusOf(f) == EpheFileStatus.installed ||
+                  statusOf(f) == EpheFileStatus.corrupt ||
+                  statusOf(f) == EpheFileStatus.partial),
         )
         .toList();
     final downloadable = selectedFiles
@@ -602,6 +604,12 @@ class _EphemerisManagerScreenState
     await _handleBulkDownload(files);
   }
 
+  bool _isBundledFile(String filename) {
+    final bundled = bundledEphePath;
+    if (bundled == null) return false;
+    return File('$bundled/$filename').existsSync();
+  }
+
   Widget _rowFor(EpheFile f) {
     final liveStatus = _liveStatus[f.filename] ?? f.status;
     final liveProgress = _progress[f.filename];
@@ -611,12 +619,14 @@ class _EphemerisManagerScreenState
     );
     final selectable = effective.status != EpheFileStatus.downloading;
     final isPartial = effective.status == EpheFileStatus.partial;
+    final isBundled = _isBundledFile(f.filename);
     return EpheFileRow(
       file: effective,
       onDelete:
-          effective.status == EpheFileStatus.installed ||
-              effective.status == EpheFileStatus.corrupt ||
-              isPartial
+          !isBundled &&
+              (effective.status == EpheFileStatus.installed ||
+                  effective.status == EpheFileStatus.corrupt ||
+                  isPartial)
           ? () => _handleDelete(effective)
           : null,
       onDownload: effective.status == EpheFileStatus.missing || isPartial
