@@ -69,7 +69,7 @@ class _StarSearchFieldState extends ConsumerState<StarSearchField> {
     }
     final lower = q.toLowerCase();
     final bayerQ = lower.startsWith(',') ? lower.substring(1) : lower;
-    final catalog = ref.read(starCatalogProvider);
+    final catalog = ref.read(starCatalogProvider).valueOrNull ?? const [];
     setState(() {
       _suggestions = catalog.where((e) {
         return e.commonName.toLowerCase().contains(lower) ||

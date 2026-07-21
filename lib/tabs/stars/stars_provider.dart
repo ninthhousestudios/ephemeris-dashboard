@@ -3,6 +3,8 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
@@ -56,7 +58,11 @@ List<StarCatalogEntry> _parseSefstars(String contents) {
   return entries;
 }
 
-final starCatalogProvider = Provider<List<StarCatalogEntry>>((ref) {
+final starCatalogProvider = FutureProvider<List<StarCatalogEntry>>((ref) async {
+  if (kIsWeb) {
+    final contents = await rootBundle.loadString('assets/ephe/sefstars.txt');
+    return _parseSefstars(contents);
+  }
   final ephePath = ref.watch(resolvedEphePathProvider);
   if (ephePath == null) return const [];
   final file = File('$ephePath/sefstars.txt');

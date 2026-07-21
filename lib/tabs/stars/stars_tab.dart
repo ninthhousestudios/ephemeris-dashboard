@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -60,17 +59,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
             children: [
               Text('Star ', style: theme.textTheme.labelLarge),
               const SizedBox(width: 8),
-              Expanded(
-                child: kIsWeb
-                    ? Text(
-                        'Star search requires ephemeris files '
-                        '(desktop only)',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      )
-                    : StarSearchField(onSelect: _addStar),
-              ),
+              Expanded(child: StarSearchField(onSelect: _addStar)),
             ],
           ),
         ),
