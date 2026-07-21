@@ -6,7 +6,11 @@ import 'swe_constants.dart';
 import 'ephe/catalog.dart';
 import 'ephe/scanner.dart';
 import 'ephe/types.dart';
+import '../tabs/nodes_apsides/nodes_apsides_provider.dart'
+    show nodesBodyProvider;
 import '../tabs/phenomena/phenomena_provider.dart' show phenomenaBodiesProvider;
+import '../tabs/planetocentric/planetocentric_provider.dart'
+    show planetocentricBodiesProvider;
 import '../tabs/table_view/table_view_provider.dart'
     show tableViewExtraBodiesProvider;
 
@@ -24,8 +28,14 @@ final otherBodiesSelectionProvider = StateProvider<List<int>>((ref) => <int>[]);
 final selectedPlanetMoonIdsProvider = Provider<List<int>>((ref) {
   final otherBodies = ref.watch(otherBodiesSelectionProvider);
   final phenomenaBodies = ref.watch(phenomenaBodiesProvider);
+  final pctrBodies = ref.watch(planetocentricBodiesProvider);
   final tableExtra = ref.watch(tableViewExtraBodiesProvider);
-  final all = {...otherBodies, ...phenomenaBodies, ...tableExtra};
+  final all = {
+    ...otherBodies,
+    ...phenomenaBodies,
+    ...pctrBodies,
+    ...tableExtra,
+  };
   final moons = all.where((id) => id >= sePlmoonOffset && id < seAstOffset);
   if (moons.isEmpty) return const [];
   final installed = _installedFilenames(ref);
@@ -39,12 +49,16 @@ final selectedAsteroidMpcProvider = Provider<List<int>>((ref) {
   final planetsBodies = ref.watch(selectedBodiesProvider);
   final otherBodies = ref.watch(otherBodiesSelectionProvider);
   final phenomenaBodies = ref.watch(phenomenaBodiesProvider);
+  final pctrBodies = ref.watch(planetocentricBodiesProvider);
+  final nodesBody = ref.watch(nodesBodyProvider);
   final tableExtra = ref.watch(tableViewExtraBodiesProvider);
   final mpcs = <int>{};
   for (final id in [
     ...planetsBodies,
     ...otherBodies,
     ...phenomenaBodies,
+    ...pctrBodies,
+    nodesBody,
     ...tableExtra,
   ]) {
     if (id >= seAstOffset) mpcs.add(id - seAstOffset);
