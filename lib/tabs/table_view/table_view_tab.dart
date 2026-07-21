@@ -49,9 +49,15 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     final stepUnit = ref.watch(tableViewStepUnitProvider);
     final format = ref.watch(tableViewFormatProvider);
     final outcome = ref.watch(tableViewResultsProvider);
+    final flags = ref.watch(flagBarProvider);
+    final isXyz = flags.isXyz;
+    final extraColumns = ref.watch(tableViewColumnsProvider);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
     );
+    final availableColumns = isXyz
+        ? const [TableColumn.distance]
+        : TableColumn.values;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,6 +91,37 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                             ...current,
                           }..remove(b.$1);
                         }
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // ── Column options ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text('Columns ', style: labelStyle),
+                const SizedBox(width: 4),
+                ...availableColumns.map(
+                  (col) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: FilterChip(
+                      label: Text(col.label),
+                      selected: extraColumns.contains(col),
+                      onSelected: (on) {
+                        final current = ref
+                            .read(tableViewColumnsProvider.notifier)
+                            .state;
+                        ref.read(tableViewColumnsProvider.notifier).state = on
+                            ? {...current, col}
+                            : ({...current}..remove(col));
                       },
                       visualDensity: VisualDensity.compact,
                     ),
@@ -169,6 +206,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                       ref.read(tableViewBodiesProvider),
                       ref.read(tableViewFormatProvider),
                       isXyz: ref.read(flagBarProvider).isXyz,
+                      columns: ref.read(tableViewColumnsProvider),
                     ),
                     CalcSweError() => [],
                   },
@@ -179,7 +217,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
         ),
         const Divider(height: 1),
         // ── Data table ──
-        _buildTable(outcome, selectedBodies, format),
+        _buildTable(outcome, selectedBodies, format, isXyz, extraColumns),
       ],
     );
   }
@@ -188,6 +226,8 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     CalcOutcome<List<EphemerisRow>> outcome,
     Set<int> bodies,
     DisplayFormat format,
+    bool isXyz,
+    Set<TableColumn> extraColumns,
   ) {
     final List<EphemerisRow> rows;
     switch (outcome) {
@@ -207,6 +247,87 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
     );
     final cellStyle = theme.textTheme.bodySmall;
 
+    List<DataColumn> bodyColumns(int b) {
+      final name = bodyName(b);
+      if (isXyz) {
+        return [
+          DataColumn(label: Text('$name X', style: headerStyle)),
+          DataColumn(label: Text('$name Y', style: headerStyle)),
+          DataColumn(label: Text('$name Z', style: headerStyle)),
+          if (extraColumns.contains(TableColumn.distance))
+            DataColumn(label: Text('$name Dist', style: headerStyle)),
+        ];
+      }
+      return [
+        DataColumn(label: Text(name, style: headerStyle)),
+        if (extraColumns.contains(TableColumn.latitude))
+          DataColumn(label: Text('$name Lat', style: headerStyle)),
+        if (extraColumns.contains(TableColumn.distance))
+          DataColumn(label: Text('$name Dist', style: headerStyle)),
+        if (extraColumns.contains(TableColumn.speed))
+          DataColumn(label: Text('$name Spd', style: headerStyle)),
+      ];
+    }
+
+    List<DataCell> bodyCells(EphemerisRow row, int b) {
+      final val = row.bodyValues[b];
+      if (val == null) {
+        final dash = DataCell(Text('—', style: cellStyle));
+        if (isXyz) {
+          return [
+            dash,
+            dash,
+            dash,
+            if (extraColumns.contains(TableColumn.distance)) dash,
+          ];
+        }
+        return [
+          dash,
+          if (extraColumns.contains(TableColumn.latitude)) dash,
+          if (extraColumns.contains(TableColumn.distance)) dash,
+          if (extraColumns.contains(TableColumn.speed)) dash,
+        ];
+      }
+      final (result, err) = val;
+      if (err != null) {
+        final errCell = DataCell(Text(err, style: cellStyle));
+        if (isXyz) {
+          return [
+            errCell,
+            errCell,
+            errCell,
+            if (extraColumns.contains(TableColumn.distance)) errCell,
+          ];
+        }
+        return [
+          errCell,
+          if (extraColumns.contains(TableColumn.latitude)) errCell,
+          if (extraColumns.contains(TableColumn.distance)) errCell,
+          if (extraColumns.contains(TableColumn.speed)) errCell,
+        ];
+      }
+      final r = result!;
+      DataCell cell(String text) => DataCell(Text(text, style: cellStyle));
+      if (isXyz) {
+        return [
+          cell(formatAu(r.longitude, format)),
+          cell(formatAu(r.latitude, format)),
+          cell(formatAu(r.distance, format)),
+          if (extraColumns.contains(TableColumn.distance))
+            cell(formatEuclidean(r.longitude, r.latitude, r.distance, format)),
+        ];
+      }
+      return [
+        cell(formatAngle(r.longitude, format)),
+        if (extraColumns.contains(TableColumn.latitude))
+          cell(formatAngle(r.latitude, format)),
+        if (extraColumns.contains(TableColumn.distance))
+          cell(formatAu(r.distance, format)),
+        if (extraColumns.contains(TableColumn.speed))
+          cell(formatAngle(r.longitudeSpeed, format)),
+      ];
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
@@ -219,31 +340,14 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
           columns: [
             DataColumn(label: Text('Date/Time (UT)', style: headerStyle)),
             DataColumn(label: Text('JD', style: headerStyle)),
-            ...sortedBodies.map(
-              (b) => DataColumn(label: Text(bodyName(b), style: headerStyle)),
-            ),
+            for (final b in sortedBodies) ...bodyColumns(b),
           ],
           rows: rows.map((row) {
             return DataRow(
               cells: [
                 DataCell(Text(row.dateStr, style: cellStyle)),
                 DataCell(Text(row.jd.toStringAsFixed(4), style: cellStyle)),
-                ...sortedBodies.map((b) {
-                  final val = row.bodyValues[b];
-                  if (val == null) {
-                    return DataCell(Text('—', style: cellStyle));
-                  }
-                  final (lon, err) = val;
-                  return DataCell(
-                    Text(
-                      err ??
-                          (ref.watch(flagBarProvider).isXyz
-                              ? formatAu(lon!, format)
-                              : formatAngle(lon!, format)),
-                      style: cellStyle,
-                    ),
-                  );
-                }),
+                for (final b in sortedBodies) ...bodyCells(row, b),
               ],
             );
           }).toList(),
@@ -294,6 +398,7 @@ class TableViewFormatTrailing extends ConsumerWidget {
               bodies,
               format,
               isXyz: ref.read(flagBarProvider).isXyz,
+              columns: ref.read(tableViewColumnsProvider),
             ),
             CalcSweError() => [],
           },

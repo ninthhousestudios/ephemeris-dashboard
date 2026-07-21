@@ -65,6 +65,21 @@ final tableViewFormatProvider = StateProvider<DisplayFormat>(
   (ref) => DisplayFormat.dms,
 );
 
+// ── Optional column toggles ─────────────────────────────────────────────────
+
+enum TableColumn {
+  latitude('Latitude'),
+  distance('Distance'),
+  speed('Speed');
+
+  const TableColumn(this.label);
+  final String label;
+}
+
+final tableViewColumnsProvider = StateProvider<Set<TableColumn>>(
+  (ref) => const {},
+);
+
 // ── Result model ─────────────────────────────────────────────────────────────
 
 class EphemerisRow {
@@ -77,8 +92,8 @@ class EphemerisRow {
   final double jd;
   final String dateStr;
 
-  /// Map from body ID to longitude value (or error string).
-  final Map<int, (double?, String?)> bodyValues;
+  /// Map from body ID to full calc result (or error string).
+  final Map<int, (CalcResult?, String?)> bodyValues;
 }
 
 // ── Computation ──────────────────────────────────────────────────────────────
@@ -107,12 +122,12 @@ final _tableViewCalcProvider =
           final rows = <EphemerisRow>[];
           for (var i = 0; i < stepCount; i++) {
             final jd = jdStart + i * stepJd;
-            final bodyValues = <int, (double?, String?)>{};
+            final bodyValues = <int, (CalcResult?, String?)>{};
 
             for (final body in sortedBodies) {
               try {
                 final result = eph.calcUt(jd, body, iflag);
-                bodyValues[body] = (result.longitude, null);
+                bodyValues[body] = (result, null);
               } catch (e) {
                 bodyValues[body] = (null, e.toString());
               }
@@ -158,6 +173,7 @@ List<ExportRow> tableViewToExportRows(
   Set<int> bodies,
   DisplayFormat format, {
   bool isXyz = false,
+  Set<TableColumn> columns = const {},
 }) {
   final sortedBodies = bodies.toList()..sort();
   return rows.map((row) {
@@ -165,11 +181,35 @@ List<ExportRow> tableViewToExportRows(
     for (final body in sortedBodies) {
       final val = row.bodyValues[body];
       if (val == null) continue;
-      final (lon, err) = val;
-      fields.add((
-        bodyName(body),
-        err ?? (isXyz ? formatAu(lon!, format) : formatAngle(lon!, format)),
-      ));
+      final (result, err) = val;
+      final name = bodyName(body);
+      if (err != null) {
+        fields.add((name, err));
+        continue;
+      }
+      final r = result!;
+      if (isXyz) {
+        fields.add(('$name X', formatAu(r.longitude, format)));
+        fields.add(('$name Y', formatAu(r.latitude, format)));
+        fields.add(('$name Z', formatAu(r.distance, format)));
+        if (columns.contains(TableColumn.distance)) {
+          fields.add((
+            '$name Dist',
+            formatEuclidean(r.longitude, r.latitude, r.distance, format),
+          ));
+        }
+      } else {
+        fields.add((name, formatAngle(r.longitude, format)));
+        if (columns.contains(TableColumn.latitude)) {
+          fields.add(('$name Lat', formatAngle(r.latitude, format)));
+        }
+        if (columns.contains(TableColumn.distance)) {
+          fields.add(('$name Dist', formatAu(r.distance, format)));
+        }
+        if (columns.contains(TableColumn.speed)) {
+          fields.add(('$name Spd', formatAngle(r.longitudeSpeed, format)));
+        }
+      }
     }
     return ExportRow(header: row.dateStr, fields: fields);
   }).toList();
