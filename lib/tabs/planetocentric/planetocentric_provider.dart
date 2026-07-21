@@ -82,6 +82,14 @@ final extraTargetBodies = [
   sePallas,
   seJuno,
   seVesta,
+  seCupido,
+  seHades,
+  seZeus,
+  seKronos,
+  seApollon,
+  seAdmetos,
+  seVulkanus,
+  sePoseidon,
 ];
 
 /// Selected center body (observer).

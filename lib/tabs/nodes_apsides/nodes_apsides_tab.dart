@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
@@ -9,6 +10,8 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/flag_provider.dart';
+import '../../tabs/other_bodies/other_bodies_provider.dart'
+    show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'nodes_apsides_provider.dart';
@@ -38,6 +41,14 @@ const _extraBodies = <(int, String)>[
   (sePallas, 'Pallas'),
   (seJuno, 'Juno'),
   (seVesta, 'Vesta'),
+  (seCupido, 'Cupido'),
+  (seHades, 'Hades'),
+  (seZeus, 'Zeus'),
+  (seKronos, 'Kronos'),
+  (seApollon, 'Apollon'),
+  (seAdmetos, 'Admetos'),
+  (seVulkanus, 'Vulkanus'),
+  (sePoseidon, 'Poseidon'),
 ];
 
 const _methodOptions = <(int, String)>[
@@ -55,6 +66,26 @@ class NodesApsidesTab extends ConsumerStatefulWidget {
 
 class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
   bool _showExtraBodies = false;
+  final _asteroidController = TextEditingController();
+
+  @override
+  void dispose() {
+    _asteroidController.dispose();
+    super.dispose();
+  }
+
+  void _selectAsteroid(int mpcNumber) {
+    ref.read(nodesBodyProvider.notifier).state = seAstOffset + mpcNumber;
+  }
+
+  void _selectCustomAsteroid() {
+    final text = _asteroidController.text.trim();
+    final num = int.tryParse(text);
+    if (num != null && num > 0) {
+      _selectAsteroid(num);
+      _asteroidController.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +166,55 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                       )
                       .toList(),
                 ),
+                if (!kIsWeb) ...[
+                  const SizedBox(height: 8),
+                  Text('Asteroids', style: labelStyle),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: otherBodiesNamedAsteroids.entries.map((e) {
+                      final bodyId = seAstOffset + e.key;
+                      return ChoiceChip(
+                        label: Text(e.value),
+                        selected: body == bodyId,
+                        onSelected: (_) => _selectAsteroid(e.key),
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width:
+                            (140 * MediaQuery.textScalerOf(context).scale(1.0))
+                                .floorToDouble(),
+                        child: TextField(
+                          controller: _asteroidController,
+                          decoration: const InputDecoration(
+                            hintText: 'MPC #',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          onSubmitted: (_) => _selectCustomAsteroid(),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.add, size: 18),
+                        tooltip: 'Add asteroid by MPC number',
+                        onPressed: _selectCustomAsteroid,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ],
           ),

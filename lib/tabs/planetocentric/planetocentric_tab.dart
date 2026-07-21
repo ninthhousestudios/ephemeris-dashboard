@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephe/catalog.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
+import '../../tabs/other_bodies/other_bodies_provider.dart'
+    show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'planetocentric_provider.dart';
@@ -22,6 +27,33 @@ class PlanetoCentricTab extends ConsumerStatefulWidget {
 
 class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
   bool _showExtraBodies = false;
+  final _asteroidController = TextEditingController();
+
+  @override
+  void dispose() {
+    _asteroidController.dispose();
+    super.dispose();
+  }
+
+  void _addAsteroid(int mpcNumber) {
+    final bodyId = seAstOffset + mpcNumber;
+    final current = ref.read(planetocentricBodiesProvider);
+    if (!current.contains(bodyId)) {
+      ref.read(planetocentricBodiesProvider.notifier).state = [
+        ...current,
+        bodyId,
+      ];
+    }
+  }
+
+  void _addCustomAsteroid() {
+    final text = _asteroidController.text.trim();
+    final num = int.tryParse(text);
+    if (num != null && num > 0) {
+      _addAsteroid(num);
+      _asteroidController.clear();
+    }
+  }
 
   void _toggleBody(int body) {
     final current = ref.read(planetocentricBodiesProvider);
@@ -143,6 +175,96 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                     );
                   }).toList(),
                 ),
+                if (!kIsWeb) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Asteroids',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: otherBodiesNamedAsteroids.entries.map((e) {
+                      final bodyId = seAstOffset + e.key;
+                      return FilterChip(
+                        label: Text(e.value),
+                        selected: selectedBodies.contains(bodyId),
+                        onSelected: (_) {
+                          if (selectedBodies.contains(bodyId)) {
+                            _toggleBody(bodyId);
+                          } else {
+                            _addAsteroid(e.key);
+                          }
+                        },
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width:
+                            (140 * MediaQuery.textScalerOf(context).scale(1.0))
+                                .floorToDouble(),
+                        child: TextField(
+                          controller: _asteroidController,
+                          decoration: const InputDecoration(
+                            hintText: 'MPC #',
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 6,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: TextInputType.number,
+                          onSubmitted: (_) => _addCustomAsteroid(),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.add, size: 18),
+                        tooltip: 'Add asteroid by MPC number',
+                        onPressed: _addCustomAsteroid,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Planetary Moons',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  for (final group in planetaryMoonGroups) ...[
+                    Text(
+                      group.parent,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: group.moons.map((m) {
+                        return FilterChip(
+                          label: Text(m.name),
+                          selected: selectedBodies.contains(m.bodyId),
+                          onSelected: (_) => _toggleBody(m.bodyId),
+                          visualDensity: VisualDensity.compact,
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                ],
               ],
             ],
           ),
