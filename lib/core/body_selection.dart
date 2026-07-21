@@ -6,6 +6,8 @@ import 'swe_constants.dart';
 import 'ephe/catalog.dart';
 import 'ephe/scanner.dart';
 import 'ephe/types.dart';
+import '../tabs/table_view/table_view_provider.dart'
+    show tableViewExtraBodiesProvider;
 
 /// Planet bodies selected on the Planets tab.
 final selectedBodiesProvider = StateProvider<List<int>>(
@@ -19,7 +21,9 @@ final otherBodiesSelectionProvider = StateProvider<List<int>>((ref) => <int>[]);
 /// those whose sat/ files are installed. swisseph_rs fails engine creation
 /// if a declared file is missing.
 final selectedPlanetMoonIdsProvider = Provider<List<int>>((ref) {
-  final all = ref.watch(otherBodiesSelectionProvider);
+  final otherBodies = ref.watch(otherBodiesSelectionProvider);
+  final tableExtra = ref.watch(tableViewExtraBodiesProvider);
+  final all = {...otherBodies, ...tableExtra};
   final moons = all.where((id) => id >= sePlmoonOffset && id < seAstOffset);
   if (moons.isEmpty) return const [];
   final installed = _installedFilenames(ref);
@@ -32,11 +36,9 @@ final selectedPlanetMoonIdsProvider = Provider<List<int>>((ref) {
 final selectedAsteroidMpcProvider = Provider<List<int>>((ref) {
   final planetsBodies = ref.watch(selectedBodiesProvider);
   final otherBodies = ref.watch(otherBodiesSelectionProvider);
+  final tableExtra = ref.watch(tableViewExtraBodiesProvider);
   final mpcs = <int>{};
-  for (final id in planetsBodies) {
-    if (id >= seAstOffset) mpcs.add(id - seAstOffset);
-  }
-  for (final id in otherBodies) {
+  for (final id in [...planetsBodies, ...otherBodies, ...tableExtra]) {
     if (id >= seAstOffset) mpcs.add(id - seAstOffset);
   }
   if (mpcs.isEmpty) return const [];
