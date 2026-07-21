@@ -9,6 +9,7 @@ import '../../core/display_format.dart';
 import '../../core/flag_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/star_search_field.dart';
 import 'stars_provider.dart';
 
 class StarsTab extends ConsumerStatefulWidget {
@@ -19,59 +20,12 @@ class StarsTab extends ConsumerStatefulWidget {
 }
 
 class _StarsTabState extends ConsumerState<StarsTab> {
-  late final TextEditingController _searchController;
-  final _focusNode = FocusNode();
-  List<StarCatalogEntry> _suggestions = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController = TextEditingController(
-      text: ref.read(starSearchProvider),
-    );
-    _searchController.addListener(_onSearchChanged);
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus) {
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) setState(() => _suggestions = []);
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.removeListener(_onSearchChanged);
-    _searchController.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _onSearchChanged() {
-    final q = _searchController.text.trim();
-    if (q.isEmpty) {
-      setState(() => _suggestions = []);
-      return;
-    }
-    final lower = q.toLowerCase();
-    final bayerQ = lower.startsWith(',') ? lower.substring(1) : lower;
-    final catalog = ref.read(starCatalogProvider);
-    setState(() {
-      _suggestions = catalog.where((e) {
-        return e.commonName.toLowerCase().contains(lower) ||
-            e.bayerDesig.toLowerCase().contains(bayerQ);
-      }).toList();
-    });
-  }
-
   void _addStar(String name) {
     final current = ref.read(selectedStarsProvider);
     if (!current.contains(name)) {
       ref.read(selectedStarsProvider.notifier).state = [...current, name];
     }
-    _searchController.clear();
     ref.read(starSearchProvider.notifier).state = '';
-    setState(() => _suggestions = []);
   }
 
   void _removeStar(String name) {
@@ -79,15 +33,6 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     ref.read(selectedStarsProvider.notifier).state = current
         .where((s) => s != name)
         .toList();
-  }
-
-  void _calculate() {
-    final term = _searchController.text.trim();
-    if (term.isNotEmpty) _addStar(term);
-  }
-
-  void _selectSuggestion(StarCatalogEntry entry) {
-    _addStar(entry.commonName);
   }
 
   void _toggleStarPreset(String name) {
@@ -114,55 +59,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
             children: [
               Text('Star ', style: theme.textTheme.labelLarge),
               const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    TextField(
-                      controller: _searchController,
-                      focusNode: _focusNode,
-                      style: theme.textTheme.bodyLarge,
-                      decoration: const InputDecoration(
-                        hintText:
-                            'Star name or Bayer designation (e.g. Spica, alVir)',
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        border: OutlineInputBorder(),
-                      ),
-                      onSubmitted: (_) => _calculate(),
-                    ),
-                    if (_suggestions.isNotEmpty)
-                      Material(
-                        elevation: 4,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 200),
-                          child: ListView.builder(
-                            padding: EdgeInsets.zero,
-                            shrinkWrap: true,
-                            itemCount: _suggestions.length,
-                            itemBuilder: (context, index) {
-                              final entry = _suggestions[index];
-                              return ListTile(
-                                dense: true,
-                                title: Text(entry.commonName),
-                                trailing: Text(
-                                  entry.bayerDesig,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                onTap: () => _selectSuggestion(entry),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              Expanded(child: StarSearchField(onSelect: _addStar)),
             ],
           ),
         ),

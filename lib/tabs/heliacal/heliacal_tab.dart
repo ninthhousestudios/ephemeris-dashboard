@@ -14,8 +14,7 @@ import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
-import '../stars/stars_provider.dart'
-    show StarCatalogEntry, starCatalogProvider;
+import '../../widgets/star_search_field.dart';
 import 'heliacal_provider.dart';
 
 const _eventTypes = [
@@ -50,10 +49,7 @@ class HeliacalTab extends ConsumerStatefulWidget {
 class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   bool _showAtmospheric = false;
   bool _showStarInput = false;
-  List<StarCatalogEntry> _starSuggestions = [];
 
-  late final TextEditingController _starController;
-  final _starFocusNode = FocusNode();
   late final TextEditingController _pressureController;
   late final TextEditingController _temperatureController;
   late final TextEditingController _humidityController;
@@ -70,15 +66,6 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   @override
   void initState() {
     super.initState();
-    _starController = TextEditingController();
-    _starController.addListener(_onStarChanged);
-    _starFocusNode.addListener(() {
-      if (!_starFocusNode.hasFocus) {
-        Future.delayed(const Duration(milliseconds: 200), () {
-          if (mounted) setState(() => _starSuggestions = []);
-        });
-      }
-    });
     _pressureController = TextEditingController(text: '1013.25');
     _temperatureController = TextEditingController(text: '25.0');
     _humidityController = TextEditingController(text: '50.0');
@@ -90,9 +77,6 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   @override
   void dispose() {
     _recomputeDebounce?.cancel();
-    _starController.removeListener(_onStarChanged);
-    _starController.dispose();
-    _starFocusNode.dispose();
     _pressureController.dispose();
     _temperatureController.dispose();
     _humidityController.dispose();
@@ -100,23 +84,6 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _ageController.dispose();
     _snellenController.dispose();
     super.dispose();
-  }
-
-  void _onStarChanged() {
-    final q = _starController.text.trim();
-    if (q.isEmpty) {
-      setState(() => _starSuggestions = []);
-      return;
-    }
-    final lower = q.toLowerCase();
-    final bayerQ = lower.startsWith(',') ? lower.substring(1) : lower;
-    final catalog = ref.read(starCatalogProvider);
-    setState(() {
-      _starSuggestions = catalog.where((e) {
-        return e.commonName.toLowerCase().contains(lower) ||
-            e.bayerDesig.toLowerCase().contains(bayerQ);
-      }).toList();
-    });
   }
 
   /// Schedules [apply] after a short pause, cancelling any pending edit. The
@@ -149,11 +116,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     }
   }
 
-  void _selectStarSuggestion(StarCatalogEntry entry) {
+  void _addStarByName(String name) {
     _recomputeDebounce?.cancel();
-    _addTarget(entry.commonName);
-    _starController.clear();
-    setState(() => _starSuggestions = []);
+    _addTarget(name);
   }
 
   @override
@@ -225,66 +190,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                   children: [
                     Text('Star ', style: theme.textTheme.labelLarge),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          TextField(
-                            controller: _starController,
-                            focusNode: _starFocusNode,
-                            style: theme.textTheme.bodyLarge,
-                            decoration: const InputDecoration(
-                              hintText:
-                                  'Star name or Bayer designation (e.g. Spica, alVir)',
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              border: OutlineInputBorder(),
-                            ),
-                            onSubmitted: (v) {
-                              if (v.trim().isNotEmpty) {
-                                _recomputeDebounce?.cancel();
-                                _addTarget(v.trim());
-                                _starController.clear();
-                              }
-                            },
-                          ),
-                          if (_starSuggestions.isNotEmpty)
-                            Material(
-                              elevation: 4,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxHeight: 200,
-                                ),
-                                child: ListView.builder(
-                                  padding: EdgeInsets.zero,
-                                  shrinkWrap: true,
-                                  itemCount: _starSuggestions.length,
-                                  itemBuilder: (context, index) {
-                                    final entry = _starSuggestions[index];
-                                    return ListTile(
-                                      dense: true,
-                                      title: Text(entry.commonName),
-                                      trailing: Text(
-                                        entry.bayerDesig,
-                                        style: theme.textTheme.bodySmall
-                                            ?.copyWith(
-                                              color: theme
-                                                  .colorScheme
-                                                  .onSurfaceVariant,
-                                            ),
-                                      ),
-                                      onTap: () => _selectStarSuggestion(entry),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
+                    Expanded(child: StarSearchField(onSelect: _addStarByName)),
                   ],
                 ),
                 const SizedBox(height: 4),
