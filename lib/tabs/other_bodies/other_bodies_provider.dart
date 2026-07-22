@@ -6,7 +6,9 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/body_utils.dart';
 import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
@@ -16,6 +18,7 @@ import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/ephe/catalog.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 final _allMoonBodyIds = <int, String>{
   for (final g in planetaryMoonGroups)
@@ -140,29 +143,30 @@ String otherBodyName(int body) {
 
 // ── Providers ──
 
-final _otherBodiesCalcProvider = Provider<CalcOutcome<List<OtherBodyResult>>>((
-  ref,
-) {
+List<OtherBodyResult> Function(Ephemeris, Moment) _otherBodiesCompute(Ref ref) {
   final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(otherBodiesSelectionProvider);
 
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) => computeOtherBodies(
-      eph: eph,
-      jdUt: moment.ut,
-      iflag: flags.iflag,
-      origin: ctx.origin,
-      bodies: bodies,
-      getName: (body) {
-        final local = otherBodyName(body);
-        if (local != 'Body $body') return local;
-        return safeGetName(swe, body);
-      },
-    ),
+  return (eph, moment) => computeOtherBodies(
+    eph: eph,
+    jdUt: moment.ut,
+    iflag: flags.iflag,
+    origin: ctx.origin,
+    bodies: bodies,
+    getName: (body) {
+      final local = otherBodyName(body);
+      if (local != 'Body $body') return local;
+      return safeGetName(swe, body);
+    },
   );
+}
+
+final _otherBodiesCalcProvider = Provider<CalcOutcome<List<OtherBodyResult>>>((
+  ref,
+) {
+  return runTabCalc(ref, compute: _otherBodiesCompute(ref));
 });
 
 final otherBodiesResultsProvider = Provider<CalcOutcome<List<OtherBodyResult>>>(
@@ -170,6 +174,20 @@ final otherBodiesResultsProvider = Provider<CalcOutcome<List<OtherBodyResult>>>(
     return ref.watch(_otherBodiesCalcProvider);
   },
 );
+
+final otherBodiesSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<List<OtherBodyResult>>)>>((ref) {
+      final settings = ref.watch(
+        seriesSettingsProvider(AppTab.otherBodies.name),
+      );
+      if (!settings.enabled) return const [];
+
+      return runTabCalcSeries(
+        ref,
+        compute: _otherBodiesCompute(ref),
+        settings: settings,
+      );
+    });
 
 final otherBodiesFormatProvider = StateProvider<DisplayFormat>(
   (ref) => DisplayFormat.dms,

@@ -9,13 +9,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/dir_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 /// Common star names for quick-select chips.
 const commonStars = [
@@ -226,26 +229,39 @@ List<StarResult> computeStars({
   }).toList();
 }
 
-final _starCalcProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
+List<StarResult> Function(Ephemeris, Moment) _starsCompute(Ref ref) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final searchTerms = ref.watch(selectedStarsProvider);
 
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) => computeStars(
-      eph: eph,
-      jdUt: moment.ut,
-      iflag: flags.iflag,
-      searchTerms: searchTerms,
-      getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
-    ),
+  return (eph, moment) => computeStars(
+    eph: eph,
+    jdUt: moment.ut,
+    iflag: flags.iflag,
+    searchTerms: searchTerms,
+    getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
   );
+}
+
+final _starCalcProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
+  return runTabCalc(ref, compute: _starsCompute(ref));
 });
 
 final starResultProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
   return ref.watch(_starCalcProvider);
 });
+
+final starsSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<List<StarResult>>)>>((ref) {
+      final settings = ref.watch(seriesSettingsProvider(AppTab.stars.name));
+      if (!settings.enabled) return const [];
+
+      return runTabCalcSeries(
+        ref,
+        compute: _starsCompute(ref),
+        settings: settings,
+      );
+    });
 
 /// Convert star results to export rows.
 List<ExportRow> starToExportRows(

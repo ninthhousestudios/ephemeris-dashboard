@@ -8,12 +8,19 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/catalog.dart';
+import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
+import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import 'other_bodies_provider.dart';
 
 class OtherBodiesTab extends ConsumerStatefulWidget {
@@ -93,8 +100,16 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
           ),
         ),
         const SizedBox(height: 4),
+        SeriesBar(tabId: AppTab.otherBodies.name),
         const Divider(height: 1),
-        _buildResults(),
+        if (ref.watch(
+          seriesSettingsProvider(
+            AppTab.otherBodies.name,
+          ).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          _buildResults(),
       ],
     );
   }
@@ -271,6 +286,37 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
       _addComet(num);
       _cometController.clear();
     }
+  }
+
+  Widget _buildSeries() {
+    final format = ref.watch(otherBodiesFormatProvider);
+    final flags = ref.watch(flagBarProvider);
+    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final swe = ref.read(sweProvider);
+    final steps = ref.watch(otherBodiesSeriesProvider);
+
+    List<ExportRow> rows(List<OtherBodyResult> results) =>
+        otherBodiesToExportRows(
+          results,
+          format,
+          isXyz: flags.isXyz,
+          coordValue: flags.coordValue,
+        );
+
+    return SeriesView(
+      tabId: AppTab.otherBodies.name,
+      steps: [
+        for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
+      ],
+      momentLabel: (m) => formatJdDateTime(
+        swe,
+        m.ut,
+        utLabel: false,
+        utcOffset: utcOffset,
+        fallbackDigits: 4,
+      ),
+      momentColumnTitle: 'Date/Time (UT)',
+    );
   }
 
   Widget _buildResults() {
