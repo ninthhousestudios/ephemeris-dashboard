@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -611,6 +612,58 @@ void main() {
       await tester.tap(find.text(SeriesLayout.horizontal.label));
       await tester.pumpAndSettle();
       expect(find.text('Copy as TSV'), findsOneWidget);
+    });
+
+    testWidgets('the chosen layout is the one that reaches the clipboard', (
+      tester,
+    ) async {
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      final steps = [
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+        ]),
+      ];
+
+      await pump(
+        tester,
+        SeriesView(
+          tabId: 'planets',
+          steps: steps,
+          momentLabel: (m) => m.ut.toStringAsFixed(1),
+        ),
+        size: const Size(1400, 900),
+      );
+
+      // Default layout is vertical: the body is the row identifier.
+      await tester.tap(find.byIcon(Icons.file_download));
+      await tester.pumpAndSettle();
+      expect(copied, startsWith('Name\tJD\tDate\tLongitude\nSun\t'));
+
+      // Selecting horizontal re-projects the same table: the Moment is the
+      // row identifier and the column carries the body name.
+      await tester.tap(find.byIcon(Icons.arrow_drop_down));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(SeriesLayout.horizontal.label));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Copy as TSV'));
+      await tester.pumpAndSettle();
+      expect(copied, startsWith('Name\tJD\tDate\tSun Longitude\n1.0\t'));
     });
   });
 }

@@ -24,13 +24,13 @@ class ExportVariant {
 /// one. Keeping it here rather than in a second button is what stops the
 /// format list from being written twice.
 class ExportButton extends StatefulWidget {
-  const ExportButton({
+  ExportButton({
     super.key,
-    required this.getRows,
+    required List<ExportRow> Function() getRows,
     required this.filenameStem,
     this.hasResults = true,
     this.disabledTooltip,
-  }) : variants = const [];
+  }) : variants = [ExportVariant('', getRows)];
 
   const ExportButton.variants({
     super.key,
@@ -38,11 +38,11 @@ class ExportButton extends StatefulWidget {
     required this.filenameStem,
     this.hasResults = true,
     this.disabledTooltip,
-  }) : getRows = null;
+  });
 
-  final List<ExportRow> Function()? getRows;
-
-  /// Alternative projections, empty for the single-projection constructor.
+  /// The projections on offer. The single-projection constructor makes one
+  /// unnamed entry, so there is one code path and no nullable callback: the
+  /// radio group is simply what a list longer than one renders as.
   final List<ExportVariant> variants;
   final String filenameStem;
   final bool hasResults;
@@ -61,9 +61,7 @@ class _ExportButtonState extends State<ExportButton> {
 
   Future<void> _export(ExportFormat format) async {
     final variants = widget.variants;
-    final rows = variants.isEmpty
-        ? widget.getRows!()
-        : variants[_variant.clamp(0, variants.length - 1)].getRows();
+    final rows = variants[_variant.clamp(0, variants.length - 1)].getRows();
     if (rows.isEmpty) return;
     final msg = await ExportService.export(rows, format, widget.filenameStem);
     if (mounted) {
@@ -78,17 +76,19 @@ class _ExportButtonState extends State<ExportButton> {
     return MenuAnchor(
       controller: _menuController,
       menuChildren: [
-        for (final (index, variant) in widget.variants.indexed)
-          RadioMenuButton<int>(
-            value: index,
-            groupValue: _variant,
-            // The layout is a modifier on the format items below, so picking
-            // one must leave the menu open.
-            closeOnActivate: false,
-            onChanged: (value) => setState(() => _variant = value ?? 0),
-            child: Text(variant.label),
-          ),
-        if (widget.variants.isNotEmpty) const Divider(height: 8),
+        if (widget.variants.length > 1) ...[
+          for (final (index, variant) in widget.variants.indexed)
+            RadioMenuButton<int>(
+              value: index,
+              groupValue: _variant,
+              // The layout is a modifier on the format items below, so picking
+              // one must leave the menu open.
+              closeOnActivate: false,
+              onChanged: (value) => setState(() => _variant = value ?? 0),
+              child: Text(variant.label),
+            ),
+          const Divider(height: 8),
+        ],
         MenuItemButton(
           leadingIcon: const Icon(Icons.content_copy, size: 18),
           child: const Text('Copy as TSV'),
