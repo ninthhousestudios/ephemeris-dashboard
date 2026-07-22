@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,6 +34,10 @@ class SeriesBar extends ConsumerStatefulWidget {
 class _SeriesBarState extends ConsumerState<SeriesBar> {
   late final TextEditingController _stepValueController;
   late final TextEditingController _rowCountController;
+  Timer? _stepValueDebounce;
+  Timer? _rowCountDebounce;
+
+  static const _debounceDuration = Duration(milliseconds: 600);
 
   SeriesSettingsNotifier get _notifier =>
       ref.read(seriesSettingsProvider(widget.tabId).notifier);
@@ -50,6 +56,8 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
 
   @override
   void dispose() {
+    _stepValueDebounce?.cancel();
+    _rowCountDebounce?.cancel();
     _stepValueController.dispose();
     _rowCountController.dispose();
     super.dispose();
@@ -59,11 +67,11 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
       value == value.roundToDouble() ? value.round().toString() : '$value';
 
   void _onStepValueChanged(String text) {
-    final value = double.tryParse(text);
-    // `double.tryParse` happily returns NaN and Infinity for text a user can
-    // type; what is admissible beyond that depends on the unit, so the
-    // notifier is the one gate.
-    if (value != null) _notifier.setStepValue(value);
+    _stepValueDebounce?.cancel();
+    _stepValueDebounce = Timer(_debounceDuration, () {
+      final value = double.tryParse(text);
+      if (value != null) _notifier.setStepValue(value);
+    });
   }
 
   /// Switching to a calendar unit can invalidate a step value that was fine
@@ -76,8 +84,11 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
   }
 
   void _onRowCountChanged(String text) {
-    final rows = int.tryParse(text);
-    if (rows != null) _notifier.setRowCount(rows);
+    _rowCountDebounce?.cancel();
+    _rowCountDebounce = Timer(_debounceDuration, () {
+      final rows = int.tryParse(text);
+      if (rows != null) _notifier.setRowCount(rows);
+    });
   }
 
   @override
@@ -116,6 +127,7 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
                     theme,
                     _stepValueController,
                     onChanged: _onStepValueChanged,
+                    onCommit: _commitStepValue,
                     signed: true,
                   ),
                   const SizedBox(width: 4),
@@ -137,6 +149,7 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
                     theme,
                     _rowCountController,
                     onChanged: _onRowCountChanged,
+                    onCommit: _commitRowCount,
                   ),
                 ],
               ],
@@ -184,10 +197,23 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
     );
   }
 
+  void _commitStepValue() {
+    _stepValueDebounce?.cancel();
+    final value = double.tryParse(_stepValueController.text);
+    if (value != null) _notifier.setStepValue(value);
+  }
+
+  void _commitRowCount() {
+    _rowCountDebounce?.cancel();
+    final rows = int.tryParse(_rowCountController.text);
+    if (rows != null) _notifier.setRowCount(rows);
+  }
+
   Widget _numberField(
     ThemeData theme,
     TextEditingController controller, {
     required ValueChanged<String> onChanged,
+    required VoidCallback onCommit,
     bool signed = false,
   }) {
     // Floored so the box lands on a whole pixel at fractional zoom.
@@ -197,6 +223,7 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
       child: TextField(
         controller: controller,
         onChanged: onChanged,
+        onSubmitted: (_) => onCommit(),
         style: theme.textTheme.bodySmall,
         decoration: const InputDecoration(
           isDense: true,
