@@ -18,7 +18,7 @@ import 'package:swe_dashboard/widgets/result_card.dart';
 import 'package:swe_dashboard/widgets/series_bar.dart';
 import 'package:swe_dashboard/widgets/series_view.dart';
 
-import 'goldens/golden_helper.dart';
+import 'support/widget_fixtures.dart';
 
 final _tabId = AppTab.planets.name;
 

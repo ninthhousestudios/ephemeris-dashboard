@@ -107,11 +107,37 @@ flutter test test/goldens/                    # compare against baselines
 
 ## Golden Tests
 
-108 golden PNGs — 18 widgets x 3 sizes (400x800 mobile, 800x1024 tablet, 1400x900 desktop) x 2 themes (light, dark). ContextBar and AppShell use `allowOverflow: true` because the context bar is intentionally wider than 400px mobile (it horizontal-scrolls).
+Two layers, deliberately:
 
-The baselines are the tracked PNGs in `test/goldens/`, and `flutter test` (no
-path) skips the golden suite — run `test/goldens/` explicitly. `golden_helper.dart`
-carries three constraints that were each broken once and are easy to break again:
+- **`test/layout_invariants_test.dart`** — the load-bearing one. Sweeps all 18
+  screen-level surfaces x 3 viewports (400x800 mobile, 800x1024 tablet,
+  1400x900 desktop) x 5 text scales (1.0, 1.15, 1.3, 1.7, 2.0) and asserts no
+  overflow, plus that each surface still paints text at 2x. Diffs as text, no
+  binaries. Run it with plain `flutter test`.
+- **12 golden PNGs** — canaries only, AppShell and ContextBar at 3 sizes x 2
+  themes. Composed surfaces where an unnoticed reflow is plausible. Everything
+  else was deleted in favour of the sweep above: 108 baselines that nobody
+  reviewed were costing more than they returned.
+
+`_knownOverflows` in the invariants test is an itemised defect list
+(yojana `swe-dashboard/65`), **checked both ways** — a new overflow fails, and
+an entry that stops overflowing also fails and asks you to delete it. It can
+only shrink. Never widen it to make a test pass; fix the layout.
+
+`pumpAppWidget(hostInScrollView: true)` reproduces how `AppShell` hosts its
+children (its `body` is a `SingleChildScrollView`). Without it, pumping a tab
+into a fixed-height Scaffold reports a bottom overflow for any tab taller than
+the viewport — a fact about the harness, not the app.
+
+Overflow-collecting tests must restore `FlutterError.onError` **before** any
+`expect`. Calling `expect` while it is overridden trips a binding assertion and
+flutter_tools then deadlocks on shutdown instead of reporting the failure;
+`addTearDown` is too late.
+
+The golden baselines are the tracked PNGs in `test/goldens/`, and `flutter test`
+(no path) skips the golden suite — run `test/goldens/` explicitly.
+`golden_helper.dart` carries three constraints that were each broken once and
+are easy to break again:
 
 - `LocalFileComparator` takes the URI of a **test file** and uses its parent as
   the basedir. Handing it a directory silently writes baselines one level up.
