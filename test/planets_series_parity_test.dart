@@ -12,16 +12,16 @@
 /// swetest -edir./assets/ephe -p0          -b15.1.2026  -ut0:00 -n4 -s1mo -fTJl   -head
 /// ```
 ///
-/// **Tolerances are the engine's agreement with swetest, not the series'.**
-/// `swisseph_rs` and swetest 2.10.03 do not agree to printed precision: over
-/// the 30×10 grid above the worst deviations are 3.4e-4° in longitude (Moon),
-/// 1.4e-4° in latitude, 1e-4 AU in distance and 2.1e-4°/day in speed — about
-/// 1.2 arcsec on the Moon, an order of magnitude less on the Sun. That gap is
-/// present at step 0, which is an ordinary single-Moment calculation, so it is
-/// the Rust port versus the C library and predates series mode entirely
-/// (yojana swe-dashboard/62).
+/// Reading that same directory, `swisseph_rs` reproduces swetest 2.10.03 to
+/// swetest's printed precision, so the tolerances below are just the reference
+/// values' rounding (yojana swe-dashboard/62).
 ///
-/// What this file therefore pins is that the series lands on the right Moments
+/// The `.se1` set matters: `assets/ephe`, an Astrodienst DE431 build and a
+/// local DE441 rebuild disagree with each other by up to ~5e-5° (Uranus). The
+/// expected values above must be recaptured against whichever directory this
+/// test configures.
+///
+/// On top of parity, this file pins that the series lands on the right Moments
 /// and reproduces the tab's own calculation at each of them — see
 /// "every step equals the single-Moment calculation", which is exact.
 @Tags(['integration'])
@@ -42,10 +42,12 @@ import 'package:swe_dashboard/tabs/planets/planets_provider.dart';
 /// 1 Jan 2026, 00:00 UT.
 const double _jd20260101 = 2461041.5;
 
-/// How far `swisseph_rs` is allowed to sit from swetest, per column. See the
-/// library doc: this is engine-to-engine slack, not series slack.
-const double _degTol = 5e-4;
-const double _auTol = 5e-4;
+/// Slack against the captured swetest output. Reading the same `assets/ephe`,
+/// `swisseph_rs` and swetest 2.10.03 agree to swetest's printed precision, so
+/// these are just the reference values' own rounding (7 dp on degrees, 9 dp on
+/// AU) with a little headroom.
+const double _degTol = 1e-6;
+const double _auTol = 1e-8;
 
 /// Sun … Pluto, in swetest's `-p0123456789` order.
 const _bodies = [
@@ -120,7 +122,14 @@ void main() {
   late RustEph eph;
 
   setUp(() {
-    eph = RustEph(const rs.EphemerisConfig(ephePath: 'assets/ephe'));
+    eph = RustEph(
+      const rs.EphemerisConfig(
+        // `EphemerisConfig` defaults to Moshier; without this the engine
+        // silently ignores `assets/ephe` and the SEFLG_SWIEPH request below.
+        ephemerisSource: rs.EphemerisSource.swiss,
+        ephePath: 'assets/ephe',
+      ),
+    );
   });
 
   tearDown(() {
