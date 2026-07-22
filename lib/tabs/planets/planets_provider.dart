@@ -207,9 +207,9 @@ final _planetsCalcProvider = Provider<CalcOutcome<List<PlanetResult>>>((ref) {
 
   return runTabCalc(
     ref,
-    compute: (eph) => computePlanets(
+    compute: (eph, moment) => computePlanets(
       eph: eph,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       iflag: flags.iflag,
       origin: ctx.origin,
       bodies: bodies,

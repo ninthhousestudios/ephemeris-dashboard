@@ -203,12 +203,12 @@ final _datesCalcProvider = Provider<CalcOutcome<DatesResult>>((ref) {
   final ctx = ref.watch(contextBarProvider);
   final swe = ref.read(sweProvider);
   final overrideJd = ref.watch(datesOverrideJdProvider);
-  final jdUt = overrideJd ?? ctx.jdUt;
   final geolon = ctx.longitude;
 
   return runTabCalc(
     ref,
-    compute: (eph) => computeDates(eph, swe, jdUt: jdUt, geolon: geolon),
+    compute: (eph, moment) =>
+        computeDates(eph, swe, jdUt: overrideJd ?? moment.ut, geolon: geolon),
   );
 });
 

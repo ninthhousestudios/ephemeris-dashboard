@@ -7,7 +7,6 @@ import '../../core/swe_constants.dart';
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -158,19 +157,16 @@ List<PlanetoCentricResult> computePlanetocentric({
 
 final _planetocentricCalcProvider =
     Provider<CalcOutcome<List<PlanetoCentricResult>>>((ref) {
-      final ctx = ref.watch(contextBarProvider);
       final flags = ref.watch(flagBarProvider);
       final swe = ref.read(sweProvider);
       final centerBody = ref.watch(planetocentricCenterProvider);
       final bodies = ref.watch(planetocentricBodiesProvider);
 
-      final jdEt = ctx.jdUt + swe.deltat(ctx.jdUt);
-
       return runTabCalc(
         ref,
-        compute: (eph) => computePlanetocentric(
+        compute: (eph, moment) => computePlanetocentric(
           eph: eph,
-          jdEt: jdEt,
+          jdEt: moment.et,
           iflag: flags.iflag,
           centerBody: centerBody,
           centerName: safeGetName(swe, centerBody),

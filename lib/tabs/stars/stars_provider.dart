@@ -10,7 +10,6 @@ import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/dir_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
@@ -228,16 +227,15 @@ List<StarResult> computeStars({
 }
 
 final _starCalcProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
-  final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final searchTerms = ref.watch(selectedStarsProvider);
 
   return runTabCalc(
     ref,
-    compute: (eph) => computeStars(
+    compute: (eph, moment) => computeStars(
       eph: eph,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       iflag: flags.iflag,
       searchTerms: searchTerms,
       getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,

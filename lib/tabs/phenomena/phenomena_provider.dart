@@ -7,7 +7,6 @@ import '../../core/swe_constants.dart';
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -84,16 +83,15 @@ List<PhenomenaResult> computePhenomena({
 final _phenomenaCalcProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
   ref,
 ) {
-  final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(phenomenaBodiesProvider);
 
   return runTabCalc(
     ref,
-    compute: (eph) => computePhenomena(
+    compute: (eph, moment) => computePhenomena(
       eph: eph,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       iflag: flags.iflag,
       bodies: bodies,
       getName: (body) => safeGetName(swe, body),

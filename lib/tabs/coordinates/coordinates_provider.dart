@@ -186,10 +186,10 @@ final _azAltCalcProvider = Provider<CalcOutcome<CoordResult>>((ref) {
   final i = ref.watch(azAltInputProvider);
   return runTabCalc(
     ref,
-    compute: (eph) => computeCoordinates(
+    compute: (eph, moment) => computeCoordinates(
       eph: eph,
       op: i.forward ? CoordOp.azAlt : CoordOp.azAltRev,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       geolon: ctx.longitude,
       geolat: ctx.latitude,
       geoalt: ctx.altitude,
@@ -215,10 +215,10 @@ final _coTransCalcProvider = Provider<CalcOutcome<CoordResult>>((ref) {
   final epsAbs = i.eps.abs();
   return runTabCalc(
     ref,
-    compute: (eph) => computeCoordinates(
+    compute: (eph, moment) => computeCoordinates(
       eph: eph,
       op: CoordOp.cotrans,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       geolon: ctx.longitude,
       geolat: ctx.latitude,
       geoalt: ctx.altitude,
@@ -243,10 +243,10 @@ final _refracCalcProvider = Provider<CalcOutcome<CoordResult>>((ref) {
   final i = ref.watch(refracInputProvider);
   return runTabCalc(
     ref,
-    compute: (eph) => computeCoordinates(
+    compute: (eph, moment) => computeCoordinates(
       eph: eph,
       op: CoordOp.refrac,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       geolon: ctx.longitude,
       geolat: ctx.latitude,
       geoalt: ctx.altitude,

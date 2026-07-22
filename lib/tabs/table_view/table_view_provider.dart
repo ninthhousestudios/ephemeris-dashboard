@@ -6,6 +6,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_spec.dart';
 import '../../core/context_provider.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
@@ -31,20 +32,6 @@ const tableViewBodies = <(int, String)>[
   (seTrueNode, 'True Node'),
   (seChiron, 'Chiron'),
 ];
-
-// ── Step units ───────────────────────────────────────────────────────────────
-
-enum StepUnit {
-  minutes('Minutes', 1.0 / 1440.0),
-  hours('Hours', 1.0 / 24.0),
-  days('Days', 1.0),
-  weeks('Weeks', 7.0),
-  months('Months', 30.4375); // approximate
-
-  const StepUnit(this.label, this.jdFactor);
-  final String label;
-  final double jdFactor;
-}
 
 // ── State providers ──────────────────────────────────────────────────────────
 
@@ -172,7 +159,7 @@ final _tableViewCalcProvider = Provider<CalcOutcome<List<EphemerisRow>>>((ref) {
 
   return runTabCalc(
     ref,
-    compute: (eph) {
+    compute: (eph, _) {
       final rows = <EphemerisRow>[];
       for (var i = 0; i < stepCount; i++) {
         final jd = jdStart + i * stepJd;

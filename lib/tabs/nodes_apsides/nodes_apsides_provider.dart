@@ -7,7 +7,6 @@ import '../../core/swe_constants.dart';
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -95,7 +94,6 @@ NodesApsResult computeNodesApsides({
 }
 
 final _nodesApsCalcProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
-  final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final body = ref.watch(nodesBodyProvider);
@@ -103,10 +101,10 @@ final _nodesApsCalcProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
 
   return runTabCalc(
     ref,
-    compute: (eph) => computeNodesApsides(
+    compute: (eph, moment) => computeNodesApsides(
       eph: eph,
-      jdUt: ctx.jdUt,
-      deltat: swe.deltat(ctx.jdUt),
+      jdUt: moment.ut,
+      deltat: moment.deltaT,
       body: body,
       iflag: flags.iflag,
       method: method,

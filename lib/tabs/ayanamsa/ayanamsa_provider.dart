@@ -66,7 +66,7 @@ final _ayanamsaCalcProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>((
 
   return runTabCalcWithOverrides(
     ref,
-    compute: (eph, baseGlobals, reconfigure) {
+    compute: (eph, moment, baseGlobals, reconfigure) {
       final results = <AyanamsaCalcResult>[];
       for (final sidMode in modes) {
         try {
@@ -78,7 +78,7 @@ final _ayanamsaCalcProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>((
                 )
               : baseGlobals.withSidMode(sidMode);
           reconfigure(modeGlobals);
-          final value = eph.getAyanamsaUt(ctx.jdUt);
+          final value = eph.getAyanamsaUt(moment.ut);
           results.add(
             AyanamsaCalcResult(
               sidMode: sidMode,

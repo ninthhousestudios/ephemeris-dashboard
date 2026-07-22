@@ -138,9 +138,9 @@ final _eclipsesCalcProvider = Provider<CalcOutcome<List<EclipseEvent>>>((ref) {
 
   return runTabCalc(
     ref,
-    compute: (eph) {
+    compute: (eph, moment) {
       final results = <EclipseEvent>[];
-      var searchJd = ctx.jdUt;
+      var searchJd = moment.ut;
 
       for (var i = 0; i < count; i++) {
         try {

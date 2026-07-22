@@ -131,9 +131,9 @@ final _crossingCalcProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
 
   return runTabCalc(
     ref,
-    compute: (eph) => computeCrossing(
+    compute: (eph, moment) => computeCrossing(
       eph: eph,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       iflag: flags.iflag,
       type: type,
       longitude: lon,

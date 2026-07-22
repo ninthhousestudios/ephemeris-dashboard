@@ -7,7 +7,6 @@ import '../../core/swe_constants.dart';
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -94,7 +93,6 @@ DiffResult computeDifferential({
 }
 
 final _diffCalcProvider = Provider<CalcOutcome<DiffResult>>((ref) {
-  final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final bodyA = ref.watch(diffBodyAProvider);
@@ -103,9 +101,9 @@ final _diffCalcProvider = Provider<CalcOutcome<DiffResult>>((ref) {
 
   return runTabCalc(
     ref,
-    compute: (eph) => computeDifferential(
+    compute: (eph, moment) => computeDifferential(
       eph: eph,
-      jdUt: overrideJd ?? ctx.jdUt,
+      jdUt: overrideJd ?? moment.ut,
       iflag: flags.iflag,
       bodyA: bodyA,
       bodyB: bodyB,

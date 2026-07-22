@@ -110,9 +110,9 @@ final _housesCalcProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
 
   return runTabCalc(
     ref,
-    compute: (eph) => computeHouses(
+    compute: (eph, moment) => computeHouses(
       eph,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       lat: ctx.latitude,
       lon: ctx.longitude,
       hsys: hsys,

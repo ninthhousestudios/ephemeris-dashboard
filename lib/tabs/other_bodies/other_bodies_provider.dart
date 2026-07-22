@@ -150,9 +150,9 @@ final _otherBodiesCalcProvider = Provider<CalcOutcome<List<OtherBodyResult>>>((
 
   return runTabCalc(
     ref,
-    compute: (eph) => computeOtherBodies(
+    compute: (eph, moment) => computeOtherBodies(
       eph: eph,
-      jdUt: ctx.jdUt,
+      jdUt: moment.ut,
       iflag: flags.iflag,
       origin: ctx.origin,
       bodies: bodies,

@@ -4,21 +4,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph_rs/swisseph_rs.dart' show SweException;
 
+import '../calc_context.dart';
 import '../ephemeris/applied_globals.dart';
 import '../ephemeris/ephemeris.dart';
 import '../ephemeris/runner.dart';
 import 'calc_outcome.dart';
+import 'moment.dart';
+import 'series_spec.dart';
 
 CalcOutcome<T> _runTabCalc<T>(
   Ref ref,
-  T Function(EphemerisRunner runner, AppliedGlobals globals) execute,
+  T Function(EphemerisRunner runner, AppliedGlobals globals, Moment moment)
+  execute,
 ) {
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  final jdUt = ref.watch(effectiveContextProvider.select((c) => c.jdUt));
 
   try {
     runner.apply(globals);
-    return CalcOk(execute(runner, globals));
+    return CalcOk(execute(runner, globals, Moment.fromUt(jdUt, runner.eph)));
   } on SweException catch (e) {
     return CalcSweError(e.message);
   }
@@ -26,19 +31,56 @@ CalcOutcome<T> _runTabCalc<T>(
 
 CalcOutcome<T> runTabCalc<T>(
   Ref ref, {
-  required T Function(Ephemeris eph) compute,
-}) => _runTabCalc(ref, (runner, _) => compute(runner.eph));
+  required T Function(Ephemeris eph, Moment moment) compute,
+}) => _runTabCalc(ref, (runner, _, moment) => compute(runner.eph, moment));
 
 CalcOutcome<T> runTabCalcWithOverrides<T>(
   Ref ref, {
   required T Function(
     Ephemeris eph,
+    Moment moment,
     AppliedGlobals baseGlobals,
     void Function(AppliedGlobals) reconfigure,
   )
   compute,
-}) => _runTabCalc(ref, (runner, baseGlobals) {
-  return compute(runner.eph, baseGlobals, (overrideGlobals) {
+}) => _runTabCalc(ref, (runner, baseGlobals, moment) {
+  return compute(runner.eph, moment, baseGlobals, (overrideGlobals) {
     runner.apply(overrideGlobals);
   });
 });
+
+/// Runs [compute] once per step of [spec], each step getting its own
+/// [CalcOutcome] so one failing step does not kill the series.
+///
+/// [AppliedGlobals] are Context-derived but not Moment-derived — sidereal
+/// mode, topocentric position and ephemeris source do not change as the
+/// Moment steps. So the engine is configured once, outside the loop.
+List<(Moment, CalcOutcome<T>)> runTabCalcSeries<T>(
+  Ref ref, {
+  required T Function(Ephemeris eph, Moment moment) compute,
+  required SeriesSpec spec,
+}) {
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
+
+  runner.apply(globals);
+  return computeSeries(runner.eph, spec, compute);
+}
+
+/// The series loop, without Riverpod. The engine must already be configured.
+List<(Moment, CalcOutcome<T>)> computeSeries<T>(
+  Ephemeris eph,
+  SeriesSpec spec,
+  T Function(Ephemeris eph, Moment moment) compute,
+) {
+  final steps = <(Moment, CalcOutcome<T>)>[];
+  for (var i = 0; i < spec.effectiveRowCount; i++) {
+    final moment = Moment.fromUt(spec.utAt(i), eph);
+    try {
+      steps.add((moment, CalcOk(compute(eph, moment))));
+    } on SweException catch (e) {
+      steps.add((moment, CalcSweError(e.message)));
+    }
+  }
+  return steps;
+}

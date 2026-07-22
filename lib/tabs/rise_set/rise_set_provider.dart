@@ -321,7 +321,7 @@ final _riseSetCalcProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
 
   return runTabCalc(
     ref,
-    compute: (eph) {
+    compute: (eph, _) {
       return [
         for (final target in targets)
           RiseSetGroupResult(

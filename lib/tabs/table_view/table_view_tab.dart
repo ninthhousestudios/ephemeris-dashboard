@@ -13,6 +13,7 @@ import '../../core/ephe/catalog.dart';
 import '../../core/flag_provider.dart';
 import '../other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids, namedComets;
+import '../../core/calculation/series_spec.dart';
 import 'table_view_provider.dart';
 
 class TableViewTab extends ConsumerStatefulWidget {

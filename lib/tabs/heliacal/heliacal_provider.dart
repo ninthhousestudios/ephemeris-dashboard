@@ -152,11 +152,11 @@ final _heliacalCalcProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>((
 
   return runTabCalc(
     ref,
-    compute: (eph) => targets
+    compute: (eph, moment) => targets
         .map(
           (name) => _computeOne(
             eph,
-            ctx.jdUt,
+            moment.ut,
             ctx.longitude,
             ctx.latitude,
             ctx.altitude,
