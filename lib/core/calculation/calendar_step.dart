@@ -14,11 +14,23 @@
 /// rounding through a civil clock.
 library;
 
+/// Floor division. Dart's `~/` truncates toward zero, which is wrong for the
+/// negative operands the conversions below see before ~4800 BCE — the era
+/// boundary is well inside the ephemeris range, so this is not a theoretical
+/// concern. Dart's `%` already floors for a positive divisor, so only the
+/// quotient needs correcting.
+int _floorDiv(int a, int b) {
+  final q = a ~/ b;
+  return a - q * b < 0 ? q - 1 : q;
+}
+
 /// Civil date of the Gregorian day containing Julian Day Number [jdn].
 ({int year, int month, int day}) _civilFromJdn(int jdn) {
   final j = jdn + 32044;
-  final g = j ~/ 146097;
-  final dg = j % 146097;
+  final g = _floorDiv(j, 146097);
+  // Flooring [g] keeps [dg] non-negative, so every division below this line
+  // has non-negative operands and truncation and flooring agree.
+  final dg = j - g * 146097;
   final c = (dg ~/ 36524 + 1) * 3 ~/ 4;
   final dc = dg - c * 36524;
   final b = dc ~/ 1461;
@@ -36,12 +48,13 @@ int _jdnFromCivil(int year, int month, int day) {
   final a = (14 - month) ~/ 12;
   final y = year + 4800 - a;
   final m = month + 12 * a - 3;
+  // [y] goes negative before ~4800 BCE, so its divisions must floor.
   return day +
       (153 * m + 2) ~/ 5 +
       365 * y +
-      y ~/ 4 -
-      y ~/ 100 +
-      y ~/ 400 -
+      _floorDiv(y, 4) -
+      _floorDiv(y, 100) +
+      _floorDiv(y, 400) -
       32045;
 }
 
@@ -70,9 +83,8 @@ double addCalendarMonths(double ut, int months) {
   final civil = _civilFromJdn(jdn);
 
   final totalMonths = civil.year * 12 + (civil.month - 1) + months;
-  // Floor division: totalMonths is negative for years before 1 BCE.
-  final year = (totalMonths - (totalMonths % 12 + 12) % 12) ~/ 12;
-  final month = (totalMonths % 12 + 12) % 12 + 1;
+  final year = _floorDiv(totalMonths, 12);
+  final month = totalMonths - year * 12 + 1;
   final day = civil.day.clamp(1, daysInMonth(year, month));
 
   return _jdnFromCivil(year, month, day) - 0.5 + dayFraction;

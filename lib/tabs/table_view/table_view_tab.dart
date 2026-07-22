@@ -41,11 +41,31 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
 
   void _onStepValueChanged(String text) {
     final sv = double.tryParse(text);
-    // A negative step runs the series backward (swetest `-bwd`); only zero is
-    // rejected, since it would repeat the same Moment for every row.
-    if (sv != null && sv != 0) {
+    // A negative step runs the series backward (swetest `-bwd`). What else is
+    // admissible depends on the unit, so the rule lives on StepUnit — note
+    // that `double.tryParse` happily returns NaN and Infinity for text a user
+    // can type.
+    final unit = ref.read(tableViewStepUnitProvider);
+    if (sv != null && unit.acceptsStepValue(sv)) {
       ref.read(tableViewStepValueProvider.notifier).state = sv;
     }
+  }
+
+  /// Switching to a calendar unit can invalidate a step value that was fine
+  /// for the previous one (2.5 Days is meaningful, 2.5 Months is not). Round
+  /// it and show the rounded value, so the field never disagrees with the
+  /// series it produced.
+  void _onStepUnitChanged(StepUnit unit) {
+    final current = ref.read(tableViewStepValueProvider);
+    if (!unit.acceptsStepValue(current)) {
+      final snapped = current.roundToDouble();
+      final usable = unit.acceptsStepValue(snapped)
+          ? snapped
+          : (current.isNegative ? -1.0 : 1.0);
+      ref.read(tableViewStepValueProvider.notifier).state = usable;
+      _stepValueController.text = usable.toStringAsFixed(0);
+    }
+    ref.read(tableViewStepUnitProvider.notifier).state = unit;
   }
 
   void _onStepCountChanged(String text) {
@@ -234,9 +254,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                     child: ChoiceChip(
                       label: Text(u.label),
                       selected: stepUnit == u,
-                      onSelected: (_) =>
-                          ref.read(tableViewStepUnitProvider.notifier).state =
-                              u,
+                      onSelected: (_) => _onStepUnitChanged(u),
                       visualDensity: VisualDensity.compact,
                     ),
                   ),

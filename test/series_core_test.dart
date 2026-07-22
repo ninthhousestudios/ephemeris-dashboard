@@ -3,6 +3,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
+import 'package:swe_dashboard/core/calculation/calendar_step.dart';
 import 'package:swe_dashboard/core/calculation/moment.dart';
 import 'package:swe_dashboard/core/calculation/run_tab_calc.dart';
 import 'package:swe_dashboard/core/calculation/series_spec.dart';
@@ -141,14 +142,82 @@ void main() {
       expect(spec.utAt(1) - feb29y2000, closeTo(fraction, 1e-9));
     });
 
-    test('a multi-month step matches repeated single steps', () {
+    test('a multi-month step is a multiple from the start, not an iterated '
+        'walk', () {
       final quarterly = _spec(
         start: jan31y2000,
         stepValue: 3.0,
         unit: StepUnit.months,
       );
-      final monthly = _spec(start: jan31y2000, unit: StepUnit.months);
-      expect(quarterly.utAt(1), monthly.utAt(3));
+      expect(quarterly.utAt(1), apr30y2000, reason: '31 Jan + 3 months');
+
+      // Clamping is not associative, so an iterated walk lands elsewhere:
+      // 31 Jan -> 29 Feb -> 29 Mar -> 29 Apr. Pinned to make the choice
+      // visible — swetest steps successively and is the parity reference,
+      // so if parity ever gets measured this is the test that should move.
+      var iterated = jan31y2000;
+      for (var i = 0; i < 3; i++) {
+        iterated = StepUnit.months.advanceFrom(iterated, 1.0, 1);
+      }
+      expect(iterated, isNot(quarterly.utAt(1)));
+      expect(iterated, apr30y2000 - 1, reason: '29 Apr, one day earlier');
+    });
+
+    test('twelve months advance exactly one year at every supported JD', () {
+      // The conversion divides by 146097 and by 4/100/400, and Dart's `~/`
+      // truncates toward zero. Before this was floored, everything below
+      // JDN -32044 (~4800 BCE) jumped by 146463 days — inside the range the
+      // standard ephemeris files cover (13201 BCE, JD ~= -3.1e6).
+      for (var jdn = 2500000; jdn > -3200000; jdn -= 9973) {
+        final delta = addCalendarMonths(jdn + 0.0, 12) - jdn;
+        expect(
+          delta,
+          anyOf(365.0, 366.0),
+          reason: 'twelve months from JDN $jdn advanced $delta days',
+        );
+      }
+    });
+
+    test('a yearly round trip returns the original day', () {
+      // +12/-12 preserves the day of month everywhere except 29 February,
+      // which clamps to the 28th and stays there — so the round trip is
+      // either exact or exactly one day short, never anything else. Any
+      // conversion error shows up here as an arbitrary offset.
+      for (var jdn = 2500000; jdn > -3200000; jdn -= 9973) {
+        final start = jdn + 0.0;
+        final back = addCalendarMonths(addCalendarMonths(start, 12), -12);
+        expect(
+          start - back,
+          anyOf(0.0, 1.0),
+          reason: 'yearly round trip at JDN $jdn drifted ${start - back} days',
+        );
+      }
+    });
+
+    test('a fractional calendar step is rejected, not rounded', () {
+      // Rounding 0.25 months produced day offsets [0, 0, 31, 31, 31, 31, 60]
+      // — repeated dates then jumps, exported as if valid.
+      expect(StepUnit.months.acceptsStepValue(0.25), isFalse);
+      expect(StepUnit.years.acceptsStepValue(1.5), isFalse);
+      expect(StepUnit.months.acceptsStepValue(3.0), isTrue);
+      expect(StepUnit.months.acceptsStepValue(-1.0), isTrue);
+      expect(StepUnit.days.acceptsStepValue(0.25), isTrue);
+    });
+
+    test('non-finite and zero step values are rejected for every unit', () {
+      // `double.tryParse` returns NaN for "NaN" and Infinity for "Infinity"
+      // and "1e400", all of which a user can type into the step field. On a
+      // calendar unit they reached `.round()` and threw UnsupportedError,
+      // which is not a SweException and so escaped the per-step guard.
+      for (final unit in StepUnit.values) {
+        expect(unit.acceptsStepValue(double.nan), isFalse, reason: '$unit NaN');
+        expect(unit.acceptsStepValue(double.infinity), isFalse);
+        expect(unit.acceptsStepValue(double.negativeInfinity), isFalse);
+        expect(unit.acceptsStepValue(0.0), isFalse);
+        expect(unit.acceptsStepValue(-0.0), isFalse);
+        expect(unit.acceptsStepValue(1.0), isTrue);
+        expect(unit.acceptsStepValue(-1.0), isTrue);
+      }
     });
 
     test('calendar units are flagged as such', () {

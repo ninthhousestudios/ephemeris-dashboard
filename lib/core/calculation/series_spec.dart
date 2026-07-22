@@ -26,11 +26,25 @@ enum StepUnit {
   /// Whether the unit steps the civil calendar rather than a fixed span.
   bool get isCalendar => this == StepUnit.months || this == StepUnit.years;
 
+  /// Whether [stepValue] describes a usable series in this unit.
+  ///
+  /// Zero repeats one Moment for every row and a non-finite value has no
+  /// Moment at all. A calendar unit additionally rejects a fractional value:
+  /// a quarter of a month is not a calendar quantity, and rounding one
+  /// silently yields a series with repeated dates and jumps.
+  ///
+  /// This is the one gate — every step-value input must ask it, since
+  /// [advanceFrom] has to stay a total function and cannot refuse.
+  bool acceptsStepValue(double stepValue) =>
+      stepValue.isFinite &&
+      stepValue != 0 &&
+      (!isCalendar || stepValue == stepValue.roundToDouble());
+
   /// UT of step [index] of a series starting at [startUt] and stepping
   /// [stepValue] of this unit. A negative [stepValue] steps backward.
   ///
-  /// A fractional [stepValue] on a calendar unit is rounded to whole months —
-  /// half a month is not a calendar quantity.
+  /// [stepValue] is assumed to have passed [acceptsStepValue]; the rounding
+  /// on the calendar branches is a total-function fallback, not a feature.
   double advanceFrom(double startUt, double stepValue, int index) =>
       switch (this) {
         StepUnit.seconds => startUt + index * stepValue / 86400.0,
