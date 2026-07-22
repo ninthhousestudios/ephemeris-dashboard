@@ -32,8 +32,8 @@ const _scales = [1.0, 1.15, 1.3, 1.7, 2.0];
 ///
 /// **Read these magnitudes as a worst case, not as device behaviour.**
 /// `flutter_test` renders in the FlutterTest/Ahem font, where every glyph is a
-/// full em square: `Text('Ephe (Moshier only) ', fontSize: 11)` measures
-/// exactly 220.0px here (20 chars x 11px) against roughly half that in Roboto.
+/// full em square: a 20-character string at `fontSize: 11` measures exactly
+/// 220.0px here, against roughly half that in Roboto.
 /// Every entry below was measured with text about 2x its production width, and
 /// none of them reproduce on a real device with English text.
 ///
@@ -48,7 +48,6 @@ const _scales = [1.0, 1.15, 1.3, 1.7, 2.0];
 /// redesign. Deferred deliberately; see swe-dashboard/65 for the full analysis.
 const _knownOverflows = <String, Set<String>>{
   'app_shell': {
-    'mobile @ 1.0x',
     'mobile @ 1.15x',
     'mobile @ 1.7x',
     'mobile @ 2.0x',
@@ -57,7 +56,6 @@ const _knownOverflows = <String, Set<String>>{
   },
   // AppShell hosts the ContextBar, so it inherits every ContextBar overflow.
   'context_bar': {
-    'mobile @ 1.0x',
     'mobile @ 1.15x',
     'mobile @ 1.7x',
     'mobile @ 2.0x',

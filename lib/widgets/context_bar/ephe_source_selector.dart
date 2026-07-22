@@ -29,7 +29,9 @@ class EpheSourceSelector extends ConsumerWidget {
     }
 
     return LabeledDropdown<EpheSource>(
-      label: available.length == 1 ? 'Ephe (Moshier only)' : 'Ephe',
+      // When no .se1/JPL files are present the only entry is Moshier; the
+      // disabled dropdown showing "Moshier" says that on its own.
+      label: 'Ephe',
       value: effectiveSource,
       items: EpheSource.values.where(available.contains).toList(),
       itemLabel: (s) => s.label,
