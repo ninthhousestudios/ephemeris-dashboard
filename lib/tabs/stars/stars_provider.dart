@@ -98,6 +98,8 @@ class StarResult {
     required this.speedDist,
     required this.magnitude,
     required this.returnFlag,
+    this.rascension = double.nan,
+    this.declination = double.nan,
     this.errorMessage,
   });
 
@@ -111,9 +113,8 @@ class StarResult {
   final double speedDist;
   final double magnitude;
   final int returnFlag;
-
-  /// When non-null, the star lookup failed for this search term. UI shows
-  /// this in place of the numeric fields.
+  final double rascension;
+  final double declination;
   final String? errorMessage;
 }
 
@@ -164,6 +165,20 @@ StarResult? computeStar({
     magnitude = double.nan;
   }
 
+  var ra = double.nan;
+  var dec = double.nan;
+  try {
+    final eq = eph.fixstar2Ut(
+      r.starName.split(',').first.trim(),
+      jdUt,
+      (iflag | seFlgEquatorial) & ~seFlgXyz,
+    );
+    ra = eq.longitude;
+    dec = eq.latitude;
+  } catch (_) {
+    // equatorial calc failed — leave NaN
+  }
+
   return StarResult(
     searchTerm: term,
     resolvedName: r.starName,
@@ -175,6 +190,8 @@ StarResult? computeStar({
     speedDist: r.distanceSpeed,
     magnitude: magnitude,
     returnFlag: r.returnFlag,
+    rascension: ra,
+    declination: dec,
   );
 }
 
@@ -304,10 +321,20 @@ List<ExportRow> starToExportRows(
               lightYears: true,
             ),
           ),
+        ('Dist (ly)', formatDistanceLy(result.distance, fmt)),
+        ('Dist (km)', formatDistanceKm(result.distance, fmt)),
         (
           'Magnitude',
           result.magnitude.isNaN ? '—' : result.magnitude.toStringAsFixed(2),
         ),
+        if (!isXyz) ...[
+          ('U ecl', formatUnitVector(result.longitude, result.latitude, fmt)),
+          if (!result.rascension.isNaN)
+            (
+              'U equ',
+              formatUnitVector(result.rascension, result.declination, fmt),
+            ),
+        ],
         (
           lbl.sc1,
           isXyz

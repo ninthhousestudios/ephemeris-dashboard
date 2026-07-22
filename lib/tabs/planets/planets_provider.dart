@@ -31,6 +31,9 @@ class PlanetResult {
     required this.speedLat,
     required this.speedDist,
     required this.returnFlag,
+    this.rascension = double.nan,
+    this.declination = double.nan,
+    this.dmin,
     this.errorMessage,
   });
 
@@ -43,10 +46,9 @@ class PlanetResult {
   final double speedLat;
   final double speedDist;
   final int returnFlag;
-
-  /// When non-null, the SE call failed for this body. UI shows this in
-  /// place of the numeric fields (typically a missing-ephemeris-file
-  /// message with a pointer to the Ephemeris tab).
+  final double rascension;
+  final double declination;
+  final double? dmin;
   final String? errorMessage;
 }
 
@@ -171,6 +173,29 @@ List<PlanetResult> computePlanets({
   return effectiveBodies.map((body) {
     try {
       final r = eph.calcUt(moment.ut, body, iflag | seFlgSpeed);
+
+      var ra = double.nan;
+      var dec = double.nan;
+      try {
+        final eq = eph.calcUt(
+          moment.ut,
+          body,
+          (iflag | seFlgEquatorial) & ~seFlgXyz,
+        );
+        ra = eq.longitude;
+        dec = eq.latitude;
+      } catch (_) {
+        // equatorial calc failed — leave NaN
+      }
+
+      double? dmin;
+      try {
+        final od = eph.orbitMaxMinTrueDistance(moment.et, body, iflag);
+        dmin = od.minDist;
+      } catch (_) {
+        // not available for this body
+      }
+
       return PlanetResult(
         body: body,
         bodyName: getName(body),
@@ -181,6 +206,9 @@ List<PlanetResult> computePlanets({
         speedLat: r.latitudeSpeed,
         speedDist: r.distanceSpeed,
         returnFlag: r.returnFlag,
+        rascension: ra,
+        declination: dec,
+        dmin: dmin,
       );
     } on SweException catch (e) {
       return PlanetResult(
@@ -287,6 +315,19 @@ List<ExportRow> planetsToExportRows(
                 'Distance',
                 formatEuclidean(r.longitude, r.latitude, r.distance, fmt),
               ),
+            ('Dist (ly)', formatDistanceLy(r.distance, fmt)),
+            ('Dist (km)', formatDistanceKm(r.distance, fmt)),
+            if (r.body == seMoon)
+              ('Parallax', formatParallax(r.distance, fmt))
+            else
+              ('Dist (AU)', formatDistance(r.distance, fmt)),
+            if (r.dmin != null)
+              ('Dist (rel)', formatRelativeDistance(r.distance, r.dmin!, fmt)),
+            if (!isXyz) ...[
+              ('U ecl', formatUnitVector(r.longitude, r.latitude, fmt)),
+              if (!r.rascension.isNaN)
+                ('U equ', formatUnitVector(r.rascension, r.declination, fmt)),
+            ],
             (
               lbl.sc1,
               isXyz

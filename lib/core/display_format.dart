@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'dart:math' show sqrt;
+import 'dart:math' show asin, cos, pi, sin, sqrt;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -162,4 +162,59 @@ String _toDms(double degrees) {
 
   final sign = negative ? '-' : '';
   return "$sign$deg° ${min.toString().padLeft(2, '0')}' ${sec.toStringAsFixed(2).padLeft(5, '0')}\"";
+}
+
+// ── Distance unit conversions (swetest -fW, -fw, -fr, -fq) ──
+
+const _auToKm = 149597870.7;
+const _earthRadiusKm = 6378.14;
+const _radToArcsec = 180 * 3600 / pi;
+
+String formatDistanceLy(double distAu, DisplayFormat format) {
+  final ly = distAu / _auPerLightYear;
+  return switch (format) {
+    DisplayFormat.dms || DisplayFormat.decimal => '${ly.toStringAsFixed(8)} ly',
+    DisplayFormat.raw => ly.toStringAsFixed(12),
+  };
+}
+
+String formatDistanceKm(double distAu, DisplayFormat format) {
+  final km = distAu * _auToKm;
+  return switch (format) {
+    DisplayFormat.dms || DisplayFormat.decimal => '${km.toStringAsFixed(2)} km',
+    DisplayFormat.raw => km.toStringAsFixed(6),
+  };
+}
+
+String formatParallax(double distAu, DisplayFormat format) {
+  final pxArcsec = asin(_earthRadiusKm / (distAu * _auToKm)) * _radToArcsec;
+  return switch (format) {
+    DisplayFormat.dms ||
+    DisplayFormat.decimal => '${pxArcsec.toStringAsFixed(4)}″',
+    DisplayFormat.raw => pxArcsec.toStringAsFixed(12),
+  };
+}
+
+String formatRelativeDistance(double dist, double dmin, DisplayFormat format) {
+  final q = 1000 * dmin / dist;
+  return switch (format) {
+    DisplayFormat.dms || DisplayFormat.decimal => q.toStringAsFixed(3),
+    DisplayFormat.raw => q.toStringAsFixed(12),
+  };
+}
+
+// ── Unit vectors (swetest -fU, -fu) ──
+
+const _degToRad = pi / 180;
+
+String formatUnitVector(double lonDeg, double latDeg, DisplayFormat format) {
+  final lon = lonDeg * _degToRad;
+  final lat = latDeg * _degToRad;
+  final x = cos(lat) * cos(lon);
+  final y = cos(lat) * sin(lon);
+  final z = sin(lat);
+  final digits = format == DisplayFormat.raw ? 12 : 8;
+  return '${x.toStringAsFixed(digits)}, '
+      '${y.toStringAsFixed(digits)}, '
+      '${z.toStringAsFixed(digits)}';
 }
