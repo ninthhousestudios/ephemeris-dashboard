@@ -34,7 +34,14 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     final jdUtils = JdUtils(swe);
     final jd = jdUtils.dateTimeToJd(now);
     final localOffset = DateTime.now().timeZoneOffset.inMinutes / 60.0;
-    return ContextBarState(dateTime: now, utcOffset: localOffset, jdUt: jd);
+    return ContextBarState(
+      dateTime: now,
+      utcOffset: localOffset,
+      jdUt: jd,
+      // Prefer the ephemeris we ship. `ContextBarState`'s own default stays
+      // Moshier, which is what a build with no .se1 files has to fall back to.
+      epheSource: hasEpheFiles ? EpheSource.swissEph : EpheSource.moshier,
+    );
   }
 
   /// Apply persisted values after construction (called from provider factory).
