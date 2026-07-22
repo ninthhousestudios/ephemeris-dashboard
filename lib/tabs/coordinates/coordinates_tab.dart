@@ -462,7 +462,7 @@ Widget _resultSection(
   ColorScheme colorScheme,
 ) {
   return switch (outcome) {
-    CalcSweError(:final message) => Padding(
+    CalcError(:final message) => Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Text(
         'Error: $message',

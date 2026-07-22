@@ -160,7 +160,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
     final outcome = ref.watch(planetsResultsProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final results) =>
@@ -346,7 +346,7 @@ class PlanetsFormatTrailing extends ConsumerWidget {
     final outcome = ref.watch(planetsResultsProvider);
     final results = switch (outcome) {
       CalcOk(value: final v) => v,
-      CalcSweError() => const <PlanetResult>[],
+      CalcError() => const <PlanetResult>[],
     };
     final jd = ref.watch(contextBarProvider).jdUt;
     return Row(
@@ -374,7 +374,7 @@ class PlanetsFormatTrailing extends ConsumerWidget {
             );
           },
           filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',
-          disabledTooltip: outcome is CalcSweError
+          disabledTooltip: outcome is CalcError
               ? 'Export disabled: calculation error'
               : null,
         ),

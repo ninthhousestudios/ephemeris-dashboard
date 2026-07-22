@@ -91,7 +91,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
     final outcome = ref.watch(housesResultProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final result) => _buildResultCards(result, format),
@@ -213,7 +213,7 @@ class HousesFormatTrailing extends ConsumerWidget {
           hasResults: outcome is CalcOk<HousesCalcResult>,
           getRows: () => switch (outcome) {
             CalcOk(value: final r) => housesToExportRows(r, format),
-            CalcSweError() => [],
+            CalcError() => [],
           },
           filenameStem: 'swe_houses_${jd.toStringAsFixed(4)}',
         ),

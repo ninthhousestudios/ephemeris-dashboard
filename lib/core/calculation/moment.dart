@@ -13,9 +13,17 @@ import '../ephemeris/ephemeris.dart';
 /// that never leaves UT — most of them — pays nothing for it. That matters in
 /// a series, where one Moment is built per step.
 class Moment {
-  /// Both scales given explicitly, for callers that already hold a ΔT and for
-  /// tests that want a fixed ET without an engine.
-  Moment({required double ut, required double et})
+  /// ΔT given explicitly, for callers that already hold one and for tests that
+  /// want a fixed ET without an engine. This is the precision-preserving form:
+  /// ΔT is carried at its own magnitude and never round-tripped through a
+  /// Julian-Day-scale subtraction.
+  Moment({required this.ut, required double deltaT}) : _deltaT = (() => deltaT);
+
+  /// ET given instead of ΔT. **Lossy**: `et - ut` at Julian Day magnitudes
+  /// drops the low bits of a ~0.0008-day ΔT (an exact 0.0008 comes back as
+  /// 0.000800000037997961). Use the default constructor unless ET really is
+  /// the only quantity you hold.
+  Moment.fromUtAndEt({required double ut, required double et})
     : ut = ut,
       _deltaT = (() => et - ut);
 

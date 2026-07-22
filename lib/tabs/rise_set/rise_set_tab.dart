@@ -241,7 +241,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                   filenameStem: 'rise_set',
                   getRows: () => switch (outcome) {
                     CalcOk(value: final r) => riseSetToExportRows(r),
-                    CalcSweError() => [],
+                    CalcError() => [],
                   },
                 ),
               ],
@@ -351,7 +351,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
 
   Widget _buildResults(CalcOutcome<List<RiseSetGroupResult>> outcome) {
     switch (outcome) {
-      case CalcSweError(:final message):
+      case CalcError(:final message):
         return Center(child: Text('Calculation error: $message'));
       case CalcOk(value: final groups):
         if (groups.isEmpty) {

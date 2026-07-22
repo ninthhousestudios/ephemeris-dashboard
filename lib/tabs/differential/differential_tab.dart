@@ -329,7 +329,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                         result,
                         ref.read(diffFormatProvider),
                       ),
-                      CalcSweError() => [],
+                      CalcError() => [],
                     };
                   },
                   filenameStem: 'swe_differential_${jd.toStringAsFixed(4)}',
@@ -545,7 +545,7 @@ class _DiffResults extends ConsumerWidget {
     final fmt = ref.watch(diffFormatProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final result) => SingleChildScrollView(

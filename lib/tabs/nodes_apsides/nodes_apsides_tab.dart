@@ -252,7 +252,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                         isXyz: f.isXyz,
                         coordValue: f.coordValue,
                       ),
-                      CalcSweError() => [],
+                      CalcError() => [],
                     };
                   },
                   filenameStem: 'swe_nodes_apsides_${jd.toStringAsFixed(4)}',
@@ -278,7 +278,7 @@ class _NodesResults extends ConsumerWidget {
     final fmt = ref.watch(nodesFormatProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final result) => _buildResult(context, ref, result, fmt),

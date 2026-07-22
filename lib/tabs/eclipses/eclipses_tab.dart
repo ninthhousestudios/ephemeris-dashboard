@@ -138,7 +138,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                 ExportButton(
                   hasResults: switch (outcome) {
                     CalcOk(value: final events) => events.isNotEmpty,
-                    CalcSweError() => false,
+                    CalcError() => false,
                   },
                   filenameStem: 'eclipses',
                   getRows: () => switch (outcome) {
@@ -146,7 +146,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                       events,
                       ref.read(sweProvider),
                     ),
-                    CalcSweError() => [],
+                    CalcError() => [],
                   },
                 ),
               ],
@@ -163,7 +163,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
   Widget _buildResults(CalcOutcome<List<EclipseEvent>> outcome) {
     final List<EclipseEvent> events;
     switch (outcome) {
-      case CalcSweError(:final message):
+      case CalcError(:final message):
         return Center(child: Text('Calculation error: $message'));
       case CalcOk(value: final v):
         events = v;

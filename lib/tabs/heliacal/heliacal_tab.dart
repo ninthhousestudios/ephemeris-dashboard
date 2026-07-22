@@ -225,7 +225,7 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                   builder: (context, ref, _) {
                     final results = switch (ref.watch(heliacalResultProvider)) {
                       CalcOk(:final value) => value,
-                      CalcSweError() => null,
+                      CalcError() => null,
                     };
                     final jd = ref.watch(contextBarProvider).jdUt;
                     return ExportButton(
@@ -396,7 +396,7 @@ class _ResultsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final results = switch (ref.watch(heliacalResultProvider)) {
       CalcOk(:final value) => value,
-      CalcSweError(:final message) => <HeliacalCalcResult>[
+      CalcError(:final message) => <HeliacalCalcResult>[
         HeliacalCalcResult(
           objectName: '(error)',
           eventType: ref.read(heliacalEventTypeProvider),

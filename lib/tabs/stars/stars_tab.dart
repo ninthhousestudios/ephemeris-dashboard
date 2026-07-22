@@ -88,7 +88,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                     final fmt2 = ref.watch(starsFormatProvider);
                     final results = switch (outcome) {
                       CalcOk(value: final r) => r,
-                      CalcSweError() => const <StarResult>[],
+                      CalcError() => const <StarResult>[],
                     };
                     return ExportButton(
                       hasResults: results.isNotEmpty,
@@ -141,7 +141,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     final fmt = ref.watch(starsFormatProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text(
           'Calculation error: $message',
           style: TextStyle(color: theme.colorScheme.error),

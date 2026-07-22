@@ -244,7 +244,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                           hasResults: outcome is CalcOk<DatesResult>,
                           getRows: () => switch (outcome) {
                             CalcOk(value: final r) => datesToExportRows(r),
-                            CalcSweError() => [],
+                            CalcError() => [],
                           },
                           filenameStem: 'swe_dates_${jd.toStringAsFixed(4)}',
                         );
@@ -266,7 +266,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   Widget _buildResults() {
     final outcome = ref.watch(datesResultProvider);
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final result) => _buildResultCards(result),

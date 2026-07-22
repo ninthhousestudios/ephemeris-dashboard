@@ -12,7 +12,10 @@ final class CalcOk<T> extends CalcOutcome<T> {
   final T value;
 }
 
-final class CalcSweError<T> extends CalcOutcome<T> {
-  const CalcSweError(this.message);
+/// A calculation that failed. [message] is the engine's message for a
+/// `SweException`; in a series it may also be the `toString()` of any other
+/// error thrown by the step — see `computeSeries`.
+final class CalcError<T> extends CalcOutcome<T> {
+  const CalcError(this.message);
   final String message;
 }

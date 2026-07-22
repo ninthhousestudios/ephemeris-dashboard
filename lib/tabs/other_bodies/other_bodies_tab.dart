@@ -278,7 +278,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     final outcome = ref.watch(otherBodiesResultsProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final results) =>
@@ -426,7 +426,7 @@ class OtherBodiesFormatTrailing extends ConsumerWidget {
     final outcome = ref.watch(otherBodiesResultsProvider);
     final results = switch (outcome) {
       CalcOk(value: final v) => v,
-      CalcSweError() => const <OtherBodyResult>[],
+      CalcError() => const <OtherBodyResult>[],
     };
     final jd = ref.watch(contextBarProvider).jdUt;
     return Row(
@@ -454,7 +454,7 @@ class OtherBodiesFormatTrailing extends ConsumerWidget {
             );
           },
           filenameStem: 'swe_other_bodies_${jd.toStringAsFixed(4)}',
-          disabledTooltip: outcome is CalcSweError
+          disabledTooltip: outcome is CalcError
               ? 'Export disabled: calculation error'
               : null,
         ),

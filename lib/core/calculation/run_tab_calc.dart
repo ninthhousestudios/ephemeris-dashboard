@@ -25,7 +25,7 @@ CalcOutcome<T> _runTabCalc<T>(
     runner.apply(globals);
     return CalcOk(execute(runner, globals, Moment.fromUt(jdUt, runner.eph)));
   } on SweException catch (e) {
-    return CalcSweError(e.message);
+    return CalcError(e.message);
   }
 }
 
@@ -68,6 +68,16 @@ List<(Moment, CalcOutcome<T>)> runTabCalcSeries<T>(
 }
 
 /// The series loop, without Riverpod. The engine must already be configured.
+///
+/// Error contract, deliberately wider than the engine's: *anything* thrown
+/// while building a step's Moment or running [compute] — a [SweException], but
+/// equally a RangeError or an UnsupportedError out of a degenerate step value —
+/// becomes a [CalcError] for that step alone, and the rest of the series still
+/// computes. Per ADR-0001 a tab's result is a synchronous projection of the
+/// Context, so an escaping throw costs the whole table rather than one row.
+///
+/// If the Moment itself could not be built, the row is reported at a NaN UT, so
+/// the result length always matches [SeriesSpec.effectiveRowCount].
 List<(Moment, CalcOutcome<T>)> computeSeries<T>(
   Ephemeris eph,
   SeriesSpec spec,
@@ -75,12 +85,18 @@ List<(Moment, CalcOutcome<T>)> computeSeries<T>(
 ) {
   final steps = <(Moment, CalcOutcome<T>)>[];
   for (var i = 0; i < spec.effectiveRowCount; i++) {
-    final moment = Moment.fromUt(spec.utAt(i), eph);
+    Moment? moment;
     try {
+      moment = Moment.fromUt(spec.utAt(i), eph);
       steps.add((moment, CalcOk(compute(eph, moment))));
     } on SweException catch (e) {
-      steps.add((moment, CalcSweError(e.message)));
+      steps.add((moment ?? _unbuiltMoment, CalcError(e.message)));
+    } catch (e) {
+      steps.add((moment ?? _unbuiltMoment, CalcError(e.toString())));
     }
   }
   return steps;
 }
+
+/// Stand-in for a step whose UT could not be computed.
+final _unbuiltMoment = Moment(ut: double.nan, deltaT: 0);

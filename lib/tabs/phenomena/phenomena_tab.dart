@@ -341,7 +341,7 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
                           results,
                           format,
                         ),
-                        CalcSweError() => [],
+                        CalcError() => [],
                       },
                       filenameStem: 'swe_phenomena_${jd.toStringAsFixed(4)}',
                     );
@@ -368,7 +368,7 @@ class _ResultsView extends ConsumerWidget {
     final outcome = ref.watch(phenomenaResultsProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final results) =>

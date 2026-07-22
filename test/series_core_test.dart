@@ -21,7 +21,7 @@ SeriesSpec _spec({
   StepUnit unit = StepUnit.days,
   int rows = 5,
 }) => SeriesSpec(
-  start: Moment(ut: start, et: start),
+  start: Moment(ut: start, deltaT: 0),
   stepValue: stepValue,
   stepUnit: unit,
   rowCount: rows,
@@ -37,6 +37,17 @@ void main() {
       expect(m.ut, j2000);
       expect(m.et, closeTo(j2000 + 0.0008, 1e-12));
       expect(m.deltaT, closeTo(0.0008, 1e-12));
+    });
+
+    test('an explicit deltaT survives the constructor intact', () {
+      // The lossy form is what this constructor exists to avoid: at Julian Day
+      // magnitudes `et - ut` returns 0.000800000037997961 for an exact 0.0008.
+      final exact = Moment(ut: j2000, deltaT: 0.0008);
+      expect(exact.deltaT, 0.0008);
+
+      final lossy = Moment.fromUtAndEt(ut: j2000, et: j2000 + 0.0008);
+      expect(lossy.deltaT, isNot(0.0008));
+      expect(lossy.deltaT, closeTo(0.0008, 1e-9));
     });
 
     test('does not touch the engine unless ET is asked for', () {
@@ -254,7 +265,7 @@ void main() {
       ]);
     });
 
-    test('a throwing step yields CalcSweError for that step only', () {
+    test('a throwing step yields CalcError for that step only', () {
       final fake = FakeEphemeris()..onDeltat = (jd) => 0.0;
 
       final steps = computeSeries(fake, _spec(rows: 3), (eph, moment) {
@@ -268,8 +279,46 @@ void main() {
       expect(steps[0].$2, isA<CalcOk<double>>());
       expect(steps[2].$2, isA<CalcOk<double>>());
       final failed = steps[1].$2;
-      expect(failed, isA<CalcSweError<double>>());
-      expect((failed as CalcSweError<double>).message, 'no data for this step');
+      expect(failed, isA<CalcError<double>>());
+      expect((failed as CalcError<double>).message, 'no data for this step');
+    });
+
+    test('a non-Swiss throw is isolated to its own step too', () {
+      // The guard is deliberately wider than SweException: a step that throws
+      // a plain Dart error must not take the whole table down with it.
+      final fake = FakeEphemeris()..onDeltat = (jd) => 0.0;
+
+      final steps = computeSeries(fake, _spec(rows: 3), (eph, moment) {
+        if (moment.ut == j2000 + 1) {
+          throw StateError('not the engine');
+        }
+        return moment.ut;
+      });
+
+      expect(steps, hasLength(3));
+      expect(steps[0].$2, isA<CalcOk<double>>());
+      expect(steps[2].$2, isA<CalcOk<double>>());
+      expect(steps[1].$2, isA<CalcError<double>>());
+      expect(
+        (steps[1].$2 as CalcError<double>).message,
+        contains('not the engine'),
+      );
+    });
+
+    test('a step whose Moment cannot be built still yields a row', () {
+      // A NaN step value on a calendar unit throws UnsupportedError out of
+      // `.round()` inside utAt — before compute is ever reached.
+      final fake = FakeEphemeris()..onDeltat = (jd) => 0.0;
+
+      final steps = computeSeries(
+        fake,
+        _spec(rows: 3, stepValue: double.nan, unit: StepUnit.months),
+        (eph, moment) => moment.ut,
+      );
+
+      expect(steps, hasLength(3));
+      expect(steps.map((s) => s.$2), everyElement(isA<CalcError<double>>()));
+      expect(steps[1].$1.ut, isNaN, reason: 'the row is reported at a NaN UT');
     });
 
     test('the hard cap bounds the number of engine passes', () {

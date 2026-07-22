@@ -195,7 +195,7 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                       CalcOk(value: final result) => crossingToExportRows(
                         result,
                       ),
-                      CalcSweError() => [],
+                      CalcError() => [],
                     },
                     filenameStem: 'swe_crossings_${jd.toStringAsFixed(4)}',
                   );
@@ -220,7 +220,7 @@ class _ResultView extends ConsumerWidget {
     final outcome = ref.watch(crossingResultProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final result) => _buildResult(context, ref, result),

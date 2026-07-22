@@ -90,7 +90,7 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                           ayanamsaResultsProvider,
                         )) {
                           CalcOk(:final value) => value,
-                          CalcSweError() => const <AyanamsaCalcResult>[],
+                          CalcError() => const <AyanamsaCalcResult>[],
                         };
                         final fmt = ref.watch(ayanamsaFormatProvider);
                         final jd = ref.watch(contextBarProvider).jdUt;
@@ -150,7 +150,7 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
     final format = ref.watch(ayanamsaFormatProvider);
     final results = switch (ref.watch(ayanamsaResultsProvider)) {
       CalcOk(:final value) => value,
-      CalcSweError() => const <AyanamsaCalcResult>[],
+      CalcError() => const <AyanamsaCalcResult>[],
     };
 
     if (results.isEmpty) {

@@ -282,7 +282,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     final outcome = ref.watch(planetocentricResultsProvider);
 
     return switch (outcome) {
-      CalcSweError(:final message) => Center(
+      CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
       CalcOk(value: final results) =>
@@ -431,7 +431,7 @@ class PlanetoCentricFormatTrailing extends ConsumerWidget {
     final outcome = ref.watch(planetocentricResultsProvider);
     final results = switch (outcome) {
       CalcOk(value: final v) => v,
-      CalcSweError() => const <PlanetoCentricResult>[],
+      CalcError() => const <PlanetoCentricResult>[],
     };
     final jd = ref.watch(contextBarProvider).jdUt;
     return Row(

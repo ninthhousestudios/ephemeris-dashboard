@@ -283,7 +283,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                 ExportButton(
                   hasResults: switch (outcome) {
                     CalcOk(value: final rows) => rows.isNotEmpty,
-                    CalcSweError() => false,
+                    CalcError() => false,
                   },
                   filenameStem: 'table_view',
                   getRows: () => switch (outcome) {
@@ -298,7 +298,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                       isXyz: ref.read(flagBarProvider).isXyz,
                       columns: ref.read(tableViewColumnsProvider),
                     ),
-                    CalcSweError() => [],
+                    CalcError() => [],
                   },
                 ),
               ],
@@ -520,7 +520,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
   ) {
     final List<EphemerisRow> rows;
     switch (outcome) {
-      case CalcSweError(:final message):
+      case CalcError(:final message):
         return Center(child: Text('Calculation error: $message'));
       case CalcOk(value: final v):
         rows = v;
@@ -677,7 +677,7 @@ class TableViewFormatTrailing extends ConsumerWidget {
         ExportButton(
           hasResults: switch (outcome) {
             CalcOk(value: final r) => r.isNotEmpty,
-            CalcSweError() => false,
+            CalcError() => false,
           },
           getRows: () => switch (outcome) {
             CalcOk(value: final r) => tableViewToExportRows(
@@ -691,7 +691,7 @@ class TableViewFormatTrailing extends ConsumerWidget {
               isXyz: ref.read(flagBarProvider).isXyz,
               columns: ref.read(tableViewColumnsProvider),
             ),
-            CalcSweError() => [],
+            CalcError() => [],
           },
           filenameStem: 'swe_table',
         ),
