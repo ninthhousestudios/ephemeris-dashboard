@@ -6,12 +6,15 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 class PlanetoCentricResult {
   const PlanetoCentricResult({
@@ -155,30 +158,47 @@ List<PlanetoCentricResult> computePlanetocentric({
   return results;
 }
 
+List<PlanetoCentricResult> Function(Ephemeris, Moment) _planetocentricCompute(
+  Ref ref,
+) {
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final centerBody = ref.watch(planetocentricCenterProvider);
+  final bodies = ref.watch(planetocentricBodiesProvider);
+
+  return (eph, moment) => computePlanetocentric(
+    eph: eph,
+    jdEt: moment.et,
+    iflag: flags.iflag,
+    centerBody: centerBody,
+    centerName: safeGetName(swe, centerBody),
+    targetBodies: bodies,
+    getName: (body) => safeGetName(swe, body),
+  );
+}
+
 final _planetocentricCalcProvider =
     Provider<CalcOutcome<List<PlanetoCentricResult>>>((ref) {
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final centerBody = ref.watch(planetocentricCenterProvider);
-      final bodies = ref.watch(planetocentricBodiesProvider);
-
-      return runTabCalc(
-        ref,
-        compute: (eph, moment) => computePlanetocentric(
-          eph: eph,
-          jdEt: moment.et,
-          iflag: flags.iflag,
-          centerBody: centerBody,
-          centerName: safeGetName(swe, centerBody),
-          targetBodies: bodies,
-          getName: (body) => safeGetName(swe, body),
-        ),
-      );
+      return runTabCalc(ref, compute: _planetocentricCompute(ref));
     });
 
 final planetocentricResultsProvider =
     Provider<CalcOutcome<List<PlanetoCentricResult>>>((ref) {
       return ref.watch(_planetocentricCalcProvider);
+    });
+
+final planetocentricSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<List<PlanetoCentricResult>>)>>((ref) {
+      final settings = ref.watch(
+        seriesSettingsProvider(AppTab.planetocentric.name),
+      );
+      if (!settings.enabled) return const [];
+
+      return runTabCalcSeries(
+        ref,
+        compute: _planetocentricCompute(ref),
+        settings: settings,
+      );
     });
 
 List<ExportRow> planetocentricToExportRows(

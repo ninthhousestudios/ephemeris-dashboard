@@ -6,16 +6,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/catalog.dart';
+import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
+import '../../layout/tab_definitions.dart';
 import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import 'planetocentric_provider.dart';
 
 class PlanetoCentricTab extends ConsumerStatefulWidget {
@@ -270,10 +276,49 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
           ),
         ),
         const SizedBox(height: 4),
+        SeriesBar(tabId: AppTab.planetocentric.name),
         const Divider(height: 1),
         // ── Results ──
-        _buildResults(),
+        if (ref.watch(
+          seriesSettingsProvider(
+            AppTab.planetocentric.name,
+          ).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          _buildResults(),
       ],
+    );
+  }
+
+  Widget _buildSeries() {
+    final format = ref.watch(planetocentricFormatProvider);
+    final flags = ref.watch(flagBarProvider);
+    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final swe = ref.read(sweProvider);
+    final steps = ref.watch(planetocentricSeriesProvider);
+
+    List<ExportRow> rows(List<PlanetoCentricResult> results) =>
+        planetocentricToExportRows(
+          results,
+          format,
+          isXyz: flags.isXyz,
+          coordValue: flags.coordValue,
+        );
+
+    return SeriesView(
+      tabId: AppTab.planetocentric.name,
+      steps: [
+        for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
+      ],
+      momentLabel: (m) => formatJdDateTime(
+        swe,
+        m.ut,
+        utLabel: false,
+        utcOffset: utcOffset,
+        fallbackDigits: 4,
+      ),
+      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

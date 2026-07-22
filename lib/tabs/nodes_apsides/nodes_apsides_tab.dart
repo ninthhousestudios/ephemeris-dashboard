@@ -7,13 +7,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
+import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import 'nodes_apsides_provider.dart';
 
 const _defaultBodies = <(int, String)>[
@@ -261,10 +268,48 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
             ),
           ),
         ),
+        SeriesBar(tabId: AppTab.nodesApsides.name),
         const Divider(height: 1),
         // ── Results ──
-        const _NodesResults(),
+        if (ref.watch(
+          seriesSettingsProvider(
+            AppTab.nodesApsides.name,
+          ).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          const _NodesResults(),
       ],
+    );
+  }
+
+  Widget _buildSeries() {
+    final format = ref.watch(nodesFormatProvider);
+    final flags = ref.watch(flagBarProvider);
+    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final swe = ref.read(sweProvider);
+    final steps = ref.watch(nodesApsSeriesProvider);
+
+    List<ExportRow> rows(NodesApsResult result) => nodesApsToExportRows(
+      result,
+      format,
+      isXyz: flags.isXyz,
+      coordValue: flags.coordValue,
+    );
+
+    return SeriesView(
+      tabId: AppTab.nodesApsides.name,
+      steps: [
+        for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
+      ],
+      momentLabel: (m) => formatJdDateTime(
+        swe,
+        m.ut,
+        utLabel: false,
+        utcOffset: utcOffset,
+        fallbackDigits: 4,
+      ),
+      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 }

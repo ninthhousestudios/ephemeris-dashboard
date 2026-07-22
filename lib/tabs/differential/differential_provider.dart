@@ -6,12 +6,15 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 /// Body A selection.
 final diffBodyAProvider = StateProvider<int>((ref) => seSun);
@@ -92,31 +95,45 @@ DiffResult computeDifferential({
   );
 }
 
-final _diffCalcProvider = Provider<CalcOutcome<DiffResult>>((ref) {
+DiffResult Function(Ephemeris, Moment) _diffCompute(
+  Ref ref, {
+  double? overrideJd,
+}) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final bodyA = ref.watch(diffBodyAProvider);
   final bodyB = ref.watch(diffBodyBProvider);
-  final overrideJd = ref.watch(diffOverrideJdProvider);
 
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) => computeDifferential(
-      eph: eph,
-      jdUt: overrideJd ?? moment.ut,
-      iflag: flags.iflag,
-      bodyA: bodyA,
-      bodyB: bodyB,
-      nameA: safeGetName(swe, bodyA),
-      nameB: safeGetName(swe, bodyB),
-      degnorm: swe.degnorm,
-      degMidp: swe.degMidp,
-    ),
+  return (eph, moment) => computeDifferential(
+    eph: eph,
+    jdUt: overrideJd ?? moment.ut,
+    iflag: flags.iflag,
+    bodyA: bodyA,
+    bodyB: bodyB,
+    nameA: safeGetName(swe, bodyA),
+    nameB: safeGetName(swe, bodyB),
+    degnorm: swe.degnorm,
+    degMidp: swe.degMidp,
   );
+}
+
+final _diffCalcProvider = Provider<CalcOutcome<DiffResult>>((ref) {
+  final overrideJd = ref.watch(diffOverrideJdProvider);
+  return runTabCalc(ref, compute: _diffCompute(ref, overrideJd: overrideJd));
 });
 
 final diffResultProvider = Provider<CalcOutcome<DiffResult>>((ref) {
   return ref.watch(_diffCalcProvider);
+});
+
+final diffSeriesProvider = Provider<List<(Moment, CalcOutcome<DiffResult>)>>((
+  ref,
+) {
+  final settings = ref.watch(seriesSettingsProvider(AppTab.differential.name));
+  if (!settings.enabled) return const [];
+
+  // Series mode ignores the override JD — each step uses the series Moment.
+  return runTabCalcSeries(ref, compute: _diffCompute(ref), settings: settings);
 });
 
 /// Convert a DiffResult to export rows.

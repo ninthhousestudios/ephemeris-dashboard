@@ -6,12 +6,15 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 /// Body selection for nodes/apsides calculation.
 final nodesBodyProvider = StateProvider<int>((ref) => seMoon);
@@ -93,29 +96,44 @@ NodesApsResult computeNodesApsides({
   );
 }
 
-final _nodesApsCalcProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
+NodesApsResult Function(Ephemeris, Moment) _nodesApsCompute(Ref ref) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final body = ref.watch(nodesBodyProvider);
   final method = ref.watch(nodesMethodProvider);
 
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) => computeNodesApsides(
-      eph: eph,
-      jdUt: moment.ut,
-      deltat: moment.deltaT,
-      body: body,
-      iflag: flags.iflag,
-      method: method,
-      bodyName: safeGetName(swe, body),
-    ),
+  return (eph, moment) => computeNodesApsides(
+    eph: eph,
+    jdUt: moment.ut,
+    deltat: moment.deltaT,
+    body: body,
+    iflag: flags.iflag,
+    method: method,
+    bodyName: safeGetName(swe, body),
   );
+}
+
+final _nodesApsCalcProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
+  return runTabCalc(ref, compute: _nodesApsCompute(ref));
 });
 
 final nodesApsResultsProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
   return ref.watch(_nodesApsCalcProvider);
 });
+
+final nodesApsSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<NodesApsResult>)>>((ref) {
+      final settings = ref.watch(
+        seriesSettingsProvider(AppTab.nodesApsides.name),
+      );
+      if (!settings.enabled) return const [];
+
+      return runTabCalcSeries(
+        ref,
+        compute: _nodesApsCompute(ref),
+        settings: settings,
+      );
+    });
 
 /// Convert a NodesApsResult to export rows.
 List<ExportRow> nodesApsToExportRows(

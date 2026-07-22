@@ -6,12 +6,15 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 /// Selected bodies for phenomena calculation.
 final phenomenaBodiesProvider = StateProvider<List<int>>(
@@ -80,23 +83,24 @@ List<PhenomenaResult> computePhenomena({
   }).toList();
 }
 
-final _phenomenaCalcProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
-  ref,
-) {
+List<PhenomenaResult> Function(Ephemeris, Moment) _phenomenaCompute(Ref ref) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(phenomenaBodiesProvider);
 
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) => computePhenomena(
-      eph: eph,
-      jdUt: moment.ut,
-      iflag: flags.iflag,
-      bodies: bodies,
-      getName: (body) => safeGetName(swe, body),
-    ),
+  return (eph, moment) => computePhenomena(
+    eph: eph,
+    jdUt: moment.ut,
+    iflag: flags.iflag,
+    bodies: bodies,
+    getName: (body) => safeGetName(swe, body),
   );
+}
+
+final _phenomenaCalcProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
+  ref,
+) {
+  return runTabCalc(ref, compute: _phenomenaCompute(ref));
 });
 
 final phenomenaResultsProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
@@ -104,6 +108,18 @@ final phenomenaResultsProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
 ) {
   return ref.watch(_phenomenaCalcProvider);
 });
+
+final phenomenaSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<List<PhenomenaResult>>)>>((ref) {
+      final settings = ref.watch(seriesSettingsProvider(AppTab.phenomena.name));
+      if (!settings.enabled) return const [];
+
+      return runTabCalcSeries(
+        ref,
+        compute: _phenomenaCompute(ref),
+        settings: settings,
+      );
+    });
 
 /// Convert phenomena results to export rows.
 List<ExportRow> phenomenaToExportRows(
