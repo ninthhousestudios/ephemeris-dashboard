@@ -14,12 +14,6 @@
 xcode-devices.md
 ios-error.md
 macos-error.md
-# Golden baselines ARE tracked — a committed baseline to diff against is the
-# whole point of snapshot tests. Re-include the flat baseline PNGs despite the
-# global *.png ignore above (the `*` won't cross `/`, so the failures/ diff
-# images Flutter writes on a mismatch stay ignored).
-!test/goldens/*.png
-test/goldens/failures/
 migrate_working_dir/
 release/
 xcode-warnings/

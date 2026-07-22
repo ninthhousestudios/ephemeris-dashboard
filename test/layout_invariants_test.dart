@@ -4,10 +4,11 @@
 /// Layout invariants for every screen-level surface, swept across viewports
 /// and text scales.
 ///
-/// This is the structural counterpart to the golden canaries in
-/// `test/goldens/`: it asserts the rules CLAUDE.md calls non-negotiable under
-/// "Zoom & Responsive Scaling" and fails with a readable name rather than a
-/// pixel diff.
+/// This is the *only* layout regression net — the golden image suite was
+/// removed (see CLAUDE.md "Layout Tests"). It asserts the rules CLAUDE.md calls
+/// non-negotiable under "Zoom & Responsive Scaling" and fails with a readable
+/// surface name rather than a pixel diff, so it stays quiet through cosmetic
+/// change and speaks up on a real one.
 ///
 /// The scales include fractional values on purpose. Fixed widths and aspect
 /// ratios tend to survive 1.0 and 2.0 and break at 1.15 or 1.3, where

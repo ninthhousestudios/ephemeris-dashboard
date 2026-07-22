@@ -2,8 +2,9 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 /// Shared widget-test fixtures: fake Results, the provider overrides that feed
-/// them to a tab, and a pump helper. Used by both the golden canaries in
-/// `test/goldens/` and the layout invariants in `test/layout_invariants_test.dart`.
+/// them to a tab, and a pump helper. [screenSurfaces] is the list
+/// `test/layout_invariants_test.dart` sweeps — a new screen-level surface added
+/// there is picked up by the sweep with no other change.
 library;
 
 import 'package:flutter/material.dart';

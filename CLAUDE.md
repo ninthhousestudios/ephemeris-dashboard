@@ -24,7 +24,7 @@ lib/
   widgets/                         # Reusable widgets (context_bar, flag_bar, result_card)
   chart_formats/                   # File format parsers (.chtk, .jhd, .aaf, etc.)
   theme/                           # Dark/light/cosmic/forest themes
-test/goldens/                      # Golden image tests (54 PNGs)
+test/layout_invariants_test.dart   # Overflow/zoom sweep over every surface
 ```
 
 ## Architecture: Zoom & Responsive Scaling
@@ -101,23 +101,28 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
 
 ```bash
 flutter run -d linux    # or macos, windows, chrome
-flutter test test/goldens/ --update-goldens   # regenerate golden images
-flutter test test/goldens/                    # compare against baselines
+flutter test            # the whole suite; there is no separate path to run
 ```
 
-## Golden Tests
+## Layout Tests
 
-Two layers, deliberately:
+**There are no golden image tests.** Don't add any. Snapshot baselines were
+tried twice and removed twice: they spent three separate defects being green
+against images nobody compared (swe-dashboard/63), and once genuinely working
+they failed on ~1% cosmetic drift after every unrelated UI edit while never
+catching a bug. Verification of *appearance* is Josh's, by eye. Verification of
+*layout correctness* is the sweep below, which fails on facts rather than
+pixels.
 
-- **`test/layout_invariants_test.dart`** — the load-bearing one. Sweeps all 18
-  screen-level surfaces x 3 viewports (400x800 mobile, 800x1024 tablet,
-  1400x900 desktop) x 5 text scales (1.0, 1.15, 1.3, 1.7, 2.0) and asserts no
-  overflow, plus that each surface still paints text at 2x. Diffs as text, no
-  binaries. Run it with plain `flutter test`.
-- **12 golden PNGs** — canaries only, AppShell and ContextBar at 3 sizes x 2
-  themes. Composed surfaces where an unnoticed reflow is plausible. Everything
-  else was deleted in favour of the sweep above: 108 baselines that nobody
-  reviewed were costing more than they returned.
+**`test/layout_invariants_test.dart`** is the load-bearing one. It sweeps all
+18 screen-level surfaces x 3 viewports (400x800 mobile, 800x1024 tablet,
+1400x900 desktop) x 5 text scales (1.0, 1.15, 1.3, 1.7, 2.0) and asserts no
+overflow, plus that each surface still paints text at 2x. Diffs as text, no
+binaries, no baselines to regenerate.
+
+`test/support/widget_fixtures.dart` holds the shared surface list and pump
+helpers it runs against — add a new screen-level surface there and the sweep
+picks it up.
 
 `_knownOverflows` in the invariants test is an itemised defect list
 (yojana `swe-dashboard/65`), **checked both ways** — a new overflow fails, and
@@ -133,20 +138,6 @@ Overflow-collecting tests must restore `FlutterError.onError` **before** any
 `expect`. Calling `expect` while it is overridden trips a binding assertion and
 flutter_tools then deadlocks on shutdown instead of reporting the failure;
 `addTearDown` is too late.
-
-The golden baselines are the tracked PNGs in `test/goldens/`, and `flutter test`
-(no path) skips the golden suite — run `test/goldens/` explicitly.
-`golden_helper.dart` carries three constraints that were each broken once and
-are easy to break again:
-
-- `LocalFileComparator` takes the URI of a **test file** and uses its parent as
-  the basedir. Handing it a directory silently writes baselines one level up.
-- `ComparisonResult.diffPercent` is a **0..1 fraction**. `_pixelTolerance` is
-  0.01 for 1%; a threshold of 1.0 accepts every image, including a size mismatch.
-- `MaterialApp` lerps theme changes over `kThemeAnimationDuration`, and
-  `generateGoldens` reuses one tester across all six variants with zero-duration
-  pumps — hence `themeAnimationDuration: Duration.zero`. Without it every
-  "dark" golden silently renders in the light theme.
 
 ## Agent skills
 

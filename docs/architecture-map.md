@@ -183,7 +183,7 @@ them small:
 |------|-------|
 | `test/rust_eph_test.dart` | RustEph: every calculation family, reconfigure, sidereal/topocentric config |
 | `test/ephemeris_runner_test.dart` | EphemerisRunner: apply configures engine, skips on unchanged globals, numeric accuracy |
-| `test/goldens/*.dart` | Widget golden image tests (54 PNGs, 3 sizes x 2 themes) |
+| `test/layout_invariants_test.dart` | Overflow/zoom sweep: 18 surfaces x 3 viewports x 5 text scales. No golden images exist — see CLAUDE.md "Layout Tests" |
 
 ## Tab registry (lib/layout/)
 
