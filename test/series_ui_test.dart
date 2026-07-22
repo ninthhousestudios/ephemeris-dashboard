@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
 import 'package:swe_dashboard/core/calculation/moment.dart';
+import 'package:swe_dashboard/core/calculation/series_export.dart';
 import 'package:swe_dashboard/core/calculation/series_settings.dart';
 import 'package:swe_dashboard/core/calculation/series_settings_provider.dart';
 import 'package:swe_dashboard/core/calculation/series_spec.dart';
@@ -117,6 +118,137 @@ void main() {
       final table = buildSeriesTable(const []);
       expect(table.isEmpty, isTrue);
       expect(table.hasErrors, isFalse);
+    });
+  });
+
+  group('seriesToExportRows', () {
+    final table = buildSeriesTable([
+      _ok(2451545.0, [
+        _row('Sun', [('Longitude', '10'), ('Latitude', '0')]),
+        _row('Moon', [('Longitude', '20'), ('Latitude', '5')]),
+      ]),
+      _err(2451546.0, 'out of range'),
+    ]);
+
+    String label(Moment m) => 'day ${m.ut.toStringAsFixed(0)}';
+
+    test('vertical is one row per (step, body), JD and date leading', () {
+      final rows = seriesToExportRows(
+        table,
+        SeriesLayout.vertical,
+        momentLabel: label,
+      );
+
+      expect(rows.map((r) => r.header), ['Sun', 'Moon', '']);
+      expect(rows[0].fields, [
+        ('JD', '2451545.00000000'),
+        ('Date', 'day 2451545'),
+        ('Longitude', '10'),
+        ('Latitude', '0'),
+      ]);
+      expect(rows[1].fields.last, ('Latitude', '5'));
+      // The errored step is one row carrying the message, not one per body.
+      expect(rows[2].fields.last, ('Error', 'out of range'));
+    });
+
+    test('horizontal is one row per step in grid column order', () {
+      final rows = seriesToExportRows(
+        table,
+        SeriesLayout.horizontal,
+        momentLabel: label,
+      );
+
+      expect(rows.length, 2);
+      expect(rows[0].header, 'day 2451545');
+      expect(rows[0].fields, [
+        ('JD', '2451545.00000000'),
+        ('Date', 'day 2451545'),
+        ('Sun Longitude', '10'),
+        ('Sun Latitude', '0'),
+        ('Moon Longitude', '20'),
+        ('Moon Latitude', '5'),
+      ]);
+      // Column order matches the grid, so an errored step keeps its shape.
+      expect(rows[1].fields, [
+        ('JD', '2451546.00000000'),
+        ('Date', 'day 2451546'),
+        ('Error', 'out of range'),
+      ]);
+    });
+
+    test('a body missing from a step is a hole, not a shifted column', () {
+      final sparse = buildSeriesTable([
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+        ]),
+        _ok(2.0, [
+          _row('Sun', [('Longitude', '11')]),
+          _row('Chiron', [('Longitude', '99')]),
+        ]),
+      ]);
+
+      final horizontal = seriesToExportRows(
+        sparse,
+        SeriesLayout.horizontal,
+        momentLabel: label,
+      );
+      expect(horizontal[0].fields.last, ('Chiron Longitude', ''));
+
+      // Vertically the same hole is an absent row, not an empty one.
+      final vertical = seriesToExportRows(
+        sparse,
+        SeriesLayout.vertical,
+        momentLabel: label,
+      );
+      expect(vertical.map((r) => r.header), ['Sun', 'Sun', 'Chiron']);
+    });
+
+    test('hidden quantities stay out of both layouts', () {
+      final hidden = buildSeriesTable(
+        [
+          _ok(1.0, [
+            _row('Sun', [('Longitude', '10'), ('Latitude', '0')]),
+          ]),
+        ],
+        hiddenLabels: {'Latitude'},
+      );
+
+      for (final layout in SeriesLayout.values) {
+        final rows = seriesToExportRows(hidden, layout, momentLabel: label);
+        expect(
+          rows.single.fields.map((f) => f.$1),
+          isNot(contains(anyOf('Latitude', 'Sun Latitude'))),
+        );
+      }
+    });
+
+    test('the formats consume both layouts', () {
+      final vertical = seriesToExportRows(
+        table,
+        SeriesLayout.vertical,
+        momentLabel: label,
+      );
+      final horizontal = seriesToExportRows(
+        table,
+        SeriesLayout.horizontal,
+        momentLabel: label,
+      );
+
+      expect(
+        ExportService.toTsv(vertical).split('\n').first,
+        'Name\tJD\tDate\tLongitude\tLatitude\tError',
+      );
+      expect(ExportService.toTsv(vertical).split('\n').length, 4);
+      expect(
+        ExportService.toCsv(horizontal).split('\n').first,
+        'Name,JD,Date,Sun Longitude,Sun Latitude,Moon Longitude,Moon Latitude,'
+        'Error',
+      );
+      expect(ExportService.toJson(horizontal), contains('"Sun Longitude"'));
+      expect(
+        ExportService.toColonSeparated(vertical),
+        startsWith('Sun\nJD: 2451545.00000000\n'),
+      );
     });
   });
 
@@ -405,6 +537,36 @@ void main() {
       expect(find.text('Sun Latitude'), findsNothing);
       expect(find.text('Moon Latitude'), findsNothing);
       expect(find.text('Sun Longitude'), findsOneWidget);
+    });
+
+    testWidgets('SeriesView export menu offers both layouts', (tester) async {
+      final steps = [
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+        ]),
+      ];
+
+      await pump(
+        tester,
+        SeriesView(
+          tabId: 'planets',
+          steps: steps,
+          momentLabel: (m) => m.ut.toStringAsFixed(1),
+        ),
+        size: const Size(1400, 900),
+      );
+
+      await tester.tap(find.byIcon(Icons.arrow_drop_down));
+      await tester.pumpAndSettle();
+
+      expect(find.text(SeriesLayout.vertical.label), findsOneWidget);
+      expect(find.text(SeriesLayout.horizontal.label), findsOneWidget);
+      expect(find.text('Copy as TSV'), findsOneWidget);
+
+      // Choosing a layout leaves the menu open so a format can follow.
+      await tester.tap(find.text(SeriesLayout.horizontal.label));
+      await tester.pumpAndSettle();
+      expect(find.text('Copy as TSV'), findsOneWidget);
     });
   });
 }
