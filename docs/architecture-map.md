@@ -3,7 +3,7 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-22 (swe-dashboard/54: series rollout Phenomena, Nodes/Apsides, Planetocentric, Differential).
+Last updated: 2026-07-22 (swe-dashboard/55: series rollout Houses, Ayanamsa, Dates — all tabs now series-capable).
 
 ## Provider graph (data flow)
 
@@ -163,8 +163,12 @@ two-axis scroll and intrinsic column widths in the grid.
 
 The Planets tab is the worked example (swe-dashboard/51); Other Bodies and
 Stars were rolled out in swe-dashboard/53; Phenomena, Nodes/Apsides,
-Planetocentric, and Differential in swe-dashboard/54 — all following the
-identical pattern. Four pieces, all of them small:
+Planetocentric, and Differential in swe-dashboard/54; Houses, Ayanamsa, and
+Dates in swe-dashboard/55 — all eligible tabs now have series mode. Ayanamsa's
+lifted compute captures `runner`/`globals` from ref for per-mode `reconfigure`,
+using `runTabCalc` instead of `runTabCalcWithOverrides`. Dates ignores the
+override JD in series mode (the Context Moment is the series start). Four
+pieces, all of them small:
 
 1. **Lift the compute binding** out of the single-Moment provider into a
    `_xCompute(ref)` returning `T Function(Ephemeris, Moment)`, so both modes
