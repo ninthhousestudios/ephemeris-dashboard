@@ -50,7 +50,6 @@ const _knownOverflows = <String, Set<String>>{
   'coordinates_tab': {'mobile @ 2.0x'},
   'dates_tab': {'mobile @ 1.3x'},
   'differential_tab': {'mobile @ 1.15x'},
-  'heliacal_tab': {'mobile @ 2.0x'},
   'math_tab': {'mobile @ 1.7x'},
 };
 
