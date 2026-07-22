@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'calculation/series_settings.dart';
+import 'calculation/series_spec.dart';
 import 'context_state.dart';
 import 'flag_state.dart';
 import '../layout/tab_definitions.dart';
@@ -157,6 +159,49 @@ class PersistenceService {
     return AppTab.values.firstWhere(
       (e) => e.name == name,
       orElse: () => AppTab.planets,
+    );
+  }
+
+  // ── Series mode (per tab) ──
+
+  String _seriesKey(String tabId, String field) => 'series_${tabId}_$field';
+
+  void saveSeriesSettings(String tabId, SeriesSettings s) {
+    _prefs.setBool(_seriesKey(tabId, 'enabled'), s.enabled);
+    _prefs.setDouble(_seriesKey(tabId, 'step_value'), s.stepValue);
+    _prefs.setString(_seriesKey(tabId, 'step_unit'), s.stepUnit.name);
+    _prefs.setInt(_seriesKey(tabId, 'row_count'), s.rowCount);
+    _prefs.setStringList(
+      _seriesKey(tabId, 'hidden_labels'),
+      s.hiddenLabels.toList(),
+    );
+  }
+
+  /// Loaded field by field against the defaults, so a tab that has never been
+  /// in series mode — and a stored unit name from a since-renamed enum —
+  /// both come back as a usable default rather than as nothing.
+  SeriesSettings loadSeriesSettings(String tabId) {
+    const defaults = SeriesSettings();
+    final unitName = _prefs.getString(_seriesKey(tabId, 'step_unit'));
+    final unit = unitName == null
+        ? defaults.stepUnit
+        : StepUnit.values.firstWhere(
+            (u) => u.name == unitName,
+            orElse: () => defaults.stepUnit,
+          );
+    final stepValue =
+        _prefs.getDouble(_seriesKey(tabId, 'step_value')) ?? defaults.stepValue;
+    return SeriesSettings(
+      enabled: _prefs.getBool(_seriesKey(tabId, 'enabled')) ?? defaults.enabled,
+      // A stored value the unit no longer accepts (the unit changed, or an
+      // older build wrote it) would otherwise reach the series as-is.
+      stepValue: unit.snapStepValue(stepValue),
+      stepUnit: unit,
+      rowCount:
+          _prefs.getInt(_seriesKey(tabId, 'row_count')) ?? defaults.rowCount,
+      hiddenLabels:
+          _prefs.getStringList(_seriesKey(tabId, 'hidden_labels'))?.toSet() ??
+          defaults.hiddenLabels,
     );
   }
 

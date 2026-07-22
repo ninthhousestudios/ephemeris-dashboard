@@ -42,6 +42,18 @@ enum StepUnit {
       stepValue != 0 &&
       (!isCalendar || stepValue == stepValue.roundToDouble());
 
+  /// The nearest value this unit accepts, for carrying a step value across a
+  /// unit switch: 2.5 Days is meaningful, 2.5 Months is not.
+  ///
+  /// Rounding first preserves the user's magnitude and sign where it can; the
+  /// ±1 fallback is for values no rounding rescues (0, NaN, infinity).
+  double snapStepValue(double current) {
+    if (acceptsStepValue(current)) return current;
+    final rounded = current.roundToDouble();
+    if (acceptsStepValue(rounded)) return rounded;
+    return current.isNegative ? -1.0 : 1.0;
+  }
+
   /// UT of step [index] of a series starting at [startUt] and stepping
   /// [stepValue] of this unit. A negative [stepValue] steps backward.
   ///
@@ -72,6 +84,23 @@ const int seriesSoftRowCap = 500;
 /// (ADR-0001), so an unbounded series would freeze the UI.
 const int seriesHardRowCap = 2000;
 
+/// User-visible warning about a requested row count, or null when it is
+/// unremarkable.
+///
+/// Free of [SeriesSpec] so the series bar can warn about a row count as it is
+/// typed, before there is a Moment to start from.
+String? rowCountWarning(int rowCount) {
+  if (rowCount > seriesHardRowCap) {
+    return 'Row count capped at $seriesHardRowCap (requested $rowCount). '
+        'The series is computed on the UI thread.';
+  }
+  if (rowCount > seriesSoftRowCap) {
+    return '$rowCount rows is above the $seriesSoftRowCap-row comfort limit — '
+        'recompute may be visibly slow.';
+  }
+  return null;
+}
+
 /// Everything needed to turn one Moment into N: where to start, how far to
 /// step, and how many rows to produce.
 ///
@@ -99,17 +128,7 @@ class SeriesSpec {
   bool get exceedsHardCap => rowCount > seriesHardRowCap;
 
   /// User-visible warning about the row count, or null when it is unremarkable.
-  String? get warning {
-    if (exceedsHardCap) {
-      return 'Row count capped at $seriesHardRowCap (requested $rowCount). '
-          'The series is computed on the UI thread.';
-    }
-    if (exceedsSoftCap) {
-      return '$effectiveRowCount rows is above the $seriesSoftRowCap-row '
-          'comfort limit — recompute may be visibly slow.';
-    }
-    return null;
-  }
+  String? get warning => rowCountWarning(rowCount);
 
   /// UT of step [index], counting from 0.
   double utAt(int index) => stepUnit.advanceFrom(start.ut, stepValue, index);

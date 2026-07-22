@@ -57,11 +57,8 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
   /// series it produced.
   void _onStepUnitChanged(StepUnit unit) {
     final current = ref.read(tableViewStepValueProvider);
-    if (!unit.acceptsStepValue(current)) {
-      final snapped = current.roundToDouble();
-      final usable = unit.acceptsStepValue(snapped)
-          ? snapped
-          : (current.isNegative ? -1.0 : 1.0);
+    final usable = unit.snapStepValue(current);
+    if (usable != current) {
       ref.read(tableViewStepValueProvider.notifier).state = usable;
       _stepValueController.text = usable.toStringAsFixed(0);
     }

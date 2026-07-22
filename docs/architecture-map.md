@@ -30,6 +30,9 @@ appliedGlobalsProvider (AppliedGlobals)
 | `moment.dart` | `Moment` | An instant in both time scales: `ut` (canonical) and `et` (via engine ΔT, derived on first access so UT-only calculations pay nothing). `deltaT` is stored, not computed as `et - ut`, which loses precision at JD magnitudes. |
 | `series_spec.dart` | `StepUnit`, `SeriesSpec`, `seriesSoftRowCap` (500), `seriesHardRowCap` (2000) | Start Moment + step value/unit + row count → `utAt(index)`. `effectiveRowCount` clamps to the hard cap; `warning` is the user-visible soft/hard-cap message. `StepUnit.advanceFrom` owns the step arithmetic: seconds–weeks are a fixed span of days, months/years step the civil calendar. `StepUnit.acceptsStepValue` is the single gate on step-value input (rejects zero, non-finite, and fractional values on calendar units) — `advanceFrom` must stay total and cannot refuse, so every input path has to ask. |
 | `calendar_step.dart` | `addCalendarMonths`, `daysInMonth` | Calendar arithmetic on a Julian Day, in pure Dart integer JDN math (no engine, so series unit tests need no native library). Preserves the time of day and clamps the day of month (31 Jan + 1 month = 28/29 Feb). Clamping is deliberate and is *not* swetest's rule — swetest rolls "31 February" over to 2 March. The goal is the capability, not swetest's exact output. |
+| `series_table.dart` | `SeriesStep`, `SeriesColumn`, `SeriesTableRow`, `SeriesTable`, `buildSeriesTable`, `seriesFieldLabels` | Folds `List<(Moment, CalcOutcome<List<ExportRow>>)>` into a grid. Column identity is the pair `(ExportRow.header, field label)`; the column set is the union across steps in first-appearance order, so an errored step or a body that drops out leaves a hole in its row instead of shifting columns. `hiddenLabels` filters by field label (the quantity picker is per-quantity, not per-body). Pure — no widgets, no engine. |
+| `series_settings.dart` | `SeriesSettings` | Per-tab series-mode state: `enabled`, step value/unit, row count, and the *hidden* label set (stored as hidden so all-on is the default and a quantity added later appears switched on). No start Moment — the Context owns it. |
+| `series_settings_provider.dart` | `SeriesSettingsNotifier`, `seriesSettingsProvider` (family, keyed by `TabDescriptor.id`) | Owns and persists one tab's settings. The step-value rules live here, not in the widget: `setStepValue` refuses a value the unit rejects, `setStepUnit` snaps via `StepUnit.snapStepValue` and returns what it took. Keyed by a plain String so `lib/core` stays free of `lib/layout`. |
 | `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcWithOverrides<T>`, `runTabCalcSeries<T>`, `computeSeries<T>` | Free function (not a provider factory): apply globals → execute compute lambda → envelope in `CalcOutcome`. Synchronous. The compute lambda takes `(Ephemeris, Moment)`; the pointwise Moment is built from `effectiveContextProvider.jdUt`, so tabs no longer read the Context JD themselves. Per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. `runTabCalcSeries` applies `AppliedGlobals` **once, outside the step loop** (they are Context-derived, not Moment-derived) and returns `List<(Moment, CalcOutcome<T>)>` — one outcome per step, so a failing step does not kill the series. `computeSeries` is the Riverpod-free loop, for tests. |
 
 **Migrated to the kernel:** `planets`, `differential`, `phenomena`,
@@ -141,6 +144,20 @@ controller, focus node, and sync/commit logic.
 | `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
 | `labeled_dropdown.dart` | `LabeledDropdown<T>` — reusable labeled dropdown layout |
+
+## Series widgets (lib/widgets/)
+
+Shared across every eligible tab — they take a `tabId` string and data, never a
+tab-specific type, so rolling a tab into series mode is wiring, not new UI.
+Sizing follows the CLAUDE.md zoom rules: horizontal-scrolling chip bars,
+two-axis scroll and intrinsic column widths in the grid.
+
+| File | Widget |
+|------|--------|
+| `series_bar.dart` | `SeriesBar(tabId)` — mode toggle, read-only start (= Context Moment), step value + unit chips, row count, row-cap warning. Start is read-only because the Context owns the Moment. |
+| `quantity_picker.dart` | `QuantityPicker` — chip row over field labels; pure (labels + hidden set + callback). |
+| `series_grid.dart` | `SeriesGrid` — renders a `SeriesTable`. Moment column + one column per quantity; an `Error` column appears only when some step failed, and errored rows show `—` in the quantity cells. Sticky Moment column deliberately deferred. |
+| `series_view.dart` | `SeriesView(tabId, steps, momentLabel)` — picker over grid, wired to `seriesSettingsProvider`. The one widget a tab drops in. |
 
 ## Test files (ephemeris related)
 
