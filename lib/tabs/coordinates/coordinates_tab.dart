@@ -12,6 +12,36 @@ import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'coordinates_provider.dart';
 
+/// Labelled numeric field, shared by all three cards on this tab.
+Widget _buildInput(
+  BuildContext context,
+  String label,
+  TextEditingController ctrl,
+  VoidCallback onCommit,
+) {
+  return Row(
+    children: [
+      Text(label, style: Theme.of(context).textTheme.labelMedium),
+      const SizedBox(width: 8),
+      Expanded(
+        child: TextField(
+          controller: ctrl,
+          keyboardType: const TextInputType.numberWithOptions(
+            signed: true,
+            decimal: true,
+          ),
+          decoration: const InputDecoration(
+            isDense: true,
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          ),
+          onSubmitted: (_) => onCommit(),
+        ),
+      ),
+    ],
+  );
+}
+
 class CoordinatesTab extends ConsumerWidget {
   const CoordinatesTab({super.key});
 
@@ -183,19 +213,19 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
             ),
             const SizedBox(height: 8),
             if (_forward) ...[
-              _buildInput('Lon (°)', _lonCtrl),
+              _buildInput(context, 'Lon (°)', _lonCtrl, _commit),
               const SizedBox(height: 4),
-              _buildInput('Lat (°)', _latCtrl),
+              _buildInput(context, 'Lat (°)', _latCtrl, _commit),
               const SizedBox(height: 4),
-              _buildInput('Dist (AU)', _distCtrl),
+              _buildInput(context, 'Dist (AU)', _distCtrl, _commit),
               const SizedBox(height: 4),
-              _buildInput('Pressure (mbar)', _atpressCtrl),
+              _buildInput(context, 'Pressure (mbar)', _atpressCtrl, _commit),
               const SizedBox(height: 4),
-              _buildInput('Temp (°C)', _attempCtrl),
+              _buildInput(context, 'Temp (°C)', _attempCtrl, _commit),
             ] else ...[
-              _buildInput('Azimuth (°)', _azCtrl),
+              _buildInput(context, 'Azimuth (°)', _azCtrl, _commit),
               const SizedBox(height: 4),
-              _buildInput('True Alt (°)', _altCtrl),
+              _buildInput(context, 'True Alt (°)', _altCtrl, _commit),
             ],
             const SizedBox(height: 8),
             SizedBox(
@@ -210,30 +240,6 @@ class _AzAltCardState extends ConsumerState<_AzAltCard> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildInput(String label, TextEditingController ctrl) {
-    return Row(
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: ctrl,
-            keyboardType: const TextInputType.numberWithOptions(
-              signed: true,
-              decimal: true,
-            ),
-            decoration: const InputDecoration(
-              isDense: true,
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            ),
-            onSubmitted: (_) => _commit(),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -306,13 +312,13 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
               style: const ButtonStyle(visualDensity: VisualDensity.compact),
             ),
             const SizedBox(height: 8),
-            _buildInput('Lon (°)', _lonCtrl),
+            _buildInput(context, 'Lon (°)', _lonCtrl, _commit),
             const SizedBox(height: 4),
-            _buildInput('Lat (°)', _latCtrl),
+            _buildInput(context, 'Lat (°)', _latCtrl, _commit),
             const SizedBox(height: 4),
-            _buildInput('Distance', _distCtrl),
+            _buildInput(context, 'Distance', _distCtrl, _commit),
             const SizedBox(height: 4),
-            _buildInput('Obliquity (°)', _epsCtrl),
+            _buildInput(context, 'Obliquity (°)', _epsCtrl, _commit),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -326,30 +332,6 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildInput(String label, TextEditingController ctrl) {
-    return Row(
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: ctrl,
-            keyboardType: const TextInputType.numberWithOptions(
-              signed: true,
-              decimal: true,
-            ),
-            decoration: const InputDecoration(
-              isDense: true,
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            ),
-            onSubmitted: (_) => _commit(),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -407,11 +389,11 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
               ),
             ),
             const SizedBox(height: 8),
-            _buildInput('Altitude (°)', _altCtrl),
+            _buildInput(context, 'Altitude (°)', _altCtrl, _commit),
             const SizedBox(height: 4),
-            _buildInput('Pressure (mbar)', _atpressCtrl),
+            _buildInput(context, 'Pressure (mbar)', _atpressCtrl, _commit),
             const SizedBox(height: 4),
-            _buildInput('Temp (°C)', _attempCtrl),
+            _buildInput(context, 'Temp (°C)', _attempCtrl, _commit),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -425,30 +407,6 @@ class _RefracCardState extends ConsumerState<_RefracCard> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildInput(String label, TextEditingController ctrl) {
-    return Row(
-      children: [
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: ctrl,
-            keyboardType: const TextInputType.numberWithOptions(
-              signed: true,
-              decimal: true,
-            ),
-            decoration: const InputDecoration(
-              isDense: true,
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            ),
-            onSubmitted: (_) => _commit(),
-          ),
-        ),
-      ],
     );
   }
 }

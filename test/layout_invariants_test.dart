@@ -29,6 +29,23 @@ const _scales = [1.0, 1.15, 1.3, 1.7, 2.0];
 /// an overflow missing from here fails the test, and an entry here that has
 /// stopped overflowing also fails, telling you to delete the line. It can only
 /// shrink. See yojana swe-dashboard/65.
+///
+/// **Read these magnitudes as a worst case, not as device behaviour.**
+/// `flutter_test` renders in the FlutterTest/Ahem font, where every glyph is a
+/// full em square: `Text('Ephe (Moshier only) ', fontSize: 11)` measures
+/// exactly 220.0px here (20 chars x 11px) against roughly half that in Roboto.
+/// Every entry below was measured with text about 2x its production width, and
+/// none of them reproduce on a real device with English text.
+///
+/// They are kept because the structure behind them is genuinely fragile — each
+/// one is a bare `Text` label with no width bound sharing a `Row` with an
+/// `Expanded` field, which will bite with a longer string or another locale.
+/// They are *not* fixed because the cheap fix costs more than the defect: making
+/// the label `Flexible` turns it into a flex child, so `RenderFlex` splits free
+/// space by flex factor and the field drops to 50% of the row regardless of how
+/// little the label needs (measured: 232.5px -> 150.0px in a 300px row). The
+/// real fix is to move these labels into `InputDecoration`, which is a visual
+/// redesign. Deferred deliberately; see swe-dashboard/65 for the full analysis.
 const _knownOverflows = <String, Set<String>>{
   'app_shell': {
     'mobile @ 1.0x',
