@@ -12,7 +12,6 @@ import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/ephe/catalog.dart';
@@ -141,42 +140,36 @@ String otherBodyName(int body) {
 
 // ── Providers ──
 
-final _otherBodiesCalcProvider =
-    Provider<({CalcOutcome<List<OtherBodyResult>> outcome, CallTrace trace})>((
-      ref,
-    ) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final bodies = ref.watch(otherBodiesSelectionProvider);
+final _otherBodiesCalcProvider = Provider<CalcOutcome<List<OtherBodyResult>>>((
+  ref,
+) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final bodies = ref.watch(otherBodiesSelectionProvider);
 
-      return runTabCalc(
-        ref,
-        tabTag: 'other_bodies',
-        compute: (eph) => computeOtherBodies(
-          eph: eph,
-          jdUt: ctx.jdUt,
-          iflag: flags.iflag,
-          origin: ctx.origin,
-          bodies: bodies,
-          getName: (body) {
-            final local = otherBodyName(body);
-            if (local != 'Body $body') return local;
-            return safeGetName(swe, body);
-          },
-        ),
-      );
-    });
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeOtherBodies(
+      eph: eph,
+      jdUt: ctx.jdUt,
+      iflag: flags.iflag,
+      origin: ctx.origin,
+      bodies: bodies,
+      getName: (body) {
+        final local = otherBodyName(body);
+        if (local != 'Body $body') return local;
+        return safeGetName(swe, body);
+      },
+    ),
+  );
+});
 
 final otherBodiesResultsProvider = Provider<CalcOutcome<List<OtherBodyResult>>>(
   (ref) {
-    return ref.watch(_otherBodiesCalcProvider.select((c) => c.outcome));
+    return ref.watch(_otherBodiesCalcProvider);
   },
 );
-
-final otherBodiesTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_otherBodiesCalcProvider.select((c) => c.trace));
-});
 
 final otherBodiesFormatProvider = StateProvider<DisplayFormat>(
   (ref) => DisplayFormat.dms,

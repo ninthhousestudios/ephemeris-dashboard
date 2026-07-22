@@ -3,15 +3,15 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-19 (swe-dashboard/33: statelessize Ephemeris seam).
+Last updated: 2026-07-22 (swe-dashboard/47: remove the Call Trace subsystem).
 
 ## Provider graph (data flow)
 
 ```
 ephemerisRunnerProvider (EphemerisRunner)
-     │  owns TracingRustEph (stateless rs.Ephemeris, per-instance config)
+     │  owns RustEph (stateless rs.Ephemeris, per-instance config)
      │  apply(globals) diffs and calls reconfigure(config) if changed
-     │  tabs receive the tracer as eph param (typed Ephemeris)
+     │  tabs receive the adapter as eph param (typed Ephemeris)
      │
 effectiveContextProvider (EffectiveContext)
      │  merges contextBarState + flagBarState
@@ -34,7 +34,7 @@ appliedGlobalsProvider (AppliedGlobals)
 `houses`, `rise_set`, `eclipses`, `table_view`, `dates`, `ayanamsa`,
 `heliacal`.
 Each has a pure `compute*` function + `_*CalcProvider` (via `runTabCalc`) →
-`*ResultsProvider` (`CalcOutcome<T>`) + `*TraceProvider` (`CallTrace`).
+`*ResultsProvider` (`CalcOutcome<T>`).
 Watches `contextBarProvider` + `flagBarProvider` directly; no
 `effectiveContextProvider` gate. Shared
 `safeGetName` helper in `lib/core/body_utils.dart` (was duplicated in 4
@@ -47,8 +47,8 @@ per-mode sidereal config override around each `getAyanamsaUt`. Uses
 save/restore — each reconfigure is independent.
 
 **Deliberate non-kernel tabs:** `math` is a JUSTIFIED EXCEPTION — a stateless
-calculator over user-typed inputs; untraced pure math (`degnorm`/`splitDeg`/…)
-touching no Applied Globals, so no kernel/`CalcOutcome`/trace. `config` is
+calculator over user-typed inputs; pure math (`degnorm`/`splitDeg`/…)
+touching no Applied Globals, so no kernel/`CalcOutcome`. `config` is
 OFF-PATTERN by design — a library-metadata reader (`libraryInfoProvider`) with
 no Context dependency. Both carry doc comments pointing at swe-dashboard/14.
 
@@ -56,11 +56,10 @@ Richer result shapes among the search / multi-call tabs:
 - `dates` and `rise_set` embed **per-field** error strings in their result
   type (all sub-calls run inside one compute lambda; a per-field `SweException`
   becomes an error string, never aborts the batch). `dates` also watches a
-  per-tab `datesOverrideJdProvider` and captures `swe` for the untraced
+  per-tab `datesOverrideJdProvider` and captures `swe` for the
   `revjul`/`dayOfWeek` calendar utilities.
 - `eclipses` (count-loop) and `table_view` (bodies × time-steps) keep their
-  loops inside the compute lambda. `table_view` has **no** `*TraceProvider`
-  (the table has no "view code" affordance).
+  loops inside the compute lambda.
 - `formatJdDateTime` in `lib/core/jd_utils.dart` is the single JD→date-string
   formatter (parameterized: seconds / utLabel / utcOffset / emptyPlaceholder /
   fallbackDigits); it replaced 6 near-duplicate copies across eclipses,
@@ -71,10 +70,9 @@ Richer result shapes among the search / multi-call tabs:
 | File | Key types | Role |
 |------|-----------|------|
 | `ephemeris.dart` | `Ephemeris` | Abstract interface — ~35 calculation methods (no context setters). The seam between tabs and the engine. |
-| `tracing_rust_eph.dart` | `TracingRustEph` | Production adapter. `implements Ephemeris`. Wraps `rs.Ephemeris` (stateless Rust engine); `reconfigure(EphemerisConfig)` swaps engine. Records CallEntry for every interface method. No stored config state. |
+| `rust_eph.dart` | `RustEph` | Production adapter. `implements Ephemeris`. Wraps `rs.Ephemeris` (stateless Rust engine); `reconfigure(EphemerisConfig)` swaps engine. A thin pass-through — no stored config state. |
 | `fake_ephemeris.dart` | `FakeEphemeris` | Test adapter. `implements Ephemeris`. Optional `on*` callbacks per method. |
-| `trace_model.dart` | `CallEntry`, `CallTrace`, `TraceSlice`, `CallCategory` | Immutable trace data. Category: context/flags/calc/teardown. |
-| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the TracingRustEph singleton. `apply(globals)` diffs AppliedGlobals, calls `reconfigure` if changed. |
+| `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the RustEph singleton (exposed as `eph`). `apply(globals)` diffs AppliedGlobals, calls `reconfigure` if changed. |
 | `applied_globals.dart` | `AppliedGlobals` | Equatable value object: ephePath, sidMode, topo, jplFile. `toEphemerisConfig()` builds `rs.EphemerisConfig`. `withSidMode()` for per-mode overrides. |
 
 ## Conditional-import split (native/web)
@@ -85,7 +83,7 @@ swe_service.dart          ← public API: sweProvider, initSweEphePath
        if (js_interop) swe_service_stub.dart  (web: WASM init + MEMFS)
 ```
 
-`sweProvider` returns `SweUtils` (untraced utility calls backed by the runner's
+`sweProvider` returns `SweUtils` (utility calls backed by the runner's
 `rs.Ephemeris`). `initSweEphePath()` resolves or extracts ephemeris data files
 at startup — on web it loads the WASM module and stages `.se1` files into MEMFS;
 on native it locates the bundle or dev-mode package path.
@@ -94,27 +92,16 @@ on native it locates the bundle or dev-mode package path.
 
 Tabs access the engine two ways:
 
-1. **Via runTabCalc** (traced): `runTabCalc(ref, tabTag: ..., compute: (eph) => eph.calcUt(...))`.
-   The `eph` is `TracingRustEph`, inferred-typed as `Ephemeris`.
+1. **Via runTabCalc**: `runTabCalc(ref, compute: (eph) => eph.calcUt(...))`.
+   The `eph` is `RustEph`, inferred-typed as `Ephemeris`.
    Methods used: calcUt, calcPctr, houses, getAyanamsaUt, deltat, sidTime,
    nodApsUt, getOrbitalElements, fixstar2Ut, azAlt, azAltRev, cotrans, refrac,
    phenoUt, riseTrans, solCrossUt, moonCrossUt, moonCrossNodeUt, helioCrossUt,
    heliacalUt.
 
-2. **Via SweUtils** (untraced): `swe.getPlanetName(body)`, `swe.revjul(jd)`,
+2. **Via SweUtils**: `swe.getPlanetName(body)`, `swe.revjul(jd)`,
    `swe.degnorm(x)`, `swe.houseName(hsys)`, etc. Pure utilities and metadata,
    delegated to the runner's `rs.Ephemeris` instance.
-
-## Symbol catalog (lib/core/ephemeris/)
-
-| File | Key types |
-|------|-----------|
-| `swe_symbol_catalog.dart` | `TracedFunction` (39-value plain enum) — canonical registry of traced SwissEph calls |
-
-`TracedFunction` is the identity type for traced calls.
-`CallEntry.functionName` is `TracedFunction` (not `String`), so recording
-(`TracingRustEph`) is exhaustive-switch safe. Emission API surface (CodeTarget,
-SymbolPair, C/Dart maps) removed in swe-dashboard/36.
 
 ## Context subsystem (lib/core/)
 
@@ -128,7 +115,6 @@ SymbolPair, C/Dart maps) removed in swe-dashboard/36.
 | `flag_state.dart` | `FlagBarState` — selected flags |
 | `flag_provider.dart` | `FlagBarNotifier` — auto-links locked flags from context via ref.listen |
 | `active_tab.dart` | `activeTabIdProvider` — tracks currently selected tab |
-| `active_tab_trace.dart` | `activeTraceSourceProvider`, `activeTabTraceProvider` — StateProvider indirection: app_shell sets the per-tab trace source on tab switch; flag bar watches the derived provider |
 
 ## Context bar widgets (lib/widgets/context_bar/)
 
@@ -153,14 +139,12 @@ controller, focus node, and sync/commit logic.
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
 | `labeled_dropdown.dart` | `LabeledDropdown<T>` — reusable labeled dropdown layout |
 
-## Test files (tracing/ephemeris related)
+## Test files (ephemeris related)
 
 | File | Tests |
 |------|-------|
-| `test/tracing_rust_eph_test.dart` | TracingRustEph: traced methods record CallEntry, reconfigure, error path, tab tag |
-| `test/ephemeris_runner_tracing_test.dart` | EphemerisRunner: apply configures engine, skips on unchanged globals, tab tagging, numeric accuracy |
-| `test/trace_model_test.dart` | CallEntry, CallTrace, TraceSlice filtering |
-| `test/swe_symbol_catalog_test.dart` | SweSymbolCatalog mappings |
+| `test/rust_eph_test.dart` | RustEph: every calculation family, reconfigure, sidereal/topocentric config |
+| `test/ephemeris_runner_test.dart` | EphemerisRunner: apply configures engine, skips on unchanged globals, numeric accuracy |
 | `test/goldens/*.dart` | Widget golden image tests (54 PNGs, 3 sizes x 2 themes) |
 
 ## Tab registry (lib/layout/)
@@ -168,7 +152,7 @@ controller, focus node, and sync/commit logic.
 | File | Key types | Role |
 |------|-----------|------|
 | `tab_definitions.dart` | `AppTab` | Enum: label, icon, hasFlags, isMore. Identity for persistence. |
-| `tab_descriptor.dart` | `TabDescriptor` | Runtime wiring: content builder, traceProvider, flagBarTrailing. Delegates label/icon/hasFlags to AppTab. |
+| `tab_descriptor.dart` | `TabDescriptor` | Runtime wiring: content builder, flagBarTrailing. Delegates label/icon/hasFlags to AppTab. |
 | `tab_registry.dart` | `tabRegistry`, `tabDescriptorMap` | Ordered list + lookup map. Single source of truth for tab ordering and wiring. Only file that imports tab widgets/providers. |
 
 The shell (`app_shell.dart`) iterates the registry — no tab-specific imports,

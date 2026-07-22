@@ -10,28 +10,24 @@ import '../ephe/scanner.dart';
 import '../ephe/types.dart';
 import '../body_selection.dart';
 import 'applied_globals.dart';
-import 'trace_model.dart';
-import 'tracing_rust_eph.dart';
+import 'rust_eph.dart';
 
 class EphemerisRunner {
-  EphemerisRunner() : _tracing = TracingRustEph();
+  EphemerisRunner() : _eph = RustEph();
 
-  final TracingRustEph _tracing;
+  final RustEph _eph;
   AppliedGlobals? _last;
-
-  List<CallEntry> get traceEntries => _tracing.entries;
-  void setTabTag(String tag) => _tracing.setTabTag(tag);
 
   void apply(AppliedGlobals globals) {
     if (_last != globals) {
-      _tracing.reconfigure(globals.toEphemerisConfig());
+      _eph.reconfigure(globals.toEphemerisConfig());
       _last = globals;
     }
   }
 
-  TracingRustEph get tracing => _tracing;
+  RustEph get eph => _eph;
 
-  void close() => _tracing.close();
+  void close() => _eph.close();
 }
 
 final ephemerisRunnerProvider = Provider<EphemerisRunner>((ref) {

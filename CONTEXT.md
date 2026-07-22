@@ -28,7 +28,7 @@ topocentric calculations and as part of the **Context**.
 **Applied Globals**:
 The engine configuration snapshot (ephemeris path, sidereal mode, topocentric
 position, JPL file) derived from the **Context** at calculation time. With
-`swisseph_rs` this is adapter-local (per-instance config on `TracingRustEph`),
+`swisseph_rs` this is adapter-local (per-instance config on `RustEph`),
 not process-wide C state — the drift-across-await hazard is gone (ADR-0002).
 The `AppliedGlobals` value object is used for diffing: when it changes, the
 engine instance is rebuilt.
@@ -39,8 +39,8 @@ _Avoid_: globals, C state (legacy terms from the old engine).
 **Ephemeris**:
 The calculator — the abstraction that computes positions and phenomena for a
 **Moment** under the **Applied Globals**. The seam is an `Ephemeris` interface;
-the production adapter (`TracingRustEph`) wraps a stateless `rs.Ephemeris`
-instance from `swisseph_rs` and records calls; the test adapter is a fake.
+the production adapter (`RustEph`) wraps a stateless `rs.Ephemeris`
+instance from `swisseph_rs`; the test adapter is a fake.
 _Avoid_: bare "ephemeris" for the data (that is the **Ephemeris Source**).
 
 **Ephemeris Source**:
@@ -105,26 +105,6 @@ The canonical interchange **Chart** format — a human-readable TOML file where 
 The `charts_dart` library reads and writes this and seven other formats into one
 `ChartData` model.
 
-### Code emission
-
-**Call Trace**:
-The recorded sequence of Swiss Ephemeris calls made during a **Calculation** (each
-call a `CallEntry`). The production **Ephemeris** adapter records it; it is sliceable
-per tab. The raw material for code emission.
-
-**Code Target**:
-An output language for emitted code — currently C and Dart.
-
-**Emitter**:
-Renders a **Call Trace** (or a tab's slice of it) into source code for one **Code
-Target**. One Emitter per Target.
-
-**Symbol Catalog**:
-The single source of truth mapping Swiss Ephemeris constants and functions (body
-names, flag names, sidereal modes, call shapes) to their per-**Code Target**
-renderings. The **Emitters** and the call recording derive from it rather than
-re-listing symbols.
-
 ## Relationships
 
 - A **Chart**, when loaded, sets the **Context**'s **Moment** and **Location**.
@@ -134,8 +114,6 @@ re-listing symbols.
   **Applied Globals** at calculation time.
 - A **Calculation** projects the **Context** + **Flags** into one **Result** per tab,
   computed by the **Ephemeris** reading its **Ephemeris Source**.
-- Each **Calculation** produces a **Call Trace**; an **Emitter** renders it into a
-  **Code Target** using the **Symbol Catalog**.
 
 ## Example dialogue
 

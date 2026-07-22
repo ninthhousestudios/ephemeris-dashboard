@@ -10,7 +10,6 @@ import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
@@ -82,36 +81,30 @@ List<PhenomenaResult> computePhenomena({
   }).toList();
 }
 
-final _phenomenaCalcProvider =
-    Provider<({CalcOutcome<List<PhenomenaResult>> outcome, CallTrace trace})>((
-      ref,
-    ) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final bodies = ref.watch(phenomenaBodiesProvider);
+final _phenomenaCalcProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
+  ref,
+) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final bodies = ref.watch(phenomenaBodiesProvider);
 
-      return runTabCalc(
-        ref,
-        tabTag: 'phenomena',
-        compute: (eph) => computePhenomena(
-          eph: eph,
-          jdUt: ctx.jdUt,
-          iflag: flags.iflag,
-          bodies: bodies,
-          getName: (body) => safeGetName(swe, body),
-        ),
-      );
-    });
+  return runTabCalc(
+    ref,
+    compute: (eph) => computePhenomena(
+      eph: eph,
+      jdUt: ctx.jdUt,
+      iflag: flags.iflag,
+      bodies: bodies,
+      getName: (body) => safeGetName(swe, body),
+    ),
+  );
+});
 
 final phenomenaResultsProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
   ref,
 ) {
-  return ref.watch(_phenomenaCalcProvider.select((c) => c.outcome));
-});
-
-final phenomenaTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_phenomenaCalcProvider.select((c) => c.trace));
+  return ref.watch(_phenomenaCalcProvider);
 });
 
 /// Convert phenomena results to export rows.

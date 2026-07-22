@@ -3,10 +3,10 @@
 
 // ignore_for_file: avoid_print
 import 'package:swisseph_rs/swisseph_rs.dart' as rs;
-import 'package:swe_dashboard/core/ephemeris/tracing_rust_eph.dart';
+import 'package:swe_dashboard/core/ephemeris/rust_eph.dart';
 
 void main() {
-  final swe = TracingRustEph();
+  final swe = RustEph();
   print('version: ${rs.engineVersion}');
 
   for (final name in [

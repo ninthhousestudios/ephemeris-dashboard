@@ -10,7 +10,6 @@ import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
@@ -95,35 +94,29 @@ NodesApsResult computeNodesApsides({
   );
 }
 
-final _nodesApsCalcProvider =
-    Provider<({CalcOutcome<NodesApsResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final body = ref.watch(nodesBodyProvider);
-      final method = ref.watch(nodesMethodProvider);
+final _nodesApsCalcProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final body = ref.watch(nodesBodyProvider);
+  final method = ref.watch(nodesMethodProvider);
 
-      return runTabCalc(
-        ref,
-        tabTag: 'nodesApsides',
-        compute: (eph) => computeNodesApsides(
-          eph: eph,
-          jdUt: ctx.jdUt,
-          deltat: swe.deltat(ctx.jdUt),
-          body: body,
-          iflag: flags.iflag,
-          method: method,
-          bodyName: safeGetName(swe, body),
-        ),
-      );
-    });
-
-final nodesApsResultsProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
-  return ref.watch(_nodesApsCalcProvider.select((c) => c.outcome));
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeNodesApsides(
+      eph: eph,
+      jdUt: ctx.jdUt,
+      deltat: swe.deltat(ctx.jdUt),
+      body: body,
+      iflag: flags.iflag,
+      method: method,
+      bodyName: safeGetName(swe, body),
+    ),
+  );
 });
 
-final nodesApsTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_nodesApsCalcProvider.select((c) => c.trace));
+final nodesApsResultsProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
+  return ref.watch(_nodesApsCalcProvider);
 });
 
 /// Convert a NodesApsResult to export rows.

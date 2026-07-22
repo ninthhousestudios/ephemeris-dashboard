@@ -9,7 +9,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 
 /// Display format for Ayanamsa tab (promoted from local state).
@@ -52,60 +51,53 @@ final ayanamsaCompareModeProvider = StateProvider<bool>((ref) => false);
 
 /// Runs the kernel once per recompute; results + trace derive from this.
 /// Each mode reconfigures the engine with a per-mode sidMode override.
-final _ayanamsaCalcProvider =
-    Provider<
-      ({CalcOutcome<List<AyanamsaCalcResult>> outcome, CallTrace trace})
-    >((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final selected = ref.watch(selectedAyanamsasProvider);
-      final compareMode = ref.watch(ayanamsaCompareModeProvider);
+final _ayanamsaCalcProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>((
+  ref,
+) {
+  final ctx = ref.watch(contextBarProvider);
+  final selected = ref.watch(selectedAyanamsasProvider);
+  final compareMode = ref.watch(ayanamsaCompareModeProvider);
 
-      // Compare-all drops user-defined unless params have been set.
-      final hasUserParams = ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
-      final modes = compareMode
-          ? ayanamsaModesFor(includeUser: hasUserParams).keys.toList()
-          : selected;
+  // Compare-all drops user-defined unless params have been set.
+  final hasUserParams = ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
+  final modes = compareMode
+      ? ayanamsaModesFor(includeUser: hasUserParams).keys.toList()
+      : selected;
 
-      return runTabCalcWithOverrides(
-        ref,
-        tabTag: 'ayanamsa',
-        compute: (eph, baseGlobals, reconfigure) {
-          final results = <AyanamsaCalcResult>[];
-          for (final sidMode in modes) {
-            try {
-              final modeGlobals = sidMode == ayanamsaUserId
-                  ? baseGlobals.withSidMode(
-                      sidMode,
-                      t0: ctx.userAyanT0,
-                      ayanT0: ctx.userAyanValue,
-                    )
-                  : baseGlobals.withSidMode(sidMode);
-              reconfigure(modeGlobals);
-              final value = eph.getAyanamsaUt(ctx.jdUt);
-              results.add(
-                AyanamsaCalcResult(
-                  sidMode: sidMode,
-                  name: ayanamsaName(sidMode),
-                  value: value,
-                ),
-              );
-            } on SweException {
-              // Per-item failure: skip this mode, batch continues.
-            }
-          }
-          return results;
-        },
-      );
-    });
+  return runTabCalcWithOverrides(
+    ref,
+    compute: (eph, baseGlobals, reconfigure) {
+      final results = <AyanamsaCalcResult>[];
+      for (final sidMode in modes) {
+        try {
+          final modeGlobals = sidMode == ayanamsaUserId
+              ? baseGlobals.withSidMode(
+                  sidMode,
+                  t0: ctx.userAyanT0,
+                  ayanT0: ctx.userAyanValue,
+                )
+              : baseGlobals.withSidMode(sidMode);
+          reconfigure(modeGlobals);
+          final value = eph.getAyanamsaUt(ctx.jdUt);
+          results.add(
+            AyanamsaCalcResult(
+              sidMode: sidMode,
+              name: ayanamsaName(sidMode),
+              value: value,
+            ),
+          );
+        } on SweException {
+          // Per-item failure: skip this mode, batch continues.
+        }
+      }
+      return results;
+    },
+  );
+});
 
 /// Ayanamsa calculation results.
 final ayanamsaResultsProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>(
-  (ref) => ref.watch(_ayanamsaCalcProvider.select((c) => c.outcome)),
-);
-
-/// Call Trace produced by the most recent ayanamsa calculation.
-final ayanamsaTraceProvider = Provider<CallTrace>(
-  (ref) => ref.watch(_ayanamsaCalcProvider.select((c) => c.trace)),
+  (ref) => ref.watch(_ayanamsaCalcProvider),
 );
 
 /// Convert ayanamsa results to export rows.

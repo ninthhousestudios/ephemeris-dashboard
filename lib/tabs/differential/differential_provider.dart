@@ -10,7 +10,6 @@ import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
@@ -94,38 +93,32 @@ DiffResult computeDifferential({
   );
 }
 
-final _diffCalcProvider =
-    Provider<({CalcOutcome<DiffResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final bodyA = ref.watch(diffBodyAProvider);
-      final bodyB = ref.watch(diffBodyBProvider);
-      final overrideJd = ref.watch(diffOverrideJdProvider);
+final _diffCalcProvider = Provider<CalcOutcome<DiffResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final bodyA = ref.watch(diffBodyAProvider);
+  final bodyB = ref.watch(diffBodyBProvider);
+  final overrideJd = ref.watch(diffOverrideJdProvider);
 
-      return runTabCalc(
-        ref,
-        tabTag: 'differential',
-        compute: (eph) => computeDifferential(
-          eph: eph,
-          jdUt: overrideJd ?? ctx.jdUt,
-          iflag: flags.iflag,
-          bodyA: bodyA,
-          bodyB: bodyB,
-          nameA: safeGetName(swe, bodyA),
-          nameB: safeGetName(swe, bodyB),
-          degnorm: swe.degnorm,
-          degMidp: swe.degMidp,
-        ),
-      );
-    });
-
-final diffResultProvider = Provider<CalcOutcome<DiffResult>>((ref) {
-  return ref.watch(_diffCalcProvider.select((c) => c.outcome));
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeDifferential(
+      eph: eph,
+      jdUt: overrideJd ?? ctx.jdUt,
+      iflag: flags.iflag,
+      bodyA: bodyA,
+      bodyB: bodyB,
+      nameA: safeGetName(swe, bodyA),
+      nameB: safeGetName(swe, bodyB),
+      degnorm: swe.degnorm,
+      degMidp: swe.degMidp,
+    ),
+  );
 });
 
-final diffTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_diffCalcProvider.select((c) => c.trace));
+final diffResultProvider = Provider<CalcOutcome<DiffResult>>((ref) {
+  return ref.watch(_diffCalcProvider);
 });
 
 /// Convert a DiffResult to export rows.

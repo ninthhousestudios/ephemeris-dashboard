@@ -14,7 +14,6 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/dir_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
@@ -228,32 +227,26 @@ List<StarResult> computeStars({
   }).toList();
 }
 
-final _starCalcProvider =
-    Provider<({CalcOutcome<List<StarResult>> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final searchTerms = ref.watch(selectedStarsProvider);
+final _starCalcProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final searchTerms = ref.watch(selectedStarsProvider);
 
-      return runTabCalc(
-        ref,
-        tabTag: 'stars',
-        compute: (eph) => computeStars(
-          eph: eph,
-          jdUt: ctx.jdUt,
-          iflag: flags.iflag,
-          searchTerms: searchTerms,
-          getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
-        ),
-      );
-    });
-
-final starResultProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
-  return ref.watch(_starCalcProvider.select((c) => c.outcome));
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeStars(
+      eph: eph,
+      jdUt: ctx.jdUt,
+      iflag: flags.iflag,
+      searchTerms: searchTerms,
+      getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
+    ),
+  );
 });
 
-final starTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_starCalcProvider.select((c) => c.trace));
+final starResultProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
+  return ref.watch(_starCalcProvider);
 });
 
 /// Convert star results to export rows.

@@ -7,7 +7,6 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
@@ -155,88 +154,84 @@ class EphemerisRow {
 
 // ── Computation ──────────────────────────────────────────────────────────────
 
-final _tableViewCalcProvider =
-    Provider<({CalcOutcome<List<EphemerisRow>> outcome, CallTrace trace})>((
-      ref,
-    ) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final bodies = ref.watch(tableViewBodiesProvider);
-      final extraBodies = ref.watch(tableViewExtraBodiesProvider);
-      final stars = ref.watch(tableViewStarsProvider);
-      final stepValue = ref.watch(tableViewStepValueProvider);
-      final stepUnit = ref.watch(tableViewStepUnitProvider);
-      final stepCount = ref.watch(tableViewStepCountProvider);
+final _tableViewCalcProvider = Provider<CalcOutcome<List<EphemerisRow>>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final bodies = ref.watch(tableViewBodiesProvider);
+  final extraBodies = ref.watch(tableViewExtraBodiesProvider);
+  final stars = ref.watch(tableViewStarsProvider);
+  final stepValue = ref.watch(tableViewStepValueProvider);
+  final stepUnit = ref.watch(tableViewStepUnitProvider);
+  final stepCount = ref.watch(tableViewStepCountProvider);
 
-      final iflag = flags.iflag;
-      final jdStart = ctx.jdUt;
-      final stepJd = stepValue * stepUnit.jdFactor;
-      final allBodyIds = {...bodies, ...extraBodies}.toList()..sort();
+  final iflag = flags.iflag;
+  final jdStart = ctx.jdUt;
+  final stepJd = stepValue * stepUnit.jdFactor;
+  final allBodyIds = {...bodies, ...extraBodies}.toList()..sort();
 
-      return runTabCalc(
-        ref,
-        tabTag: 'tableView',
-        compute: (eph) {
-          final rows = <EphemerisRow>[];
-          for (var i = 0; i < stepCount; i++) {
-            final jd = jdStart + i * stepJd;
-            final values = <ColKey, (CalcResult?, String?)>{};
+  return runTabCalc(
+    ref,
+    compute: (eph) {
+      final rows = <EphemerisRow>[];
+      for (var i = 0; i < stepCount; i++) {
+        final jd = jdStart + i * stepJd;
+        final values = <ColKey, (CalcResult?, String?)>{};
 
-            for (final body in allBodyIds) {
-              final key = BodyCol(body);
-              try {
-                final result = eph.calcUt(jd, body, iflag);
-                values[key] = (result, null);
-              } catch (e) {
-                values[key] = (null, e.toString());
-              }
-            }
-
-            for (final star in stars) {
-              final key = StarCol(star);
-              try {
-                final result = eph.fixstar2Ut(star, jd, iflag);
-                values[key] = (
-                  CalcResult(
-                    longitude: result.longitude,
-                    latitude: result.latitude,
-                    distance: result.distance,
-                    longitudeSpeed: result.longitudeSpeed,
-                    latitudeSpeed: result.latitudeSpeed,
-                    distanceSpeed: result.distanceSpeed,
-                    returnFlag: result.returnFlag,
-                  ),
-                  null,
-                );
-              } catch (e) {
-                values[key] = (null, e.toString());
-              }
-            }
-
-            rows.add(
-              EphemerisRow(
-                jd: jd,
-                dateStr: formatJdDateTime(
-                  swe,
-                  jd,
-                  utLabel: false,
-                  fallbackDigits: 4,
-                ),
-                values: values,
-              ),
-            );
+        for (final body in allBodyIds) {
+          final key = BodyCol(body);
+          try {
+            final result = eph.calcUt(jd, body, iflag);
+            values[key] = (result, null);
+          } catch (e) {
+            values[key] = (null, e.toString());
           }
-          return rows;
-        },
-      );
-    });
+        }
+
+        for (final star in stars) {
+          final key = StarCol(star);
+          try {
+            final result = eph.fixstar2Ut(star, jd, iflag);
+            values[key] = (
+              CalcResult(
+                longitude: result.longitude,
+                latitude: result.latitude,
+                distance: result.distance,
+                longitudeSpeed: result.longitudeSpeed,
+                latitudeSpeed: result.latitudeSpeed,
+                distanceSpeed: result.distanceSpeed,
+                returnFlag: result.returnFlag,
+              ),
+              null,
+            );
+          } catch (e) {
+            values[key] = (null, e.toString());
+          }
+        }
+
+        rows.add(
+          EphemerisRow(
+            jd: jd,
+            dateStr: formatJdDateTime(
+              swe,
+              jd,
+              utLabel: false,
+              fallbackDigits: 4,
+            ),
+            values: values,
+          ),
+        );
+      }
+      return rows;
+    },
+  );
+});
 
 /// Ephemeris table results (bodies × time steps).
 final tableViewResultsProvider = Provider<CalcOutcome<List<EphemerisRow>>>((
   ref,
 ) {
-  return ref.watch(_tableViewCalcProvider.select((c) => c.outcome));
+  return ref.watch(_tableViewCalcProvider);
 });
 
 // ── Sorted column keys ──────────────────────────────────────────────────────

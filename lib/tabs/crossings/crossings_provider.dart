@@ -9,7 +9,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
@@ -121,40 +120,34 @@ CrossingResult computeCrossing({
   }
 }
 
-final _crossingCalcProvider =
-    Provider<({CalcOutcome<CrossingResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final type = ref.watch(crossingTypeProvider);
-      final lon = ref.watch(crossingLonProvider);
-      final helioBody = ref.watch(crossingHelioBodyProvider);
-      final dir = ref.watch(crossingDirProvider);
+final _crossingCalcProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final type = ref.watch(crossingTypeProvider);
+  final lon = ref.watch(crossingLonProvider);
+  final helioBody = ref.watch(crossingHelioBodyProvider);
+  final dir = ref.watch(crossingDirProvider);
 
-      return runTabCalc(
-        ref,
-        tabTag: 'crossings',
-        compute: (eph) => computeCrossing(
-          eph: eph,
-          jdUt: ctx.jdUt,
-          iflag: flags.iflag,
-          type: type,
-          longitude: lon,
-          helioBody: helioBody,
-          helioDir: dir,
-          helioBodyName: safeGetName(swe, helioBody),
-          swe: swe,
-          utcOffset: ctx.utcOffset,
-        ),
-      );
-    });
-
-final crossingResultProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
-  return ref.watch(_crossingCalcProvider.select((c) => c.outcome));
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeCrossing(
+      eph: eph,
+      jdUt: ctx.jdUt,
+      iflag: flags.iflag,
+      type: type,
+      longitude: lon,
+      helioBody: helioBody,
+      helioDir: dir,
+      helioBodyName: safeGetName(swe, helioBody),
+      swe: swe,
+      utcOffset: ctx.utcOffset,
+    ),
+  );
 });
 
-final crossingTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_crossingCalcProvider.select((c) => c.trace));
+final crossingResultProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
+  return ref.watch(_crossingCalcProvider);
 });
 
 List<ExportRow> crossingToExportRows(CrossingResult result) {

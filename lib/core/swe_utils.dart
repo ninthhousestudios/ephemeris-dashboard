@@ -17,7 +17,7 @@ class SweUtils {
 
   final EphemerisRunner _runner;
 
-  rs.Ephemeris get _engine => _runner.tracing.engine;
+  rs.Ephemeris get _engine => _runner.eph.engine;
 
   String getPlanetName(int body) {
     return _engine.getPlanetName(rs.Body.fromRawId(body));

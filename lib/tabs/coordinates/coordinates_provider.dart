@@ -9,7 +9,6 @@ import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../widgets/result_card.dart';
 
@@ -182,106 +181,90 @@ CoordResult computeCoordinates({
 
 // ── Per-card kernel wiring ─────────────────────────────────────────────────
 
-final _azAltCalcProvider =
-    Provider<({CalcOutcome<CoordResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final i = ref.watch(azAltInputProvider);
-      return runTabCalc(
-        ref,
-        tabTag: 'coord-azalt',
-        compute: (eph) => computeCoordinates(
-          eph: eph,
-          op: i.forward ? CoordOp.azAlt : CoordOp.azAltRev,
-          jdUt: ctx.jdUt,
-          geolon: ctx.longitude,
-          geolat: ctx.latitude,
-          geoalt: ctx.altitude,
-          lon: i.lon,
-          lat: i.lat,
-          dist: i.dist,
-          atpress: i.atpress,
-          attemp: i.attemp,
-          azimuth: i.azimuth,
-          altitude: i.altitude,
-          eps: 0,
-        ),
-      );
-    });
+final _azAltCalcProvider = Provider<CalcOutcome<CoordResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final i = ref.watch(azAltInputProvider);
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeCoordinates(
+      eph: eph,
+      op: i.forward ? CoordOp.azAlt : CoordOp.azAltRev,
+      jdUt: ctx.jdUt,
+      geolon: ctx.longitude,
+      geolat: ctx.latitude,
+      geoalt: ctx.altitude,
+      lon: i.lon,
+      lat: i.lat,
+      dist: i.dist,
+      atpress: i.atpress,
+      attemp: i.attemp,
+      azimuth: i.azimuth,
+      altitude: i.altitude,
+      eps: 0,
+    ),
+  );
+});
 
 final azAltResultProvider = Provider<CalcOutcome<CoordResult>>(
-  (ref) => ref.watch(_azAltCalcProvider.select((c) => c.outcome)),
-);
-final azAltTraceProvider = Provider<CallTrace>(
-  (ref) => ref.watch(_azAltCalcProvider.select((c) => c.trace)),
+  (ref) => ref.watch(_azAltCalcProvider),
 );
 
-final _coTransCalcProvider =
-    Provider<({CalcOutcome<CoordResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final i = ref.watch(coTransInputProvider);
-      final epsAbs = i.eps.abs();
-      return runTabCalc(
-        ref,
-        tabTag: 'coord-cotrans',
-        compute: (eph) => computeCoordinates(
-          eph: eph,
-          op: CoordOp.cotrans,
-          jdUt: ctx.jdUt,
-          geolon: ctx.longitude,
-          geolat: ctx.latitude,
-          geoalt: ctx.altitude,
-          lon: i.lon,
-          lat: i.lat,
-          dist: i.dist,
-          atpress: 0,
-          attemp: 0,
-          azimuth: 0,
-          altitude: 0,
-          eps: i.eclToEqu ? epsAbs : -epsAbs,
-        ),
-      );
-    });
+final _coTransCalcProvider = Provider<CalcOutcome<CoordResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final i = ref.watch(coTransInputProvider);
+  final epsAbs = i.eps.abs();
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeCoordinates(
+      eph: eph,
+      op: CoordOp.cotrans,
+      jdUt: ctx.jdUt,
+      geolon: ctx.longitude,
+      geolat: ctx.latitude,
+      geoalt: ctx.altitude,
+      lon: i.lon,
+      lat: i.lat,
+      dist: i.dist,
+      atpress: 0,
+      attemp: 0,
+      azimuth: 0,
+      altitude: 0,
+      eps: i.eclToEqu ? epsAbs : -epsAbs,
+    ),
+  );
+});
 
 final coTransResultProvider = Provider<CalcOutcome<CoordResult>>(
-  (ref) => ref.watch(_coTransCalcProvider.select((c) => c.outcome)),
-);
-final coTransTraceProvider = Provider<CallTrace>(
-  (ref) => ref.watch(_coTransCalcProvider.select((c) => c.trace)),
+  (ref) => ref.watch(_coTransCalcProvider),
 );
 
-final _refracCalcProvider =
-    Provider<({CalcOutcome<CoordResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final i = ref.watch(refracInputProvider);
-      return runTabCalc(
-        ref,
-        tabTag: 'coord-refrac',
-        compute: (eph) => computeCoordinates(
-          eph: eph,
-          op: CoordOp.refrac,
-          jdUt: ctx.jdUt,
-          geolon: ctx.longitude,
-          geolat: ctx.latitude,
-          geoalt: ctx.altitude,
-          lon: 0,
-          lat: 0,
-          dist: 0,
-          atpress: i.atpress,
-          attemp: i.attemp,
-          azimuth: 0,
-          altitude: i.altitude,
-          eps: 0,
-        ),
-      );
-    });
+final _refracCalcProvider = Provider<CalcOutcome<CoordResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final i = ref.watch(refracInputProvider);
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeCoordinates(
+      eph: eph,
+      op: CoordOp.refrac,
+      jdUt: ctx.jdUt,
+      geolon: ctx.longitude,
+      geolat: ctx.latitude,
+      geoalt: ctx.altitude,
+      lon: 0,
+      lat: 0,
+      dist: 0,
+      atpress: i.atpress,
+      attemp: i.attemp,
+      azimuth: 0,
+      altitude: i.altitude,
+      eps: 0,
+    ),
+  );
+});
 
 final refracResultProvider = Provider<CalcOutcome<CoordResult>>(
-  (ref) => ref.watch(_refracCalcProvider.select((c) => c.outcome)),
+  (ref) => ref.watch(_refracCalcProvider),
 );
-final refracTraceProvider = Provider<CallTrace>(
-  (ref) => ref.watch(_refracCalcProvider.select((c) => c.trace)),
-);
-
 // ── ResultField conversion ─────────────────────────────────────────────────
 
 List<ResultField> coordResultToFields(CoordResult result, DisplayFormat fmt) {

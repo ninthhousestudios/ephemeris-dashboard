@@ -8,7 +8,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
@@ -127,73 +126,64 @@ class EclipseEvent {
 
 // ── Computation ──────────────────────────────────────────────────────────────
 
-final _eclipsesCalcProvider =
-    Provider<({CalcOutcome<List<EclipseEvent>> outcome, CallTrace trace})>((
-      ref,
-    ) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final type = ref.watch(eclipseTypeProvider);
-      final scope = ref.watch(eclipseScopeProvider);
-      final eclFilter = ref.watch(eclipseFilterProvider);
-      final count = ref.watch(eclipseCountProvider);
+final _eclipsesCalcProvider = Provider<CalcOutcome<List<EclipseEvent>>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final type = ref.watch(eclipseTypeProvider);
+  final scope = ref.watch(eclipseScopeProvider);
+  final eclFilter = ref.watch(eclipseFilterProvider);
+  final count = ref.watch(eclipseCountProvider);
 
-      final epheflag = flags.iflag & 0xF;
+  final epheflag = flags.iflag & 0xF;
 
-      return runTabCalc(
-        ref,
-        tabTag: 'eclipses',
-        compute: (eph) {
-          final results = <EclipseEvent>[];
-          var searchJd = ctx.jdUt;
+  return runTabCalc(
+    ref,
+    compute: (eph) {
+      final results = <EclipseEvent>[];
+      var searchJd = ctx.jdUt;
 
-          for (var i = 0; i < count; i++) {
-            try {
-              final event = _findNextEclipse(
-                swe: eph,
-                jdStart: searchJd,
-                epheflag: epheflag,
-                type: type,
-                scope: scope,
-                eclFilter: eclFilter,
-                index: i + 1,
-                geolon: ctx.longitude,
-                geolat: ctx.latitude,
-                geoalt: ctx.altitude,
-              );
-              results.add(event);
-              if (event.maxEclipseJd != null) {
-                searchJd = event.maxEclipseJd! + 1.0;
-              } else {
-                break;
-              }
-            } catch (e) {
-              results.add(
-                EclipseEvent(
-                  index: i + 1,
-                  type: type,
-                  scope: scope,
-                  returnFlag: 0,
-                  error: e.toString(),
-                ),
-              );
-              break;
-            }
+      for (var i = 0; i < count; i++) {
+        try {
+          final event = _findNextEclipse(
+            swe: eph,
+            jdStart: searchJd,
+            epheflag: epheflag,
+            type: type,
+            scope: scope,
+            eclFilter: eclFilter,
+            index: i + 1,
+            geolon: ctx.longitude,
+            geolat: ctx.latitude,
+            geoalt: ctx.altitude,
+          );
+          results.add(event);
+          if (event.maxEclipseJd != null) {
+            searchJd = event.maxEclipseJd! + 1.0;
+          } else {
+            break;
           }
+        } catch (e) {
+          results.add(
+            EclipseEvent(
+              index: i + 1,
+              type: type,
+              scope: scope,
+              returnFlag: 0,
+              error: e.toString(),
+            ),
+          );
+          break;
+        }
+      }
 
-          return results;
-        },
-      );
-    });
+      return results;
+    },
+  );
+});
 
 /// Eclipse search results.
 final eclipseResultsProvider = Provider<CalcOutcome<List<EclipseEvent>>>((ref) {
-  return ref.watch(_eclipsesCalcProvider.select((c) => c.outcome));
-});
-
-/// Call Trace produced by the most recent eclipse search.
-final eclipsesTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_eclipsesCalcProvider.select((c) => c.trace));
+  return ref.watch(_eclipsesCalcProvider);
 });
 
 EclipseEvent _findNextEclipse({

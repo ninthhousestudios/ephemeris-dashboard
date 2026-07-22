@@ -52,7 +52,7 @@ This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must 
 ## Key Architecture Decisions
 
 1. **Reactive projection (ADR-0001)** — Results are a pure function of the Context and Flags, recomputed on change. No explicit Calculate button, no staleness.
-2. **Stateless engine (ADR-0002)** — `TracingRustEph` wraps `rs.Ephemeris` with adapter-local config; no process-wide C globals. Config changes rebuild the engine instance.
+2. **Stateless engine (ADR-0002)** — `RustEph` wraps `rs.Ephemeris` with adapter-local config; no process-wide C globals. Config changes rebuild the engine instance.
 3. **Locked Flags** (formerly "auto-managed flags") — sidereal, topocentric, helio, bary, ephe-source flags are a pure function of the Context; the context bar owns them (shown as disabled chips with lock icon)
 4. **Flag bar uses `ref.listen`** (not `ref.watch` in notifier) for auto-linking to avoid infinite loops
 5. **swisseph_rs from pub.dev** — not a local path dependency
@@ -63,8 +63,7 @@ The app is being refactored into deep, testable modules. Vocabulary: `CONTEXT.md
 Decisions: `docs/adr/`. Plan: `docs/prd/deep-module-refactor.md` (yojana `swe-dashboard/4`).
 Architecture map: `docs/architecture-map.md` (provider graph, file roles, call patterns).
 Use `CONTEXT.md` terms in code, tests, and commits (Context, Moment, Ephemeris vs
-Ephemeris Source, Calculation/Result, Locked/Toggle Flag, Chart, Symbol Catalog,
-Call Trace, Emitter).
+Ephemeris Source, Calculation/Result, Locked/Toggle Flag, Chart).
 
 ### Planning protocol
 
@@ -85,8 +84,8 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
 `docs/enforcement-ledger.md`. The behavioral ones below are not graph-expressible
 — honor them:
 
-- **Synchronous recompute** — each recompute is synchronous for trace-slice
-  coherence: a tab's trace must capture exactly the calls from one compute pass.
+- **Synchronous recompute** — each recompute is synchronous, so a tab's result
+  is exactly the product of one compute pass.
   (Supersedes the ADR-0001 "Applied Globals never set across an await" hazard —
   that hazard is gone with stateless `swisseph_rs`; see ADR-0002.)
 - **JD is canonical** — the Moment is a Julian Day; civil date/time/offset is a

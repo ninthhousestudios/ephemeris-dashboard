@@ -7,15 +7,13 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph_rs/swisseph_rs.dart' as rs;
 import 'package:swe_dashboard/core/ephemeris/result_types.dart';
-import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
-import 'package:swe_dashboard/core/ephemeris/trace_model.dart';
-import 'package:swe_dashboard/core/ephemeris/tracing_rust_eph.dart';
+import 'package:swe_dashboard/core/ephemeris/rust_eph.dart';
 
 void main() {
-  late TracingRustEph rust;
+  late RustEph rust;
 
   setUp(() {
-    rust = TracingRustEph();
+    rust = RustEph();
   });
 
   tearDown(() {
@@ -23,41 +21,7 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // Trace recording tests
-  // -------------------------------------------------------------------------
-
-  group('trace recording', () {
-    test('calcUt records calc entry with traceId', () {
-      rust.setTabTag('planets');
-      rust.clearEntries();
-      rust.calcUt(2451545.0, 0, 256); // Sun, speed flag
-
-      expect(rust.entries.length, 1);
-      final entry = rust.entries.first;
-      expect(entry.functionName, TracedFunction.sweCalcUt);
-      expect(entry.category, CallCategory.calc);
-      expect(entry.traceId, 'planets:calc_ut:body=0');
-      expect(entry.result, isA<CalcResult>());
-      expect(entry.returnFlag, isNotNull);
-      expect(entry.errorMessage, isNull);
-    });
-
-    test('clearEntries empties the trace', () {
-      rust.calcUt(2451545.0, 0, 256);
-      expect(rust.entries, isNotEmpty);
-      rust.clearEntries();
-      expect(rust.entries, isEmpty);
-    });
-
-    test('error path records errorMessage', () {
-      expect(() => rust.calcUt(2451545.0, -999, 0), throwsA(anything));
-      expect(rust.entries.last.errorMessage, isNotNull);
-      expect(rust.entries.last.result, isNull);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Sanity tests: TracingRustEph calculation families
+  // Sanity tests: RustEph calculation families
   // -------------------------------------------------------------------------
 
   group('tropical calculations', () {
@@ -373,7 +337,6 @@ void main() {
 
     test('fixstar2Ut Sirius', () {
       rust.reconfigure(rs.EphemerisConfig(ephePath: ephePath));
-      rust.clearEntries();
 
       final r = rust.fixstar2Ut('Sirius', jd, flags);
       expect(r.longitude, isNotNaN);

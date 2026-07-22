@@ -6,8 +6,7 @@ import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/context_state.dart' show EpheSource;
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
-import 'package:swe_dashboard/core/ephemeris/swe_symbol_catalog.dart';
-import 'package:swe_dashboard/core/ephemeris/tracing_rust_eph.dart';
+import 'package:swe_dashboard/core/ephemeris/rust_eph.dart';
 
 void main() {
   late EphemerisRunner runner;
@@ -42,11 +41,10 @@ void main() {
       );
 
       runner.apply(tropical);
-      final tropResult = runner.tracing.calcUt(2460412.5, seSun, seFlgSpeed);
-      runner.traceEntries.clear();
+      final tropResult = runner.eph.calcUt(2460412.5, seSun, seFlgSpeed);
 
       runner.apply(sidereal);
-      final sidResult = runner.tracing.calcUt(
+      final sidResult = runner.eph.calcUt(
         2460412.5,
         seSun,
         seFlgSpeed | seFlgSidereal,
@@ -67,38 +65,15 @@ void main() {
       );
 
       runner.apply(globals);
-      final engineBefore = runner.tracing.engine;
+      final engineBefore = runner.eph.engine;
       runner.apply(globals);
-      expect(identical(runner.tracing.engine, engineBefore), isTrue);
+      expect(identical(runner.eph.engine, engineBefore), isTrue);
     });
   });
 
-  group('tracing exposes TracingRustEph', () {
-    test('tracing returns TracingRustEph', () {
-      expect(runner.tracing, isA<TracingRustEph>());
-    });
-  });
-
-  group('trace lifecycle', () {
-    test('setTabTag propagates to trace entries', () {
-      final globals = AppliedGlobals(
-        ephePath: null,
-        epheSource: EpheSource.moshier,
-        sidMode: null,
-        userAyanT0: 0,
-        userAyanValue: 0,
-        topo: null,
-        jplFile: null,
-      );
-
-      runner.setTabTag('planets');
-      runner.apply(globals);
-      runner.tracing.calcUt(2460412.5, seSun, seFlgSpeed);
-
-      final calcEntry = runner.traceEntries.firstWhere(
-        (e) => e.functionName == TracedFunction.sweCalcUt,
-      );
-      expect(calcEntry.traceId, startsWith('planets:'));
+  group('exposes RustEph', () {
+    test('eph returns RustEph', () {
+      expect(runner.eph, isA<RustEph>());
     });
   });
 
@@ -115,13 +90,13 @@ void main() {
       );
 
       runner.apply(globals);
-      final traced = runner.tracing.calcUt(
+      final traced = runner.eph.calcUt(
         2460412.5,
         seSun,
         seFlgSwiEph | seFlgSpeed,
       );
 
-      final direct = TracingRustEph();
+      final direct = RustEph();
       try {
         final expected = direct.calcUt(
           2460412.5,

@@ -10,7 +10,6 @@ import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
@@ -158,9 +157,7 @@ List<PlanetoCentricResult> computePlanetocentric({
 }
 
 final _planetocentricCalcProvider =
-    Provider<
-      ({CalcOutcome<List<PlanetoCentricResult>> outcome, CallTrace trace})
-    >((ref) {
+    Provider<CalcOutcome<List<PlanetoCentricResult>>>((ref) {
       final ctx = ref.watch(contextBarProvider);
       final flags = ref.watch(flagBarProvider);
       final swe = ref.read(sweProvider);
@@ -171,7 +168,6 @@ final _planetocentricCalcProvider =
 
       return runTabCalc(
         ref,
-        tabTag: 'planetocentric',
         compute: (eph) => computePlanetocentric(
           eph: eph,
           jdEt: jdEt,
@@ -186,12 +182,8 @@ final _planetocentricCalcProvider =
 
 final planetocentricResultsProvider =
     Provider<CalcOutcome<List<PlanetoCentricResult>>>((ref) {
-      return ref.watch(_planetocentricCalcProvider.select((c) => c.outcome));
+      return ref.watch(_planetocentricCalcProvider);
     });
-
-final planetocentricTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_planetocentricCalcProvider.select((c) => c.trace));
-});
 
 List<ExportRow> planetocentricToExportRows(
   List<PlanetoCentricResult> results,

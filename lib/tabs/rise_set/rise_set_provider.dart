@@ -8,7 +8,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
@@ -298,68 +297,59 @@ RiseSetResult _computeOne(
   );
 }
 
-final _riseSetCalcProvider =
-    Provider<
-      ({CalcOutcome<List<RiseSetGroupResult>> outcome, CallTrace trace})
-    >((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final flags = ref.watch(flagBarProvider);
-      final swe = ref.read(sweProvider);
-      final targets = ref.watch(riseSetTargetsProvider);
-      final atpress = ref.watch(riseSetAtpressProvider);
-      final attemp = ref.watch(riseSetAttempProvider);
-      final modifiers = ref.watch(riseSetModifiersProvider);
+final _riseSetCalcProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
+  ref,
+) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final targets = ref.watch(riseSetTargetsProvider);
+  final atpress = ref.watch(riseSetAtpressProvider);
+  final attemp = ref.watch(riseSetAttempProvider);
+  final modifiers = ref.watch(riseSetModifiersProvider);
 
-      // Start from midnight local time (in UT) so all four events
-      // (rise, set, transits) land on the same local calendar day.
-      final utcOffsetDays = ctx.utcOffset / 24.0;
-      final jdUt =
-          (ctx.jdUt + utcOffsetDays + 0.5).floorToDouble() -
-          0.5 -
-          utcOffsetDays;
-      final geolon = ctx.longitude;
-      final geolat = ctx.latitude;
-      final geoalt = ctx.altitude;
-      // riseTrans uses the basic ephe flag (no speed, no extras needed).
-      final epheflag = flags.iflag & 0xF; // low bits: ephe source
+  // Start from midnight local time (in UT) so all four events
+  // (rise, set, transits) land on the same local calendar day.
+  final utcOffsetDays = ctx.utcOffset / 24.0;
+  final jdUt =
+      (ctx.jdUt + utcOffsetDays + 0.5).floorToDouble() - 0.5 - utcOffsetDays;
+  final geolon = ctx.longitude;
+  final geolat = ctx.latitude;
+  final geoalt = ctx.altitude;
+  // riseTrans uses the basic ephe flag (no speed, no extras needed).
+  final epheflag = flags.iflag & 0xF; // low bits: ephe source
 
-      return runTabCalc(
-        ref,
-        tabTag: 'riseSet',
-        compute: (eph) {
-          return [
-            for (final target in targets)
-              RiseSetGroupResult(
-                target: target,
-                result: _computeOne(
-                  eph,
-                  swe,
-                  target: target,
-                  jdUt: jdUt,
-                  modifiers: modifiers,
-                  epheflag: epheflag,
-                  geolon: geolon,
-                  geolat: geolat,
-                  geoalt: geoalt,
-                  atpress: atpress,
-                  attemp: attemp,
-                ),
-              ),
-          ];
-        },
-      );
-    });
+  return runTabCalc(
+    ref,
+    compute: (eph) {
+      return [
+        for (final target in targets)
+          RiseSetGroupResult(
+            target: target,
+            result: _computeOne(
+              eph,
+              swe,
+              target: target,
+              jdUt: jdUt,
+              modifiers: modifiers,
+              epheflag: epheflag,
+              geolon: geolon,
+              geolat: geolat,
+              geoalt: geoalt,
+              atpress: atpress,
+              attemp: attemp,
+            ),
+          ),
+      ];
+    },
+  );
+});
 
 /// Rise/set/transit result provider.
 final riseSetResultProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
   ref,
 ) {
-  return ref.watch(_riseSetCalcProvider.select((c) => c.outcome));
-});
-
-/// Call Trace produced by the most recent rise/set calculation.
-final riseSetTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_riseSetCalcProvider.select((c) => c.trace));
+  return ref.watch(_riseSetCalcProvider);
 });
 
 // ── Export ────────────────────────────────────────────────────────────────────

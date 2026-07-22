@@ -8,7 +8,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_utils.dart';
@@ -28,7 +27,9 @@ final heliacalEventTypeProvider = StateProvider<int>((ref) => seHeliacalRising);
 // ── Atmospheric condition providers ──────────────────────────────────────────
 
 final heliacalPressureProvider = StateProvider<double>((ref) => 1013.25);
+
 final heliacalTemperatureProvider = StateProvider<double>((ref) => 25.0);
+
 final heliacalHumidityProvider = StateProvider<double>((ref) => 50.0);
 
 /// Atmospheric extinction coefficient (typically 0.2 for clear sky).
@@ -37,6 +38,7 @@ final heliacalExtinctionProvider = StateProvider<double>((ref) => 0.2);
 // ── Observer condition providers ─────────────────────────────────────────────
 
 final heliacalObserverAgeProvider = StateProvider<double>((ref) => 36.0);
+
 final heliacalSnellenRatioProvider = StateProvider<double>((ref) => 1.0);
 
 // ── Result class ─────────────────────────────────────────────────────────────
@@ -130,54 +132,47 @@ HeliacalCalcResult _computeOne(
 }
 
 /// Runs the kernel once per recompute; iterates over all selected targets.
-final _heliacalCalcProvider =
-    Provider<
-      ({CalcOutcome<List<HeliacalCalcResult>> outcome, CallTrace trace})
-    >((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final targets = ref.watch(heliacalTargetsProvider);
-      final typeEvent = ref.watch(heliacalEventTypeProvider);
+final _heliacalCalcProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>((
+  ref,
+) {
+  final ctx = ref.watch(contextBarProvider);
+  final targets = ref.watch(heliacalTargetsProvider);
+  final typeEvent = ref.watch(heliacalEventTypeProvider);
 
-      final atmo = AtmoConditions(
-        pressure: ref.watch(heliacalPressureProvider),
-        temperature: ref.watch(heliacalTemperatureProvider),
-        humidity: ref.watch(heliacalHumidityProvider),
-        extinction: ref.watch(heliacalExtinctionProvider),
-      );
-      final observer = ObserverConditions(
-        age: ref.watch(heliacalObserverAgeProvider),
-        snellenRatio: ref.watch(heliacalSnellenRatioProvider),
-      );
+  final atmo = AtmoConditions(
+    pressure: ref.watch(heliacalPressureProvider),
+    temperature: ref.watch(heliacalTemperatureProvider),
+    humidity: ref.watch(heliacalHumidityProvider),
+    extinction: ref.watch(heliacalExtinctionProvider),
+  );
+  final observer = ObserverConditions(
+    age: ref.watch(heliacalObserverAgeProvider),
+    snellenRatio: ref.watch(heliacalSnellenRatioProvider),
+  );
 
-      return runTabCalc(
-        ref,
-        tabTag: 'heliacal',
-        compute: (eph) => targets
-            .map(
-              (name) => _computeOne(
-                eph,
-                ctx.jdUt,
-                ctx.longitude,
-                ctx.latitude,
-                ctx.altitude,
-                atmo,
-                observer,
-                name,
-                typeEvent,
-              ),
-            )
-            .toList(),
-      );
-    });
+  return runTabCalc(
+    ref,
+    compute: (eph) => targets
+        .map(
+          (name) => _computeOne(
+            eph,
+            ctx.jdUt,
+            ctx.longitude,
+            ctx.latitude,
+            ctx.altitude,
+            atmo,
+            observer,
+            name,
+            typeEvent,
+          ),
+        )
+        .toList(),
+  );
+});
 
 /// Heliacal calculation results (one per target).
 final heliacalResultProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>(
-  (ref) => ref.watch(_heliacalCalcProvider.select((c) => c.outcome)),
-);
-
-/// Call Trace produced by the most recent heliacal calculation.
-final heliacalTraceProvider = Provider<CallTrace>(
-  (ref) => ref.watch(_heliacalCalcProvider.select((c) => c.trace)),
+  (ref) => ref.watch(_heliacalCalcProvider),
 );
 
 // ── Export ───────────────────────────────────────────────────────────────────

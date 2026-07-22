@@ -8,7 +8,6 @@ import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/persistence.dart';
 import '../../core/swe_service.dart';
@@ -104,34 +103,27 @@ HousesCalcResult computeHouses(
 }
 
 /// Runs the kernel once per recompute; results + trace derive from this.
-final _housesCalcProvider =
-    Provider<({CalcOutcome<HousesCalcResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final swe = ref.read(sweProvider);
-      final hsys = ref.watch(selectedHouseSystemProvider);
+final _housesCalcProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final swe = ref.read(sweProvider);
+  final hsys = ref.watch(selectedHouseSystemProvider);
 
-      return runTabCalc(
-        ref,
-        tabTag: 'houses',
-        compute: (eph) => computeHouses(
-          eph,
-          jdUt: ctx.jdUt,
-          lat: ctx.latitude,
-          lon: ctx.longitude,
-          hsys: hsys,
-          hsysName: swe.houseName(hsys),
-        ),
-      );
-    });
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeHouses(
+      eph,
+      jdUt: ctx.jdUt,
+      lat: ctx.latitude,
+      lon: ctx.longitude,
+      hsys: hsys,
+      hsysName: swe.houseName(hsys),
+    ),
+  );
+});
 
 /// Houses calculation result.
 final housesResultProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
-  return ref.watch(_housesCalcProvider.select((c) => c.outcome));
-});
-
-/// Call Trace produced by the most recent houses calculation.
-final housesTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_housesCalcProvider.select((c) => c.trace));
+  return ref.watch(_housesCalcProvider);
 });
 
 /// Convert house results to export rows.

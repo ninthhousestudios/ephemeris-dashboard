@@ -8,7 +8,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/trace_model.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
@@ -200,29 +199,22 @@ DatesResult computeDates(
 
 /// Computes all date/time conversions using swisseph native functions.
 /// Reactive to the context JD, a per-tab override JD, and longitude.
-final _datesCalcProvider =
-    Provider<({CalcOutcome<DatesResult> outcome, CallTrace trace})>((ref) {
-      final ctx = ref.watch(contextBarProvider);
-      final swe = ref.read(sweProvider);
-      final overrideJd = ref.watch(datesOverrideJdProvider);
-      final jdUt = overrideJd ?? ctx.jdUt;
-      final geolon = ctx.longitude;
+final _datesCalcProvider = Provider<CalcOutcome<DatesResult>>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final swe = ref.read(sweProvider);
+  final overrideJd = ref.watch(datesOverrideJdProvider);
+  final jdUt = overrideJd ?? ctx.jdUt;
+  final geolon = ctx.longitude;
 
-      return runTabCalc(
-        ref,
-        tabTag: 'dates',
-        compute: (eph) => computeDates(eph, swe, jdUt: jdUt, geolon: geolon),
-      );
-    });
+  return runTabCalc(
+    ref,
+    compute: (eph) => computeDates(eph, swe, jdUt: jdUt, geolon: geolon),
+  );
+});
 
 /// Date/time conversion results.
 final datesResultProvider = Provider<CalcOutcome<DatesResult>>((ref) {
-  return ref.watch(_datesCalcProvider.select((c) => c.outcome));
-});
-
-/// Call Trace produced by the most recent dates calculation.
-final datesTraceProvider = Provider<CallTrace>((ref) {
-  return ref.watch(_datesCalcProvider.select((c) => c.trace));
+  return ref.watch(_datesCalcProvider);
 });
 
 // ── Export ───────────────────────────────────────────────────────────────────

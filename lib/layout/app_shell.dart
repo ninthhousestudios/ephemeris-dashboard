@@ -7,8 +7,6 @@ import 'tab_definitions.dart';
 import 'tab_registry.dart';
 import 'responsive_layout.dart';
 import '../core/active_tab.dart';
-import '../core/active_tab_trace.dart';
-import '../core/ephemeris/trace_model.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
@@ -44,27 +42,15 @@ class _AppShellState extends ConsumerState<AppShell>
       initialIndex: initialIndex >= 0 ? initialIndex : 0,
       vsync: this,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ref.read(activeTraceSourceProvider.notifier).state = _traceForTab(
-          initialTab,
-        );
-      }
-    });
-
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         final tab = _allTabs[_tabController.index];
         ref.read(selectedTabProvider.notifier).state = tab;
         ref.read(activeTabIdProvider.notifier).state = tab.name;
-        ref.read(activeTraceSourceProvider.notifier).state = _traceForTab(tab);
         ref.read(persistenceProvider).saveTab(tab);
       }
     });
   }
-
-  static Provider<CallTrace>? _traceForTab(AppTab tab) =>
-      tabDescriptorMap[tab]?.traceProvider;
 
   @override
   void dispose() {
