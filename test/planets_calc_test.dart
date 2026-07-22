@@ -31,6 +31,9 @@ void main() {
         origin: Origin.geocentric,
         bodies: [seSun, seMoon],
         getName: (body) => 'Body $body',
+        geolon: 0,
+        geolat: 0,
+        geoalt: 0,
       );
 
       expect(results, hasLength(2));
@@ -56,6 +59,9 @@ void main() {
         origin: Origin.geocentric,
         bodies: [seSun, seMoon],
         getName: (body) => 'Body $body',
+        geolon: 0,
+        geolat: 0,
+        geoalt: 0,
       );
 
       expect(results, hasLength(2));
@@ -75,6 +81,9 @@ void main() {
         origin: Origin.heliocentric,
         bodies: [seSun],
         getName: (body) => 'Body $body',
+        geolon: 0,
+        geolat: 0,
+        geoalt: 0,
       );
 
       expect(results.map((r) => r.body), contains(seEarth));
@@ -91,6 +100,9 @@ void main() {
         origin: Origin.heliocentric,
         bodies: [seSun, seEarth],
         getName: (body) => 'Body $body',
+        geolon: 0,
+        geolat: 0,
+        geoalt: 0,
       );
 
       final earthCount = results.where((r) => r.body == seEarth).length;

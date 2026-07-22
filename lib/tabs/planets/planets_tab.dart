@@ -316,6 +316,40 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                                     : formatSpeed(r.speedDist, format),
                                 rawValue: r.speedDist,
                               ),
+                              if (!r.azimuth.isNaN) ...[
+                                ResultField(
+                                  label: 'Azimuth',
+                                  value: formatAngle(r.azimuth, format),
+                                  rawValue: r.azimuth,
+                                ),
+                                ResultField(
+                                  label: 'True Alt',
+                                  value: formatAngle(r.trueAltitude, format),
+                                  rawValue: r.trueAltitude,
+                                ),
+                                ResultField(
+                                  label: 'App. Alt',
+                                  value: formatAngle(
+                                    r.apparentAltitude,
+                                    format,
+                                  ),
+                                  rawValue: r.apparentAltitude,
+                                ),
+                                ResultField(
+                                  label: 'Zenith Dist',
+                                  value: formatAngle(r.zenithDistance, format),
+                                  rawValue: r.zenithDistance,
+                                ),
+                              ],
+                              if (!r.meridianDistance.isNaN)
+                                ResultField(
+                                  label: 'Meridian Dist',
+                                  value: formatAngle(
+                                    r.meridianDistance,
+                                    format,
+                                  ),
+                                  rawValue: r.meridianDistance,
+                                ),
                             ],
                     ),
                     Positioned(

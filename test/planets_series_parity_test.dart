@@ -163,6 +163,9 @@ void main() {
         origin: Origin.geocentric,
         bodies: bodies,
         getName: (body) => 'Body $body',
+        geolon: 0,
+        geolat: 0,
+        geoalt: 0,
       ),
     );
   }

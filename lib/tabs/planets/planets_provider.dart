@@ -34,6 +34,11 @@ class PlanetResult {
     this.rascension = double.nan,
     this.declination = double.nan,
     this.dmin,
+    this.azimuth = double.nan,
+    this.trueAltitude = double.nan,
+    this.apparentAltitude = double.nan,
+    this.zenithDistance = double.nan,
+    this.meridianDistance = double.nan,
     this.errorMessage,
   });
 
@@ -49,6 +54,11 @@ class PlanetResult {
   final double rascension;
   final double declination;
   final double? dmin;
+  final double azimuth;
+  final double trueAltitude;
+  final double apparentAltitude;
+  final double zenithDistance;
+  final double meridianDistance;
   final String? errorMessage;
 }
 
@@ -163,12 +173,27 @@ List<PlanetResult> computePlanets({
   required Origin origin,
   required List<int> bodies,
   required String Function(int body) getName,
+  required double geolon,
+  required double geolat,
+  required double geoalt,
 }) {
   var effectiveBodies = bodies;
   if ((origin == Origin.heliocentric || origin == Origin.barycentric) &&
       !bodies.contains(seEarth)) {
     effectiveBodies = [...bodies, seEarth];
   }
+
+  final doHorizontal =
+      origin == Origin.geocentric || origin == Origin.topocentric;
+  double? gmstHours;
+  if (doHorizontal) {
+    try {
+      gmstHours = eph.sidTime(moment.ut);
+    } catch (_) {}
+  }
+
+  final needTropicalCalc =
+      doHorizontal && (iflag & (seFlgXyz | seFlgSidereal)) != 0;
 
   return effectiveBodies.map((body) {
     try {
@@ -184,16 +209,56 @@ List<PlanetResult> computePlanets({
         );
         ra = eq.longitude;
         dec = eq.latitude;
-      } catch (_) {
-        // equatorial calc failed — leave NaN
-      }
+      } catch (_) {}
 
       double? dmin;
       try {
         final od = eph.orbitMaxMinTrueDistance(moment.et, body, iflag);
         dmin = od.minDist;
-      } catch (_) {
-        // not available for this body
+      } catch (_) {}
+
+      var az = double.nan;
+      var trueAlt = double.nan;
+      var appAlt = double.nan;
+      var zenith = double.nan;
+      var meridian = double.nan;
+      if (doHorizontal) {
+        try {
+          double eclLon, eclLat, eclDist;
+          if (needTropicalCalc) {
+            final trop = eph.calcUt(
+              moment.ut,
+              body,
+              iflag & ~seFlgXyz & ~seFlgSidereal,
+            );
+            eclLon = trop.longitude;
+            eclLat = trop.latitude;
+            eclDist = trop.distance;
+          } else {
+            eclLon = r.longitude;
+            eclLat = r.latitude;
+            eclDist = r.distance;
+          }
+          final hz = eph.azAlt(
+            moment.ut,
+            seEcl2hor,
+            geolon: geolon,
+            geolat: geolat,
+            geoalt: geoalt,
+            bodyLon: eclLon,
+            bodyLat: eclLat,
+            bodyDist: eclDist,
+          );
+          az = hz.azimuth;
+          trueAlt = hz.trueAltitude;
+          appAlt = hz.apparentAltitude;
+          zenith = 90.0 - trueAlt;
+          if (gmstHours != null && !ra.isNaN) {
+            meridian =
+                ((gmstHours * 15.0 + geolon - ra) % 360.0 + 540.0) % 360.0 -
+                180.0;
+          }
+        } catch (_) {}
       }
 
       return PlanetResult(
@@ -209,6 +274,11 @@ List<PlanetResult> computePlanets({
         rascension: ra,
         declination: dec,
         dmin: dmin,
+        azimuth: az,
+        trueAltitude: trueAlt,
+        apparentAltitude: appAlt,
+        zenithDistance: zenith,
+        meridianDistance: meridian,
       );
     } on SweException catch (e) {
       return PlanetResult(
@@ -245,6 +315,9 @@ List<PlanetResult> Function(Ephemeris, Moment) _planetsCompute(Ref ref) {
     origin: ctx.origin,
     bodies: bodies,
     getName: (body) => safeGetName(swe, body),
+    geolon: ctx.longitude,
+    geolat: ctx.latitude,
+    geoalt: ctx.altitude,
   );
 }
 
@@ -346,6 +419,14 @@ List<ExportRow> planetsToExportRows(
                   ? formatAuSpeed(r.speedDist, fmt)
                   : formatSpeed(r.speedDist, fmt),
             ),
+            if (!r.azimuth.isNaN) ...[
+              ('Azimuth', formatAngle(r.azimuth, fmt)),
+              ('True Alt', formatAngle(r.trueAltitude, fmt)),
+              ('App. Alt', formatAngle(r.apparentAltitude, fmt)),
+              ('Zenith Dist', formatAngle(r.zenithDistance, fmt)),
+            ],
+            if (!r.meridianDistance.isNaN)
+              ('Meridian Dist', formatAngle(r.meridianDistance, fmt)),
           ],
         ),
       )
