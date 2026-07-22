@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'moment.dart';
+import 'series_layout.dart';
 import 'series_spec.dart';
 
 /// A tab's series-mode settings: whether the tab is in series mode, and the
@@ -17,6 +18,7 @@ class SeriesSettings {
     this.stepUnit = StepUnit.days,
     this.rowCount = 30,
     this.hiddenLabels = const {},
+    this.exportLayout = SeriesLayout.vertical,
   });
 
   /// Series mode is per-tab and defaults off: 7 of 17 tabs are ineligible, so
@@ -34,6 +36,11 @@ class SeriesSettings {
   /// the user having to go and enable it.
   final Set<String> hiddenLabels;
 
+  /// Which shape the export offers first. A setting rather than widget state
+  /// because a user who works in horizontal wants it on the next tab too —
+  /// the same reason the hidden quantities are stored.
+  final SeriesLayout exportLayout;
+
   bool showsLabel(String label) => !hiddenLabels.contains(label);
 
   /// The series to compute from [start], which is the Context Moment.
@@ -50,11 +57,13 @@ class SeriesSettings {
     StepUnit? stepUnit,
     int? rowCount,
     Set<String>? hiddenLabels,
+    SeriesLayout? exportLayout,
   }) => SeriesSettings(
     enabled: enabled ?? this.enabled,
     stepValue: stepValue ?? this.stepValue,
     stepUnit: stepUnit ?? this.stepUnit,
     rowCount: rowCount ?? this.rowCount,
     hiddenLabels: hiddenLabels ?? this.hiddenLabels,
+    exportLayout: exportLayout ?? this.exportLayout,
   );
 }

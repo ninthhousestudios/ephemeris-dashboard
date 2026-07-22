@@ -34,7 +34,7 @@ class SeriesView extends ConsumerWidget {
   final String Function(Moment) momentLabel;
   final String momentColumnTitle;
 
-  /// Defaults to `swe_<tabId>_series`.
+  /// Defaults to [seriesFilenameStem].
   final String? filenameStem;
 
   @override
@@ -72,7 +72,10 @@ class SeriesView extends ConsumerWidget {
                     ),
                   ),
               ],
-              filenameStem: filenameStem ?? 'swe_${tabId}_series',
+              selected: settings.exportLayout.index,
+              onSelected: (index) =>
+                  notifier.setExportLayout(SeriesLayout.values[index]),
+              filenameStem: filenameStem ?? seriesFilenameStem(tabId, steps),
               disabledTooltip: 'Export disabled: no series rows',
             ),
           ],

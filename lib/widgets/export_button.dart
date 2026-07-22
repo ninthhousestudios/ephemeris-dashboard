@@ -23,6 +23,10 @@ class ExportVariant {
 /// the formats and every format — including tap-to-copy — uses the selected
 /// one. Keeping it here rather than in a second button is what stops the
 /// format list from being written twice.
+///
+/// The selection is *controlled* — [selected] in, [onSelected] out. The button
+/// holds no notion of a current variant, so a caller that persists the choice
+/// (as `SeriesView` does) cannot end up disagreeing with it.
 class ExportButton extends StatefulWidget {
   ExportButton({
     super.key,
@@ -30,15 +34,24 @@ class ExportButton extends StatefulWidget {
     required this.filenameStem,
     this.hasResults = true,
     this.disabledTooltip,
-  }) : variants = [ExportVariant('', getRows)];
+  }) : variants = [ExportVariant('', getRows)],
+       selected = 0,
+       onSelected = null;
 
   const ExportButton.variants({
     super.key,
     required this.variants,
+    required this.selected,
+    required this.onSelected,
     required this.filenameStem,
     this.hasResults = true,
     this.disabledTooltip,
   });
+
+  /// Index into [variants] of the projection every format will use.
+  final int selected;
+
+  final ValueChanged<int>? onSelected;
 
   /// The projections on offer. The single-projection constructor makes one
   /// unnamed entry, so there is one code path and no nullable callback: the
@@ -57,11 +70,13 @@ class ExportButton extends StatefulWidget {
 
 class _ExportButtonState extends State<ExportButton> {
   final _menuController = MenuController();
-  int _variant = 0;
 
   Future<void> _export(ExportFormat format) async {
     final variants = widget.variants;
-    final rows = variants[_variant.clamp(0, variants.length - 1)].getRows();
+    // Clamped rather than indexed raw: `selected` comes from persisted
+    // settings, which can outlive the variant list that produced it.
+    final rows = variants[widget.selected.clamp(0, variants.length - 1)]
+        .getRows();
     if (rows.isEmpty) return;
     final msg = await ExportService.export(rows, format, widget.filenameStem);
     if (mounted) {
@@ -80,11 +95,11 @@ class _ExportButtonState extends State<ExportButton> {
           for (final (index, variant) in widget.variants.indexed)
             RadioMenuButton<int>(
               value: index,
-              groupValue: _variant,
+              groupValue: widget.selected,
               // The layout is a modifier on the format items below, so picking
               // one must leave the menu open.
               closeOnActivate: false,
-              onChanged: (value) => setState(() => _variant = value ?? 0),
+              onChanged: (value) => widget.onSelected?.call(value ?? 0),
               child: Text(variant.label),
             ),
           const Divider(height: 8),

@@ -3,19 +3,24 @@
 
 import '../export_service.dart';
 import 'moment.dart';
+import 'series_layout.dart';
 import 'series_table.dart';
 
-/// The two shapes swetest emits for a series.
-enum SeriesLayout {
-  /// One row per (step, row identifier) — swetest's default.
-  vertical('Vertical (row per body)'),
+export 'series_layout.dart' show SeriesLayout;
 
-  /// One row per step, every quantity flattened across — swetest's `-hor`.
-  horizontal('Horizontal (row per step)');
-
-  const SeriesLayout(this.label);
-
-  final String label;
+/// Filename stem for a series export: `swe_<tabId>_series_<start JD>`.
+///
+/// A series is identified by where it starts, so the start Moment is in the
+/// name. Without it two exports taken at different Contexts collide in the save
+/// dialog and cannot be told apart afterwards. Four decimals (~8 seconds)
+/// matches the single-Moment tabs. A series with no steps, or one whose start
+/// UT could not be computed, falls back to the bare stem rather than naming a
+/// file `NaN`.
+String seriesFilenameStem(String tabId, List<SeriesStep> steps) {
+  const bare = '';
+  final jd = steps.isEmpty ? double.nan : steps.first.$1.ut;
+  final suffix = jd.isNaN ? bare : '_${jd.toStringAsFixed(4)}';
+  return 'swe_${tabId}_series$suffix';
 }
 
 /// Projects an already-built [SeriesTable] into export rows.

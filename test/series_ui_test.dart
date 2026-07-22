@@ -267,6 +267,27 @@ void main() {
       }
     });
 
+    test('the filename stem carries the start Moment', () {
+      expect(
+        seriesFilenameStem('planets', [
+          _ok(2451545.0, const []),
+          _ok(2451546.0, const []),
+        ]),
+        'swe_planets_series_2451545.0000',
+      );
+      // Two series from different Contexts are distinguishable.
+      expect(
+        seriesFilenameStem('planets', [_ok(2451545.0, const [])]),
+        isNot(seriesFilenameStem('planets', [_ok(2460000.0, const [])])),
+      );
+      // Nothing to name it after beats naming a file NaN.
+      expect(seriesFilenameStem('planets', const []), 'swe_planets_series');
+      expect(
+        seriesFilenameStem('planets', [_ok(double.nan, const [])]),
+        'swe_planets_series',
+      );
+    });
+
     test('the formats consume both layouts', () {
       final vertical = seriesToExportRows(
         table,
@@ -415,6 +436,34 @@ void main() {
         reopened.read(seriesSettingsProvider('houses')).showsLabel('Latitude'),
         isTrue,
       );
+    });
+
+    test('export layout defaults vertical and persists per tab', () async {
+      expect(read('planets').exportLayout, SeriesLayout.vertical);
+      notifier('planets').setExportLayout(SeriesLayout.horizontal);
+
+      final prefs = await SharedPreferences.getInstance();
+      final reopened = ProviderContainer(
+        overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(reopened.dispose);
+      expect(
+        reopened.read(seriesSettingsProvider('planets')).exportLayout,
+        SeriesLayout.horizontal,
+      );
+      expect(
+        reopened.read(seriesSettingsProvider('houses')).exportLayout,
+        SeriesLayout.vertical,
+      );
+    });
+
+    test('a layout name from another build falls back, it does not throw', () {
+      SharedPreferences.setMockInitialValues({
+        'series_planets_export_layout': 'diagonal',
+      });
+      expect(SeriesLayout.byName('diagonal'), SeriesLayout.vertical);
+      expect(SeriesLayout.byName(null), SeriesLayout.vertical);
+      expect(SeriesLayout.byName('horizontal'), SeriesLayout.horizontal);
     });
   });
 
@@ -640,7 +689,7 @@ void main() {
         ]),
       ];
 
-      await pump(
+      final container = await pump(
         tester,
         SeriesView(
           tabId: 'planets',
@@ -664,6 +713,47 @@ void main() {
       await tester.tap(find.text('Copy as TSV'));
       await tester.pumpAndSettle();
       expect(copied, startsWith('Name\tJD\tDate\tSun Longitude\n1.0\t'));
+
+      // The choice went to the settings, not to widget state.
+      expect(
+        container.read(seriesSettingsProvider('planets')).exportLayout,
+        SeriesLayout.horizontal,
+      );
+    });
+
+    testWidgets('a persisted layout is the one the export button starts on', (
+      tester,
+    ) async {
+      final steps = [
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+        ]),
+      ];
+
+      final container = await pump(
+        tester,
+        SeriesView(
+          tabId: 'planets',
+          steps: steps,
+          momentLabel: (m) => m.ut.toStringAsFixed(1),
+        ),
+        size: const Size(1400, 900),
+      );
+      container
+          .read(seriesSettingsProvider('planets').notifier)
+          .setExportLayout(SeriesLayout.horizontal);
+      await tester.pump();
+
+      await tester.tap(find.byIcon(Icons.arrow_drop_down));
+      await tester.pumpAndSettle();
+
+      final radio = tester.widget<RadioMenuButton<int>>(
+        find.ancestor(
+          of: find.text(SeriesLayout.horizontal.label),
+          matching: find.byType(RadioMenuButton<int>),
+        ),
+      );
+      expect(radio.groupValue, radio.value);
     });
   });
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'calculation/series_layout.dart';
 import 'calculation/series_settings.dart';
 import 'calculation/series_spec.dart';
 import 'context_state.dart';
@@ -175,6 +176,7 @@ class PersistenceService {
       _seriesKey(tabId, 'hidden_labels'),
       s.hiddenLabels.toList(),
     );
+    _prefs.setString(_seriesKey(tabId, 'export_layout'), s.exportLayout.name);
   }
 
   /// Loaded field by field against the defaults, so a tab that has never been
@@ -202,6 +204,10 @@ class PersistenceService {
       hiddenLabels:
           _prefs.getStringList(_seriesKey(tabId, 'hidden_labels'))?.toSet() ??
           defaults.hiddenLabels,
+      exportLayout: SeriesLayout.byName(
+        _prefs.getString(_seriesKey(tabId, 'export_layout')),
+        fallback: defaults.exportLayout,
+      ),
     );
   }
 

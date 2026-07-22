@@ -4,6 +4,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../persistence.dart';
+import 'series_layout.dart';
 import 'series_settings.dart';
 import 'series_spec.dart';
 
@@ -53,6 +54,9 @@ class SeriesSettingsNotifier extends StateNotifier<SeriesSettings> {
     _set(state.copyWith(rowCount: rows));
     return true;
   }
+
+  void setExportLayout(SeriesLayout layout) =>
+      _set(state.copyWith(exportLayout: layout));
 
   void setLabelVisible(String label, bool visible) {
     final hidden = {...state.hiddenLabels};
