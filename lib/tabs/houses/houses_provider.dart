@@ -4,13 +4,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/persistence.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 /// Display format for Houses tab (promoted from local state).
 final housesFormatProvider = StateProvider<DisplayFormat>(
@@ -102,29 +105,39 @@ HousesCalcResult computeHouses(
   );
 }
 
-/// Runs the kernel once per recompute; results + trace derive from this.
-final _housesCalcProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
+HousesCalcResult Function(Ephemeris, Moment) _housesCompute(Ref ref) {
   final ctx = ref.watch(contextBarProvider);
   final swe = ref.read(sweProvider);
   final hsys = ref.watch(selectedHouseSystemProvider);
 
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) => computeHouses(
-      eph,
-      jdUt: moment.ut,
-      lat: ctx.latitude,
-      lon: ctx.longitude,
-      hsys: hsys,
-      hsysName: swe.houseName(hsys),
-    ),
+  return (eph, moment) => computeHouses(
+    eph,
+    jdUt: moment.ut,
+    lat: ctx.latitude,
+    lon: ctx.longitude,
+    hsys: hsys,
+    hsysName: swe.houseName(hsys),
   );
+}
+
+final _housesCalcProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
+  return runTabCalc(ref, compute: _housesCompute(ref));
 });
 
-/// Houses calculation result.
 final housesResultProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
   return ref.watch(_housesCalcProvider);
 });
+
+final housesSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<HousesCalcResult>)>>((ref) {
+      final settings = ref.watch(seriesSettingsProvider(AppTab.houses.name));
+      if (!settings.enabled) return const [];
+      return runTabCalcSeries(
+        ref,
+        compute: _housesCompute(ref),
+        settings: settings,
+      );
+    });
 
 /// Convert house results to export rows.
 List<ExportRow> housesToExportRows(HousesCalcResult result, DisplayFormat fmt) {

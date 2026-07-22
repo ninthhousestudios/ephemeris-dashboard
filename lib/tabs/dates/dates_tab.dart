@@ -6,12 +6,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import 'dates_provider.dart';
 
 class DatesTab extends ConsumerStatefulWidget {
@@ -256,10 +260,38 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             ],
           ),
         ),
+        SeriesBar(tabId: AppTab.dates.name),
         const Divider(height: 1),
         // ── Results ──
-        _buildResults(),
+        if (ref.watch(
+          seriesSettingsProvider(AppTab.dates.name).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          _buildResults(),
       ],
+    );
+  }
+
+  Widget _buildSeries() {
+    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final swe = ref.read(sweProvider);
+    final steps = ref.watch(datesSeriesProvider);
+
+    return SeriesView(
+      tabId: AppTab.dates.name,
+      steps: [
+        for (final (moment, outcome) in steps)
+          (moment, outcome.map(datesToExportRows)),
+      ],
+      momentLabel: (m) => formatJdDateTime(
+        swe,
+        m.ut,
+        utLabel: false,
+        utcOffset: utcOffset,
+        fallbackDigits: 4,
+      ),
+      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

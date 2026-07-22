@@ -5,10 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/export_service.dart';
+import '../../core/jd_utils.dart';
+import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import 'ayanamsa_provider.dart';
 
 class AyanamsaTab extends ConsumerStatefulWidget {
@@ -139,10 +146,41 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
             ],
           ),
         ),
+        SeriesBar(tabId: AppTab.ayanamsa.name),
         const Divider(height: 1),
         // Results
-        _buildResults(),
+        if (ref.watch(
+          seriesSettingsProvider(AppTab.ayanamsa.name).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          _buildResults(),
       ],
+    );
+  }
+
+  Widget _buildSeries() {
+    final format = ref.watch(ayanamsaFormatProvider);
+    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final swe = ref.read(sweProvider);
+    final steps = ref.watch(ayanamsaSeriesProvider);
+
+    List<ExportRow> rows(List<AyanamsaCalcResult> results) =>
+        ayanamsaToExportRows(results, format);
+
+    return SeriesView(
+      tabId: AppTab.ayanamsa.name,
+      steps: [
+        for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
+      ],
+      momentLabel: (m) => formatJdDateTime(
+        swe,
+        m.ut,
+        utLabel: false,
+        utcOffset: utcOffset,
+        fallbackDigits: 4,
+      ),
+      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

@@ -5,11 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
+import '../../core/export_service.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/jd_utils.dart';
 import '../../core/persistence.dart';
+import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import 'houses_provider.dart';
 
 class HousesTab extends ConsumerStatefulWidget {
@@ -79,10 +86,41 @@ class _HousesTabState extends ConsumerState<HousesTab> {
             ),
           ),
         ),
+        SeriesBar(tabId: AppTab.houses.name),
         const Divider(height: 1),
         // Results
-        _buildResults(),
+        if (ref.watch(
+          seriesSettingsProvider(AppTab.houses.name).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          _buildResults(),
       ],
+    );
+  }
+
+  Widget _buildSeries() {
+    final format = ref.watch(housesFormatProvider);
+    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final swe = ref.read(sweProvider);
+    final steps = ref.watch(housesSeriesProvider);
+
+    List<ExportRow> rows(HousesCalcResult result) =>
+        housesToExportRows(result, format);
+
+    return SeriesView(
+      tabId: AppTab.houses.name,
+      steps: [
+        for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
+      ],
+      momentLabel: (m) => formatJdDateTime(
+        swe,
+        m.ut,
+        utLabel: false,
+        utcOffset: utcOffset,
+        fallbackDigits: 4,
+      ),
+      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

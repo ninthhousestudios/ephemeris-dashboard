@@ -5,12 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
+import '../../layout/tab_definitions.dart';
 
 /// Optional override JD — when non-null, use this instead of the context bar JD.
 final datesOverrideJdProvider = StateProvider<double?>((ref) => null);
@@ -197,24 +200,35 @@ DatesResult computeDates(
   );
 }
 
-/// Computes all date/time conversions using swisseph native functions.
-/// Reactive to the context JD, a per-tab override JD, and longitude.
-final _datesCalcProvider = Provider<CalcOutcome<DatesResult>>((ref) {
+DatesResult Function(Ephemeris, Moment) _datesCompute(
+  Ref ref, {
+  double? overrideJd,
+}) {
   final ctx = ref.watch(contextBarProvider);
   final swe = ref.read(sweProvider);
-  final overrideJd = ref.watch(datesOverrideJdProvider);
-  final geolon = ctx.longitude;
-
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) =>
-        computeDates(eph, swe, jdUt: overrideJd ?? moment.ut, geolon: geolon),
+  return (eph, moment) => computeDates(
+    eph,
+    swe,
+    jdUt: overrideJd ?? moment.ut,
+    geolon: ctx.longitude,
   );
+}
+
+final _datesCalcProvider = Provider<CalcOutcome<DatesResult>>((ref) {
+  final overrideJd = ref.watch(datesOverrideJdProvider);
+  return runTabCalc(ref, compute: _datesCompute(ref, overrideJd: overrideJd));
 });
 
-/// Date/time conversion results.
 final datesResultProvider = Provider<CalcOutcome<DatesResult>>((ref) {
   return ref.watch(_datesCalcProvider);
+});
+
+final datesSeriesProvider = Provider<List<(Moment, CalcOutcome<DatesResult>)>>((
+  ref,
+) {
+  final settings = ref.watch(seriesSettingsProvider(AppTab.dates.name));
+  if (!settings.enabled) return const [];
+  return runTabCalcSeries(ref, compute: _datesCompute(ref), settings: settings);
 });
 
 // ── Export ───────────────────────────────────────────────────────────────────
