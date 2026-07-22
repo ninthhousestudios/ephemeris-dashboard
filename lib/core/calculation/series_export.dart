@@ -45,11 +45,19 @@ List<ExportRow> _vertical(SeriesTable table, String Function(Moment) label) {
     if (seen.add(column.header)) headers.add(column.header);
   }
 
+  // Quantity labels are shared across bodies, so the vertical schema is the
+  // distinct labels in column order.
+  final labels = <String>[];
+  final seenLabels = <String>{};
+  for (final column in table.columns) {
+    if (seenLabels.add(column.label)) labels.add(column.label);
+  }
+
   final rows = <ExportRow>[];
   for (final row in table.rows) {
     final leading = _leading(row.moment, label);
     if (row.error case final message?) {
-      rows.add(ExportRow(header: '', fields: [...leading, ('Error', message)]));
+      rows.add(_errorRow('', leading, labels, message));
       continue;
     }
     for (final header in headers) {
@@ -74,10 +82,9 @@ List<ExportRow> _horizontal(SeriesTable table, String Function(Moment) label) {
   return table.rows.map((row) {
     final leading = _leading(row.moment, label);
     if (row.error case final message?) {
-      return ExportRow(
-        header: leading.last.$2,
-        fields: [...leading, ('Error', message)],
-      );
+      return _errorRow(leading.last.$2, leading, [
+        for (final column in table.columns) column.title,
+      ], message);
     }
     return ExportRow(
       header: leading.last.$2,
@@ -88,6 +95,28 @@ List<ExportRow> _horizontal(SeriesTable table, String Function(Moment) label) {
       ],
     );
   }).toList();
+}
+
+/// A failed step, padded out to the full [schema] before the message.
+///
+/// The padding is load-bearing, not decoration: `ExportService` derives its
+/// columns from first appearance across rows, so an unpadded error row as step
+/// 0 would put Error ahead of every quantity and make the exported column
+/// order depend on which step failed.
+ExportRow _errorRow(
+  String header,
+  List<(String, String)> leading,
+  List<String> schema,
+  String message,
+) {
+  return ExportRow(
+    header: header,
+    fields: [
+      ...leading,
+      for (final label in schema) (label, ''),
+      ('Error', message),
+    ],
+  );
 }
 
 /// JD then the formatted date, leading every row in both layouts. Eight

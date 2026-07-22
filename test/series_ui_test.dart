@@ -147,8 +147,15 @@ void main() {
         ('Latitude', '0'),
       ]);
       expect(rows[1].fields.last, ('Latitude', '5'));
-      // The errored step is one row carrying the message, not one per body.
-      expect(rows[2].fields.last, ('Error', 'out of range'));
+      // The errored step is one row carrying the message, not one per body,
+      // padded to the quantity schema so the message stays the last column.
+      expect(rows[2].fields, [
+        ('JD', '2451546.00000000'),
+        ('Date', 'day 2451546'),
+        ('Longitude', ''),
+        ('Latitude', ''),
+        ('Error', 'out of range'),
+      ]);
     });
 
     test('horizontal is one row per step in grid column order', () {
@@ -168,10 +175,14 @@ void main() {
         ('Moon Longitude', '20'),
         ('Moon Latitude', '5'),
       ]);
-      // Column order matches the grid, so an errored step keeps its shape.
+      // An errored step keeps the full column shape, message last.
       expect(rows[1].fields, [
         ('JD', '2451546.00000000'),
         ('Date', 'day 2451546'),
+        ('Sun Longitude', ''),
+        ('Sun Latitude', ''),
+        ('Moon Longitude', ''),
+        ('Moon Latitude', ''),
         ('Error', 'out of range'),
       ]);
     });
@@ -201,6 +212,39 @@ void main() {
         momentLabel: label,
       );
       expect(vertical.map((r) => r.header), ['Sun', 'Sun', 'Chiron']);
+    });
+
+    test('an errored first step does not reorder the exported columns', () {
+      // ExportService derives its columns from first appearance across rows,
+      // so a bare error row at step 0 would put Error ahead of every quantity
+      // and make the schema depend on which step failed.
+      final errorFirst = buildSeriesTable([
+        _err(1.0, 'out of range'),
+        _ok(2.0, [
+          _row('Sun', [('Longitude', '10'), ('Latitude', '0')]),
+        ]),
+      ]);
+
+      expect(
+        ExportService.toTsv(
+          seriesToExportRows(
+            errorFirst,
+            SeriesLayout.horizontal,
+            momentLabel: label,
+          ),
+        ).split('\n').first,
+        'Name\tJD\tDate\tSun Longitude\tSun Latitude\tError',
+      );
+      expect(
+        ExportService.toTsv(
+          seriesToExportRows(
+            errorFirst,
+            SeriesLayout.vertical,
+            momentLabel: label,
+          ),
+        ).split('\n').first,
+        'Name\tJD\tDate\tLongitude\tLatitude\tError',
+      );
     });
 
     test('hidden quantities stay out of both layouts', () {
