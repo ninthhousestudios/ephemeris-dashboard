@@ -10,6 +10,7 @@ import '../ephemeris/ephemeris.dart';
 import '../ephemeris/runner.dart';
 import 'calc_outcome.dart';
 import 'moment.dart';
+import 'series_settings.dart';
 import 'series_spec.dart';
 
 CalcOutcome<T> _runTabCalc<T>(
@@ -49,8 +50,14 @@ CalcOutcome<T> runTabCalcWithOverrides<T>(
   });
 });
 
-/// Runs [compute] once per step of [spec], each step getting its own
-/// [CalcOutcome] so one failing step does not kill the series.
+/// Runs [compute] once per step of the series described by [settings], each
+/// step getting its own [CalcOutcome] so one failing step does not kill the
+/// series.
+///
+/// The series starts at the Context Moment, built here rather than taken from
+/// the caller: the Context owns the Moment (CLAUDE.md — JD is canonical), so a
+/// tab-supplied start would be a second place to set it. [SeriesSettings]
+/// carries only the shape of the series, which is the tab's to choose.
 ///
 /// [AppliedGlobals] are Context-derived but not Moment-derived — sidereal
 /// mode, topocentric position and ephemeris source do not change as the
@@ -58,13 +65,18 @@ CalcOutcome<T> runTabCalcWithOverrides<T>(
 List<(Moment, CalcOutcome<T>)> runTabCalcSeries<T>(
   Ref ref, {
   required T Function(Ephemeris eph, Moment moment) compute,
-  required SeriesSpec spec,
+  required SeriesSettings settings,
 }) {
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
+  final jdUt = ref.watch(effectiveContextProvider.select((c) => c.jdUt));
 
   runner.apply(globals);
-  return computeSeries(runner.eph, spec, compute);
+  return computeSeries(
+    runner.eph,
+    settings.specFrom(Moment.fromUt(jdUt, runner.eph)),
+    compute,
+  );
 }
 
 /// The series loop, without Riverpod. The engine must already be configured.

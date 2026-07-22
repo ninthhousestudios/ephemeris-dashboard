@@ -37,6 +37,10 @@ class SeriesView extends ConsumerWidget {
     final notifier = ref.read(seriesSettingsProvider(tabId).notifier);
 
     return Column(
+      // Shrink-wraps. The app shell scrolls the whole page (`AppShell.body` is
+      // a `SingleChildScrollView`), so tab content is laid out under unbounded
+      // height and a flex child here would throw.
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         QuantityPicker(
@@ -44,12 +48,10 @@ class SeriesView extends ConsumerWidget {
           hiddenLabels: settings.hiddenLabels,
           onVisibilityChanged: notifier.setLabelVisible,
         ),
-        Expanded(
-          child: SeriesGrid(
-            table: buildSeriesTable(steps, hiddenLabels: settings.hiddenLabels),
-            momentLabel: momentLabel,
-            momentColumnTitle: momentColumnTitle,
-          ),
+        SeriesGrid(
+          table: buildSeriesTable(steps, hiddenLabels: settings.hiddenLabels),
+          momentLabel: momentLabel,
+          momentColumnTitle: momentColumnTitle,
         ),
       ],
     );

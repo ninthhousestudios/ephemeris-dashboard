@@ -5,6 +5,17 @@
 /// projection of the current Context — there is no "not run" state.
 sealed class CalcOutcome<T> {
   const CalcOutcome();
+
+  /// Projects the value of a successful outcome, carrying a failure through
+  /// unchanged.
+  ///
+  /// This is how a tab in series mode runs its existing `*ToExportRows` over
+  /// each step: the series yields the tab's typed result, and only the grid
+  /// needs the projected form.
+  CalcOutcome<R> map<R>(R Function(T value) project) => switch (this) {
+    CalcOk<T>(value: final value) => CalcOk(project(value)),
+    CalcError<T>(message: final message) => CalcError<R>(message),
+  };
 }
 
 final class CalcOk<T> extends CalcOutcome<T> {

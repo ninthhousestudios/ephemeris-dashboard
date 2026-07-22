@@ -7,11 +7,18 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
+import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import 'planets_provider.dart';
 
 class PlanetsTab extends ConsumerStatefulWidget {
@@ -148,10 +155,55 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
           ),
         ),
         const SizedBox(height: 4),
+        // ── Series mode ──
+        SeriesBar(tabId: AppTab.planets.name),
         const Divider(height: 1),
         // ── Results ──
-        _buildResults(),
+        if (ref.watch(
+          seriesSettingsProvider(AppTab.planets.name).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          _buildResults(),
       ],
+    );
+  }
+
+  /// The same calculation as [_buildResults], at N Moments instead of one.
+  ///
+  /// Every part of this is shared: the series comes from the kernel, the rows
+  /// from the tab's own `planetsToExportRows` — unchanged, the same function
+  /// the CSV export uses — and the surface from [SeriesView]. There is no
+  /// Planets-specific grid.
+  Widget _buildSeries() {
+    final format = ref.watch(planetsFormatProvider);
+    final flags = ref.watch(flagBarProvider);
+    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final swe = ref.read(sweProvider);
+    final steps = ref.watch(planetsSeriesProvider);
+
+    List<ExportRow> rows(List<PlanetResult> results) => planetsToExportRows(
+      results,
+      format,
+      isXyz: flags.isXyz,
+      coordValue: flags.coordValue,
+    );
+
+    return SeriesView(
+      tabId: AppTab.planets.name,
+      steps: [
+        for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
+      ],
+      // A step whose UT could not be computed is a NaN Moment; formatting
+      // falls back to the raw Julian Day rather than throwing.
+      momentLabel: (m) => formatJdDateTime(
+        swe,
+        m.ut,
+        utLabel: false,
+        utcOffset: utcOffset,
+        fallbackDigits: 4,
+      ),
+      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

@@ -6,7 +6,9 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/body_utils.dart';
 import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
@@ -15,6 +17,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 
 /// Result for a single planet calculation.
 class PlanetResult {
@@ -153,7 +156,7 @@ final namedAsteroids = <int, String>{
 /// SweExceptions as an `errorMessage` instead of failing the whole batch.
 List<PlanetResult> computePlanets({
   required Ephemeris eph,
-  required double jdUt,
+  required Moment moment,
   required int iflag,
   required Origin origin,
   required List<int> bodies,
@@ -167,7 +170,7 @@ List<PlanetResult> computePlanets({
 
   return effectiveBodies.map((body) {
     try {
-      final r = eph.calcUt(jdUt, body, iflag | seFlgSpeed);
+      final r = eph.calcUt(moment.ut, body, iflag | seFlgSpeed);
       return PlanetResult(
         body: body,
         bodyName: getName(body),
@@ -196,32 +199,59 @@ List<PlanetResult> computePlanets({
   }).toList();
 }
 
-/// Runs the kernel once per recompute; `planetsResultsProvider` and
-/// `planetsTraceProvider` both derive from this so the native calc only
-/// runs a single time per Context/Flags/selection change.
-final _planetsCalcProvider = Provider<CalcOutcome<List<PlanetResult>>>((ref) {
+/// The tab's compute, bound to everything except the Moment.
+///
+/// Shared by the single-Moment and series providers so the two modes cannot
+/// drift apart: series mode is the same calculation at N Moments, and nothing
+/// about it is allowed to differ.
+List<PlanetResult> Function(Ephemeris, Moment) _planetsCompute(Ref ref) {
   final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(selectedBodiesProvider);
 
-  return runTabCalc(
-    ref,
-    compute: (eph, moment) => computePlanets(
-      eph: eph,
-      jdUt: moment.ut,
-      iflag: flags.iflag,
-      origin: ctx.origin,
-      bodies: bodies,
-      getName: (body) => safeGetName(swe, body),
-    ),
+  return (eph, moment) => computePlanets(
+    eph: eph,
+    moment: moment,
+    iflag: flags.iflag,
+    origin: ctx.origin,
+    bodies: bodies,
+    getName: (body) => safeGetName(swe, body),
   );
+}
+
+/// Runs the kernel once per recompute, so the native calc only runs a single
+/// time per Context/Flags/selection change.
+final _planetsCalcProvider = Provider<CalcOutcome<List<PlanetResult>>>((ref) {
+  return runTabCalc(ref, compute: _planetsCompute(ref));
 });
 
 /// Planets calculation results.
 final planetsResultsProvider = Provider<CalcOutcome<List<PlanetResult>>>((ref) {
   return ref.watch(_planetsCalcProvider);
 });
+
+/// The Planets series: this tab's own typed result at each step, each step
+/// carrying its own [CalcOutcome].
+///
+/// Empty when the tab is not in series mode. Recompute is synchronous
+/// (ADR-0001), so a series left running behind a switched-off toggle would tax
+/// every Context change with N engine calls nobody asked for.
+///
+/// The typed result is kept rather than projected to `ExportRow`s here: the
+/// grid is one consumer of the series, and discarding the typed result would
+/// force the next one to re-derive it.
+final planetsSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<List<PlanetResult>>)>>((ref) {
+      final settings = ref.watch(seriesSettingsProvider(AppTab.planets.name));
+      if (!settings.enabled) return const [];
+
+      return runTabCalcSeries(
+        ref,
+        compute: _planetsCompute(ref),
+        settings: settings,
+      );
+    });
 
 /// Convert planet results to export rows.
 List<ExportRow> planetsToExportRows(

@@ -33,7 +33,7 @@ appliedGlobalsProvider (AppliedGlobals)
 | `series_table.dart` | `SeriesStep`, `SeriesColumn`, `SeriesTableRow`, `SeriesTable`, `buildSeriesTable`, `seriesFieldLabels` | Folds `List<(Moment, CalcOutcome<List<ExportRow>>)>` into a grid. Column identity is the pair `(ExportRow.header, field label)`; the column set is the union across steps in first-appearance order, so an errored step or a body that drops out leaves a hole in its row instead of shifting columns. `hiddenLabels` filters by field label (the quantity picker is per-quantity, not per-body). Pure — no widgets, no engine. |
 | `series_settings.dart` | `SeriesSettings` | Per-tab series-mode state: `enabled`, step value/unit, row count, and the *hidden* label set (stored as hidden so all-on is the default and a quantity added later appears switched on). No start Moment — the Context owns it. |
 | `series_settings_provider.dart` | `SeriesSettingsNotifier`, `seriesSettingsProvider` (family, keyed by `TabDescriptor.id`) | Owns and persists one tab's settings. The step-value rules live here, not in the widget: `setStepValue` refuses a value the unit rejects, `setStepUnit` snaps via `StepUnit.snapStepValue` and returns what it took. Keyed by a plain String so `lib/core` stays free of `lib/layout`. |
-| `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcWithOverrides<T>`, `runTabCalcSeries<T>`, `computeSeries<T>` | Free function (not a provider factory): apply globals → execute compute lambda → envelope in `CalcOutcome`. Synchronous. The compute lambda takes `(Ephemeris, Moment)`; the pointwise Moment is built from `effectiveContextProvider.jdUt`, so tabs no longer read the Context JD themselves. Per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. `runTabCalcSeries` applies `AppliedGlobals` **once, outside the step loop** (they are Context-derived, not Moment-derived) and returns `List<(Moment, CalcOutcome<T>)>` — one outcome per step, so a failing step does not kill the series. `computeSeries` is the Riverpod-free loop, for tests. |
+| `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcWithOverrides<T>`, `runTabCalcSeries<T>`, `computeSeries<T>` | Free function (not a provider factory): apply globals → execute compute lambda → envelope in `CalcOutcome`. Synchronous. The compute lambda takes `(Ephemeris, Moment)`; the pointwise Moment is built from `effectiveContextProvider.jdUt`, so tabs no longer read the Context JD themselves. Per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. `runTabCalcSeries` takes `SeriesSettings` (the shape) and builds the start Moment from the Context itself, so a tab cannot supply a start; it applies `AppliedGlobals` **once, outside the step loop** (they are Context-derived, not Moment-derived) and returns `List<(Moment, CalcOutcome<T>)>` — one outcome per step, so a failing step does not kill the series. `computeSeries` is the Riverpod-free loop, for tests. |
 
 **Migrated to the kernel:** `planets`, `differential`, `phenomena`,
 `planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`,
@@ -157,7 +157,25 @@ two-axis scroll and intrinsic column widths in the grid.
 | `series_bar.dart` | `SeriesBar(tabId)` — mode toggle, read-only start (= Context Moment), step value + unit chips, row count, row-cap warning. Start is read-only because the Context owns the Moment. |
 | `quantity_picker.dart` | `QuantityPicker` — chip row over field labels; pure (labels + hidden set + callback). |
 | `series_grid.dart` | `SeriesGrid` — renders a `SeriesTable`. Moment column + one column per quantity; an `Error` column appears only when some step failed, and errored rows show `—` in the quantity cells. Sticky Moment column deliberately deferred. |
-| `series_view.dart` | `SeriesView(tabId, steps, momentLabel)` — picker over grid, wired to `seriesSettingsProvider`. The one widget a tab drops in. |
+| `series_view.dart` | `SeriesView(tabId, steps, momentLabel)` — picker over grid, wired to `seriesSettingsProvider`. The one widget a tab drops in. Shrink-wraps (`MainAxisSize.min`, no flex child): `AppShell.body` is a `SingleChildScrollView`, so tab content is laid out under unbounded height and an `Expanded` here throws. |
+
+### Wiring a tab into series mode
+
+The Planets tab is the worked example (swe-dashboard/51). Four pieces, all of
+them small:
+
+1. **Lift the compute binding** out of the single-Moment provider into a
+   `_xCompute(ref)` returning `T Function(Ephemeris, Moment)`, so both modes
+   run the identical calculation.
+2. **Add `xSeriesProvider`** — `ref.watch(seriesSettingsProvider(AppTab.x.name))`,
+   return `const []` when not enabled (recompute is synchronous; a series behind
+   a switched-off toggle would tax every Context change), else
+   `runTabCalcSeries(ref, compute: _xCompute(ref), settings: settings)`. It
+   yields the tab's **typed** result per step, not `ExportRow`s.
+3. **Drop in `SeriesBar(tabId: AppTab.x.name)`** above the results divider.
+4. **Branch the results body** on `seriesSettingsProvider(...).select((s) => s.enabled)`,
+   projecting each step through the tab's existing `xToExportRows` with
+   `CalcOutcome.map` and handing the result to `SeriesView`.
 
 ## Test files (ephemeris related)
 

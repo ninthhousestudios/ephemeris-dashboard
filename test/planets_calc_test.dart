@@ -3,6 +3,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/swe_constants.dart';
+import 'package:swe_dashboard/core/calculation/moment.dart';
 import 'package:swe_dashboard/core/context_state.dart';
 import 'package:swe_dashboard/core/ephemeris/fake_ephemeris.dart';
 import 'package:swe_dashboard/tabs/planets/planets_provider.dart';
@@ -25,7 +26,7 @@ void main() {
 
       final results = computePlanets(
         eph: fake,
-        jdUt: 2451545.0,
+        moment: Moment(ut: 2451545.0, deltaT: 0),
         iflag: 0,
         origin: Origin.geocentric,
         bodies: [seSun, seMoon],
@@ -50,7 +51,7 @@ void main() {
 
       final results = computePlanets(
         eph: fake,
-        jdUt: 2451545.0,
+        moment: Moment(ut: 2451545.0, deltaT: 0),
         iflag: 0,
         origin: Origin.geocentric,
         bodies: [seSun, seMoon],
@@ -69,7 +70,7 @@ void main() {
 
       final results = computePlanets(
         eph: fake,
-        jdUt: 2451545.0,
+        moment: Moment(ut: 2451545.0, deltaT: 0),
         iflag: 0,
         origin: Origin.heliocentric,
         bodies: [seSun],
@@ -85,7 +86,7 @@ void main() {
 
       final results = computePlanets(
         eph: fake,
-        jdUt: 2451545.0,
+        moment: Moment(ut: 2451545.0, deltaT: 0),
         iflag: 0,
         origin: Origin.heliocentric,
         bodies: [seSun, seEarth],
