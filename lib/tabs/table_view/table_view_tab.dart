@@ -41,7 +41,9 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
 
   void _onStepValueChanged(String text) {
     final sv = double.tryParse(text);
-    if (sv != null && sv > 0) {
+    // A negative step runs the series backward (swetest `-bwd`); only zero is
+    // rejected, since it would repeat the same Moment for every row.
+    if (sv != null && sv != 0) {
       ref.read(tableViewStepValueProvider.notifier).state = sv;
     }
   }
@@ -221,6 +223,7 @@ class _TableViewTabState extends ConsumerState<TableViewTab> {
                     ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
+                      signed: true,
                     ),
                   ),
                 ),

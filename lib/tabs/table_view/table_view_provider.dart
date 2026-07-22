@@ -154,7 +154,6 @@ final _tableViewCalcProvider = Provider<CalcOutcome<List<EphemerisRow>>>((ref) {
 
   final iflag = flags.iflag;
   final jdStart = ctx.jdUt;
-  final stepJd = stepValue * stepUnit.jdFactor;
   final allBodyIds = {...bodies, ...extraBodies}.toList()..sort();
 
   return runTabCalc(
@@ -162,7 +161,7 @@ final _tableViewCalcProvider = Provider<CalcOutcome<List<EphemerisRow>>>((ref) {
     compute: (eph, _) {
       final rows = <EphemerisRow>[];
       for (var i = 0; i < stepCount; i++) {
-        final jd = jdStart + i * stepJd;
+        final jd = stepUnit.advanceFrom(jdStart, stepValue, i);
         final values = <ColKey, (CalcResult?, String?)>{};
 
         for (final body in allBodyIds) {

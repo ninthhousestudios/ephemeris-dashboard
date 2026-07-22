@@ -117,11 +117,13 @@ Two levels, already separated:
 Units: seconds, minutes, hours, days, weeks, months, years — a superset of swetest's
 `s/m/d/mo/y`. Negative step value means backward (swetest `-bwd`).
 
-**Months and years must be calendar-aware** via a `revjul` → add → `julday`
-round-trip. The current Table tab uses `StepUnit.months = 30.4375` days, an
-approximation that makes a monthly ephemeris drift off the calendar date (1 Jan,
-31 Jan, 2 Mar, …). swetest's `-s3mo` steps calendar months. This is an existing
-defect, not only a parity item.
+**Months and years are calendar-aware** (swe-dashboard/49): `StepUnit.advanceFrom`
+converts the Julian Day to a civil date, adds whole months, clamps the day of month
+and converts back, preserving the time of day. The old `StepUnit.months = 30.4375`
+days approximation made a monthly ephemeris drift off the calendar date (1 Jan,
+31 Jan, 2 Mar, …) where swetest's `-s3mo` steps calendar months. The conversion is
+pure Dart integer JDN math in `core/calculation/calendar_step.dart` rather than a
+`revjul`/`julday` round-trip, so the series core stays engine-free and unit-testable.
 
 ### UI
 

@@ -1,23 +1,52 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'calendar_step.dart';
 import 'moment.dart';
 
 /// Step size unit for a time series.
 ///
-/// Months are an approximation today (30.4375 days), so a monthly series
-/// drifts off the calendar date. Calendar-aware months and years, plus the
-/// seconds unit, are swe-dashboard/49.
+/// Seconds through weeks are a fixed number of days and step by arithmetic on
+/// the Julian Day. Months and years have no fixed length and step the civil
+/// calendar instead, so a monthly series stays on its calendar date the way
+/// `swetest -s1mo` does. Hours and weeks are extras beyond swetest.
 enum StepUnit {
-  minutes('Minutes', 1.0 / 1440.0),
-  hours('Hours', 1.0 / 24.0),
-  days('Days', 1.0),
-  weeks('Weeks', 7.0),
-  months('Months', 30.4375);
+  seconds('Seconds'),
+  minutes('Minutes'),
+  hours('Hours'),
+  days('Days'),
+  weeks('Weeks'),
+  months('Months'),
+  years('Years');
 
-  const StepUnit(this.label, this.jdFactor);
+  const StepUnit(this.label);
+
   final String label;
-  final double jdFactor;
+
+  /// Whether the unit steps the civil calendar rather than a fixed span.
+  bool get isCalendar => this == StepUnit.months || this == StepUnit.years;
+
+  /// UT of step [index] of a series starting at [startUt] and stepping
+  /// [stepValue] of this unit. A negative [stepValue] steps backward.
+  ///
+  /// A fractional [stepValue] on a calendar unit is rounded to whole months —
+  /// half a month is not a calendar quantity.
+  double advanceFrom(double startUt, double stepValue, int index) =>
+      switch (this) {
+        StepUnit.seconds => startUt + index * stepValue / 86400.0,
+        StepUnit.minutes => startUt + index * stepValue / 1440.0,
+        StepUnit.hours => startUt + index * stepValue / 24.0,
+        StepUnit.days => startUt + index * stepValue,
+        StepUnit.weeks => startUt + index * stepValue * 7.0,
+        StepUnit.months => addCalendarMonths(
+          startUt,
+          (index * stepValue).round(),
+        ),
+        StepUnit.years => addCalendarMonths(
+          startUt,
+          (index * stepValue * 12).round(),
+        ),
+      };
 }
 
 /// Row count above which the series is still computed but the user is warned.
@@ -67,5 +96,5 @@ class SeriesSpec {
   }
 
   /// UT of step [index], counting from 0.
-  double utAt(int index) => start.ut + index * stepValue * stepUnit.jdFactor;
+  double utAt(int index) => stepUnit.advanceFrom(start.ut, stepValue, index);
 }

@@ -78,10 +78,84 @@ void main() {
       expect(spec.warning, contains('$seriesSoftRowCap'));
     });
 
+    test('seconds step by a fixed fraction of a day', () {
+      final spec = _spec(stepValue: 30.0, unit: StepUnit.seconds);
+      expect(spec.utAt(2), closeTo(j2000 + 60.0 / 86400.0, 1e-12));
+    });
+
     test('above the hard cap clamps and says so', () {
       final spec = _spec(rows: seriesHardRowCap + 500);
       expect(spec.effectiveRowCount, seriesHardRowCap);
       expect(spec.warning, contains('capped'));
+    });
+  });
+
+  group('calendar step units', () {
+    // JD at 00:00 UT of the named civil date.
+    const jan31y2000 = 2451574.5;
+    const feb29y2000 = 2451603.5;
+    const mar31y2000 = 2451634.5;
+    const apr30y2000 = 2451664.5;
+    const jan31y2001 = 2451940.5;
+    const feb28y2001 = 2451968.5;
+
+    test('a monthly step lands on the calendar date, clamping the day', () {
+      final spec = _spec(start: jan31y2000, unit: StepUnit.months);
+
+      expect(spec.utAt(0), jan31y2000);
+      expect(spec.utAt(1), feb29y2000, reason: '31 Jan + 1 month, leap year');
+      expect(spec.utAt(2), mar31y2000, reason: 'clamping is not sticky');
+      expect(spec.utAt(3), apr30y2000);
+    });
+
+    test('February clamps to 28 in a common year', () {
+      final spec = _spec(start: jan31y2001, unit: StepUnit.months);
+      expect(spec.utAt(1), feb28y2001);
+    });
+
+    test('a negative monthly step walks the calendar backward', () {
+      final spec = _spec(
+        start: mar31y2000,
+        stepValue: -1.0,
+        unit: StepUnit.months,
+      );
+      expect(spec.utAt(1), feb29y2000);
+    });
+
+    test('a yearly step preserves month, day and time of day', () {
+      const noonJan31y2000 = jan31y2000 + 0.5;
+      final spec = _spec(start: noonJan31y2000, unit: StepUnit.years);
+      expect(spec.utAt(1), jan31y2001 + 0.5);
+    });
+
+    test('29 February clamps to the 28th in the following year', () {
+      final spec = _spec(start: feb29y2000, unit: StepUnit.years);
+      expect(spec.utAt(1), 2451968.5, reason: '28 Feb 2001');
+    });
+
+    test('the time of day survives a calendar step', () {
+      const fraction = 0.3141592653589793;
+      final spec = _spec(start: jan31y2000 + fraction, unit: StepUnit.months);
+      // 1e-9 days is 0.1 ms — the ulp of a double at Julian Day magnitudes,
+      // which is the precision the start Moment itself carries.
+      expect(spec.utAt(1) - feb29y2000, closeTo(fraction, 1e-9));
+    });
+
+    test('a multi-month step matches repeated single steps', () {
+      final quarterly = _spec(
+        start: jan31y2000,
+        stepValue: 3.0,
+        unit: StepUnit.months,
+      );
+      final monthly = _spec(start: jan31y2000, unit: StepUnit.months);
+      expect(quarterly.utAt(1), monthly.utAt(3));
+    });
+
+    test('calendar units are flagged as such', () {
+      expect(StepUnit.months.isCalendar, isTrue);
+      expect(StepUnit.years.isCalendar, isTrue);
+      expect(StepUnit.days.isCalendar, isFalse);
+      expect(StepUnit.weeks.isCalendar, isFalse);
     });
   });
 
