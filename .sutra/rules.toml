@@ -41,8 +41,23 @@ kind = "forbidden_dep"
 from = "lib/tabs/**"
 to = "lib/core/ephemeris/runner.dart"
 name = "tabs-use-kernel-not-runner"
-severity = "advisory"  # FLIP TO BLOCKING at swe-dashboard/11 (foundation review)
-provenance = "yojana:swe-dashboard/4 §Implementation ②"
+severity = "blocking"  # FLIPPED 2026-07-22 (reflect L26): swe-dashboard/11 landed long ago and the trigger was never actioned; the seam is now clean (0 violations), so the debt-staging rationale no longer applies. Left advisory, it was violated again in swe-dashboard/33.
+provenance = "yojana:swe-dashboard/4 §Implementation ②; reflect:L26"
+
+# The kernel must not know about tabs. The rule above guards tabs reaching DOWN
+# past the kernel; this guards the kernel reaching UP into tabs — the direction
+# that had no rule at all, and that swe-dashboard/37 found runner.dart taking.
+# Existing debt (body_selection.dart's 4 tab-provider imports, swe_utils.dart)
+# is real and predates the rule, so this lands advisory per the adopt
+# classification rather than blocking a repo that already violates it.
+
+[[constraint]]
+kind = "forbidden_dep"
+from = "lib/core/**"
+to = "lib/tabs/**"
+name = "core-must-not-import-tabs"
+severity = "advisory"  # FLIP TO BLOCKING when body_selection.dart no longer imports tab providers (3 detected violations as of 2026-07-22). Do not defer past that without recording why here — an advisory with no live trigger is what L26 is about.
+provenance = "yojana:swe-dashboard/37; reflect:L26"
 
 # ═══════════════════════════════════════════════════════════════════
 # Tab independence
