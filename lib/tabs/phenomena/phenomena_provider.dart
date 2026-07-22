@@ -111,7 +111,12 @@ final phenomenaResultsProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
 
 final phenomenaSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<PhenomenaResult>>)>>((ref) {
-      final settings = ref.watch(seriesSettingsProvider(AppTab.phenomena.name));
+      ref.watch(
+        seriesSettingsProvider(
+          AppTab.phenomena.name,
+        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+      );
+      final settings = ref.read(seriesSettingsProvider(AppTab.phenomena.name));
       if (!settings.enabled) return const [];
 
       return runTabCalcSeries(

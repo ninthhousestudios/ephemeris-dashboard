@@ -106,7 +106,12 @@ final ayanamsaResultsProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>(
 
 final ayanamsaSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<AyanamsaCalcResult>>)>>((ref) {
-      final settings = ref.watch(seriesSettingsProvider(AppTab.ayanamsa.name));
+      ref.watch(
+        seriesSettingsProvider(
+          AppTab.ayanamsa.name,
+        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+      );
+      final settings = ref.read(seriesSettingsProvider(AppTab.ayanamsa.name));
       if (!settings.enabled) return const [];
       return runTabCalcSeries(
         ref,

@@ -226,7 +226,12 @@ final datesResultProvider = Provider<CalcOutcome<DatesResult>>((ref) {
 final datesSeriesProvider = Provider<List<(Moment, CalcOutcome<DatesResult>)>>((
   ref,
 ) {
-  final settings = ref.watch(seriesSettingsProvider(AppTab.dates.name));
+  ref.watch(
+    seriesSettingsProvider(
+      AppTab.dates.name,
+    ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+  );
+  final settings = ref.read(seriesSettingsProvider(AppTab.dates.name));
   if (!settings.enabled) return const [];
   return runTabCalcSeries(ref, compute: _datesCompute(ref), settings: settings);
 });

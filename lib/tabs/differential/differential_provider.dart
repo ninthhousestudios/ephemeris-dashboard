@@ -129,7 +129,12 @@ final diffResultProvider = Provider<CalcOutcome<DiffResult>>((ref) {
 final diffSeriesProvider = Provider<List<(Moment, CalcOutcome<DiffResult>)>>((
   ref,
 ) {
-  final settings = ref.watch(seriesSettingsProvider(AppTab.differential.name));
+  ref.watch(
+    seriesSettingsProvider(
+      AppTab.differential.name,
+    ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+  );
+  final settings = ref.read(seriesSettingsProvider(AppTab.differential.name));
   if (!settings.enabled) return const [];
 
   // Series mode ignores the override JD — each step uses the series Moment.

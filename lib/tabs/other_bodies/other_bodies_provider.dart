@@ -209,7 +209,12 @@ final otherBodiesResultsProvider = Provider<CalcOutcome<List<OtherBodyResult>>>(
 
 final otherBodiesSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<OtherBodyResult>>)>>((ref) {
-      final settings = ref.watch(
+      ref.watch(
+        seriesSettingsProvider(
+          AppTab.otherBodies.name,
+        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+      );
+      final settings = ref.read(
         seriesSettingsProvider(AppTab.otherBodies.name),
       );
       if (!settings.enabled) return const [];

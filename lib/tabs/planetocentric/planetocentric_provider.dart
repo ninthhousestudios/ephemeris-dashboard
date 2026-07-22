@@ -189,7 +189,12 @@ final planetocentricResultsProvider =
 
 final planetocentricSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<PlanetoCentricResult>>)>>((ref) {
-      final settings = ref.watch(
+      ref.watch(
+        seriesSettingsProvider(
+          AppTab.planetocentric.name,
+        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+      );
+      final settings = ref.read(
         seriesSettingsProvider(AppTab.planetocentric.name),
       );
       if (!settings.enabled) return const [];

@@ -130,7 +130,12 @@ final housesResultProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
 
 final housesSeriesProvider =
     Provider<List<(Moment, CalcOutcome<HousesCalcResult>)>>((ref) {
-      final settings = ref.watch(seriesSettingsProvider(AppTab.houses.name));
+      ref.watch(
+        seriesSettingsProvider(
+          AppTab.houses.name,
+        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+      );
+      final settings = ref.read(seriesSettingsProvider(AppTab.houses.name));
       if (!settings.enabled) return const [];
       return runTabCalcSeries(
         ref,
