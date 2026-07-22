@@ -107,7 +107,20 @@ flutter test test/goldens/                    # compare against baselines
 
 ## Golden Tests
 
-54 golden PNGs across 3 sizes (400x800 mobile, 800x1024 tablet, 1400x900 desktop) x 2 themes (light, dark). ContextBar and AppShell use `allowOverflow: true` because the context bar is intentionally wider than 400px mobile (it horizontal-scrolls).
+108 golden PNGs — 18 widgets x 3 sizes (400x800 mobile, 800x1024 tablet, 1400x900 desktop) x 2 themes (light, dark). ContextBar and AppShell use `allowOverflow: true` because the context bar is intentionally wider than 400px mobile (it horizontal-scrolls).
+
+The baselines are the tracked PNGs in `test/goldens/`, and `flutter test` (no
+path) skips the golden suite — run `test/goldens/` explicitly. `golden_helper.dart`
+carries three constraints that were each broken once and are easy to break again:
+
+- `LocalFileComparator` takes the URI of a **test file** and uses its parent as
+  the basedir. Handing it a directory silently writes baselines one level up.
+- `ComparisonResult.diffPercent` is a **0..1 fraction**. `_pixelTolerance` is
+  0.01 for 1%; a threshold of 1.0 accepts every image, including a size mismatch.
+- `MaterialApp` lerps theme changes over `kThemeAnimationDuration`, and
+  `generateGoldens` reuses one tester across all six variants with zero-duration
+  pumps — hence `themeAnimationDuration: Duration.zero`. Without it every
+  "dark" golden silently renders in the light theme.
 
 ## Agent skills
 

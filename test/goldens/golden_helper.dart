@@ -19,6 +19,11 @@ import 'package:swe_dashboard/tabs/planets/planets_provider.dart';
 import 'package:swe_dashboard/theme/app_themes.dart';
 import 'package:swe_dashboard/widgets/result_card.dart';
 
+/// Fraction of pixels allowed to differ — 0.01 is 1%, not 1.0. `diffPercent`
+/// is a 0..1 fraction, so a threshold of 1.0 accepts every image including a
+/// size mismatch, which is what this comparator used to do.
+const double _pixelTolerance = 0.01;
+
 class _TolerantComparator extends LocalFileComparator {
   _TolerantComparator(super.testFile);
 
@@ -28,13 +33,25 @@ class _TolerantComparator extends LocalFileComparator {
       imageBytes,
       await getGoldenBytes(golden),
     );
-    return result.passed || result.diffPercent <= 1.0;
+    if (result.passed || result.diffPercent <= _pixelTolerance) {
+      result.dispose();
+      return true;
+    }
+    final error = await generateFailureOutput(result, golden, basedir);
+    result.dispose();
+    throw FlutterError(error);
   }
 }
 
 void setupTolerantComparator() {
-  final testUrl = (goldenFileComparator as LocalFileComparator).basedir;
-  goldenFileComparator = _TolerantComparator(testUrl);
+  if (goldenFileComparator is _TolerantComparator) return;
+  final basedir = (goldenFileComparator as LocalFileComparator).basedir;
+  // `LocalFileComparator` takes the URI of a *test file* and uses its parent
+  // as the basedir. Handing it a directory therefore walks one level up —
+  // which is how the baselines ended up in `test/` instead of `test/goldens/`.
+  goldenFileComparator = _TolerantComparator(
+    basedir.resolve('golden_helper.dart'),
+  );
 }
 
 // ── Size constants ──
@@ -189,6 +206,11 @@ Future<void> pumpGoldenWidget(
       overrides: [sharedPrefsProvider.overrideWithValue(prefs), ...overrides],
       child: MaterialApp(
         theme: isLight ? AppThemes.light : AppThemes.dark,
+        // `MaterialApp` lerps theme changes over `kThemeAnimationDuration`.
+        // `generateGoldens` reuses one tester across all six variants and only
+        // pumps a zero-duration frame, so without this the theme freezes at
+        // whatever the first pump used and every "dark" golden renders light.
+        themeAnimationDuration: Duration.zero,
         home: Scaffold(body: widget),
       ),
     ),
