@@ -3,7 +3,7 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-22 (swe-dashboard/47: remove the Call Trace subsystem).
+Last updated: 2026-07-22 (swe-dashboard/53: series rollout Other Bodies + Stars, distance quantities).
 
 ## Provider graph (data flow)
 
@@ -161,8 +161,9 @@ two-axis scroll and intrinsic column widths in the grid.
 
 ### Wiring a tab into series mode
 
-The Planets tab is the worked example (swe-dashboard/51). Four pieces, all of
-them small:
+The Planets tab is the worked example (swe-dashboard/51); Other Bodies and
+Stars were rolled out in swe-dashboard/53 following the identical pattern.
+Four pieces, all of them small:
 
 1. **Lift the compute binding** out of the single-Moment provider into a
    `_xCompute(ref)` returning `T Function(Ephemeris, Moment)`, so both modes
