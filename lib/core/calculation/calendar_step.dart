@@ -70,8 +70,15 @@ int daysInMonth(int year, int month) =>
 /// [ut] advanced by [months] calendar months, preserving the time of day.
 ///
 /// The day of month is clamped to the target month's length, so 31 Jan plus
-/// one month is 28 (or 29) Feb — matching `swetest -s1mo`. [months] may be
-/// negative, which steps backward.
+/// one month is 28 (or 29) Feb. [months] may be negative, which steps
+/// backward.
+///
+/// Clamping is a deliberate choice, not swetest's rule: measured against
+/// swetest 2.10.03, `-s1mo` from 31.1.2000 gives 02.03.2000, because it lets
+/// "31 February" roll over rather than clamping it. Ours is the tidier
+/// calendar behaviour and the goal is the general capability, not swetest's
+/// exact output. Do not "fix" this toward 2 March without deciding that
+/// deliberately.
 double addCalendarMonths(double ut, int months) {
   if (months == 0) return ut;
 

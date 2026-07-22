@@ -8,8 +8,10 @@ import 'moment.dart';
 ///
 /// Seconds through weeks are a fixed number of days and step by arithmetic on
 /// the Julian Day. Months and years have no fixed length and step the civil
-/// calendar instead, so a monthly series stays on its calendar date the way
-/// `swetest -s1mo` does. Hours and weeks are extras beyond swetest.
+/// calendar instead, so a monthly series stays on its calendar date rather
+/// than drifting off it. Hours and weeks are extras beyond swetest's
+/// `s/m/d/mo/y`; the day-of-month rule differs from swetest's too, see
+/// [addCalendarMonths].
 enum StepUnit {
   seconds('Seconds'),
   minutes('Minutes'),

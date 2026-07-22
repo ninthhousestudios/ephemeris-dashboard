@@ -121,9 +121,21 @@ Units: seconds, minutes, hours, days, weeks, months, years — a superset of swe
 converts the Julian Day to a civil date, adds whole months, clamps the day of month
 and converts back, preserving the time of day. The old `StepUnit.months = 30.4375`
 days approximation made a monthly ephemeris drift off the calendar date (1 Jan,
-31 Jan, 2 Mar, …) where swetest's `-s3mo` steps calendar months. The conversion is
-pure Dart integer JDN math in `core/calculation/calendar_step.dart` rather than a
-`revjul`/`julday` round-trip, so the series core stays engine-free and unit-testable.
+31 Jan, 2 Mar, …), which is the defect this replaced. Steps are computed as a
+multiple from the start Moment, not as an iterated walk — same as swetest.
+
+The day-of-month rule deliberately differs from swetest. Measured against swetest
+2.10.03, `-s1mo` from 31.1.2000 gives 31.01, **02.03**, 31.03, 01.05: swetest lets
+"31 February" roll over instead of clamping. We clamp (31 Jan → 28/29 Feb), which is
+the tidier calendar behaviour. The standard for this project is that anything a user
+can do with swetest can be done here — not that the output matches swetest exactly.
+
+The conversion is pure Dart integer JDN math in `core/calculation/calendar_step.dart`
+rather than a `revjul`/`julday` round-trip, so the series core stays engine-free and
+unit-testable. Note that Dart's `~/` truncates toward zero while the JDN formulas
+need flooring; divisions that can see a negative dividend must use the `_floorDiv`
+helper, or the conversion breaks below JD -32044 (~4800 BCE), well inside the
+ephemeris range.
 
 ### UI
 

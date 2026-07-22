@@ -152,9 +152,10 @@ void main() {
       expect(quarterly.utAt(1), apr30y2000, reason: '31 Jan + 3 months');
 
       // Clamping is not associative, so an iterated walk lands elsewhere:
-      // 31 Jan -> 29 Feb -> 29 Mar -> 29 Apr. Pinned to make the choice
-      // visible — swetest steps successively and is the parity reference,
-      // so if parity ever gets measured this is the test that should move.
+      // 31 Jan -> 29 Feb -> 29 Mar -> 29 Apr. Multiplying from the start is
+      // the intended semantic and is what swetest does too — measured:
+      // `-s3mo` from 31.1.2000 gives 31.01, 01.05, 31.07, 31.10, i.e.
+      // base+3/+6/+9, not a drifting iteration.
       var iterated = jan31y2000;
       for (var i = 0; i < 3; i++) {
         iterated = StepUnit.months.advanceFrom(iterated, 1.0, 1);
