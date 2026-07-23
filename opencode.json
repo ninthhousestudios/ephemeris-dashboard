@@ -1,0 +1,28 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "chitta": {
+      "headers": {
+        "Authorization": "Bearer 3f269c7291e8b78d4b82e36fead491e0aebaa6665b102e5483534e631a2ce643"
+      },
+      "type": "remote",
+      "url": "http://127.0.0.1:3100/mcp"
+    },
+    "smriti": {
+      "type": "remote",
+      "url": "http://127.0.0.1:7333/mcp"
+    },
+    "sutra": {
+      "command": [
+        "sutra",
+        "serve",
+        "--stdio"
+      ],
+      "type": "local"
+    },
+    "yojana": {
+      "type": "remote",
+      "url": "http://127.0.0.1:4200/mcp"
+    }
+  }
+}

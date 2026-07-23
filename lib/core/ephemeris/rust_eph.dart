@@ -85,6 +85,20 @@ class RustEph implements Ephemeris {
   }
 
   @override
+  double housePos(
+    double armc,
+    double geolat,
+    double eps,
+    int hsys,
+    double bodyLon,
+    double bodyLat,
+  ) {
+    final houseSystem =
+        rs.HouseSystem.fromCharCode(hsys) ?? rs.HouseSystem.placidus;
+    return rs.housePos(armc, geolat, eps, houseSystem, bodyLon, bodyLat);
+  }
+
+  @override
   double getAyanamsaUt(double jdUt) {
     final r = _engine.getAyanamsaUt(rs.JdUt1(jdUt), rs.CalcFlags(0));
     return r.ayanamsa;

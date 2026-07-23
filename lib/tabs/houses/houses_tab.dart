@@ -209,6 +209,24 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                   ),
                 ],
               ),
+              if (result.bodyPositions.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                ResultCard(
+                  title: 'House Positions',
+                  subtitle: result.hsysName,
+                  fields: [
+                    for (final b in result.bodyPositions)
+                      ResultField(
+                        label: b.name,
+                        value: b.errorMessage != null
+                            ? 'error'
+                            : 'H${b.houseNumber}  '
+                                  '${formatAngle(b.positionDegrees, format)}',
+                        rawValue: b.errorMessage != null ? null : b.housePos,
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         );

@@ -11,6 +11,15 @@ class FakeEphemeris implements Ephemeris {
   HouseResult Function(double jdUt, double geolat, double geolon, int hsys)?
   onHouses;
   double Function(
+    double armc,
+    double geolat,
+    double eps,
+    int hsys,
+    double bodyLon,
+    double bodyLat,
+  )?
+  onHousePos;
+  double Function(
     double jdUt,
     int body,
     int flags,
@@ -176,6 +185,19 @@ class FakeEphemeris implements Ephemeris {
   HouseResult houses(double jdUt, double geolat, double geolon, int hsys) {
     if (onHouses == null) throw UnimplementedError('houses not scripted');
     return onHouses!(jdUt, geolat, geolon, hsys);
+  }
+
+  @override
+  double housePos(
+    double armc,
+    double geolat,
+    double eps,
+    int hsys,
+    double bodyLon,
+    double bodyLat,
+  ) {
+    if (onHousePos == null) throw UnimplementedError('housePos not scripted');
+    return onHousePos!(armc, geolat, eps, hsys, bodyLon, bodyLat);
   }
 
   @override

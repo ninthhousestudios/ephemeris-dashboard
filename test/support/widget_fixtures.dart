@@ -123,6 +123,22 @@ final fakeHousesResult = HousesCalcResult(
   hsys: 0x50, // P = Placidus
   hsysName: 'Placidus',
   returnFlag: 0,
+  bodyPositions: const [
+    BodyHousePos(
+      bodyId: 0,
+      name: 'Sun',
+      longitude: 280.57,
+      latitude: 0.0002,
+      housePos: 3.695,
+    ),
+    BodyHousePos(
+      bodyId: 1,
+      name: 'Moon',
+      longitude: 66.72,
+      latitude: 5.049,
+      housePos: 8.846,
+    ),
+  ],
 );
 
 final fakeAyanamsaResults = [

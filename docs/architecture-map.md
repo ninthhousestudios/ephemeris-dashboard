@@ -3,7 +3,7 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-22 (swe-dashboard/55: series rollout Houses, Ayanamsa, Dates — all tabs now series-capable).
+Last updated: 2026-07-23 (swe-dashboard/58: `housePos` on the Ephemeris seam; Houses tab reports per-body house position/number).
 
 ## Provider graph (data flow)
 
@@ -100,7 +100,7 @@ Tabs access the engine two ways:
 
 1. **Via runTabCalc**: `runTabCalc(ref, compute: (eph) => eph.calcUt(...))`.
    The `eph` is `RustEph`, inferred-typed as `Ephemeris`.
-   Methods used: calcUt, calcPctr, houses, getAyanamsaUt, deltat, sidTime,
+   Methods used: calcUt, calcPctr, houses, housePos, getAyanamsaUt, deltat, sidTime,
    nodApsUt, getOrbitalElements, fixstar2Ut, azAlt, azAltRev, cotrans, refrac,
    phenoUt, riseTrans, solCrossUt, moonCrossUt, moonCrossNodeUt, helioCrossUt,
    heliacalUt.

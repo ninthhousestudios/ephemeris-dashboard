@@ -9,6 +9,21 @@ abstract class Ephemeris {
 
   HouseResult houses(double jdUt, double geolat, double geolon, int hsys);
 
+  /// House position of an ecliptic point under [hsys], as swisseph's
+  /// `swe_house_pos`: returns a value in 1.0–12.999999 (1.0–36.99 for the
+  /// Gauquelin sectors) whose integer part is the house number and whose
+  /// fraction is the position within that house. [armc] and [eps] come from the
+  /// [houses] call for the same Moment/place; [bodyLon]/[bodyLat] are the point's
+  /// tropical ecliptic coordinates.
+  double housePos(
+    double armc,
+    double geolat,
+    double eps,
+    int hsys,
+    double bodyLon,
+    double bodyLat,
+  );
+
   double gauquelinSector(
     double jdUt,
     int body,
