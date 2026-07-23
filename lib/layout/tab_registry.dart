@@ -20,7 +20,6 @@ import '../tabs/planetocentric/planetocentric_tab.dart';
 import '../tabs/planets/planets_tab.dart';
 import '../tabs/rise_set/rise_set_tab.dart';
 import '../tabs/stars/stars_tab.dart';
-import '../tabs/table_view/table_view_tab.dart';
 import '../widgets/ephe_manager/ephe_manager_screen.dart';
 
 final List<TabDescriptor> tabRegistry = [
@@ -44,11 +43,6 @@ final List<TabDescriptor> tabRegistry = [
   ),
   TabDescriptor(tab: AppTab.stars, content: () => const StarsTab()),
   TabDescriptor(tab: AppTab.crossings, content: () => const CrossingsTab()),
-  TabDescriptor(
-    tab: AppTab.tableView,
-    content: () => const TableViewTab(),
-    flagBarTrailing: () => const TableViewFormatTrailing(),
-  ),
   TabDescriptor(tab: AppTab.dates, content: () => const DatesTab()),
   TabDescriptor(tab: AppTab.coordinates, content: () => const CoordinatesTab()),
   TabDescriptor(

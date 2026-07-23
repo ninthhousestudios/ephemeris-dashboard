@@ -12,7 +12,6 @@ enum AppTab {
   otherBodies('Other Bodies', Icons.blur_on, hasFlags: true),
   stars('Stars', Icons.star, hasFlags: true),
   crossings('Crossings', Icons.compare_arrows, hasFlags: true),
-  tableView('Table', Icons.table_chart, hasFlags: true),
   // "More" group
   dates('Dates', Icons.calendar_today, hasFlags: false, isMore: true),
   coordinates('Coordinates', Icons.explore, hasFlags: true, isMore: true),

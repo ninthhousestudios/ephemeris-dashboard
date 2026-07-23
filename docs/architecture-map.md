@@ -38,7 +38,7 @@ appliedGlobalsProvider (AppliedGlobals)
 
 **Migrated to the kernel:** `planets`, `differential`, `phenomena`,
 `planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`,
-`houses`, `rise_set`, `eclipses`, `table_view`, `dates`, `ayanamsa`,
+`houses`, `rise_set`, `eclipses`, `dates`, `ayanamsa`,
 `heliacal`.
 Each has a pure `compute*` function + `_*CalcProvider` (via `runTabCalc`) →
 `*ResultsProvider` (`CalcOutcome<T>`).
@@ -65,12 +65,11 @@ Richer result shapes among the search / multi-call tabs:
   becomes an error string, never aborts the batch). `dates` also watches a
   per-tab `datesOverrideJdProvider` and captures `swe` for the
   `revjul`/`dayOfWeek` calendar utilities.
-- `eclipses` (count-loop) and `table_view` (bodies × time-steps) keep their
-  loops inside the compute lambda.
+- `eclipses` (count-loop) keeps its loop inside the compute lambda.
 - `formatJdDateTime` in `lib/core/jd_utils.dart` is the single JD→date-string
   formatter (parameterized: seconds / utLabel / utcOffset / emptyPlaceholder /
   fallbackDigits); it replaced 6 near-duplicate copies across eclipses,
-  heliacal, crossings, and table_view.
+  heliacal, and crossings.
 
 ## Ephemeris subsystem (lib/core/ephemeris/)
 
@@ -204,12 +203,12 @@ pieces, all of them small:
 
 The shell (`app_shell.dart`) iterates the registry — no tab-specific imports,
 no switch statements. Format-toggle trailing widgets (planets, houses,
-tableView, planetocentric) are `ConsumerWidget`s in their respective tab files.
+otherBodies, planetocentric) are `ConsumerWidget`s in their respective tab files.
 `test/tab_registry_test.dart` enforces completeness (every AppTab has a descriptor).
 
 ## Tabs (lib/tabs/)
 
-18 tab directories, each with `*_tab.dart` (UI) + `*_provider.dart` (state/calc):
+17 tab directories, each with `*_tab.dart` (UI) + `*_provider.dart` (state/calc):
 planets, houses, ayanamsa, dates, nodes_apsides, stars, coordinates, phenomena,
 rise_set, crossings, heliacal, eclipses, differential, planetocentric,
-table_view, math, config, plus ephemeris_manager (widget, not a tab directory).
+math, config, plus ephemeris_manager (widget, not a tab directory).
