@@ -171,14 +171,14 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
     );
   }
 
-  /// The Context Moment, formatted the way the Table tab formats its steps.
+  /// The Context Moment as the series start, tagged ` UT` so the scale is
+  /// explicit; no companion clock (the "From …" label is width-constrained).
   String _startLabel() {
     final ctx = ref.watch(contextBarProvider);
     return formatJdDateTime(
       ref.read(sweProvider),
       ctx.jdUt,
       view: ref.watch(clockViewProvider),
-      showLabel: false,
       showCompanion: false,
       fallbackDigits: 4,
     );
