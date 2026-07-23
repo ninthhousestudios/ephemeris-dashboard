@@ -28,6 +28,8 @@ final clockViewProvider = Provider<ClockView>((ref) {
     clock: ref.watch(outputClockProvider),
     longitude: ctx.longitude,
     utcOffset: ctx.utcOffset,
+    calendar: ctx.calendar,
+    scale: ctx.timeScale,
   );
 });
 

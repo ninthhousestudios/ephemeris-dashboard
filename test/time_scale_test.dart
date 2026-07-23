@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/calendar.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/jd_utils.dart';
+import 'package:swe_dashboard/core/output_clock.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
 import 'package:swe_dashboard/core/time_scale.dart';
 
@@ -136,6 +137,73 @@ void main() {
         scale: TimeScale.tt,
       );
       expect(ut1 - tt, closeTo(63.828915 / 86400.0, 1e-7));
+    });
+  });
+
+  // The display direction: a Moment's rendered civil date-time (used by every
+  // series row label) must shift with the Context's Scale and Calendar, not
+  // just the output clock (swe-dashboard: series shift-with-scale/calendar).
+  group('formatJdDateTime honours the Context Scale and Calendar', () {
+    SweUtils? swe;
+
+    setUp(() {
+      try {
+        swe = SweUtils(EphemerisRunner());
+      } catch (_) {
+        // Native library not available on this platform.
+      }
+    });
+
+    ClockView view({
+      Calendar calendar = Calendar.gregorian,
+      TimeScale scale = TimeScale.ut1,
+    }) => ClockView(
+      clock: OutputClock.standard,
+      longitude: 0,
+      utcOffset: 0,
+      calendar: calendar,
+      scale: scale,
+    );
+
+    test('base render and label shift with the Scale', () {
+      if (swe == null) return markTestSkipped('SwissEph unavailable');
+      final ut1 = formatJdDateTime(
+        swe!,
+        _ut1Jd,
+        view: view(scale: TimeScale.ut1),
+        showCompanion: false,
+      );
+      final tt = formatJdDateTime(
+        swe!,
+        _ut1Jd,
+        view: view(scale: TimeScale.tt),
+        showCompanion: false,
+      );
+      expect(ut1, contains('UT1'));
+      expect(tt, contains('TT'));
+      // TT leads UT1 by ΔT, so the rendered instant differs.
+      expect(ut1, isNot(equals(tt)));
+    });
+
+    test('base render shifts with the Calendar for pre-reform dates', () {
+      if (swe == null) return markTestSkipped('SwissEph unavailable');
+      const preReformJd = 2268923.5; // ~1500, well before the 1582 reform
+      final greg = formatJdDateTime(
+        swe!,
+        preReformJd,
+        view: view(calendar: Calendar.gregorian),
+        showLabel: false,
+        showCompanion: false,
+      );
+      final jul = formatJdDateTime(
+        swe!,
+        preReformJd,
+        view: view(calendar: Calendar.julian),
+        showLabel: false,
+        showCompanion: false,
+      );
+      // Julian and Gregorian civil dates diverge by ~10 days here.
+      expect(greg, isNot(equals(jul)));
     });
   });
 }

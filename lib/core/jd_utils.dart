@@ -131,18 +131,20 @@ class JdUtils {
 
 String _p2(int n) => n.toString().padLeft(2, '0');
 
-/// Formats a Julian Day (UT) as a civil date-time string.
+/// Formats the canonical UT1 Julian Day [jd] as a civil date-time string.
 ///
-/// The canonical UT time is always the base render; the selected output clock
-/// ([OutputClock], carried in [view] with the longitude and UTC offset) is
-/// shown *alongside* it in parentheses when it differs from UT — so UT stays
-/// visible without the caller having to zero the offset. The parenthetical
-/// carries its own date only when it crosses midnight relative to UT (otherwise
-/// just the time, to stay compact).
+/// The base render is the Moment expressed on the Context's Scale (UT1/TT/UTC)
+/// and Calendar (both carried in [view]), so it shifts with them — not only the
+/// clock. The selected output clock ([OutputClock], carried in [view] with the
+/// longitude and UTC offset) is shown *alongside* it in parentheses when it
+/// differs — so the base scale stays visible without the caller having to zero
+/// the offset. The parenthetical carries its own date only when it crosses
+/// midnight relative to the base (otherwise just the time, to stay compact).
 ///
-/// [showLabel] appends ` UT` to the base; pass false for compact per-row renders.
+/// [showLabel] appends the scale label (e.g. ` UT1`, ` TT`) to the base; pass
+/// false for compact per-row renders.
 /// [showCompanion] draws the parenthetical companion clock; pass false where the
-/// width is tight and only the UT instant is wanted (e.g. the SeriesBar label).
+/// width is tight and only the base instant is wanted (e.g. the SeriesBar label).
 String formatJdDateTime(
   SweUtils swe,
   double jd, {
@@ -164,9 +166,16 @@ String formatJdDateTime(
     String render(DateTime dt) =>
         '${dt.year}-${_p2(dt.month)}-${_p2(dt.day)} ${hms(dt)}';
 
-    final utc = jdUtils.jdToDateTime(jd);
-    var s = render(utc);
-    if (showLabel) s = '$s UT';
+    // The base render honours the Context's Scale (UT1/TT/UTC) and Calendar,
+    // so a Moment — including each series row — shifts with them, not just with
+    // the companion clock.
+    final base = jdUtils.jdUtToCivil(
+      jd,
+      calendar: view.calendar,
+      scale: view.scale,
+    );
+    var s = render(base);
+    if (showLabel) s = '$s ${view.scale.label}';
 
     // The companion clock, shown next to UT. LMT = UT + longitude/15h
     // (= /360 days); LAT = LMT + equation of time. Standard at offset 0 *is*
@@ -188,11 +197,11 @@ String formatJdDateTime(
             ),
           };
     if (shifted != null) {
-      final local = jdUtils.jdToDateTime(shifted);
+      final local = jdUtils.jdToDateTime(shifted, calendar: view.calendar);
       final sameDate =
-          local.year == utc.year &&
-          local.month == utc.month &&
-          local.day == utc.day;
+          local.year == base.year &&
+          local.month == base.month &&
+          local.day == base.day;
       final localStr = sameDate ? hms(local) : render(local);
       s = '$s  ($localStr $label)';
     }
