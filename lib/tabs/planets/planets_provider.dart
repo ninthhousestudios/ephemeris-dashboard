@@ -201,12 +201,6 @@ List<PlanetResult> computePlanets({
   bool includeHousePos = false,
   int hsys = 0x50,
 }) {
-  var effectiveBodies = bodies;
-  if ((origin == Origin.heliocentric || origin == Origin.barycentric) &&
-      !bodies.contains(seEarth)) {
-    effectiveBodies = [...bodies, seEarth];
-  }
-
   final isHorizonOrigin =
       origin == Origin.geocentric || origin == Origin.topocentric;
 
@@ -247,7 +241,7 @@ List<PlanetResult> computePlanets({
       doHorizontal &&
       (iflag & (seFlgXyz | seFlgSidereal | seFlgEquatorial)) != 0;
 
-  return effectiveBodies.map((body) {
+  return bodies.map((body) {
     try {
       final r = eph.calcUt(moment.ut, body, iflag | seFlgSpeed);
 

@@ -104,7 +104,7 @@ void main() {
       expect(sunRow.fields.any((f) => f.$1 == 'Error'), isFalse);
     });
 
-    test('auto-adds Earth for heliocentric origin', () {
+    test('does not auto-add Earth for heliocentric origin', () {
       final fake = FakeEphemeris()
         ..onCalcUt = (jdUt, body, flags) => _result(body);
 
@@ -120,10 +120,10 @@ void main() {
         geoalt: 0,
       );
 
-      expect(results.map((r) => r.body), contains(seEarth));
+      expect(results.map((r) => r.body), isNot(contains(seEarth)));
     });
 
-    test('does not duplicate Earth if already selected', () {
+    test('includes Earth only when explicitly selected', () {
       final fake = FakeEphemeris()
         ..onCalcUt = (jdUt, body, flags) => _result(body);
 
