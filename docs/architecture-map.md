@@ -3,7 +3,11 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-23 (swe-dashboard/58: `housePos` added to the Ephemeris seam; consumer is a per-body toggle on the body tabs, pending — house position is a body quantity, not a cusps-surface one).
+Last updated: 2026-07-23 (swe-dashboard/69: horizontal coordinates (azimuth,
+altitude, zenith, meridian distance) added to all three body tabs — card toggle
++ series quantity. Shared `horizontalCoordsOf` kernel helper + `horizontal_fields`
+widget; `HousePosControls` renamed to `BodyDisplayControls` and now hosts both
+the house-position and horizontal toggles).
 
 ## Provider graph (data flow)
 
@@ -30,6 +34,7 @@ appliedGlobalsProvider (AppliedGlobals)
 | `moment.dart` | `Moment` | An instant in both time scales: `ut` (canonical) and `et` (via engine ΔT, derived on first access so UT-only calculations pay nothing). `deltaT` is stored, not computed as `et - ut`, which loses precision at JD magnitudes. |
 | `series_spec.dart` | `StepUnit`, `SeriesSpec`, `seriesSoftRowCap` (500), `seriesHardRowCap` (2000) | Start Moment + step value/unit + row count → `utAt(index)`. `effectiveRowCount` clamps to the hard cap; `warning` is the user-visible soft/hard-cap message. `StepUnit.advanceFrom` owns the step arithmetic: seconds–weeks are a fixed span of days, months/years step the civil calendar. `StepUnit.acceptsStepValue` is the single gate on step-value input (rejects zero, non-finite, and fractional values on calendar units) — `advanceFrom` must stay total and cannot refuse, so every input path has to ask. |
 | `calendar_step.dart` | `addCalendarMonths`, `daysInMonth` | Calendar arithmetic on a Julian Day, in pure Dart integer JDN math (no engine, so series unit tests need no native library). Preserves the time of day and clamps the day of month (31 Jan + 1 month = 28/29 Feb). Clamping is deliberate and is *not* swetest's rule — swetest rolls "31 February" over to 2 March. The goal is the capability, not swetest's exact output. |
+| `horizontal_coords.dart` | `HorizontalCoords`, `horizontalCoordsOf`, `horizontalExportRows` | The `swe_azalt` (ecl→hor) recipe behind the Ephemeris seam (swe-dashboard/69), shared by the body tabs (Planets/Other Bodies/Stars). Az/true+apparent altitude/zenith distance from `azAlt`, meridian distance from GMST + RA. Fed a tropical ecliptic position (sidereal/XYZ stripped by the caller, exactly as house position is); returns `HorizontalCoords.nan` on any engine error. `hasValue` (azimuth non-NaN) is the single gate every consumer uses. Card fields via `lib/widgets/horizontal_fields.dart`. |
 | `house_pos.dart` | `HousePosInputs`, `housePosInputs`, `housePosOf`, `housePosCalcFlag`, `houseNumberOf`, `housePositionDegrees` | The `swe_house_pos` recipe (swetest `-fGgj`, swe-dashboard/58) behind the Ephemeris seam, shared by the body tabs (Planets/Other Bodies/Stars). ARMC from a `houses` call, obliquity from `SE_ECL_NUT`, sidereal/XYZ stripped (`swe_house_pos` is handle-free and tropical). `houseNumberOf` = `j.floor()`, `housePositionDegrees` = `(j-1)*30`. |
 | `series_table.dart` | `SeriesStep`, `SeriesColumn`, `SeriesTableRow`, `SeriesTable`, `buildSeriesTable`, `seriesFieldLabels` | Folds `List<(Moment, CalcOutcome<List<ExportRow>>)>` into a grid. Column identity is the pair `(ExportRow.header, field label)`; the column set is the union across steps in first-appearance order, so an errored step or a body that drops out leaves a hole in its row instead of shifting columns. `hiddenLabels` filters by field label (the quantity picker is per-quantity, not per-body). Pure — no widgets, no engine. |
 | `series_settings.dart` | `SeriesSettings` | Per-tab series-mode state: `enabled`, step value/unit, row count, and the *hidden* label set (stored as hidden so all-on is the default and a quantity added later appears switched on). No start Moment — the Context owns it. |
@@ -154,10 +159,11 @@ two-axis scroll and intrinsic column widths in the grid.
 
 | File | Widget |
 |------|--------|
-| `series_bar.dart` | `SeriesBar(tabId, {trailing})` — mode toggle, read-only start (= Context Moment), step value + unit chips, row count, row-cap warning. Start is read-only because the Context owns the Moment. Optional `trailing` renders on the same row in both modes; the widget adapts its own content to the mode (see `HousePosControls`). |
+| `series_bar.dart` | `SeriesBar(tabId, {trailing})` — mode toggle, read-only start (= Context Moment), step value + unit chips, row count, row-cap warning. Start is read-only because the Context owns the Moment. Optional `trailing` renders on the same row in both modes; the widget adapts its own content to the mode (see `BodyDisplayControls`). |
 | `quantity_picker.dart` | `QuantityPicker` — chip row over field labels; pure (labels + hidden set + callback). |
-| `house_system_dropdown.dart` | `HouseSystemDropdown({width})` — the one app-wide house-system selector, driving `selectedHouseSystemProvider` + persistence. Used by the Houses tab and `HousePosControls`. |
-| `house_pos_controls.dart` | `HousePosControls({tabId, toggleProvider})` — the body tabs' `SeriesBar.trailing`. Card mode: the "House position" toggle + dropdown-while-on. Series mode: the house-system dropdown whenever House/House Pos is an active picker quantity (house position being a default series quantity). |
+| `house_system_dropdown.dart` | `HouseSystemDropdown({width})` — the one app-wide house-system selector, driving `selectedHouseSystemProvider` + persistence. Used by the Houses tab and `BodyDisplayControls`. |
+| `body_display_controls.dart` | `BodyDisplayControls({tabId, housePosToggle, horizontalToggle})` — the body tabs' `SeriesBar.trailing` (renamed from `HousePosControls`, swe-dashboard/69). Card mode: the "Horizontal coords" and "House position" toggles + house-system dropdown while house position is on. Series mode: both are picker quantities, so no toggles — only the house-system dropdown whenever House/House Pos is an active picker quantity. |
+| `horizontal_fields.dart` | `horizontalResultFields(HorizontalCoords, DisplayFormat)` — the horizontal-frame `ResultField`s for a single-Moment card, gated by each tab's card toggle. Widget-side twin of the kernel's `horizontalExportRows`. |
 | `series_grid.dart` | `SeriesGrid` — renders a `SeriesTable`. Moment column + one column per quantity; an `Error` column appears only when some step failed, and errored rows show `—` in the quantity cells. Sticky Moment column deliberately deferred. |
 | `series_view.dart` | `SeriesView(tabId, steps, momentLabel)` — picker over grid, wired to `seriesSettingsProvider`. The one widget a tab drops in. Shrink-wraps (`MainAxisSize.min`, no flex child): `AppShell.body` is a `SingleChildScrollView`, so tab content is laid out under unbounded height and an `Expanded` here throws. |
 

@@ -9,6 +9,8 @@ import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/series_settings_provider.dart';
+import '../../widgets/body_display_controls.dart';
+import '../../widgets/horizontal_fields.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
@@ -17,7 +19,6 @@ import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
-import '../../widgets/house_pos_controls.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
@@ -160,9 +161,10 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         // ── Series mode (with the house-position controls inline) ──
         SeriesBar(
           tabId: AppTab.planets.name,
-          trailing: HousePosControls(
+          trailing: BodyDisplayControls(
             tabId: AppTab.planets.name,
-            toggleProvider: planetsShowHousePosProvider,
+            housePosToggle: planetsShowHousePosProvider,
+            horizontalToggle: planetsShowHorizontalProvider,
           ),
         ),
         const Divider(height: 1),
@@ -234,6 +236,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
     final flags = ref.watch(flagBarProvider);
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
+    final showHorizontal = ref.watch(planetsShowHorizontalProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -324,6 +327,8 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                                     : formatSpeed(r.speedDist, format),
                                 rawValue: r.speedDist,
                               ),
+                              if (showHorizontal)
+                                ...horizontalResultFields(r.horizontal, format),
                               if (r.houseRequested) ...[
                                 ResultField(
                                   label: 'House',

@@ -27,10 +27,9 @@ class SeriesBar extends ConsumerStatefulWidget {
 
   final String tabId;
 
-  /// Extras (e.g. the body tabs' house-position controls) rendered on the same
-  /// row, after the Series chip and any series controls. The widget is
-  /// responsible for adapting its own content to the mode — see
-  /// [HousePosControls].
+  /// Extras (e.g. the body tabs' display controls) rendered on the same row,
+  /// after the Series chip and any series controls. The widget is responsible
+  /// for adapting its own content to the mode — see `BodyDisplayControls`.
   final Widget? trailing;
 
   @override

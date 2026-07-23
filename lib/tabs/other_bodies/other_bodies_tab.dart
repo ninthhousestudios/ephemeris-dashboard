@@ -18,8 +18,9 @@ import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
+import '../../widgets/body_display_controls.dart';
 import '../../widgets/export_button.dart';
-import '../../widgets/house_pos_controls.dart';
+import '../../widgets/horizontal_fields.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
@@ -104,9 +105,10 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
         const SizedBox(height: 4),
         SeriesBar(
           tabId: AppTab.otherBodies.name,
-          trailing: HousePosControls(
+          trailing: BodyDisplayControls(
             tabId: AppTab.otherBodies.name,
-            toggleProvider: otherBodiesShowHousePosProvider,
+            housePosToggle: otherBodiesShowHousePosProvider,
+            horizontalToggle: otherBodiesShowHorizontalProvider,
           ),
         ),
         const Divider(height: 1),
@@ -349,6 +351,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     final flags = ref.watch(flagBarProvider);
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
+    final showHorizontal = ref.watch(otherBodiesShowHorizontalProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -439,6 +442,8 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
                                     : formatSpeed(r.speedDist, format),
                                 rawValue: r.speedDist,
                               ),
+                              if (showHorizontal)
+                                ...horizontalResultFields(r.horizontal, format),
                               if (r.houseRequested) ...[
                                 ResultField(
                                   label: 'House',

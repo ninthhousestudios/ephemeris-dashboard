@@ -6,6 +6,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/horizontal_coords.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
@@ -77,6 +78,7 @@ class OtherBodyResult {
     this.rascension = double.nan,
     this.declination = double.nan,
     this.dmin,
+    this.horizontal = HorizontalCoords.nan,
     this.housePos = double.nan,
     this.houseRequested = false,
     this.errorMessage,
@@ -95,6 +97,11 @@ class OtherBodyResult {
   final double declination;
   final double? dmin;
 
+  /// Position in the observer's horizontal frame (azimuth, altitude, zenith,
+  /// meridian distance). [HorizontalCoords.nan] for helio/barycentric origins
+  /// or when the card toggle is off (swe-dashboard/69).
+  final HorizontalCoords horizontal;
+
   /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested, not
   /// applicable (helio/barycentric), or the body could not be placed. See
   /// [houseNumberOf], [housePositionDegrees].
@@ -111,6 +118,11 @@ class OtherBodyResult {
 /// on.
 final otherBodiesShowHousePosProvider = StateProvider<bool>((ref) => false);
 
+/// Whether the Other Bodies card view shows each body's horizontal coordinates
+/// (azimuth, altitude, zenith, meridian distance — swe-dashboard/69). Default
+/// off; the quantities are always present in series mode.
+final otherBodiesShowHorizontalProvider = StateProvider<bool>((ref) => false);
+
 // ── Computation ──
 
 List<OtherBodyResult> computeOtherBodies({
@@ -122,14 +134,29 @@ List<OtherBodyResult> computeOtherBodies({
   required String Function(int body) getName,
   double geolon = 0,
   double geolat = 0,
+  double geoalt = 0,
+  bool includeHorizontal = false,
   bool includeHousePos = false,
   int hsys = 0x50,
 }) {
+  final isHorizonOrigin =
+      origin == Origin.geocentric || origin == Origin.topocentric;
+
+  // Horizontal coordinates are a geocentric-observer quantity: only the
+  // geo/topocentric origins. GMST is per-Moment, reused for every body.
+  final doHorizontal = includeHorizontal && isHorizonOrigin;
+  double? gmstHours;
+  if (doHorizontal) {
+    try {
+      gmstHours = eph.sidTime(moment.ut);
+    } catch (_) {}
+  }
+  final needTropicalCalc =
+      doHorizontal && (iflag & (seFlgXyz | seFlgSidereal)) != 0;
+
   // House position is a geocentric-observer quantity: only the geo/topocentric
   // origins, computed once per Moment then reused for every body.
-  final doHousePos =
-      includeHousePos &&
-      (origin == Origin.geocentric || origin == Origin.topocentric);
+  final doHousePos = includeHousePos && isHorizonOrigin;
   HousePosInputs? hpInputs;
   if (doHousePos) {
     try {
@@ -173,6 +200,37 @@ List<OtherBodyResult> computeOtherBodies({
         // not available for this body
       }
 
+      var horizontal = HorizontalCoords.nan;
+      if (doHorizontal) {
+        double eclLon = r.longitude, eclLat = r.latitude, eclDist = r.distance;
+        if (needTropicalCalc) {
+          try {
+            final trop = eph.calcUt(
+              moment.ut,
+              body,
+              iflag & ~seFlgXyz & ~seFlgSidereal,
+            );
+            eclLon = trop.longitude;
+            eclLat = trop.latitude;
+            eclDist = trop.distance;
+          } catch (_) {
+            eclLon = eclLat = eclDist = double.nan;
+          }
+        }
+        horizontal = horizontalCoordsOf(
+          eph,
+          jdUt: moment.ut,
+          geolon: geolon,
+          geolat: geolat,
+          geoalt: geoalt,
+          eclLon: eclLon,
+          eclLat: eclLat,
+          eclDist: eclDist,
+          ra: ra,
+          gmstHours: gmstHours,
+        );
+      }
+
       var housePos = double.nan;
       if (hpInputs != null) {
         try {
@@ -196,6 +254,7 @@ List<OtherBodyResult> computeOtherBodies({
         rascension: ra,
         declination: dec,
         dmin: dmin,
+        horizontal: horizontal,
         housePos: housePos,
         houseRequested: houseRequested,
       );
@@ -245,6 +304,10 @@ List<OtherBodyResult> Function(Ephemeris, Moment) _otherBodiesCompute(Ref ref) {
   );
   final includeHousePos =
       ref.watch(otherBodiesShowHousePosProvider) || seriesEnabled;
+  // Horizontal coordinates: on the card toggle, or always in series mode where
+  // they are default quantities (swe-dashboard/69).
+  final includeHorizontal =
+      ref.watch(otherBodiesShowHorizontalProvider) || seriesEnabled;
   final hsys = ref.watch(selectedHouseSystemProvider);
 
   return (eph, moment) => computeOtherBodies(
@@ -260,6 +323,8 @@ List<OtherBodyResult> Function(Ephemeris, Moment) _otherBodiesCompute(Ref ref) {
     },
     geolon: ctx.longitude,
     geolat: ctx.latitude,
+    geoalt: ctx.altitude,
+    includeHorizontal: includeHorizontal,
     includeHousePos: includeHousePos,
     hsys: hsys,
   );
@@ -373,6 +438,7 @@ List<ExportRow> otherBodiesToExportRows(
                         ? formatAuSpeed(r.speedDist, fmt)
                         : formatSpeed(r.speedDist, fmt),
                   ),
+                  ...horizontalExportRows(r.horizontal, fmt),
                   if (r.houseRequested) ...[
                     (
                       'House',

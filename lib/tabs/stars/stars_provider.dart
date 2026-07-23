@@ -9,11 +9,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/horizontal_coords.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
+import '../../core/context_state.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/dir_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
@@ -103,6 +105,7 @@ class StarResult {
     required this.returnFlag,
     this.rascension = double.nan,
     this.declination = double.nan,
+    this.horizontal = HorizontalCoords.nan,
     this.housePos = double.nan,
     this.houseRequested = false,
     this.errorMessage,
@@ -121,6 +124,11 @@ class StarResult {
   final double rascension;
   final double declination;
 
+  /// Position in the observer's horizontal frame (azimuth, altitude, zenith,
+  /// meridian distance). [HorizontalCoords.nan] for helio/barycentric origins
+  /// or when the card toggle is off (swe-dashboard/69).
+  final HorizontalCoords horizontal;
+
   /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested or the star
   /// could not be resolved. See [houseNumberOf], [housePositionDegrees].
   final double housePos;
@@ -136,6 +144,11 @@ class StarResult {
 /// on.
 final starsShowHousePosProvider = StateProvider<bool>((ref) => false);
 
+/// Whether the Stars card view shows each star's horizontal coordinates
+/// (azimuth, altitude, zenith, meridian distance — swe-dashboard/69). Default
+/// off; the quantities are always present in series mode.
+final starsShowHorizontalProvider = StateProvider<bool>((ref) => false);
+
 /// Pure compute: resolve a fixed star by name, with Bayer-prefix retry.
 /// Returns null when the search term doesn't match any star (not an error).
 StarResult? computeStar({
@@ -145,6 +158,11 @@ StarResult? computeStar({
   required String searchTerm,
   required double Function(String) getMagnitude,
   HousePosInputs? hpInputs,
+  bool doHorizontal = false,
+  double geolon = 0,
+  double geolat = 0,
+  double geoalt = 0,
+  double? gmstHours,
 }) {
   final term = searchTerm.trim();
   if (term.isEmpty) return null;
@@ -198,6 +216,39 @@ StarResult? computeStar({
     // equatorial calc failed — leave NaN
   }
 
+  var horizontal = HorizontalCoords.nan;
+  if (doHorizontal) {
+    double eclLon = r.longitude, eclLat = r.latitude, eclDist = r.distance;
+    if ((iflag & (seFlgXyz | seFlgSidereal)) != 0) {
+      try {
+        // Dedicated tropical ecliptic lookup — the horizontal transform needs
+        // tropical degrees, which a sidereal/XYZ config won't return.
+        final trop = eph.fixstar2Ut(
+          searchForMag,
+          jdUt,
+          iflag & ~seFlgXyz & ~seFlgSidereal,
+        );
+        eclLon = trop.longitude;
+        eclLat = trop.latitude;
+        eclDist = trop.distance;
+      } catch (_) {
+        eclLon = eclLat = eclDist = double.nan;
+      }
+    }
+    horizontal = horizontalCoordsOf(
+      eph,
+      jdUt: jdUt,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      eclLon: eclLon,
+      eclLat: eclLat,
+      eclDist: eclDist,
+      ra: ra,
+      gmstHours: gmstHours,
+    );
+  }
+
   var housePos = double.nan;
   if (hpInputs != null) {
     try {
@@ -221,6 +272,7 @@ StarResult? computeStar({
     returnFlag: r.returnFlag,
     rascension: ra,
     declination: dec,
+    horizontal: horizontal,
     housePos: housePos,
     houseRequested: hpInputs != null,
   );
@@ -235,11 +287,26 @@ List<StarResult> computeStars({
   required int iflag,
   required List<String> searchTerms,
   required double Function(String) getMagnitude,
+  Origin origin = Origin.geocentric,
   double geolon = 0,
   double geolat = 0,
+  double geoalt = 0,
+  bool includeHorizontal = false,
   bool includeHousePos = false,
   int hsys = 0x50,
 }) {
+  // Horizontal coordinates are a geocentric-observer quantity: only the
+  // geo/topocentric origins. GMST is per-Moment, reused for every star.
+  final doHorizontal =
+      includeHorizontal &&
+      (origin == Origin.geocentric || origin == Origin.topocentric);
+  double? gmstHours;
+  if (doHorizontal) {
+    try {
+      gmstHours = eph.sidTime(jdUt);
+    } catch (_) {}
+  }
+
   // House position inputs (ARMC + obliquity) computed once per Moment, reused
   // for every star.
   HousePosInputs? hpInputs;
@@ -265,6 +332,11 @@ List<StarResult> computeStars({
         searchTerm: term,
         getMagnitude: getMagnitude,
         hpInputs: hpInputs,
+        doHorizontal: doHorizontal,
+        geolon: geolon,
+        geolat: geolat,
+        geoalt: geoalt,
+        gmstHours: gmstHours,
       );
       if (result != null) return result;
       return StarResult(
@@ -312,6 +384,10 @@ List<StarResult> Function(Ephemeris, Moment) _starsCompute(Ref ref) {
     seriesSettingsProvider(AppTab.stars.name).select((s) => s.enabled),
   );
   final includeHousePos = ref.watch(starsShowHousePosProvider) || seriesEnabled;
+  // Horizontal coordinates: on the card toggle, or always in series mode where
+  // they are default quantities (swe-dashboard/69).
+  final includeHorizontal =
+      ref.watch(starsShowHorizontalProvider) || seriesEnabled;
   final hsys = ref.watch(selectedHouseSystemProvider);
 
   return (eph, moment) => computeStars(
@@ -320,8 +396,11 @@ List<StarResult> Function(Ephemeris, Moment) _starsCompute(Ref ref) {
     iflag: flags.iflag,
     searchTerms: searchTerms,
     getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
+    origin: ctx.origin,
     geolon: ctx.longitude,
     geolat: ctx.latitude,
+    geoalt: ctx.altitude,
+    includeHorizontal: includeHorizontal,
     includeHousePos: includeHousePos,
     hsys: hsys,
   );
@@ -438,6 +517,7 @@ List<ExportRow> starToExportRows(
                     ? formatAuSpeed(result.speedDist, fmt)
                     : formatSpeed(result.speedDist, fmt),
               ),
+              ...horizontalExportRows(result.horizontal, fmt),
               if (result.houseRequested) ...[
                 (
                   'House',

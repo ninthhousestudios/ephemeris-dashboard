@@ -14,8 +14,9 @@ import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
+import '../../widgets/body_display_controls.dart';
 import '../../widgets/export_button.dart';
-import '../../widgets/house_pos_controls.dart';
+import '../../widgets/horizontal_fields.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
@@ -141,9 +142,10 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         ),
         SeriesBar(
           tabId: AppTab.stars.name,
-          trailing: HousePosControls(
+          trailing: BodyDisplayControls(
             tabId: AppTab.stars.name,
-            toggleProvider: starsShowHousePosProvider,
+            housePosToggle: starsShowHousePosProvider,
+            horizontalToggle: starsShowHorizontalProvider,
           ),
         ),
         const Divider(height: 1),
@@ -210,6 +212,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     final flags = ref.watch(flagBarProvider);
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
+    final showHorizontal = ref.watch(starsShowHorizontalProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -308,6 +311,8 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                                     : formatSpeed(r.speedDist, fmt),
                                 rawValue: r.speedDist,
                               ),
+                              if (showHorizontal)
+                                ...horizontalResultFields(r.horizontal, fmt),
                               if (r.houseRequested) ...[
                                 ResultField(
                                   label: 'House',
