@@ -10,6 +10,7 @@ import '../../core/context_state.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../core/time_scale.dart';
 
 class ContextTimeField extends ConsumerStatefulWidget {
   const ContextTimeField({this.showNowButton = false, super.key});
@@ -116,6 +117,11 @@ class _ContextTimeFieldState extends ConsumerState<ContextTimeField> {
     });
     if (_controller.text.isEmpty) _sync();
 
+    // Only TT relabels the field: UT1/UTC are the ordinary wall-clock reading, so
+    // a bare "Time" is correct; TT shifts by ΔT, so name the scale to explain it.
+    final scale = ref.watch(contextBarProvider.select((s) => s.timeScale));
+    final label = scale == TimeScale.tt ? 'Time (TT)' : 'Time';
+
     final trailing = widget.showNowButton
         ? Row(
             mainAxisSize: MainAxisSize.min,
@@ -130,7 +136,7 @@ class _ContextTimeFieldState extends ConsumerState<ContextTimeField> {
 
     return labeledField(
       context: context,
-      label: 'Time',
+      label: label,
       controller: _controller,
       focusNode: _focusNode,
       hint: 'HH:MM:SS',

@@ -10,6 +10,7 @@ import '../../core/context_state.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../core/time_scale.dart';
 
 class ContextDateField extends ConsumerStatefulWidget {
   const ContextDateField({super.key});
@@ -115,9 +116,13 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
     });
     if (_controller.text.isEmpty) _sync();
 
+    // Date rarely differs between UT1 and TT, but a ΔT shift can cross midnight.
+    // Label only TT, matching the Time field; UT1/UTC stay a bare "Date".
+    final scale = ref.watch(contextBarProvider.select((s) => s.timeScale));
+
     return labeledField(
       context: context,
-      label: 'Date',
+      label: scale == TimeScale.tt ? 'Date (TT)' : 'Date',
       controller: _controller,
       focusNode: _focusNode,
       hint: 'YYYY-MM-DD',
