@@ -429,32 +429,32 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                     ),
                     SizedBox(height: _rowGap),
                     const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(child: AyanamsaSelector()),
                         SizedBox(width: _colGap),
                         Expanded(child: ProjectionSelector()),
                         SizedBox(width: _colGap),
-                        Expanded(child: EpheSourceSelector()),
+                        // JPL file is a sub-option of the JPL source: it nests
+                        // under Ephe (and self-hides otherwise), so OPTIONS stays
+                        // three columns × three rows.
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [EpheSourceSelector(), JplFileSelector()],
+                          ),
+                        ),
                       ],
                     ),
                     SizedBox(height: _rowGap),
                     const Row(
                       children: [
-                        Expanded(child: JplFileSelector()),
-                        SizedBox(width: _colGap),
                         Expanded(child: CalendarSelector()),
                         SizedBox(width: _colGap),
                         Expanded(child: ClockSelector()),
-                      ],
-                    ),
-                    SizedBox(height: _rowGap),
-                    const Row(
-                      children: [
+                        SizedBox(width: _colGap),
                         Expanded(child: TimeScaleSelector()),
-                        SizedBox(width: _colGap),
-                        Expanded(child: SizedBox()),
-                        SizedBox(width: _colGap),
-                        Expanded(child: SizedBox()),
                       ],
                     ),
                   ],
