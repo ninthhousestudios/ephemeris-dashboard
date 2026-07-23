@@ -471,6 +471,7 @@ class ObserverConditions {
   final double monoNoBino;
   final double telescopeDia;
   final double telescopeMag;
+  final double transmission;
   final double eyeHeight;
 
   const ObserverConditions({
@@ -479,6 +480,7 @@ class ObserverConditions {
     this.monoNoBino = 1,
     this.telescopeDia = 0,
     this.telescopeMag = 0,
+    this.transmission = 0,
     this.eyeHeight = 0,
   });
 }

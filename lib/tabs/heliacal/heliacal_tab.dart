@@ -56,6 +56,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
   late final TextEditingController _extinctionController;
   late final TextEditingController _ageController;
   late final TextEditingController _snellenController;
+  late final TextEditingController _magnificationController;
+  late final TextEditingController _apertureController;
+  late final TextEditingController _transmissionController;
 
   /// Coalesces rapid field edits: heliacalUt is a heavyweight iterative FFI
   /// search, so a reactive recompute fires only after typing pauses rather than
@@ -72,6 +75,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _extinctionController = TextEditingController(text: '0.2');
     _ageController = TextEditingController(text: '36.0');
     _snellenController = TextEditingController(text: '1.0');
+    _magnificationController = TextEditingController(text: '0');
+    _apertureController = TextEditingController(text: '0');
+    _transmissionController = TextEditingController(text: '0');
   }
 
   @override
@@ -83,6 +89,9 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
     _extinctionController.dispose();
     _ageController.dispose();
     _snellenController.dispose();
+    _magnificationController.dispose();
+    _apertureController.dispose();
+    _transmissionController.dispose();
     super.dispose();
   }
 
@@ -341,6 +350,42 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                   theme,
                   labelStyle,
                 ),
+                const SizedBox(height: 8),
+                // Optical instrument row (swetest -opt)
+                Text(
+                  'OPTICS',
+                  style: TextStyle(
+                    fontSize: 11,
+                    letterSpacing: 1.2,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _monoBinoRow(theme, labelStyle),
+                const SizedBox(height: 4),
+                _paramRow(
+                  'Magnification',
+                  _magnificationController,
+                  heliacalMagnificationProvider,
+                  theme,
+                  labelStyle,
+                ),
+                const SizedBox(height: 4),
+                _paramRow(
+                  'Aperture (mm)',
+                  _apertureController,
+                  heliacalApertureProvider,
+                  theme,
+                  labelStyle,
+                ),
+                const SizedBox(height: 4),
+                _paramRow(
+                  'Transmission',
+                  _transmissionController,
+                  heliacalTransmissionProvider,
+                  theme,
+                  labelStyle,
+                ),
                 const SizedBox(height: 4),
               ],
             ],
@@ -385,6 +430,32 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
             },
           ),
         ),
+      ],
+    );
+  }
+
+  /// dobs[2]: 0 = monocular, 1 = binocular. A chip pair rather than a numeric
+  /// field, since the value is a two-way toggle. Picks apply immediately
+  /// (no debounce) — they are explicit actions, not typing.
+  Widget _monoBinoRow(ThemeData theme, TextStyle? labelStyle) {
+    final value = ref.watch(heliacalMonoNoBinoProvider);
+    return Row(
+      children: [
+        Text('Instrument', style: labelStyle),
+        const SizedBox(width: 8),
+        for (final opt in const [(0.0, 'Monocular'), (1.0, 'Binocular')])
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: ChoiceChip(
+              label: Text(opt.$2),
+              selected: value == opt.$1,
+              onSelected: (_) {
+                _recomputeDebounce?.cancel();
+                ref.read(heliacalMonoNoBinoProvider.notifier).state = opt.$1;
+              },
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
       ],
     );
   }

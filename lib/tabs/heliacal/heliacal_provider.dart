@@ -41,6 +41,22 @@ final heliacalObserverAgeProvider = StateProvider<double>((ref) => 36.0);
 
 final heliacalSnellenRatioProvider = StateProvider<double>((ref) => 1.0);
 
+// ── Optical-instrument providers (swetest -opt) ───────────────────────────────
+// dobs[2..5]: 0=monocular/1=binocular, magnification, aperture (mm), transmission.
+// Defaults are the naked-eye values, so results are unchanged unless edited.
+
+/// 0 = monocular, 1 = binocular. Naked-eye default is binocular (both eyes).
+final heliacalMonoNoBinoProvider = StateProvider<double>((ref) => 1.0);
+
+/// Telescope magnification (0 = naked eye).
+final heliacalMagnificationProvider = StateProvider<double>((ref) => 0.0);
+
+/// Optical aperture in mm (0 = naked eye).
+final heliacalApertureProvider = StateProvider<double>((ref) => 0.0);
+
+/// Optical transmission (0 = naked eye).
+final heliacalTransmissionProvider = StateProvider<double>((ref) => 0.0);
+
 // ── Result class ─────────────────────────────────────────────────────────────
 
 class HeliacalCalcResult {
@@ -148,6 +164,10 @@ final _heliacalCalcProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>((
   final observer = ObserverConditions(
     age: ref.watch(heliacalObserverAgeProvider),
     snellenRatio: ref.watch(heliacalSnellenRatioProvider),
+    monoNoBino: ref.watch(heliacalMonoNoBinoProvider),
+    telescopeMag: ref.watch(heliacalMagnificationProvider),
+    telescopeDia: ref.watch(heliacalApertureProvider),
+    transmission: ref.watch(heliacalTransmissionProvider),
   );
 
   return runTabCalc(

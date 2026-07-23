@@ -703,6 +703,7 @@ class RustEph implements Ephemeris {
       opticType: observer.monoNoBino,
       aperture: observer.telescopeDia,
       magnification: observer.telescopeMag,
+      transmission: observer.transmission,
     );
     return HeliacalResult(
       startVisible: r.startVisible,
