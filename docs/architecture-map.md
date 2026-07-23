@@ -84,9 +84,11 @@ Richer result shapes among the search / multi-call tabs:
 - `formatJdDateTime` in `lib/core/jd_utils.dart` is the single JD→date-string
   formatter (parameterized: `view` (ClockView) / seconds / showLabel /
   emptyPlaceholder / fallbackDigits); it replaced 6 near-duplicate copies across
-  eclipses, heliacal, and crossings, plus rise_set's `formattedWithLocal`.
+  eclipses, heliacal, and crossings, plus rise_set's `formattedWithLocal`. UT is
+  always the base render; the companion clock is shown in parentheses when it
+  differs (with its own date only when it crosses midnight vs UT).
 - `output_clock.dart` | `OutputClock` (standard/lmt/lat), `ClockView`.
-  Pure leaf: which clock event times and Moments render in. UT is canonical;
+  Pure leaf: which companion clock is shown alongside UT. UT is canonical;
   the clock only shifts the *displayed* instant (LMT = ut + longitude/15h,
   LAT = LMT + equationOfTime via `SweUtils.timeEqu`, matching swetest -lmt/-lat).
   Global `outputClockProvider` + derived `clockViewProvider` (bundles clock +

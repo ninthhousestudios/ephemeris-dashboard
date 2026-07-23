@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-/// Which clock event times and Moments are rendered in.
-///
-/// Mutually exclusive output-time rendering: the canonical Moment stays a UT
-/// Julian Day, and the clock only shifts how that instant is *displayed*.
-///   * [standard] — civil time at the Context's UTC offset (offset 0 = UT).
+/// Which companion clock is shown *alongside* UT when rendering event times and
+/// Moments. UT is always the base; this picks the second clock in parentheses.
+/// The canonical Moment stays a UT Julian Day — the clock only shifts display.
+///   * [standard] — civil time at the Context's UTC offset (offset 0 = just UT).
 ///   * [lmt]      — Local Mean Time (swetest -lmt): UT + longitude/15h.
 ///   * [lat]      — Local Apparent Time (swetest -lat): LMT + equation of time.
 /// View-layer only, like the Calendar toggle.

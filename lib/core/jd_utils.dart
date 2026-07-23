@@ -56,19 +56,25 @@ class JdUtils {
 
 String _p2(int n) => n.toString().padLeft(2, '0');
 
-/// Formats a Julian Day (UT) as a civil date-time string in the selected
-/// output clock (UT / civil UTC offset / LMT / LAT — see [OutputClock]).
+/// Formats a Julian Day (UT) as a civil date-time string.
 ///
-/// [jd] is always the canonical UT Julian Day; [view] carries the clock choice
-/// plus the longitude (for LMT/LAT) and UTC offset (for the civil clock).
-/// [showLabel] appends the clock label (e.g. ` UT`, ` LMT`, ` UTC+2`); pass
-/// false for compact per-row renders where the global clock is already shown.
+/// The canonical UT time is always the base render; the selected output clock
+/// ([OutputClock], carried in [view] with the longitude and UTC offset) is
+/// shown *alongside* it in parentheses when it differs from UT — so UT stays
+/// visible without the caller having to zero the offset. The parenthetical
+/// carries its own date only when it crosses midnight relative to UT (otherwise
+/// just the time, to stay compact).
+///
+/// [showLabel] appends ` UT` to the base; pass false for compact per-row renders.
+/// [showCompanion] draws the parenthetical companion clock; pass false where the
+/// width is tight and only the UT instant is wanted (e.g. the SeriesBar label).
 String formatJdDateTime(
   SweUtils swe,
   double jd, {
   ClockView view = ClockView.ut,
   bool seconds = true,
   bool showLabel = true,
+  bool showCompanion = true,
   String? emptyPlaceholder,
   int fallbackDigits = 6,
 }) {
@@ -76,22 +82,45 @@ String formatJdDateTime(
     return emptyPlaceholder;
   }
   try {
-    // Shift the UT Julian Day onto the selected output clock, then render its
-    // civil fields. LMT = UT + longitude/15h (= /360 days); LAT = LMT + eqTime.
-    final (double shifted, String label) = switch (view.clock) {
-      OutputClock.standard => (
-        jd + view.utcOffset / 24.0,
-        view.utcOffset == 0.0 ? 'UT' : 'UTC${_fmtOffset(view.utcOffset)}',
-      ),
-      OutputClock.lmt => (jd + view.longitude / 360.0, 'LMT'),
-      OutputClock.lat => (jd + view.longitude / 360.0 + swe.timeEqu(jd), 'LAT'),
-    };
-    final dt = JdUtils(swe).jdToDateTime(shifted);
-    final hms = seconds
+    final jdUtils = JdUtils(swe);
+    String hms(DateTime dt) => seconds
         ? '${_p2(dt.hour)}:${_p2(dt.minute)}:${_p2(dt.second)}'
         : '${_p2(dt.hour)}:${_p2(dt.minute)}';
-    var s = '${dt.year}-${_p2(dt.month)}-${_p2(dt.day)} $hms';
-    if (showLabel) s = '$s $label';
+    String render(DateTime dt) =>
+        '${dt.year}-${_p2(dt.month)}-${_p2(dt.day)} ${hms(dt)}';
+
+    final utc = jdUtils.jdToDateTime(jd);
+    var s = render(utc);
+    if (showLabel) s = '$s UT';
+
+    // The companion clock, shown next to UT. LMT = UT + longitude/15h
+    // (= /360 days); LAT = LMT + equation of time. Standard at offset 0 *is*
+    // UT, so it adds nothing.
+    final (double? shifted, String? label) = !showCompanion
+        ? (null, null)
+        : switch (view.clock) {
+            OutputClock.standard =>
+              view.utcOffset == 0.0
+                  ? (null, null)
+                  : (
+                      jd + view.utcOffset / 24.0,
+                      'UTC${_fmtOffset(view.utcOffset)}',
+                    ),
+            OutputClock.lmt => (jd + view.longitude / 360.0, 'LMT'),
+            OutputClock.lat => (
+              jd + view.longitude / 360.0 + swe.timeEqu(jd),
+              'LAT',
+            ),
+          };
+    if (shifted != null) {
+      final local = jdUtils.jdToDateTime(shifted);
+      final sameDate =
+          local.year == utc.year &&
+          local.month == utc.month &&
+          local.day == utc.day;
+      final localStr = sameDate ? hms(local) : render(local);
+      s = '$s  ($localStr $label)';
+    }
     return s;
   } catch (_) {
     return jd.toStringAsFixed(fallbackDigits);

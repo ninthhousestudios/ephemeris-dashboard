@@ -179,6 +179,7 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
       ctx.jdUt,
       view: ref.watch(clockViewProvider),
       showLabel: false,
+      showCompanion: false,
       fallbackDigits: 4,
     );
   }
