@@ -24,15 +24,19 @@ const int rsCalcMtransit = 4;
 const int rsCalcItransit = 8;
 
 // ── rsmi modifier bits ────────────────────────────────────────────────────────
+//
+// Sourced from swe_constants (canonical Swiss Ephemeris bits) — do NOT re-declare
+// literals here. These flow through the Ephemeris seam untranslated, so a wrong
+// value silently computes a different quantity than its label claims.
 
-const int rsBitDiscCenter = 256;
-const int rsBitDiscBottom = 512;
-const int rsBitNoRefraction = 1024;
-const int rsBitCivilTwilight = 2048;
-const int rsBitNauticTwilight = 4096;
-const int rsBitAstroTwilight = 8192;
-const int rsBitFixedDiscSize = 16384;
-const int rsBitHinduRising = 32768;
+const int rsBitDiscCenter = seBitDiscCenter;
+const int rsBitDiscBottom = seBitDiscBottom;
+const int rsBitNoRefraction = seBitNoRefraction;
+const int rsBitCivilTwilight = seBitCivilTwilight;
+const int rsBitNauticTwilight = seBitNauticTwilight;
+const int rsBitAstroTwilight = seBitAstroTwilight;
+const int rsBitFixedDiscSize = seBitFixedDiscSize;
+const int rsBitHinduRising = seBitHinduRising;
 
 // ── State providers ───────────────────────────────────────────────────────────
 

@@ -122,6 +122,17 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
         : (current & ~bit);
   }
 
+  /// The disc reference point (upper limb / center / lower limb) is a single
+  /// choice, so Disc Center and Disc Bottom are mutually exclusive: turning one
+  /// on clears the other. Clearing both falls back to the default upper limb.
+  void _toggleDiscMode(int bit, bool on) {
+    final other = bit == rsBitDiscCenter ? rsBitDiscBottom : rsBitDiscCenter;
+    final current = ref.read(riseSetModifiersProvider);
+    var mods = on ? (current | bit) : (current & ~bit);
+    if (on) mods &= ~other;
+    ref.read(riseSetModifiersProvider.notifier).state = mods;
+  }
+
   void _setTwilightMode(_TwilightMode mode) {
     setState(() => _twilightMode = mode);
     var mods = ref.read(riseSetModifiersProvider);
@@ -218,14 +229,14 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                   label: 'Disc Center',
                   bit: rsBitDiscCenter,
                   modifiers: modifiers,
-                  onToggle: _toggleModifier,
+                  onToggle: _toggleDiscMode,
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(
                   label: 'Disc Bottom',
                   bit: rsBitDiscBottom,
                   modifiers: modifiers,
-                  onToggle: _toggleModifier,
+                  onToggle: _toggleDiscMode,
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(

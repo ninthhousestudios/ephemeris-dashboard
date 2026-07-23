@@ -157,6 +157,24 @@ const seCalcSet = 2;
 const seCalcMTransit = 4;
 const seCalcITransit = 8;
 
+// Rise/set modifier bits (rsmi), OR'd onto the event-type bits above. Values are
+// the canonical Swiss Ephemeris bits (swephexp.h / swisseph_rs RiseSetFlags) and
+// are passed through the Ephemeris seam untranslated, so they MUST match exactly.
+// They do not double contiguously — GEOCTR sits at 128 and DISC_BOTTOM jumps to
+// 8192 — so do not "extrapolate" new ones.
+const seBitGeoctrNoEclLat = 128;
+const seBitDiscCenter = 256;
+const seBitNoRefraction = 512;
+const seBitCivilTwilight = 1024;
+const seBitNauticTwilight = 2048;
+const seBitAstroTwilight = 4096;
+const seBitDiscBottom = 8192;
+const seBitFixedDiscSize = 16384;
+const seBitForceSlow = 32768;
+// HINDU_RISING is a composite: DISC_CENTER | NO_REFRACTION | GEOCTR_NO_ECL_LAT.
+const seBitHinduRising =
+    seBitDiscCenter | seBitNoRefraction | seBitGeoctrNoEclLat;
+
 // Split degree flags
 const seSplitDegRoundSec = 1;
 const seSplitDegZodiacal = 8;
