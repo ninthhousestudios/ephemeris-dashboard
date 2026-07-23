@@ -19,8 +19,11 @@ import '../../layout/tab_definitions.dart';
 /// Body selection for nodes/apsides calculation.
 final nodesBodyProvider = StateProvider<int>((ref) => seMoon);
 
-/// Method for nodApsUt: 0=mean, 1=osculating, 2=oscu barycentric.
-final nodesMethodProvider = StateProvider<int>((ref) => 0);
+/// Method for nodApsUt: a NodApsMethod bitflag (seNodBit*), passed untranslated
+/// through the Ephemeris seam. These are NOT dense indices — MEAN=1, OSCU=2,
+/// OSCU_BAR=4 — and 0 (empty) is treated by the engine as MEAN, so it must not
+/// be used as a distinct "osculating" value.
+final nodesMethodProvider = StateProvider<int>((ref) => seNodBitMean);
 
 /// Display format for this tab.
 final nodesFormatProvider = StateProvider<DisplayFormat>(

@@ -46,10 +46,14 @@ const _extraBodies = <(int, String)>[
   (seVesta, 'Vesta'),
 ];
 
+// Values are NodApsMethod bitflags (seNodBit*), passed untranslated through the
+// Ephemeris seam — MEAN=1, OSCU=2, OSCU_BAR=4, not dense 0/1/2 indices. The
+// engine treats method 0 (empty) as MEAN, so using 0 for "Mean" made it and
+// "Osculating" (which was 1 == the MEAN bit) compute identical mean nodes.
 const _methodOptions = <(int, String)>[
-  (0, 'Mean'),
-  (1, 'Osculating'),
-  (2, 'Oscu Bary'),
+  (seNodBitMean, 'Mean'),
+  (seNodBitOscu, 'Osculating'),
+  (seNodBitOscuBar, 'Oscu Bary'),
 ];
 
 class NodesApsidesTab extends ConsumerStatefulWidget {
