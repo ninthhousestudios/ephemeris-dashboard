@@ -10,6 +10,7 @@ import '../../core/flag_definitions.dart';
 import '../../core/flag_provider.dart';
 import 'flag_group.dart';
 import 'flag_toggle.dart';
+import 'flag_toggle_group.dart';
 
 /// The flag bar — coordinate group + composable toggles + hex display.
 /// Shows auto-locked flags as informational chips.
@@ -58,6 +59,7 @@ class FlagBar extends ConsumerWidget {
             Wrap(
               spacing: 4,
               runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 ...flagToggles.map(
                   (def) => FlagToggle(
@@ -65,6 +67,13 @@ class FlagBar extends ConsumerWidget {
                     active: flagState.toggles.contains(def.value),
                     onToggle: () => notifier.toggleFlag(def.value),
                   ),
+                ),
+                // Position corrections, grouped under a shared label
+                FlagToggleGroup(
+                  label: 'Corrections',
+                  defs: positionCorrectionToggles,
+                  activeValues: flagState.toggles,
+                  onToggle: notifier.toggleFlag,
                 ),
                 // Show locked flags as disabled informational chips
                 if (flagState.lockedFlags != 0)

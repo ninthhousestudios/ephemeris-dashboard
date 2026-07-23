@@ -13,10 +13,17 @@ final planetsFormatProvider = StateProvider<DisplayFormat>(
 );
 
 /// Display format for angular values.
+///
+/// [radians] is a units choice for *angular* quantities only (longitude,
+/// latitude, RA/Dec, angular speed); non-angular quantities (distances) fall
+/// back to their decimal presentation. It replaces the former SEFLG_RADIANS
+/// computation flag, which returned radians the display layer then mis-rendered
+/// as degrees.
 enum DisplayFormat {
   dms('DMS'),
   decimal('Dec'),
-  raw('Raw');
+  raw('Raw'),
+  radians('Rad');
 
   const DisplayFormat(this.label);
   final String label;
@@ -29,6 +36,8 @@ String formatAngle(double degrees, DisplayFormat format) {
       return _toDms(degrees);
     case DisplayFormat.decimal:
       return '${degrees.toStringAsFixed(6)}°';
+    case DisplayFormat.radians:
+      return '${(degrees * _degToRad).toStringAsFixed(8)} rad';
     case DisplayFormat.raw:
       return degrees.toStringAsFixed(12);
   }
@@ -39,6 +48,7 @@ String formatDistance(double value, DisplayFormat format) {
   switch (format) {
     case DisplayFormat.dms:
     case DisplayFormat.decimal:
+    case DisplayFormat.radians:
       return '${value.toStringAsFixed(8)} AU';
     case DisplayFormat.raw:
       return value.toStringAsFixed(12);
@@ -52,6 +62,8 @@ String formatSpeed(double value, DisplayFormat format) {
       return '${_toDms(value)}/day';
     case DisplayFormat.decimal:
       return '${value.toStringAsFixed(6)}°/day';
+    case DisplayFormat.radians:
+      return '${(value * _degToRad).toStringAsFixed(8)} rad/day';
     case DisplayFormat.raw:
       return value.toStringAsFixed(12);
   }
@@ -105,6 +117,7 @@ String formatAu(double value, DisplayFormat format) {
   switch (format) {
     case DisplayFormat.dms:
     case DisplayFormat.decimal:
+    case DisplayFormat.radians:
       return '${value.toStringAsFixed(8)} AU';
     case DisplayFormat.raw:
       return value.toStringAsFixed(12);
@@ -116,6 +129,7 @@ String formatAuSpeed(double value, DisplayFormat format) {
   switch (format) {
     case DisplayFormat.dms:
     case DisplayFormat.decimal:
+    case DisplayFormat.radians:
       return '${value.toStringAsFixed(8)} AU/day';
     case DisplayFormat.raw:
       return value.toStringAsFixed(12);
@@ -143,6 +157,7 @@ String formatEuclidean(
   switch (format) {
     case DisplayFormat.dms:
     case DisplayFormat.decimal:
+    case DisplayFormat.radians:
       return '${d.toStringAsFixed(8)} $unit';
     case DisplayFormat.raw:
       return d.toStringAsFixed(12);
@@ -173,7 +188,9 @@ const _radToArcsec = 180 * 3600 / pi;
 String formatDistanceLy(double distAu, DisplayFormat format) {
   final ly = distAu / _auPerLightYear;
   return switch (format) {
-    DisplayFormat.dms || DisplayFormat.decimal => '${ly.toStringAsFixed(8)} ly',
+    DisplayFormat.dms ||
+    DisplayFormat.decimal ||
+    DisplayFormat.radians => '${ly.toStringAsFixed(8)} ly',
     DisplayFormat.raw => ly.toStringAsFixed(12),
   };
 }
@@ -181,7 +198,9 @@ String formatDistanceLy(double distAu, DisplayFormat format) {
 String formatDistanceKm(double distAu, DisplayFormat format) {
   final km = distAu * _auToKm;
   return switch (format) {
-    DisplayFormat.dms || DisplayFormat.decimal => '${km.toStringAsFixed(2)} km',
+    DisplayFormat.dms ||
+    DisplayFormat.decimal ||
+    DisplayFormat.radians => '${km.toStringAsFixed(2)} km',
     DisplayFormat.raw => km.toStringAsFixed(6),
   };
 }
@@ -190,7 +209,8 @@ String formatParallax(double distAu, DisplayFormat format) {
   final pxArcsec = asin(_earthRadiusKm / (distAu * _auToKm)) * _radToArcsec;
   return switch (format) {
     DisplayFormat.dms ||
-    DisplayFormat.decimal => '${pxArcsec.toStringAsFixed(4)}″',
+    DisplayFormat.decimal ||
+    DisplayFormat.radians => '${pxArcsec.toStringAsFixed(4)}″',
     DisplayFormat.raw => pxArcsec.toStringAsFixed(12),
   };
 }
@@ -198,7 +218,9 @@ String formatParallax(double distAu, DisplayFormat format) {
 String formatRelativeDistance(double dist, double dmin, DisplayFormat format) {
   final q = 1000 * dmin / dist;
   return switch (format) {
-    DisplayFormat.dms || DisplayFormat.decimal => q.toStringAsFixed(3),
+    DisplayFormat.dms ||
+    DisplayFormat.decimal ||
+    DisplayFormat.radians => q.toStringAsFixed(3),
     DisplayFormat.raw => q.toStringAsFixed(12),
   };
 }

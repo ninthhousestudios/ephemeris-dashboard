@@ -45,7 +45,7 @@ final coordGroup = FlagGroup(
   ],
 );
 
-/// Independent composable toggles.
+/// Independent composable toggles (shown as a flat row, not a labeled group).
 final flagToggles = [
   FlagDef(
     label: 'Speed',
@@ -53,29 +53,40 @@ final flagToggles = [
     tooltip: 'Include speed (daily motion) in output',
   ),
   FlagDef(
+    label: 'ICRS',
+    value: seFlgIcrs,
+    tooltip:
+        'Reference output to the ICRS (the fixed radio-source frame) instead '
+        'of the dynamical J2000 equinox — a constant ~17 mas frame-bias '
+        'rotation. Only matters at sub-arcsecond precision.',
+  ),
+];
+
+/// Position-correction toggles — each peels one refinement off the default
+/// apparent position (where you would actually see the body), moving it toward
+/// the geometric position. Shown together under a "Corrections" label.
+final positionCorrectionToggles = [
+  FlagDef(
     label: 'True Pos',
     value: seFlgTruePos,
-    tooltip: 'True geometric position (no aberration/deflection)',
+    tooltip:
+        'True geometric position: removes light-time (retardation). The body '
+        'where it actually is at t, not where its light shows it. Carries no '
+        'aberration or deflection either.',
   ),
   FlagDef(
     label: 'No Aberr',
     value: seFlgNoAberr,
-    tooltip: 'No annual aberration correction',
+    tooltip:
+        "Removes annual aberration — the ~20″ apparent shift from Earth's "
+        'orbital velocity.',
   ),
   FlagDef(
     label: 'No Grav',
     value: seFlgNoGdefl,
-    tooltip: 'No gravitational light deflection',
-  ),
-  FlagDef(
-    label: 'Radians',
-    value: seFlgRadians,
-    tooltip: 'Output in radians instead of degrees',
-  ),
-  FlagDef(
-    label: 'ICRS',
-    value: seFlgIcrs,
-    tooltip: 'ICRS (International Celestial Reference System)',
+    tooltip:
+        'Removes gravitational light-deflection by the Sun (<1.8″, only '
+        'appreciable near the solar limb).',
   ),
 ];
 
