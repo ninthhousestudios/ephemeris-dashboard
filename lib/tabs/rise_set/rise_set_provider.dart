@@ -5,13 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
+import '../../layout/tab_definitions.dart';
 
 // ── rsmi type flags ───────────────────────────────────────────────────────────
 
@@ -158,6 +161,16 @@ class RiseSetResult {
 
 // ── Computation ───────────────────────────────────────────────────────────────
 
+/// The start-of-day JD (in UT) of the LOCAL calendar day that [jdUt] falls in,
+/// given [utcOffsetHours]. Anchoring the search on local midnight keeps all four
+/// events (rise, set, both transits) on the same local day. NOTE: [utcOffset] is
+/// a *compute* input here, not just display — shifting it moves which day's
+/// events are found (lesson 019f9071). The series steps this per Moment.
+double localMidnightStart(double jdUt, double utcOffsetHours) {
+  final offsetDays = utcOffsetHours / 24.0;
+  return (jdUt + offsetDays + 0.5).floorToDouble() - 0.5 - offsetDays;
+}
+
 RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
   try {
     final r = swe.revjul(jd);
@@ -286,11 +299,9 @@ final _riseSetCalcProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
   final attemp = ref.watch(riseSetAttempProvider);
   final modifiers = ref.watch(riseSetModifiersProvider);
 
-  // Start from midnight local time (in UT) so all four events
-  // (rise, set, transits) land on the same local calendar day.
-  final utcOffsetDays = ctx.utcOffset / 24.0;
-  final jdUt =
-      (ctx.jdUt + utcOffsetDays + 0.5).floorToDouble() - 0.5 - utcOffsetDays;
+  // Start from local midnight (in UT) so all four events land on the same
+  // local calendar day.
+  final jdUt = localMidnightStart(ctx.jdUt, ctx.utcOffset);
   final geolon = ctx.longitude;
   final geolat = ctx.latitude;
   final geoalt = ctx.altitude;
@@ -329,6 +340,92 @@ final riseSetResultProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
 ) {
   return ref.watch(_riseSetCalcProvider);
 });
+
+// ── Series ──────────────────────────────────────────────────────────────────
+
+/// Per-step rise/set compute for series mode: single target (the first
+/// selected), stepped over the series Moments. Every Context-derived input is
+/// captured here, outside the closure; only the per-step [Moment] varies inside,
+/// so the search window follows the step (not the Context) — the local-midnight
+/// snap keys off `moment.ut`, honouring the "Moment comes from the series step"
+/// invariant while still using the Context's UTC offset as a compute input.
+RiseSetResult Function(Ephemeris, Moment) _riseSetSeriesCompute(Ref ref) {
+  final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
+  final swe = ref.read(sweProvider);
+  final targets = ref.watch(riseSetTargetsProvider);
+  final atpress = ref.watch(riseSetAtpressProvider);
+  final attemp = ref.watch(riseSetAttempProvider);
+  final modifiers = ref.watch(riseSetModifiersProvider);
+  final utcOffset = ctx.utcOffset;
+  final geolon = ctx.longitude;
+  final geolat = ctx.latitude;
+  final geoalt = ctx.altitude;
+  final epheflag = flags.iflag & 0xF;
+  final target = targets.isEmpty ? null : targets.first;
+
+  return (eph, moment) {
+    if (target == null) return const RiseSetResult();
+    return _computeOne(
+      eph,
+      swe,
+      target: target,
+      jdUt: localMidnightStart(moment.ut, utcOffset),
+      modifiers: modifiers,
+      epheflag: epheflag,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      atpress: atpress,
+      attemp: attemp,
+    );
+  };
+}
+
+/// The single target series mode follows (the first selected), or null when
+/// nothing is selected. Exposed so the tab can name it above the grid.
+final riseSetSeriesTargetProvider = Provider<RiseSetTarget?>((ref) {
+  final targets = ref.watch(riseSetTargetsProvider);
+  return targets.isEmpty ? null : targets.first;
+});
+
+/// Rise/set series: one row per stepped day for the single series target.
+final riseSetSeriesProvider =
+    Provider<List<(Moment, CalcOutcome<RiseSetResult>)>>((ref) {
+      ref.watch(
+        seriesSettingsProvider(
+          AppTab.riseSet.name,
+        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+      );
+      final settings = ref.read(seriesSettingsProvider(AppTab.riseSet.name));
+      if (!settings.enabled) return const [];
+
+      return runTabCalcSeries(
+        ref,
+        compute: _riseSetSeriesCompute(ref),
+        settings: settings,
+      );
+    });
+
+/// Series projection: one row, columns Rise/Set/Upper/Lower as civil times.
+/// A per-event error (e.g. polar day/night) fills its own cell, leaving the
+/// others intact.
+List<ExportRow> riseSetSeriesToExportRows(
+  RiseSetResult r,
+  String Function(double? jd, String? error) cell,
+) {
+  return [
+    ExportRow(
+      header: '',
+      fields: [
+        ('Rise', cell(r.riseJd, r.riseError)),
+        ('Set', cell(r.setJd, r.setError)),
+        ('Upper Transit', cell(r.upperTransitJd, r.upperTransitError)),
+        ('Lower Transit', cell(r.lowerTransitJd, r.lowerTransitError)),
+      ],
+    ),
+  ];
+}
 
 // ── Export ────────────────────────────────────────────────────────────────────
 

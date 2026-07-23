@@ -6,11 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/series_bar.dart';
+import '../../widgets/series_view.dart';
 import '../../widgets/star_search_field.dart';
 import '../stars/stars_provider.dart' show commonStars;
 import 'rise_set_provider.dart';
@@ -344,9 +348,64 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             ],
           ),
         ),
+        SeriesBar(tabId: AppTab.riseSet.name),
         const Divider(height: 1),
         // ── Results ──
-        _buildResults(outcome),
+        if (ref.watch(
+          seriesSettingsProvider(AppTab.riseSet.name).select((s) => s.enabled),
+        ))
+          _buildSeries()
+        else
+          _buildResults(outcome),
+      ],
+    );
+  }
+
+  Widget _buildSeries() {
+    final theme = Theme.of(context);
+    final swe = ref.read(sweProvider);
+    final clockView = ref.watch(clockViewProvider);
+    final steps = ref.watch(riseSetSeriesProvider);
+    final target = ref.watch(riseSetSeriesTargetProvider);
+
+    // A per-event cell: the error string if the search failed (e.g. polar day),
+    // otherwise the JD rendered on the selected clock, or an em-dash.
+    String cell(double? jd, String? error) =>
+        error ??
+        (jd != null
+            ? formatJdDateTime(swe, jd, view: clockView, showLabel: false)
+            : '—');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: Text(
+            target == null
+                ? 'Select a body or star to run a series.'
+                : 'Series follows ${target.label} (first selected).',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+        SeriesView(
+          tabId: AppTab.riseSet.name,
+          steps: [
+            for (final (moment, outcome) in steps)
+              (moment, outcome.map((r) => riseSetSeriesToExportRows(r, cell))),
+          ],
+          momentLabel: (m) => formatJdDateTime(
+            swe,
+            m.ut,
+            showLabel: false,
+            view: clockView,
+            fallbackDigits: 4,
+          ),
+          momentColumnTitle: 'Date/Time (UT)',
+        ),
       ],
     );
   }
