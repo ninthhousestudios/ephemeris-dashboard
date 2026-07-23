@@ -15,7 +15,7 @@
 /// which is what swetest does — it converts them rather than rejecting them.
 enum Calendar {
   auto('Auto (1582)'),
-  gregorian('Gregorian'),
+  gregorian('Proleptic Gregorian'),
   julian('Julian');
 
   const Calendar(this.label);
