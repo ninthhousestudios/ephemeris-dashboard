@@ -104,6 +104,7 @@ class StarResult {
     this.rascension = double.nan,
     this.declination = double.nan,
     this.housePos = double.nan,
+    this.houseRequested = false,
     this.errorMessage,
   });
 
@@ -120,9 +121,13 @@ class StarResult {
   final double rascension;
   final double declination;
 
-  /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested. See
-  /// [houseNumberOf], [housePositionDegrees].
+  /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested or the star
+  /// could not be resolved. See [houseNumberOf], [housePositionDegrees].
   final double housePos;
+
+  /// Whether house position was requested; true with a NaN [housePos] surfaces
+  /// as `—` instead of dropping the column.
+  final bool houseRequested;
   final String? errorMessage;
 }
 
@@ -217,6 +222,7 @@ StarResult? computeStar({
     rascension: ra,
     declination: dec,
     housePos: housePos,
+    houseRequested: hpInputs != null,
   );
 }
 
@@ -272,6 +278,7 @@ List<StarResult> computeStars({
         speedDist: double.nan,
         magnitude: double.nan,
         returnFlag: -1,
+        houseRequested: hpInputs != null,
         errorMessage: 'Star not found — check the name or catalog number',
       );
     } on SweException catch (e) {
@@ -286,6 +293,7 @@ List<StarResult> computeStars({
         speedDist: double.nan,
         magnitude: double.nan,
         returnFlag: -1,
+        houseRequested: hpInputs != null,
         errorMessage: e.message,
       );
     }
@@ -417,11 +425,16 @@ List<ExportRow> starToExportRows(
               ? formatAuSpeed(result.speedDist, fmt)
               : formatSpeed(result.speedDist, fmt),
         ),
-        if (!result.housePos.isNaN) ...[
-          ('House', '${houseNumberOf(result.housePos)}'),
+        if (result.houseRequested) ...[
+          (
+            'House',
+            result.housePos.isNaN ? '—' : '${houseNumberOf(result.housePos)}',
+          ),
           (
             'House Pos',
-            formatAngle(housePositionDegrees(result.housePos), fmt),
+            result.housePos.isNaN
+                ? '—'
+                : formatAngle(housePositionDegrees(result.housePos), fmt),
           ),
         ],
       ],

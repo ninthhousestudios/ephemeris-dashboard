@@ -15,7 +15,7 @@ import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
-import '../../widgets/house_system_dropdown.dart';
+import '../../widgets/house_pos_controls.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
@@ -139,7 +139,13 @@ class _StarsTabState extends ConsumerState<StarsTab> {
             ),
           ),
         ),
-        SeriesBar(tabId: AppTab.stars.name, trailing: _buildHousePosToggle()),
+        SeriesBar(
+          tabId: AppTab.stars.name,
+          trailing: HousePosControls(
+            tabId: AppTab.stars.name,
+            toggleProvider: starsShowHousePosProvider,
+          ),
+        ),
         const Divider(height: 1),
         // ── Results ──
         if (ref.watch(
@@ -148,38 +154,6 @@ class _StarsTabState extends ConsumerState<StarsTab> {
           _buildSeries()
         else
           _buildResults(theme),
-      ],
-    );
-  }
-
-  /// The card-view house-position toggle, hosted on the Series row. While on it
-  /// reveals the app-wide house-system dropdown (swe-dashboard/58). In series
-  /// mode house position is instead a default quantity in the picker.
-  Widget _buildHousePosToggle() {
-    final theme = Theme.of(context);
-    final showHousePos = ref.watch(starsShowHousePosProvider);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        FilterChip(
-          label: const Text('House position'),
-          avatar: const Icon(Icons.home_work_outlined, size: 16),
-          selected: showHousePos,
-          onSelected: (v) =>
-              ref.read(starsShowHousePosProvider.notifier).state = v,
-          visualDensity: VisualDensity.compact,
-        ),
-        if (showHousePos) ...[
-          const SizedBox(width: 12),
-          Text(
-            'System ',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(width: 4),
-          const HouseSystemDropdown(width: 200),
-        ],
       ],
     );
   }
@@ -334,20 +308,24 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                                     : formatSpeed(r.speedDist, fmt),
                                 rawValue: r.speedDist,
                               ),
-                              if (!r.housePos.isNaN) ...[
+                              if (r.houseRequested) ...[
                                 ResultField(
                                   label: 'House',
-                                  value: '${houseNumberOf(r.housePos)}',
+                                  value: r.housePos.isNaN
+                                      ? '—'
+                                      : '${houseNumberOf(r.housePos)}',
                                   rawValue: houseNumberOf(
                                     r.housePos,
                                   ).toDouble(),
                                 ),
                                 ResultField(
                                   label: 'House Pos',
-                                  value: formatAngle(
-                                    housePositionDegrees(r.housePos),
-                                    fmt,
-                                  ),
+                                  value: r.housePos.isNaN
+                                      ? '—'
+                                      : formatAngle(
+                                          housePositionDegrees(r.housePos),
+                                          fmt,
+                                        ),
                                   rawValue: housePositionDegrees(r.housePos),
                                 ),
                               ],

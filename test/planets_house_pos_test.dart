@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/core/calculation/moment.dart';
 import 'package:swe_dashboard/core/context_state.dart';
+import 'package:swe_dashboard/core/display_format.dart';
 import 'package:swe_dashboard/core/ephemeris/fake_ephemeris.dart';
 import 'package:swe_dashboard/tabs/planets/planets_provider.dart';
 
@@ -84,6 +85,7 @@ void main() {
       );
 
       expect(housesCalled, isTrue);
+      expect(results.single.houseRequested, isTrue);
       expect(results.single.housePos, 3.5);
       expect(seenArmc, _armc);
       expect(seenEps, _eps);
@@ -146,6 +148,65 @@ void main() {
       );
 
       expect(results.single.housePos, isNaN);
+      expect(results.single.houseRequested, isFalse);
     });
+
+    test(
+      'a body that cannot be placed still keeps the House column (as —)',
+      () {
+        // The frame (houses + eps) resolves, but the per-body tropical calc
+        // fails — the House column must survive as `—` so the series quantity
+        // does not vanish (swe-dashboard/58, Other Bodies regression).
+        final fake = FakeEphemeris()
+          ..onCalcUt = (jdUt, body, flags) {
+            if (body == seEclNut) {
+              return CalcResult(
+                longitude: _eps,
+                latitude: 0,
+                distance: 0,
+                longitudeSpeed: 0,
+                latitudeSpeed: 0,
+                distanceSpeed: 0,
+                returnFlag: flags,
+              );
+            }
+            throw const InvalidArgException('no ephemeris for this body');
+          }
+          ..onHouses = (_, _, _, _) {
+            return const HouseResult(
+              cusps: [0, 1, 2],
+              ascmc: [10, 20, _armc, 30],
+              returnFlag: 0,
+            );
+          }
+          ..onHousePos = (_, _, _, _, _, _) =>
+              fail('housePos unreachable for an unplaceable body');
+
+        final results = computePlanets(
+          eph: fake,
+          moment: Moment(ut: 2461041.5, deltaT: 0),
+          iflag: seFlgSwiEph,
+          origin: Origin.geocentric,
+          bodies: [seMars],
+          getName: (body) => 'Body $body',
+          geolon: 13.4,
+          geolat: 52.5,
+          geoalt: 0,
+          includeHousePos: true,
+          hsys: _placidus,
+        );
+
+        expect(results.single.houseRequested, isTrue);
+        expect(results.single.housePos, isNaN);
+
+        final rows = planetsToExportRows(results, DisplayFormat.dms);
+        final labels = rows.single.fields.map((f) => f.$1);
+        expect(labels, containsAll(<String>['House', 'House Pos']));
+        expect(
+          rows.single.fields.firstWhere((f) => f.$1 == 'House Pos').$2,
+          '—',
+        );
+      },
+    );
   });
 }

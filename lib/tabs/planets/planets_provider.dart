@@ -42,6 +42,7 @@ class PlanetResult {
     this.zenithDistance = double.nan,
     this.meridianDistance = double.nan,
     this.housePos = double.nan,
+    this.houseRequested = false,
     this.errorMessage,
   });
 
@@ -64,9 +65,14 @@ class PlanetResult {
   final double meridianDistance;
 
   /// Raw `swe_house_pos` value (swetest `j`), NaN when house position was not
-  /// requested or does not apply (helio/barycentric). See [houseNumberOf] and
-  /// [housePositionDegrees].
+  /// requested, does not apply (helio/barycentric), or the body could not be
+  /// placed. See [houseNumberOf] and [housePositionDegrees].
   final double housePos;
+
+  /// Whether house position was requested and the house frame was available
+  /// (geo/topocentric). True with a NaN [housePos] means the body could not be
+  /// placed — surfaced as `—` rather than dropping the column.
+  final bool houseRequested;
   final String? errorMessage;
 }
 
@@ -224,6 +230,10 @@ List<PlanetResult> computePlanets({
       );
     } catch (_) {}
   }
+  // House position is "requested" once the frame is in hand, even for bodies
+  // that then fail to place — so the column stays stable (`—`) instead of
+  // vanishing from the series picker.
+  final houseRequested = hpInputs != null;
 
   final needTropicalCalc =
       doHorizontal && (iflag & (seFlgXyz | seFlgSidereal)) != 0;
@@ -323,6 +333,7 @@ List<PlanetResult> computePlanets({
         zenithDistance: zenith,
         meridianDistance: meridian,
         housePos: housePos,
+        houseRequested: houseRequested,
       );
     } on SweException catch (e) {
       return PlanetResult(
@@ -335,6 +346,7 @@ List<PlanetResult> computePlanets({
         speedLat: double.nan,
         speedDist: double.nan,
         returnFlag: -1,
+        houseRequested: houseRequested,
         errorMessage: _describeBodyError(body, e.message),
       );
     }
@@ -488,9 +500,17 @@ List<ExportRow> planetsToExportRows(
             ],
             if (!r.meridianDistance.isNaN)
               ('Meridian Dist', formatAngle(r.meridianDistance, fmt)),
-            if (!r.housePos.isNaN) ...[
-              ('House', '${houseNumberOf(r.housePos)}'),
-              ('House Pos', formatAngle(housePositionDegrees(r.housePos), fmt)),
+            if (r.houseRequested) ...[
+              (
+                'House',
+                r.housePos.isNaN ? '—' : '${houseNumberOf(r.housePos)}',
+              ),
+              (
+                'House Pos',
+                r.housePos.isNaN
+                    ? '—'
+                    : formatAngle(housePositionDegrees(r.housePos), fmt),
+              ),
             ],
           ],
         ),

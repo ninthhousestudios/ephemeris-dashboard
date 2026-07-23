@@ -27,9 +27,10 @@ class SeriesBar extends ConsumerStatefulWidget {
 
   final String tabId;
 
-  /// Card-mode extras (e.g. the Planets house-position toggle) rendered on the
-  /// same row, after the Series chip. Hidden while series mode is on, where the
-  /// row fills with the step/row controls and card toggles do not apply.
+  /// Extras (e.g. the body tabs' house-position controls) rendered on the same
+  /// row, after the Series chip and any series controls. The widget is
+  /// responsible for adapting its own content to the mode — see
+  /// [HousePosControls].
   final Widget? trailing;
 
   @override
@@ -157,7 +158,7 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
                     onCommit: _commitRowCount,
                   ),
                 ],
-                if (!settings.enabled && widget.trailing != null) ...[
+                if (widget.trailing != null) ...[
                   const SizedBox(width: 12),
                   widget.trailing!,
                 ],

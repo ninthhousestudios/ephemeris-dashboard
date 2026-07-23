@@ -78,6 +78,7 @@ class OtherBodyResult {
     this.declination = double.nan,
     this.dmin,
     this.housePos = double.nan,
+    this.houseRequested = false,
     this.errorMessage,
   });
 
@@ -94,9 +95,14 @@ class OtherBodyResult {
   final double declination;
   final double? dmin;
 
-  /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested or not
-  /// applicable (helio/barycentric). See [houseNumberOf], [housePositionDegrees].
+  /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested, not
+  /// applicable (helio/barycentric), or the body could not be placed. See
+  /// [houseNumberOf], [housePositionDegrees].
   final double housePos;
+
+  /// Whether house position was requested and the frame was available; true
+  /// with a NaN [housePos] surfaces as `—` instead of dropping the column.
+  final bool houseRequested;
   final String? errorMessage;
 }
 
@@ -137,6 +143,9 @@ List<OtherBodyResult> computeOtherBodies({
       );
     } catch (_) {}
   }
+  // Requested once the frame is in hand — bodies that then fail to place show
+  // `—` rather than dropping the House column from the series picker.
+  final houseRequested = hpInputs != null;
 
   return bodies.map((body) {
     try {
@@ -188,6 +197,7 @@ List<OtherBodyResult> computeOtherBodies({
         declination: dec,
         dmin: dmin,
         housePos: housePos,
+        houseRequested: houseRequested,
       );
     } on SweException catch (e) {
       return OtherBodyResult(
@@ -200,6 +210,7 @@ List<OtherBodyResult> computeOtherBodies({
         speedLat: double.nan,
         speedDist: double.nan,
         returnFlag: -1,
+        houseRequested: houseRequested,
         errorMessage: describeBodyError(body, e.message),
       );
     }
@@ -350,9 +361,17 @@ List<ExportRow> otherBodiesToExportRows(
                   ? formatAuSpeed(r.speedDist, fmt)
                   : formatSpeed(r.speedDist, fmt),
             ),
-            if (!r.housePos.isNaN) ...[
-              ('House', '${houseNumberOf(r.housePos)}'),
-              ('House Pos', formatAngle(housePositionDegrees(r.housePos), fmt)),
+            if (r.houseRequested) ...[
+              (
+                'House',
+                r.housePos.isNaN ? '—' : '${houseNumberOf(r.housePos)}',
+              ),
+              (
+                'House Pos',
+                r.housePos.isNaN
+                    ? '—'
+                    : formatAngle(housePositionDegrees(r.housePos), fmt),
+              ),
             ],
           ],
         ),
