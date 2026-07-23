@@ -38,6 +38,24 @@ void main() {
       expect(r.distanceSpeed, isNotNaN);
     });
 
+    test(
+      'calcUt SE_ECL_NUT gives obliquity and nutation (swe-dashboard/46)',
+      () {
+        // SE_ECL_NUT (-1) packs [true obl, mean obl, nut long, nut obl] into
+        // xx[0..3], which RustEph maps to lon/lat/dist/lonSpeed. At J2000 the
+        // obliquity is ~23.4393° and nutation terms are sub-degree.
+        final r = rust.calcUt(jd, -1, 0);
+        // True obliquity ≈ 23.4377° (mean minus nutation in obliquity at J2000).
+        expect(r.longitude, closeTo(23.4377, 0.001)); // true obliquity
+        expect(r.latitude, closeTo(23.4393, 0.001)); // mean obliquity
+        // Nutation in longitude/obliquity are small (arcsec scale, < 0.006°).
+        expect(r.distance.abs(), lessThan(0.01));
+        expect(r.longitudeSpeed.abs(), lessThan(0.01));
+        // True and mean obliquity differ by exactly the nutation in obliquity.
+        expect(r.longitude - r.latitude, closeTo(r.longitudeSpeed, 1e-9));
+      },
+    );
+
     test('calcUt Moon', () {
       final r = rust.calcUt(jd, 1, flags);
       expect(r.longitude, isNotNaN);

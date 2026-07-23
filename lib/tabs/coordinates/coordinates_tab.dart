@@ -10,6 +10,7 @@ import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../dates/dates_provider.dart';
 import 'coordinates_provider.dart';
 
 /// Labelled numeric field, shared by all three cards on this tab.
@@ -17,8 +18,9 @@ Widget _buildInput(
   BuildContext context,
   String label,
   TextEditingController ctrl,
-  VoidCallback onCommit,
-) {
+  VoidCallback onCommit, {
+  ValueChanged<String>? onChanged,
+}) {
   return Row(
     children: [
       Text(label, style: Theme.of(context).textTheme.labelMedium),
@@ -35,6 +37,7 @@ Widget _buildInput(
             border: OutlineInputBorder(),
             contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           ),
+          onChanged: onChanged,
           onSubmitted: (_) => onCommit(),
         ),
       ),
@@ -255,6 +258,10 @@ class _CoTransCard extends ConsumerStatefulWidget {
 
 class _CoTransCardState extends ConsumerState<_CoTransCard> {
   bool _eclToEqu = true;
+
+  /// Once the user edits the obliquity field, stop auto-filling it from the
+  /// Context Moment's true obliquity so their value is preserved.
+  bool _epsCustom = false;
   final _lonCtrl = TextEditingController(text: '0.0');
   final _latCtrl = TextEditingController(text: '0.0');
   final _distCtrl = TextEditingController(text: '1.0');
@@ -285,6 +292,26 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
     final colorScheme = theme.colorScheme;
     final outcome = ref.watch(coTransResultProvider);
     final fmt = ref.watch(coordFormatProvider);
+
+    // Default the obliquity field to the Context Moment's true obliquity
+    // (SE_ECL_NUT) until the user overrides it. Reuses the Dates tab compute.
+    if (!_epsCustom) {
+      final trueObliquity = switch (ref.watch(datesResultProvider)) {
+        CalcOk(value: final r) when r.eclNutError == null => r.trueObliquity,
+        _ => null,
+      };
+      if (trueObliquity != null) {
+        final s = trueObliquity.toStringAsFixed(6);
+        if (_epsCtrl.text != s) {
+          _epsCtrl.text = s;
+          // Push into the input provider after the frame — mutating provider
+          // state during build is disallowed.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_epsCustom) _commit();
+          });
+        }
+      }
+    }
 
     return Card(
       margin: const EdgeInsets.all(4),
@@ -318,7 +345,13 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
             const SizedBox(height: 4),
             _buildInput(context, 'Distance', _distCtrl, _commit),
             const SizedBox(height: 4),
-            _buildInput(context, 'Obliquity (°)', _epsCtrl, _commit),
+            _buildInput(
+              context,
+              'Obliquity (°)',
+              _epsCtrl,
+              _commit,
+              onChanged: (_) => _epsCustom = true,
+            ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,

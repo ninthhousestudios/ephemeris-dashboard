@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
+import '../../core/flag_provider.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/tab_definitions.dart';
@@ -34,12 +36,17 @@ class DatesResult {
     required this.equationOfTime,
     required this.lmtToLat,
     required this.latToLmt,
+    required this.trueObliquity,
+    required this.meanObliquity,
+    required this.nutationLongitude,
+    required this.nutationObliquity,
     this.revjulError,
     this.deltaTError,
     this.siderealTimeError,
     this.equationOfTimeError,
     this.lmtToLatError,
     this.latToLmtError,
+    this.eclNutError,
   });
 
   final double jdUt;
@@ -68,6 +75,18 @@ class DatesResult {
   /// LAT→LMT: JD result from swe.latToLmt.
   final double latToLmt;
 
+  /// True obliquity of the ecliptic in degrees (SE_ECL_NUT xx[0]).
+  final double trueObliquity;
+
+  /// Mean obliquity of the ecliptic in degrees (SE_ECL_NUT xx[1]).
+  final double meanObliquity;
+
+  /// Nutation in longitude in degrees (SE_ECL_NUT xx[2]).
+  final double nutationLongitude;
+
+  /// Nutation in obliquity in degrees (SE_ECL_NUT xx[3]).
+  final double nutationObliquity;
+
   // Per-field errors (null = success)
   final String? revjulError;
   final String? deltaTError;
@@ -75,6 +94,7 @@ class DatesResult {
   final String? equationOfTimeError;
   final String? lmtToLatError;
   final String? latToLmtError;
+  final String? eclNutError;
 
   /// JD ET = JD UT + deltaT (in days).
   double get jdEt => jdUt + deltaT / 86400.0;
@@ -119,6 +139,7 @@ DatesResult computeDates(
   SweUtils swe, {
   required double jdUt,
   required double geolon,
+  required int iflag,
 }) {
   int revYear = 0, revMonth = 0, revDay = 0;
   double revHour = 0;
@@ -179,6 +200,22 @@ DatesResult computeDates(
     latToLmtError = e.toString();
   }
 
+  // Obliquity & nutation come from the SE_ECL_NUT pseudo-body (swetest -p o/n).
+  // The frame flags are stripped so the ephemeris source alone selects the
+  // model; the four outputs land in xx[0..3] → lon/lat/dist/lonSpeed.
+  double trueObliquity = 0, meanObliquity = 0;
+  double nutationLongitude = 0, nutationObliquity = 0;
+  String? eclNutError;
+  try {
+    final r = eph.calcUt(jdUt, seEclNut, tropicalEclipticFlag(iflag));
+    trueObliquity = r.longitude;
+    meanObliquity = r.latitude;
+    nutationLongitude = r.distance;
+    nutationObliquity = r.longitudeSpeed;
+  } catch (e) {
+    eclNutError = e.toString();
+  }
+
   return DatesResult(
     jdUt: jdUt,
     revjulYear: revYear,
@@ -191,12 +228,17 @@ DatesResult computeDates(
     equationOfTime: equationOfTime,
     lmtToLat: lmtToLatVal,
     latToLmt: latToLmtVal,
+    trueObliquity: trueObliquity,
+    meanObliquity: meanObliquity,
+    nutationLongitude: nutationLongitude,
+    nutationObliquity: nutationObliquity,
     revjulError: revjulError,
     deltaTError: deltaTError,
     siderealTimeError: siderealTimeError,
     equationOfTimeError: equationOfTimeError,
     lmtToLatError: lmtToLatError,
     latToLmtError: latToLmtError,
+    eclNutError: eclNutError,
   );
 }
 
@@ -205,12 +247,14 @@ DatesResult Function(Ephemeris, Moment) _datesCompute(
   double? overrideJd,
 }) {
   final ctx = ref.watch(contextBarProvider);
+  final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   return (eph, moment) => computeDates(
     eph,
     swe,
     jdUt: overrideJd ?? moment.ut,
     geolon: ctx.longitude,
+    iflag: flags.iflag,
   );
 }
 
@@ -277,6 +321,15 @@ List<ExportRow> datesToExportRows(DatesResult r) {
       fields: [
         ('LMT→LAT (JD)', r.lmtToLat.toStringAsFixed(8)),
         ('LAT→LMT (JD)', r.latToLmt.toStringAsFixed(8)),
+      ],
+    ),
+    ExportRow(
+      header: 'Obliquity & Nutation',
+      fields: [
+        ('True Obliquity (°)', r.trueObliquity.toStringAsFixed(8)),
+        ('Mean Obliquity (°)', r.meanObliquity.toStringAsFixed(8)),
+        ('Nutation in Longitude (°)', r.nutationLongitude.toStringAsFixed(8)),
+        ('Nutation in Obliquity (°)', r.nutationObliquity.toStringAsFixed(8)),
       ],
     ),
   ];

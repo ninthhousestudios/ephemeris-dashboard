@@ -333,6 +333,10 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                 width: cardWidth,
                 child: _buildLocalTimeCard(context, result),
               ),
+              SizedBox(
+                width: cardWidth,
+                child: _buildObliquityCard(context, result),
+              ),
             ],
           ),
         );
@@ -482,6 +486,43 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             rawValue: r.latToLmt,
           ),
       ],
+    );
+  }
+
+  Widget _buildObliquityCard(BuildContext context, DatesResult r) {
+    return ResultCard(
+      title: 'Obliquity & Nutation',
+      subtitle: 'SE_ECL_NUT (swetest -p o/n)',
+      fields: r.eclNutError != null
+          ? [
+              ResultField(
+                label: 'Error',
+                value: r.eclNutError!,
+                rawValue: double.nan,
+              ),
+            ]
+          : [
+              ResultField(
+                label: 'True Obliquity',
+                value: '${r.trueObliquity.toStringAsFixed(6)}°',
+                rawValue: r.trueObliquity,
+              ),
+              ResultField(
+                label: 'Mean Obliquity',
+                value: '${r.meanObliquity.toStringAsFixed(6)}°',
+                rawValue: r.meanObliquity,
+              ),
+              ResultField(
+                label: 'Nutation in Long.',
+                value: '${r.nutationLongitude.toStringAsFixed(6)}°',
+                rawValue: r.nutationLongitude,
+              ),
+              ResultField(
+                label: 'Nutation in Obliq.',
+                value: '${r.nutationObliquity.toStringAsFixed(6)}°',
+                rawValue: r.nutationObliquity,
+              ),
+            ],
     );
   }
 }
