@@ -301,7 +301,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
   Widget _buildSeries() {
     final format = ref.watch(otherBodiesFormatProvider);
     final flags = ref.watch(flagBarProvider);
-    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final clockView = ref.watch(clockViewProvider);
     final swe = ref.read(sweProvider);
     final steps = ref.watch(otherBodiesSeriesProvider);
 
@@ -321,8 +321,8 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
       momentLabel: (m) => formatJdDateTime(
         swe,
         m.ut,
-        utLabel: false,
-        utcOffset: utcOffset,
+        showLabel: false,
+        view: clockView,
         fallbackDigits: 4,
       ),
       momentColumnTitle: 'Date/Time (UT)',

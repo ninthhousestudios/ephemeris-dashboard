@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
+import '../../core/display_format.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
@@ -274,7 +275,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   }
 
   Widget _buildSeries() {
-    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final clockView = ref.watch(clockViewProvider);
     final swe = ref.read(sweProvider);
     final steps = ref.watch(datesSeriesProvider);
 
@@ -287,8 +288,8 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       momentLabel: (m) => formatJdDateTime(
         swe,
         m.ut,
-        utLabel: false,
-        utcOffset: utcOffset,
+        showLabel: false,
+        view: clockView,
         fallbackDigits: 4,
       ),
       momentColumnTitle: 'Date/Time (UT)',

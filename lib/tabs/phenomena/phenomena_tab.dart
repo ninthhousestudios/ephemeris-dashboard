@@ -110,7 +110,7 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
 
   Widget _buildSeries() {
     final format = ref.watch(phenomenaFormatProvider);
-    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final clockView = ref.watch(clockViewProvider);
     final swe = ref.read(sweProvider);
     final steps = ref.watch(phenomenaSeriesProvider);
 
@@ -125,8 +125,8 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
       momentLabel: (m) => formatJdDateTime(
         swe,
         m.ut,
-        utLabel: false,
-        utcOffset: utcOffset,
+        showLabel: false,
+        view: clockView,
         fallbackDigits: 4,
       ),
       momentColumnTitle: 'Date/Time (UT)',

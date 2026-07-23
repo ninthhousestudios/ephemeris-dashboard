@@ -9,7 +9,9 @@ import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
+import '../../core/display_format.dart';
 import '../../core/jd_utils.dart';
+import '../../core/output_clock.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
@@ -487,7 +489,7 @@ class _ResultsView extends ConsumerWidget {
     }
 
     final swe = ref.read(sweProvider);
-    final utcOffset = ref.read(contextBarProvider).utcOffset;
+    final view = ref.watch(clockViewProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -500,7 +502,7 @@ class _ResultsView extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               for (final r in results)
-                _buildResultGroup(context, ref, r, swe, utcOffset, cardWidth),
+                _buildResultGroup(context, ref, r, swe, view, cardWidth),
             ],
           ),
         );
@@ -513,7 +515,7 @@ class _ResultsView extends ConsumerWidget {
     WidgetRef ref,
     HeliacalCalcResult r,
     SweUtils swe,
-    double utcOffset,
+    ClockView view,
     double cardWidth,
   ) {
     final theme = Theme.of(context);
@@ -565,7 +567,7 @@ class _ResultsView extends ConsumerWidget {
               children: [
                 SizedBox(
                   width: cardWidth,
-                  child: _buildEventCard(r, swe, utcOffset),
+                  child: _buildEventCard(r, swe, view),
                 ),
                 SizedBox(width: cardWidth, child: _buildJdCard(r)),
               ],
@@ -575,24 +577,24 @@ class _ResultsView extends ConsumerWidget {
     );
   }
 
-  Widget _buildEventCard(HeliacalCalcResult r, SweUtils swe, double utcOffset) {
+  Widget _buildEventCard(HeliacalCalcResult r, SweUtils swe, ClockView view) {
     return ResultCard(
       title: HeliacalCalcResult.eventLabel(r.eventType),
       subtitle: 'heliacalUt("${r.objectName}")',
       fields: [
         ResultField(
           label: 'Start Visible',
-          value: _fmtHeliacalJd(swe, r.startVisibleJd, utcOffset),
+          value: _fmtHeliacalJd(swe, r.startVisibleJd, view),
           rawValue: r.startVisibleJd,
         ),
         ResultField(
           label: 'Best Visible',
-          value: _fmtHeliacalJd(swe, r.bestVisibleJd, utcOffset),
+          value: _fmtHeliacalJd(swe, r.bestVisibleJd, view),
           rawValue: r.bestVisibleJd,
         ),
         ResultField(
           label: 'End Visible',
-          value: _fmtHeliacalJd(swe, r.endVisibleJd, utcOffset),
+          value: _fmtHeliacalJd(swe, r.endVisibleJd, view),
           rawValue: r.endVisibleJd,
         ),
       ],
@@ -626,12 +628,12 @@ class _ResultsView extends ConsumerWidget {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-String _fmtHeliacalJd(SweUtils swe, double jd, double utcOffset) =>
+String _fmtHeliacalJd(SweUtils swe, double jd, ClockView view) =>
     formatJdDateTime(
       swe,
       jd,
       seconds: false,
-      utcOffset: utcOffset,
+      view: view,
       emptyPlaceholder: '—',
       fallbackDigits: 4,
     );

@@ -7,7 +7,9 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/display_format.dart';
 import '../../core/jd_utils.dart';
+import '../../core/output_clock.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
@@ -286,6 +288,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     }
 
     final swe = ref.read(sweProvider);
+    final view = ref.watch(clockViewProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -305,7 +308,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                 .map(
                   (e) => SizedBox(
                     width: cardWidth,
-                    child: _eclipseCard(context, e, swe),
+                    child: _eclipseCard(context, e, swe, view),
                   ),
                 )
                 .toList(),
@@ -315,7 +318,12 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     );
   }
 
-  Widget _eclipseCard(BuildContext context, EclipseEvent e, SweUtils swe) {
+  Widget _eclipseCard(
+    BuildContext context,
+    EclipseEvent e,
+    SweUtils swe,
+    ClockView view,
+  ) {
     final fields = <ResultField>[];
 
     if (e.error != null) {
@@ -330,7 +338,7 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
         fields.add(
           ResultField(
             label: 'Max Eclipse',
-            value: formatJdDateTime(swe, e.maxEclipseJd!),
+            value: formatJdDateTime(swe, e.maxEclipseJd!, view: view),
           ),
         );
         fields.add(
@@ -343,19 +351,19 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
       }
 
       // Timing fields
-      _addJdField(fields, 'Begin', e.beginJd, swe);
-      _addJdField(fields, 'End', e.endJd, swe);
-      _addJdField(fields, 'Totality Begin', e.totalityBeginJd, swe);
-      _addJdField(fields, 'Totality End', e.totalityEndJd, swe);
-      _addJdField(fields, 'Penumbral Begin', e.penumbralBeginJd, swe);
-      _addJdField(fields, 'Penumbral End', e.penumbralEndJd, swe);
-      _addJdField(fields, 'Local Noon', e.localNoonJd, swe);
-      _addJdField(fields, '1st Contact', e.firstContactJd, swe);
-      _addJdField(fields, '2nd Contact', e.secondContactJd, swe);
-      _addJdField(fields, '3rd Contact', e.thirdContactJd, swe);
-      _addJdField(fields, '4th Contact', e.fourthContactJd, swe);
-      _addJdField(fields, 'Sunrise', e.sunriseJd, swe);
-      _addJdField(fields, 'Sunset', e.sunsetJd, swe);
+      _addJdField(fields, 'Begin', e.beginJd, swe, view);
+      _addJdField(fields, 'End', e.endJd, swe, view);
+      _addJdField(fields, 'Totality Begin', e.totalityBeginJd, swe, view);
+      _addJdField(fields, 'Totality End', e.totalityEndJd, swe, view);
+      _addJdField(fields, 'Penumbral Begin', e.penumbralBeginJd, swe, view);
+      _addJdField(fields, 'Penumbral End', e.penumbralEndJd, swe, view);
+      _addJdField(fields, 'Local Noon', e.localNoonJd, swe, view);
+      _addJdField(fields, '1st Contact', e.firstContactJd, swe, view);
+      _addJdField(fields, '2nd Contact', e.secondContactJd, swe, view);
+      _addJdField(fields, '3rd Contact', e.thirdContactJd, swe, view);
+      _addJdField(fields, '4th Contact', e.fourthContactJd, swe, view);
+      _addJdField(fields, 'Sunrise', e.sunriseJd, swe, view);
+      _addJdField(fields, 'Sunset', e.sunsetJd, swe, view);
 
       // Attributes
       if (e.magnitude != null) {
@@ -421,8 +429,14 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     String label,
     double? jd,
     SweUtils swe,
+    ClockView view,
   ) {
     if (jd == null) return;
-    fields.add(ResultField(label: label, value: formatJdDateTime(swe, jd)));
+    fields.add(
+      ResultField(
+        label: label,
+        value: formatJdDateTime(swe, jd, view: view),
+      ),
+    );
   }
 }

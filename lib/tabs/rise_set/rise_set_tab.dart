@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
-import '../../core/context_provider.dart';
+import '../../core/display_format.dart';
+import '../../core/jd_utils.dart';
+import '../../core/swe_service.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/star_search_field.dart';
@@ -413,7 +415,6 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
               _eventCard(
                 'Rise',
                 result.riseJd,
-                result.riseDateTime,
                 result.riseFlag,
                 result.riseError,
                 cardWidth,
@@ -421,7 +422,6 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
               _eventCard(
                 'Set',
                 result.setJd,
-                result.setDateTime,
                 result.setFlag,
                 result.setError,
                 cardWidth,
@@ -429,7 +429,6 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
               _eventCard(
                 'Upper Transit',
                 result.upperTransitJd,
-                result.upperTransitDateTime,
                 result.upperTransitFlag,
                 result.upperTransitError,
                 cardWidth,
@@ -437,7 +436,6 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
               _eventCard(
                 'Lower Transit',
                 result.lowerTransitJd,
-                result.lowerTransitDateTime,
                 result.lowerTransitFlag,
                 result.lowerTransitError,
                 cardWidth,
@@ -452,13 +450,11 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   Widget _eventCard(
     String title,
     double? jd,
-    RiseSetDateTime? dt,
     int? flag,
     String? error,
     double cardWidth,
   ) {
     final fields = <ResultField>[];
-    final utcOffset = ref.read(contextBarProvider).utcOffset;
 
     if (error != null) {
       fields.add(ResultField(label: 'Error', value: error));
@@ -473,7 +469,13 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
       fields.add(
         ResultField(
           label: 'Date/Time',
-          value: dt?.formattedWithLocal(utcOffset) ?? '—',
+          value: jd != null
+              ? formatJdDateTime(
+                  ref.read(sweProvider),
+                  jd,
+                  view: ref.watch(clockViewProvider),
+                )
+              : '—',
         ),
       );
     }

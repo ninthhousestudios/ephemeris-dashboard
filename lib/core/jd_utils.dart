@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'calendar.dart';
+import 'output_clock.dart';
 import 'swe_utils.dart';
 
 /// DateTime ↔ Julian Day conversion helpers.
@@ -55,13 +56,19 @@ class JdUtils {
 
 String _p2(int n) => n.toString().padLeft(2, '0');
 
-/// Formats a Julian Day (UT) as a civil date-time string.
+/// Formats a Julian Day (UT) as a civil date-time string in the selected
+/// output clock (UT / civil UTC offset / LMT / LAT — see [OutputClock]).
+///
+/// [jd] is always the canonical UT Julian Day; [view] carries the clock choice
+/// plus the longitude (for LMT/LAT) and UTC offset (for the civil clock).
+/// [showLabel] appends the clock label (e.g. ` UT`, ` LMT`, ` UTC+2`); pass
+/// false for compact per-row renders where the global clock is already shown.
 String formatJdDateTime(
   SweUtils swe,
   double jd, {
+  ClockView view = ClockView.ut,
   bool seconds = true,
-  bool utLabel = true,
-  double utcOffset = 0.0,
+  bool showLabel = true,
   String? emptyPlaceholder,
   int fallbackDigits = 6,
 }) {
@@ -69,22 +76,33 @@ String formatJdDateTime(
     return emptyPlaceholder;
   }
   try {
-    final utc = JdUtils(swe).jdToDateTime(jd);
-    String hms(DateTime dt) => seconds
+    // Shift the UT Julian Day onto the selected output clock, then render its
+    // civil fields. LMT = UT + longitude/15h (= /360 days); LAT = LMT + eqTime.
+    final (double shifted, String label) = switch (view.clock) {
+      OutputClock.ut => (jd, 'UT'),
+      OutputClock.utcOffset => (
+        jd + view.utcOffset / 24.0,
+        'UTC${_fmtOffset(view.utcOffset)}',
+      ),
+      OutputClock.lmt => (jd + view.longitude / 360.0, 'LMT'),
+      OutputClock.lat => (jd + view.longitude / 360.0 + swe.timeEqu(jd), 'LAT'),
+    };
+    final dt = JdUtils(swe).jdToDateTime(shifted);
+    final hms = seconds
         ? '${_p2(dt.hour)}:${_p2(dt.minute)}:${_p2(dt.second)}'
         : '${_p2(dt.hour)}:${_p2(dt.minute)}';
-    var s = '${utc.year}-${_p2(utc.month)}-${_p2(utc.day)} ${hms(utc)}';
-    if (utLabel) s = '$s UT';
-    if (utcOffset != 0.0) {
-      final local = utc.add(Duration(minutes: (utcOffset * 60).round()));
-      final sign = utcOffset >= 0 ? '+' : '';
-      final off = utcOffset == utcOffset.roundToDouble()
-          ? '$sign${utcOffset.round()}'
-          : '$sign${utcOffset.toStringAsFixed(1)}';
-      s = '$s  (${hms(local)} UTC$off)';
-    }
+    var s = '${dt.year}-${_p2(dt.month)}-${_p2(dt.day)} $hms';
+    if (showLabel) s = '$s $label';
     return s;
   } catch (_) {
     return jd.toStringAsFixed(fallbackDigits);
   }
+}
+
+/// Signed UTC-offset suffix, e.g. `+2`, `-5.5`, `+0`.
+String _fmtOffset(double offsetHours) {
+  final sign = offsetHours >= 0 ? '+' : '';
+  return offsetHours == offsetHours.roundToDouble()
+      ? '$sign${offsetHours.round()}'
+      : '$sign${offsetHours.toStringAsFixed(1)}';
 }

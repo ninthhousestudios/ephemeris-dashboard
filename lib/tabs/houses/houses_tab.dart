@@ -67,7 +67,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
 
   Widget _buildSeries() {
     final format = ref.watch(housesFormatProvider);
-    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final clockView = ref.watch(clockViewProvider);
     final swe = ref.read(sweProvider);
     final steps = ref.watch(housesSeriesProvider);
 
@@ -82,8 +82,8 @@ class _HousesTabState extends ConsumerState<HousesTab> {
       momentLabel: (m) => formatJdDateTime(
         swe,
         m.ut,
-        utLabel: false,
-        utcOffset: utcOffset,
+        showLabel: false,
+        view: clockView,
         fallbackDigits: 4,
       ),
       momentColumnTitle: 'Date/Time (UT)',

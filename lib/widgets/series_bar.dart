@@ -10,6 +10,7 @@ import '../core/calculation/series_settings.dart';
 import '../core/calculation/series_settings_provider.dart';
 import '../core/calculation/series_spec.dart';
 import '../core/context_provider.dart';
+import '../core/display_format.dart';
 import '../core/jd_utils.dart';
 import '../core/swe_service.dart';
 
@@ -176,7 +177,8 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
     return formatJdDateTime(
       ref.read(sweProvider),
       ctx.jdUt,
-      utLabel: false,
+      view: ref.watch(clockViewProvider),
+      showLabel: false,
       fallbackDigits: 4,
     );
   }

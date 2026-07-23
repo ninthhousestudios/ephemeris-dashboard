@@ -89,5 +89,8 @@ class SweUtils {
 
   double deltat(double jd) => _engine.deltaT(rs.JdUt1(jd));
 
+  /// Equation of time in days (LAT − LMT) at the given UT Julian Day.
+  double timeEqu(double jd) => _engine.timeEqu(jd);
+
   rs.FixstarMagResult fixstar2Mag(String star) => _engine.fixstar2Mag(star);
 }

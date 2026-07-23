@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/series_settings_provider.dart';
-import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
@@ -163,7 +162,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
   Widget _buildSeries() {
     final fmt = ref.watch(starsFormatProvider);
     final flags = ref.watch(flagBarProvider);
-    final utcOffset = ref.watch(contextBarProvider).utcOffset;
+    final clockView = ref.watch(clockViewProvider);
     final swe = ref.read(sweProvider);
     final steps = ref.watch(starsSeriesProvider);
 
@@ -182,8 +181,8 @@ class _StarsTabState extends ConsumerState<StarsTab> {
       momentLabel: (m) => formatJdDateTime(
         swe,
         m.ut,
-        utLabel: false,
-        utcOffset: utcOffset,
+        showLabel: false,
+        view: clockView,
         fallbackDigits: 4,
       ),
       momentColumnTitle: 'Date/Time (UT)',

@@ -16,6 +16,7 @@ import '../../layout/responsive_layout.dart';
 import '../chart_file_dialog.dart';
 import 'ayanamsa_selector.dart';
 import 'calendar_selector.dart';
+import 'clock_selector.dart';
 import 'context_date_field.dart';
 import 'context_jd_field.dart';
 import 'context_location_field.dart';
@@ -295,6 +296,14 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               Expanded(child: CalendarSelector()),
             ],
           ),
+          const SizedBox(height: 4),
+          const Row(
+            children: [
+              Expanded(child: ClockSelector()),
+              SizedBox(width: 8),
+              Expanded(child: SizedBox()),
+            ],
+          ),
         ],
       ),
     );
@@ -429,7 +438,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         SizedBox(width: _colGap),
                         Expanded(child: CalendarSelector()),
                         SizedBox(width: _colGap),
-                        Expanded(child: SizedBox()),
+                        Expanded(child: ClockSelector()),
                       ],
                     ),
                   ],

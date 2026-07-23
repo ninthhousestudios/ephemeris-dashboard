@@ -5,12 +5,29 @@ import 'dart:math' show asin, cos, pi, sin, sqrt;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'context_provider.dart';
+import 'output_clock.dart';
 import 'swe_constants.dart';
 
 /// Per-tab display format provider (currently used by Planets tab).
 final planetsFormatProvider = StateProvider<DisplayFormat>(
   (ref) => DisplayFormat.dms,
 );
+
+/// Global output-clock choice: which clock event times and Moments render in.
+/// A display concern (sibling to [DisplayFormat]), not a computation flag.
+final outputClockProvider = StateProvider<OutputClock>((ref) => OutputClock.ut);
+
+/// The [ClockView] to hand [formatJdDateTime], assembled from the current clock
+/// choice plus the Context's longitude (LMT/LAT) and UTC offset (civil clock).
+final clockViewProvider = Provider<ClockView>((ref) {
+  final ctx = ref.watch(contextBarProvider);
+  return ClockView(
+    clock: ref.watch(outputClockProvider),
+    longitude: ctx.longitude,
+    utcOffset: ctx.utcOffset,
+  );
+});
 
 /// Display format for angular values.
 ///

@@ -7,11 +7,12 @@ import '../../core/swe_constants.dart';
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/context_provider.dart';
+import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
+import '../../core/output_clock.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 
@@ -70,7 +71,7 @@ CrossingResult computeCrossing({
   required int helioBody,
   required int helioDir,
   required String helioBodyName,
-  required double utcOffset,
+  required ClockView view,
 }) {
   if (type != CrossingType.helioCross &&
       iflag & (seFlgHelCtr | seFlgBaryCtr) != 0) {
@@ -84,7 +85,7 @@ CrossingResult computeCrossing({
       final jd = eph.solCrossUt(longitude, jdUt, iflag);
       return CrossingResult(
         crossingJd: jd,
-        crossingDate: formatJdDateTime(swe, jd, utcOffset: utcOffset),
+        crossingDate: formatJdDateTime(swe, jd, view: view),
         crossingLongitude: null,
         description: 'Sun crosses ${longitude.toStringAsFixed(4)}°',
       );
@@ -93,7 +94,7 @@ CrossingResult computeCrossing({
       final jd = eph.moonCrossUt(longitude, jdUt, iflag);
       return CrossingResult(
         crossingJd: jd,
-        crossingDate: formatJdDateTime(swe, jd, utcOffset: utcOffset),
+        crossingDate: formatJdDateTime(swe, jd, view: view),
         crossingLongitude: null,
         description: 'Moon crosses ${longitude.toStringAsFixed(4)}°',
       );
@@ -102,7 +103,7 @@ CrossingResult computeCrossing({
       final r = eph.moonCrossNodeUt(jdUt, iflag);
       return CrossingResult(
         crossingJd: r.jdUt,
-        crossingDate: formatJdDateTime(swe, r.jdUt, utcOffset: utcOffset),
+        crossingDate: formatJdDateTime(swe, r.jdUt, view: view),
         crossingLongitude: r.longitude,
         description: 'Moon crosses node',
       );
@@ -111,7 +112,7 @@ CrossingResult computeCrossing({
       final jd = eph.helioCrossUt(helioBody, longitude, jdUt, iflag, helioDir);
       return CrossingResult(
         crossingJd: jd,
-        crossingDate: formatJdDateTime(swe, jd, utcOffset: utcOffset),
+        crossingDate: formatJdDateTime(swe, jd, view: view),
         crossingLongitude: null,
         description:
             '$helioBodyName helio crosses ${longitude.toStringAsFixed(4)}° '
@@ -121,9 +122,9 @@ CrossingResult computeCrossing({
 }
 
 final _crossingCalcProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
-  final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
+  final view = ref.watch(clockViewProvider);
   final type = ref.watch(crossingTypeProvider);
   final lon = ref.watch(crossingLonProvider);
   final helioBody = ref.watch(crossingHelioBodyProvider);
@@ -141,7 +142,7 @@ final _crossingCalcProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
       helioDir: dir,
       helioBodyName: safeGetName(swe, helioBody),
       swe: swe,
-      utcOffset: ctx.utcOffset,
+      view: view,
     ),
   );
 });

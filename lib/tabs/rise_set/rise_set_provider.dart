@@ -110,28 +110,6 @@ class RiseSetDateTime {
     return '$year-${_pad(month)}-${_pad(day)} ${_pad(h)}:${_pad(m)}:${_pad(s)} UT';
   }
 
-  /// Format with local time appended, given a UTC offset in hours.
-  String formattedWithLocal(double utcOffset) {
-    final utStr = formatted();
-    if (utcOffset == 0.0) return utStr;
-    final utcDt = DateTime.utc(
-      year,
-      month,
-      day,
-      hour.floor(),
-      ((hour - hour.floor()) * 60).floor(),
-      (((hour - hour.floor()) * 60 - ((hour - hour.floor()) * 60).floor()) * 60)
-          .round(),
-    );
-    final totalMinutes = (utcOffset * 60).round();
-    final local = utcDt.add(Duration(minutes: totalMinutes));
-    final sign = utcOffset >= 0 ? '+' : '';
-    final offsetStr = utcOffset == utcOffset.roundToDouble()
-        ? '$sign${utcOffset.round()}'
-        : '$sign${utcOffset.toStringAsFixed(1)}';
-    return '$utStr  (${_pad(local.hour)}:${_pad(local.minute)}:${_pad(local.second)} UTC$offsetStr)';
-  }
-
   static String _pad(int n) => n.toString().padLeft(2, '0');
 }
 
