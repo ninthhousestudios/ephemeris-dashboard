@@ -82,15 +82,33 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
 
   void _commit() {
     final ctx = ref.read(contextBarProvider);
-    final parsed = parseDateFields(_controller.text, calendar: ctx.calendar);
+    final text = _controller.text.trim();
+    final parsed = parseDateFields(text, calendar: ctx.calendar);
     if (parsed == null) {
-      // Reject invalid input (e.g. 29 Feb 1900 on the Gregorian calendar) by
-      // snapping the field back to the canonical Moment, so a bad entry gives
-      // visible feedback instead of silently sticking in the box.
+      // Reject invalid input (e.g. 29 Feb 1990 on the Proleptic Gregorian
+      // calendar) by snapping the field back to the canonical Moment and
+      // telling the user why, so a bad entry never just silently vanishes.
+      // Empty is not "invalid" — it just reverts, no complaint.
       _sync();
+      if (text.isNotEmpty) {
+        _showInvalid('"$text" is not a valid ${ctx.calendar.label} date');
+      }
       return;
     }
     _commitLocal(ctx, parsed.year, parsed.month, parsed.day);
+  }
+
+  void _showInvalid(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
   }
 
   Future<void> _pick() async {

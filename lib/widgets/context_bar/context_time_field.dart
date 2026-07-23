@@ -84,14 +84,36 @@ class _ContextTimeFieldState extends ConsumerState<ContextTimeField> {
   }
 
   void _commit() {
-    final parsed = parseTimeFields(_controller.text);
-    if (parsed == null) return;
+    final text = _controller.text.trim();
+    final parsed = parseTimeFields(text);
+    if (parsed == null) {
+      // Revert to the canonical time and say why, so a bad entry (e.g. 25:00)
+      // never just silently sticks. Empty reverts without complaint.
+      _sync();
+      if (text.isNotEmpty) {
+        _showInvalid('"$text" is not a valid time (HH:MM:SS)');
+      }
+      return;
+    }
     _commitLocal(
       ref.read(contextBarProvider),
       parsed.hour,
       parsed.minute,
       parsed.second,
     );
+  }
+
+  void _showInvalid(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
   }
 
   Future<void> _pick() async {
