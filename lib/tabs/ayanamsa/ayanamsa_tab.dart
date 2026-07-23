@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/ayanamsa_catalog.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
@@ -12,6 +13,7 @@ import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
+import '../../widgets/context_bar/user_ayanamsa_dialog.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
@@ -26,9 +28,20 @@ class AyanamsaTab extends ConsumerStatefulWidget {
 }
 
 class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
-  void _toggleAyanamsa(int sidMode) {
+  Future<void> _toggleAyanamsa(int sidMode) async {
     final current = ref.read(selectedAyanamsasProvider);
-    final updated = current.contains(sidMode)
+    final isSelected = current.contains(sidMode);
+    // Selecting user-defined without parameters set: prompt for them first,
+    // since the value is meaningless (and swetest-incomparable) at t0=0/ay0=0.
+    if (!isSelected && sidMode == ayanamsaUserId) {
+      final ctx = ref.read(contextBarProvider);
+      final hasParams = ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
+      if (!hasParams) {
+        final ok = await showUserAyanamsaDialog(context, ref);
+        if (!ok) return;
+      }
+    }
+    final updated = isSelected
         ? current.where((m) => m != sidMode).toList()
         : [...current, sidMode];
     ref.read(selectedAyanamsasProvider.notifier).state = updated;
@@ -116,10 +129,9 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                 // Ayanamsa selector chips — scrollable with constrained height
                 Consumer(
                   builder: (context, ref, _) {
-                    final ctx = ref.watch(contextBarProvider);
-                    final hasUserParams =
-                        ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
-                    final modes = ayanamsaModesFor(includeUser: hasUserParams);
+                    // Always list User-defined; selecting it prompts for
+                    // parameters when unset (see _toggleAyanamsa).
+                    final modes = ayanamsaModesFor();
                     return ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 160),
                       child: SingleChildScrollView(

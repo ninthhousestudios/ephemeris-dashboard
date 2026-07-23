@@ -25,6 +25,8 @@ class EffectiveContext {
     required this.ayanamsa,
     this.userAyanT0 = 0.0,
     this.userAyanValue = 0.0,
+    this.userAyanT0IsUt = false,
+    this.projection = SiderealProjection.standard,
     required this.epheSource,
     this.jplFilename,
   });
@@ -40,6 +42,8 @@ class EffectiveContext {
   final int ayanamsa; // -1 = tropical/none; 255 = user-defined
   final double userAyanT0;
   final double userAyanValue;
+  final bool userAyanT0IsUt;
+  final SiderealProjection projection;
   final EpheSource epheSource;
   final String? jplFilename;
 
@@ -58,6 +62,8 @@ class EffectiveContext {
           ayanamsa == other.ayanamsa &&
           userAyanT0 == other.userAyanT0 &&
           userAyanValue == other.userAyanValue &&
+          userAyanT0IsUt == other.userAyanT0IsUt &&
+          projection == other.projection &&
           epheSource == other.epheSource &&
           jplFilename == other.jplFilename;
 
@@ -74,6 +80,8 @@ class EffectiveContext {
     ayanamsa,
     userAyanT0,
     userAyanValue,
+    userAyanT0IsUt,
+    projection,
     epheSource,
     jplFilename,
   );
@@ -96,6 +104,8 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
     ayanamsa: ctx.ayanamsa,
     userAyanT0: ctx.userAyanT0,
     userAyanValue: ctx.userAyanValue,
+    userAyanT0IsUt: ctx.userAyanT0IsUt,
+    projection: ctx.projection,
     epheSource: ctx.epheSource,
     jplFilename: ctx.jplFilename,
   );

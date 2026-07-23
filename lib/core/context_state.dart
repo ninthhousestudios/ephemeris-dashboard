@@ -25,6 +25,8 @@ class ContextBarState {
         0, // remembered choice when switching back to sidereal
     this.userAyanT0 = 0.0,
     this.userAyanValue = 0.0,
+    this.userAyanT0IsUt = false,
+    this.projection = SiderealProjection.standard,
     this.epheSource = EpheSource.moshier,
     this.jplFilename,
   });
@@ -48,6 +50,9 @@ class ContextBarState {
   lastSiderealAyanamsa; // stashed sidereal choice (survives tropical toggle)
   final double userAyanT0; // reference JD for SE_SIDM_USER
   final double userAyanValue; // ayanamsa value at t0, degrees
+  final bool
+  userAyanT0IsUt; // SE_SIDBIT_USER_UT: t0 is UT rather than TT (user-defined only)
+  final SiderealProjection projection; // SE_SIDBIT_* projection plane modifier
   final EpheSource epheSource;
   final String?
   jplFilename; // e.g. 'de440.eph'; only used when epheSource == jpl
@@ -67,6 +72,8 @@ class ContextBarState {
     int? lastSiderealAyanamsa,
     double? userAyanT0,
     double? userAyanValue,
+    bool? userAyanT0IsUt,
+    SiderealProjection? projection,
     EpheSource? epheSource,
     Object? jplFilename = _sentinel,
   }) {
@@ -85,6 +92,8 @@ class ContextBarState {
       lastSiderealAyanamsa: lastSiderealAyanamsa ?? this.lastSiderealAyanamsa,
       userAyanT0: userAyanT0 ?? this.userAyanT0,
       userAyanValue: userAyanValue ?? this.userAyanValue,
+      userAyanT0IsUt: userAyanT0IsUt ?? this.userAyanT0IsUt,
+      projection: projection ?? this.projection,
       epheSource: epheSource ?? this.epheSource,
       jplFilename: identical(jplFilename, _sentinel)
           ? this.jplFilename
@@ -110,6 +119,8 @@ class ContextBarState {
           lastSiderealAyanamsa == other.lastSiderealAyanamsa &&
           userAyanT0 == other.userAyanT0 &&
           userAyanValue == other.userAyanValue &&
+          userAyanT0IsUt == other.userAyanT0IsUt &&
+          projection == other.projection &&
           epheSource == other.epheSource &&
           jplFilename == other.jplFilename;
 
@@ -129,9 +140,27 @@ class ContextBarState {
     lastSiderealAyanamsa,
     userAyanT0,
     userAyanValue,
+    userAyanT0IsUt,
+    projection,
     epheSource,
     jplFilename,
   );
+}
+
+/// Sidereal projection plane (SE_SIDBIT_* modifiers ORed into sid_mode).
+///
+/// Modifies how ecliptic longitudes are computed for *any* sidereal
+/// ayanamsha. `standard` is Swiss Ephemeris' default behaviour (no bit set);
+/// the other two match swetest's `-sidt0` and `-sidsp`. These do not change
+/// the ayanamsha value itself, only the projection of body positions.
+enum SiderealProjection {
+  standard('Standard', 0),
+  eclipticT0('Ecliptic of t0', 256), // SE_SIDBIT_ECL_T0
+  solarSystemPlane('Solar system plane', 512); // SE_SIDBIT_SSY_PLANE
+
+  const SiderealProjection(this.label, this.bit);
+  final String label;
+  final int bit;
 }
 
 /// Geocentric (default) vs topocentric vs heliocentric/barycentric.

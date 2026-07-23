@@ -173,8 +173,23 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   }
 
   /// Set user-defined ayanamsa parameters (SE_SIDM_USER, 255).
-  void setUserAyanamsa({required double t0, required double value}) {
-    state = state.copyWith(userAyanT0: t0, userAyanValue: value);
+  /// [t0IsUt] toggles SE_SIDBIT_USER_UT (swetest `jdisut`).
+  void setUserAyanamsa({
+    required double t0,
+    required double value,
+    bool t0IsUt = false,
+  }) {
+    state = state.copyWith(
+      userAyanT0: t0,
+      userAyanValue: value,
+      userAyanT0IsUt: t0IsUt,
+    );
+    _save();
+  }
+
+  /// Set the sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE).
+  void setSiderealProjection(SiderealProjection projection) {
+    state = state.copyWith(projection: projection);
     _save();
   }
 

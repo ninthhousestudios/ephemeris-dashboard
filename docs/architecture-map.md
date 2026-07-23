@@ -145,7 +145,9 @@ controller, focus node, and sync/commit logic.
 | `origin_selector.dart` | `OriginSelector` — geocentric/topocentric/helio dropdown |
 | `zodiac_ref_selector.dart` | `ZodiacRefSelector` — tropical/sidereal dropdown |
 | `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
-| `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown |
+| `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown; user-defined opens `showUserAyanamsaDialog` |
+| `user_ayanamsa_dialog.dart` | `showUserAyanamsaDialog` — SE_SIDM_USER params (t0, value, `jdisut`); shared by the selector and the Ayanamsa tab chip |
+| `projection_selector.dart` | `ProjectionSelector` — sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE), disabled when tropical |
 | `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
 | `labeled_dropdown.dart` | `LabeledDropdown<T>` — reusable labeled dropdown layout |

@@ -35,6 +35,8 @@ class PersistenceService {
     _prefs.setInt('ctx_last_sidereal_ayanamsa', s.lastSiderealAyanamsa);
     _prefs.setDouble('ctx_user_ayan_t0', s.userAyanT0);
     _prefs.setDouble('ctx_user_ayan_value', s.userAyanValue);
+    _prefs.setBool('ctx_user_ayan_t0_is_ut', s.userAyanT0IsUt);
+    _prefs.setString('ctx_sidereal_projection', s.projection.name);
     _prefs.setString('ctx_ephe_source', s.epheSource.name);
     _prefs.setDouble('ctx_utc_offset', s.utcOffset);
   }
@@ -87,6 +89,16 @@ class PersistenceService {
     }
     if (_prefs.containsKey('ctx_user_ayan_value')) {
       map['userAyanValue'] = _prefs.getDouble('ctx_user_ayan_value');
+    }
+    if (_prefs.containsKey('ctx_user_ayan_t0_is_ut')) {
+      map['userAyanT0IsUt'] = _prefs.getBool('ctx_user_ayan_t0_is_ut');
+    }
+    if (_prefs.containsKey('ctx_sidereal_projection')) {
+      final name = _prefs.getString('ctx_sidereal_projection');
+      map['projection'] = SiderealProjection.values.firstWhere(
+        (e) => e.name == name,
+        orElse: () => SiderealProjection.standard,
+      );
     }
     if (_prefs.containsKey('ctx_ephe_source')) {
       final name = _prefs.getString('ctx_ephe_source');

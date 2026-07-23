@@ -25,6 +25,7 @@ import 'eq_ref_selector.dart';
 import 'jpl_file_selector.dart';
 import 'file_in_use_indicator.dart';
 import 'origin_selector.dart';
+import 'projection_selector.dart';
 import 'zodiac_ref_selector.dart';
 
 /// Persistent top bar with shared global calculation context.
@@ -280,9 +281,17 @@ class _ContextBarState extends ConsumerState<ContextBar> {
           const SizedBox(height: 4),
           const Row(
             children: [
-              Expanded(child: EpheSourceSelector()),
+              Expanded(child: ProjectionSelector()),
               SizedBox(width: 8),
+              Expanded(child: EpheSourceSelector()),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Row(
+            children: [
               Expanded(child: JplFileSelector()),
+              SizedBox(width: 8),
+              Expanded(child: SizedBox()),
             ],
           ),
         ],
@@ -407,9 +416,19 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                       children: [
                         Expanded(child: AyanamsaSelector()),
                         SizedBox(width: _colGap),
-                        Expanded(child: EpheSourceSelector()),
+                        Expanded(child: ProjectionSelector()),
                         SizedBox(width: _colGap),
+                        Expanded(child: EpheSourceSelector()),
+                      ],
+                    ),
+                    SizedBox(height: _rowGap),
+                    const Row(
+                      children: [
                         Expanded(child: JplFileSelector()),
+                        SizedBox(width: _colGap),
+                        Expanded(child: SizedBox()),
+                        SizedBox(width: _colGap),
+                        Expanded(child: SizedBox()),
                       ],
                     ),
                   ],

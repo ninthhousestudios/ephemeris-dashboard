@@ -39,7 +39,7 @@ class AppliedGlobals {
       ephePath: ephePath,
       epheSource: ctx.epheSource,
       sidMode: ctx.zodiacRef == ZodiacRef.sidereal && ctx.ayanamsa >= 0
-          ? ctx.ayanamsa
+          ? _packSidMode(ctx)
           : null,
       userAyanT0: ctx.userAyanT0,
       userAyanValue: ctx.userAyanValue,
@@ -50,6 +50,18 @@ class AppliedGlobals {
       asteroidNumbers: asteroidNumbers,
       planetMoonNumbers: planetMoonNumbers,
     );
+  }
+
+  /// Ayanamsha mode with SE_SIDBIT projection modifiers ORed in.
+  /// The projection plane applies to any sidereal ayanamsha; USER_UT (t0 is UT)
+  /// is only meaningful for the user-defined mode (255). `toEphemerisConfig`
+  /// decodes these bits back out via `& ~0xFF` and `& 1024`.
+  static int _packSidMode(EffectiveContext ctx) {
+    var mode = ctx.ayanamsa | ctx.projection.bit;
+    if (ctx.ayanamsa == 255 && ctx.userAyanT0IsUt) {
+      mode |= rs.SiderealBits.userUt.value;
+    }
+    return mode;
   }
 
   static const _sourceMap = {
