@@ -67,11 +67,14 @@ class DateResult {
   String toString() => 'DateResult($year-$month-$day ${hour}h)';
 }
 
+/// The time of a rise/set/transit event. Swiss Ephemeris `swe_rise_trans`
+/// returns no result bitmask — only a status code (success, or circumpolar,
+/// which `swisseph_rs` already surfaces as an exception) — so there is no
+/// return flag to carry here.
 class RiseTransResult {
   final double transitTime;
-  final int returnFlag;
 
-  const RiseTransResult({required this.transitTime, required this.returnFlag});
+  const RiseTransResult({required this.transitTime});
 }
 
 class FixstarResult {

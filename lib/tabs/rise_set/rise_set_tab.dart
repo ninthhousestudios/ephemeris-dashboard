@@ -34,18 +34,12 @@ const _bodies = [
   (sePluto, 'Pluto'),
 ];
 
-// ── Twilight modes ────────────────────────────────────────────────────────────
-
-enum _TwilightMode {
-  none('None', 0),
-  civil('Civil', rsBitCivilTwilight),
-  nautical('Nautical', rsBitNauticTwilight),
-  astronomical('Astronomical', rsBitAstroTwilight);
-
-  const _TwilightMode(this.label, this.bit);
-  final String label;
-  final int bit;
-}
+const _twilightLabels = {
+  TwilightMode.none: 'None',
+  TwilightMode.civil: 'Civil',
+  TwilightMode.nautical: 'Nautical',
+  TwilightMode.astronomical: 'Astronomical',
+};
 
 // ── Tab widget ────────────────────────────────────────────────────────────────
 
@@ -57,7 +51,6 @@ class RiseSetTab extends ConsumerStatefulWidget {
 }
 
 class _RiseSetTabState extends ConsumerState<RiseSetTab> {
-  _TwilightMode _twilightMode = _TwilightMode.none;
   bool _showAtmospheric = false;
   final _atpressController = TextEditingController(text: '1013.25');
   final _attempController = TextEditingController(text: '15.0');
@@ -115,31 +108,37 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     }
   }
 
-  void _toggleModifier(int bit, bool on) {
-    final current = ref.read(riseSetModifiersProvider);
-    ref.read(riseSetModifiersProvider.notifier).state = on
-        ? (current | bit)
-        : (current & ~bit);
+  RiseSetModifiers get _mods => ref.read(riseSetModifiersProvider);
+  set _mods(RiseSetModifiers value) =>
+      ref.read(riseSetModifiersProvider.notifier).state = value;
+
+  /// Toggle a disc reference chip: on selects it, off falls back to the default
+  /// upper limb. Center and Bottom are one exclusive choice. Selecting anything
+  /// other than Center also clears Hindu Rising, which forces disc center.
+  void _toggleDisc(DiscReference disc, bool on) {
+    final next = on ? disc : DiscReference.upperLimb;
+    _mods = _mods.copyWith(
+      disc: next,
+      hinduRising: next == DiscReference.center ? _mods.hinduRising : false,
+    );
   }
 
-  /// The disc reference point (upper limb / center / lower limb) is a single
-  /// choice, so Disc Center and Disc Bottom are mutually exclusive: turning one
-  /// on clears the other. Clearing both falls back to the default upper limb.
-  void _toggleDiscMode(int bit, bool on) {
-    final other = bit == rsBitDiscCenter ? rsBitDiscBottom : rsBitDiscCenter;
-    final current = ref.read(riseSetModifiersProvider);
-    var mods = on ? (current | bit) : (current & ~bit);
-    if (on) mods &= ~other;
-    ref.read(riseSetModifiersProvider.notifier).state = mods;
+  void _toggleNoRefraction(bool on) => _mods = _mods.copyWith(noRefraction: on);
+
+  /// Hindu Rising is a preset (disc center + no refraction + geocentric). It
+  /// owns those two chips while active, and can't coexist with Disc Bottom, so
+  /// turning it on moves a Bottom selection to Center.
+  void _toggleHinduRising(bool on) {
+    _mods = _mods.copyWith(
+      hinduRising: on,
+      disc: on && _mods.disc == DiscReference.bottom
+          ? DiscReference.center
+          : _mods.disc,
+    );
   }
 
-  void _setTwilightMode(_TwilightMode mode) {
-    setState(() => _twilightMode = mode);
-    var mods = ref.read(riseSetModifiersProvider);
-    mods &= ~(rsBitCivilTwilight | rsBitNauticTwilight | rsBitAstroTwilight);
-    if (mode != _TwilightMode.none) mods |= mode.bit;
-    ref.read(riseSetModifiersProvider.notifier).state = mods;
-  }
+  void _setTwilight(TwilightMode mode) =>
+      _mods = _mods.copyWith(twilight: mode);
 
   @override
   Widget build(BuildContext context) {
@@ -225,32 +224,41 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                // Disc reference (upper limb default / center / bottom) is one
+                // exclusive choice. Hindu Rising is a preset that forces center +
+                // no refraction, so while it's on those chips are locked to it.
                 _ModifierChip(
                   label: 'Disc Center',
-                  bit: rsBitDiscCenter,
-                  modifiers: modifiers,
-                  onToggle: _toggleDiscMode,
+                  selected:
+                      modifiers.hinduRising ||
+                      modifiers.disc == DiscReference.center,
+                  onSelected: modifiers.hinduRising
+                      ? null
+                      : (on) => _toggleDisc(DiscReference.center, on),
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(
                   label: 'Disc Bottom',
-                  bit: rsBitDiscBottom,
-                  modifiers: modifiers,
-                  onToggle: _toggleDiscMode,
+                  selected:
+                      !modifiers.hinduRising &&
+                      modifiers.disc == DiscReference.bottom,
+                  onSelected: modifiers.hinduRising
+                      ? null
+                      : (on) => _toggleDisc(DiscReference.bottom, on),
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(
                   label: 'No Refraction',
-                  bit: rsBitNoRefraction,
-                  modifiers: modifiers,
-                  onToggle: _toggleModifier,
+                  selected: modifiers.hinduRising || modifiers.noRefraction,
+                  onSelected: modifiers.hinduRising
+                      ? null
+                      : _toggleNoRefraction,
                 ),
                 const SizedBox(width: 4),
                 _ModifierChip(
                   label: 'Hindu Rising',
-                  bit: rsBitHinduRising,
-                  modifiers: modifiers,
-                  onToggle: _toggleModifier,
+                  selected: modifiers.hinduRising,
+                  onSelected: _toggleHinduRising,
                 ),
                 const SizedBox(width: 4),
                 ExportButton(
@@ -296,15 +304,25 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
               if (_showAtmospheric) ...[
                 const SizedBox(height: 4),
                 // Twilight selector
-                SegmentedButton<_TwilightMode>(
-                  segments: _TwilightMode.values
-                      .map((m) => ButtonSegment(value: m, label: Text(m.label)))
+                SegmentedButton<TwilightMode>(
+                  segments: TwilightMode.values
+                      .map(
+                        (m) => ButtonSegment(
+                          value: m,
+                          label: Text(_twilightLabels[m]!),
+                        ),
+                      )
                       .toList(),
-                  selected: {_twilightMode},
-                  onSelectionChanged: (s) => _setTwilightMode(s.first),
+                  selected: {modifiers.twilight},
+                  onSelectionChanged: (s) => _setTwilight(s.first),
                   style: const ButtonStyle(
                     visualDensity: VisualDensity.compact,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Twilight applies to the Sun only; ignored for other bodies.',
+                  style: labelStyle,
                 ),
                 const SizedBox(height: 8),
                 // Atmospheric params with Expanded fields
@@ -482,31 +500,17 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             spacing: 4,
             runSpacing: 4,
             children: [
-              _eventCard(
-                'Rise',
-                result.riseJd,
-                result.riseFlag,
-                result.riseError,
-                cardWidth,
-              ),
-              _eventCard(
-                'Set',
-                result.setJd,
-                result.setFlag,
-                result.setError,
-                cardWidth,
-              ),
+              _eventCard('Rise', result.riseJd, result.riseError, cardWidth),
+              _eventCard('Set', result.setJd, result.setError, cardWidth),
               _eventCard(
                 'Upper Transit',
                 result.upperTransitJd,
-                result.upperTransitFlag,
                 result.upperTransitError,
                 cardWidth,
               ),
               _eventCard(
                 'Lower Transit',
                 result.lowerTransitJd,
-                result.lowerTransitFlag,
                 result.lowerTransitError,
                 cardWidth,
               ),
@@ -517,13 +521,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     );
   }
 
-  Widget _eventCard(
-    String title,
-    double? jd,
-    int? flag,
-    String? error,
-    double cardWidth,
-  ) {
+  Widget _eventCard(String title, double? jd, String? error, double cardWidth) {
     final fields = <ResultField>[];
 
     if (error != null) {
@@ -552,14 +550,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
 
     return SizedBox(
       width: cardWidth,
-      child: ResultCard(
-        title: title,
-        subtitle: 'riseTrans',
-        flagHex: flag != null
-            ? '0x${flag.toRadixString(16).toUpperCase()}'
-            : null,
-        fields: fields,
-      ),
+      child: ResultCard(title: title, subtitle: 'riseTrans', fields: fields),
     );
   }
 }
@@ -569,22 +560,22 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
 class _ModifierChip extends StatelessWidget {
   const _ModifierChip({
     required this.label,
-    required this.bit,
-    required this.modifiers,
-    required this.onToggle,
+    required this.selected,
+    required this.onSelected,
   });
 
   final String label;
-  final int bit;
-  final int modifiers;
-  final void Function(int bit, bool on) onToggle;
+  final bool selected;
+
+  /// `null` disables the chip (e.g. while a preset owns it).
+  final ValueChanged<bool>? onSelected;
 
   @override
   Widget build(BuildContext context) {
     return FilterChip(
       label: Text(label),
-      selected: (modifiers & bit) != 0,
-      onSelected: (on) => onToggle(bit, on),
+      selected: selected,
+      onSelected: onSelected,
       visualDensity: VisualDensity.compact,
     );
   }

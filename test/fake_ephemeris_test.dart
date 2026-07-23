@@ -72,7 +72,7 @@ void main() {
             capturedGeolon = geolon;
             capturedGeolat = geolat;
             capturedAtpress = atpress;
-            return RiseTransResult(transitTime: 2451545.5, returnFlag: 0);
+            return RiseTransResult(transitTime: 2451545.5);
           };
 
       fake.riseTrans(2451545.0, 0, geolon: 13.4, geolat: 52.5, atpress: 900.0);

@@ -23,20 +23,77 @@ const int rsCalcSet = 2;
 const int rsCalcMtransit = 4;
 const int rsCalcItransit = 8;
 
-// ── rsmi modifier bits ────────────────────────────────────────────────────────
+// ── Modifier model ────────────────────────────────────────────────────────────
 //
-// Sourced from swe_constants (canonical Swiss Ephemeris bits) — do NOT re-declare
-// literals here. These flow through the Ephemeris seam untranslated, so a wrong
-// value silently computes a different quantity than its label claims.
+// The rsmi bitmask is derived from an explicit, non-contradictory model rather
+// than edited bit-by-bit. Several Swiss Ephemeris bits overlap in meaning —
+// Hindu Rising is a composite that subsumes Disc Center + No Refraction — so a
+// raw bitmask lets two chips light inconsistently or contradict each other
+// (e.g. Disc Bottom + Hindu Rising, which forces Disc Center). Modelling the
+// intent and computing the bits in one place makes those states unrepresentable.
 
-const int rsBitDiscCenter = seBitDiscCenter;
-const int rsBitDiscBottom = seBitDiscBottom;
-const int rsBitNoRefraction = seBitNoRefraction;
-const int rsBitCivilTwilight = seBitCivilTwilight;
-const int rsBitNauticTwilight = seBitNauticTwilight;
-const int rsBitAstroTwilight = seBitAstroTwilight;
-const int rsBitFixedDiscSize = seBitFixedDiscSize;
-const int rsBitHinduRising = seBitHinduRising;
+/// Which point on the body's disc a rise/set is referenced to. Mutually
+/// exclusive; [upperLimb] is the Swiss Ephemeris default (no bit set).
+enum DiscReference { upperLimb, center, bottom }
+
+/// Twilight reference for rise/set. Mutually exclusive. Applies to the Sun only;
+/// Swiss Ephemeris ignores it for other bodies.
+enum TwilightMode { none, civil, nautical, astronomical }
+
+/// The rise/set modifier options. Immutable; the raw `rsmi` bitmask is a derived
+/// view ([rsmi]), never stored.
+class RiseSetModifiers {
+  const RiseSetModifiers({
+    this.disc = DiscReference.upperLimb,
+    this.noRefraction = false,
+    this.hinduRising = false,
+    this.twilight = TwilightMode.none,
+  });
+
+  final DiscReference disc;
+  final bool noRefraction;
+  final bool hinduRising;
+  final TwilightMode twilight;
+
+  RiseSetModifiers copyWith({
+    DiscReference? disc,
+    bool? noRefraction,
+    bool? hinduRising,
+    TwilightMode? twilight,
+  }) => RiseSetModifiers(
+    disc: disc ?? this.disc,
+    noRefraction: noRefraction ?? this.noRefraction,
+    hinduRising: hinduRising ?? this.hinduRising,
+    twilight: twilight ?? this.twilight,
+  );
+
+  /// The Swiss Ephemeris `rsmi` modifier bits (event-type bits excluded). Hindu
+  /// Rising already OR's in Disc Center + No Refraction, so the union is exact.
+  int get rsmi {
+    var m = 0;
+    switch (disc) {
+      case DiscReference.center:
+        m |= seBitDiscCenter;
+      case DiscReference.bottom:
+        m |= seBitDiscBottom;
+      case DiscReference.upperLimb:
+        break;
+    }
+    if (noRefraction) m |= seBitNoRefraction;
+    if (hinduRising) m |= seBitHinduRising;
+    switch (twilight) {
+      case TwilightMode.civil:
+        m |= seBitCivilTwilight;
+      case TwilightMode.nautical:
+        m |= seBitNauticTwilight;
+      case TwilightMode.astronomical:
+        m |= seBitAstroTwilight;
+      case TwilightMode.none:
+        break;
+    }
+    return m;
+  }
+}
 
 // ── State providers ───────────────────────────────────────────────────────────
 
@@ -89,9 +146,11 @@ final riseSetAtpressProvider = StateProvider<double>((ref) => 1013.25);
 /// Atmospheric temperature (°C).
 final riseSetAttempProvider = StateProvider<double>((ref) => 15.0);
 
-/// Bitmask of active modifier flags (rsm* constants above, OR'd together).
-/// Does NOT include the event-type bits (rise/set/transit) — those are fixed.
-final riseSetModifiersProvider = StateProvider<int>((ref) => 0);
+/// Active rise/set modifier options (disc reference, refraction, Hindu Rising,
+/// twilight). The `rsmi` bitmask is derived; event-type bits are added per call.
+final riseSetModifiersProvider = StateProvider<RiseSetModifiers>(
+  (ref) => const RiseSetModifiers(),
+);
 
 // ── Result model ──────────────────────────────────────────────────────────────
 
@@ -125,16 +184,12 @@ class RiseSetResult {
   const RiseSetResult({
     this.riseJd,
     this.riseDateTime,
-    this.riseFlag,
     this.setJd,
     this.setDateTime,
-    this.setFlag,
     this.upperTransitJd,
     this.upperTransitDateTime,
-    this.upperTransitFlag,
     this.lowerTransitJd,
     this.lowerTransitDateTime,
-    this.lowerTransitFlag,
     this.riseError,
     this.setError,
     this.upperTransitError,
@@ -143,19 +198,15 @@ class RiseSetResult {
 
   final double? riseJd;
   final RiseSetDateTime? riseDateTime;
-  final int? riseFlag;
 
   final double? setJd;
   final RiseSetDateTime? setDateTime;
-  final int? setFlag;
 
   final double? upperTransitJd;
   final RiseSetDateTime? upperTransitDateTime;
-  final int? upperTransitFlag;
 
   final double? lowerTransitJd;
   final RiseSetDateTime? lowerTransitDateTime;
-  final int? lowerTransitFlag;
 
   final String? riseError;
   final String? setError;
@@ -191,8 +242,8 @@ RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
 
 /// One rise/set/transit event: a single `riseTrans` call wrapped so a
 /// per-event `SweException` becomes an error string instead of failing the
-/// batch. Returns (jd, returnFlag, dateTime) on success; (error) otherwise.
-({double? jd, int? flag, RiseSetDateTime? dt, String? error}) _event(
+/// batch. Returns (jd, dateTime) on success; (error) otherwise.
+({double? jd, RiseSetDateTime? dt, String? error}) _event(
   Ephemeris eph,
   SweUtils swe, {
   required double jdUt,
@@ -221,12 +272,11 @@ RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
     );
     return (
       jd: r.transitTime,
-      flag: r.returnFlag,
       dt: _toDateTime(swe, r.transitTime),
       error: null,
     );
   } catch (e) {
-    return (jd: null, flag: null, dt: null, error: e.toString());
+    return (jd: null, dt: null, error: e.toString());
   }
 }
 
@@ -251,21 +301,20 @@ RiseSetResult _computeOne(
   required double atpress,
   required double attemp,
 }) {
-  ({double? jd, int? flag, RiseSetDateTime? dt, String? error}) run(int rsmi) =>
-      _event(
-        eph,
-        swe,
-        jdUt: jdUt,
-        body: target.bodyId,
-        starName: target.starName,
-        rsmi: rsmi | modifiers,
-        epheflag: epheflag,
-        geolon: geolon,
-        geolat: geolat,
-        geoalt: geoalt,
-        atpress: atpress,
-        attemp: attemp,
-      );
+  ({double? jd, RiseSetDateTime? dt, String? error}) run(int rsmi) => _event(
+    eph,
+    swe,
+    jdUt: jdUt,
+    body: target.bodyId,
+    starName: target.starName,
+    rsmi: rsmi | modifiers,
+    epheflag: epheflag,
+    geolon: geolon,
+    geolat: geolat,
+    geoalt: geoalt,
+    atpress: atpress,
+    attemp: attemp,
+  );
 
   final rise = run(rsCalcRise);
   final set = run(rsCalcSet);
@@ -275,19 +324,15 @@ RiseSetResult _computeOne(
   return RiseSetResult(
     riseJd: rise.jd,
     riseDateTime: rise.dt,
-    riseFlag: rise.flag,
     riseError: rise.error,
     setJd: set.jd,
     setDateTime: set.dt,
-    setFlag: set.flag,
     setError: set.error,
     upperTransitJd: upper.jd,
     upperTransitDateTime: upper.dt,
-    upperTransitFlag: upper.flag,
     upperTransitError: upper.error,
     lowerTransitJd: lower.jd,
     lowerTransitDateTime: lower.dt,
-    lowerTransitFlag: lower.flag,
     lowerTransitError: lower.error,
   );
 }
@@ -324,7 +369,7 @@ final _riseSetCalcProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
               swe,
               target: target,
               jdUt: jdUt,
-              modifiers: modifiers,
+              modifiers: modifiers.rsmi,
               epheflag: epheflag,
               geolon: geolon,
               geolat: geolat,
@@ -360,7 +405,7 @@ RiseSetResult Function(Ephemeris, Moment) _riseSetSeriesCompute(Ref ref) {
   final targets = ref.watch(riseSetTargetsProvider);
   final atpress = ref.watch(riseSetAtpressProvider);
   final attemp = ref.watch(riseSetAttempProvider);
-  final modifiers = ref.watch(riseSetModifiersProvider);
+  final rsmi = ref.watch(riseSetModifiersProvider).rsmi;
   final utcOffset = ctx.utcOffset;
   final geolon = ctx.longitude;
   final geolat = ctx.latitude;
@@ -375,7 +420,7 @@ RiseSetResult Function(Ephemeris, Moment) _riseSetSeriesCompute(Ref ref) {
       swe,
       target: target,
       jdUt: localMidnightStart(moment.ut, utcOffset),
-      modifiers: modifiers,
+      modifiers: rsmi,
       epheflag: epheflag,
       geolon: geolon,
       geolat: geolat,

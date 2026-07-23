@@ -533,7 +533,7 @@ class RustEph implements Ephemeris {
       atpress: atpress,
       attemp: attemp,
     );
-    return RiseTransResult(transitTime: r.time, returnFlag: 0);
+    return RiseTransResult(transitTime: r.time);
   }
 
   @override
@@ -563,7 +563,7 @@ class RustEph implements Ephemeris {
       attemp: attemp,
       horhgt: horizonHeight,
     );
-    return RiseTransResult(transitTime: r.time, returnFlag: 0);
+    return RiseTransResult(transitTime: r.time);
   }
 
   // --------------- Horizon ---------------
