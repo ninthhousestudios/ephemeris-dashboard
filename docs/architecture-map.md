@@ -155,9 +155,10 @@ two-axis scroll and intrinsic column widths in the grid.
 
 | File | Widget |
 |------|--------|
-| `series_bar.dart` | `SeriesBar(tabId, {trailing})` — mode toggle, read-only start (= Context Moment), step value + unit chips, row count, row-cap warning. Start is read-only because the Context owns the Moment. Optional `trailing` hosts card-mode extras (e.g. the body tabs' house-position toggle) on the same row, hidden while series mode is on. |
+| `series_bar.dart` | `SeriesBar(tabId, {trailing})` — mode toggle, read-only start (= Context Moment), step value + unit chips, row count, row-cap warning. Start is read-only because the Context owns the Moment. Optional `trailing` renders on the same row in both modes; the widget adapts its own content to the mode (see `HousePosControls`). |
 | `quantity_picker.dart` | `QuantityPicker` — chip row over field labels; pure (labels + hidden set + callback). |
-| `house_system_dropdown.dart` | `HouseSystemDropdown({width})` — the one app-wide house-system selector, driving `selectedHouseSystemProvider` + persistence. Used by the Houses tab and the body tabs' house-position toggle. |
+| `house_system_dropdown.dart` | `HouseSystemDropdown({width})` — the one app-wide house-system selector, driving `selectedHouseSystemProvider` + persistence. Used by the Houses tab and `HousePosControls`. |
+| `house_pos_controls.dart` | `HousePosControls({tabId, toggleProvider})` — the body tabs' `SeriesBar.trailing`. Card mode: the "House position" toggle + dropdown-while-on. Series mode: the house-system dropdown whenever House/House Pos is an active picker quantity (house position being a default series quantity). |
 | `series_grid.dart` | `SeriesGrid` — renders a `SeriesTable`. Moment column + one column per quantity; an `Error` column appears only when some step failed, and errored rows show `—` in the quantity cells. Sticky Moment column deliberately deferred. |
 | `series_view.dart` | `SeriesView(tabId, steps, momentLabel)` — picker over grid, wired to `seriesSettingsProvider`. The one widget a tab drops in. Shrink-wraps (`MainAxisSize.min`, no flex child): `AppShell.body` is a `SingleChildScrollView`, so tab content is laid out under unbounded height and an `Expanded` here throws. |
 
