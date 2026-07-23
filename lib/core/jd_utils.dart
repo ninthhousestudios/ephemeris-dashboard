@@ -4,6 +4,7 @@
 import 'calendar.dart';
 import 'output_clock.dart';
 import 'swe_utils.dart';
+import 'time_scale.dart';
 
 /// DateTime ↔ Julian Day conversion helpers.
 ///
@@ -39,6 +40,80 @@ class JdUtils {
     final totalMs = (result.hour * 3600000).round();
     final midnight = DateTime.utc(result.year, result.month, result.day);
     return midnight.add(Duration(milliseconds: totalMs));
+  }
+
+  /// Convert a civil (scale-time) [DateTime] to the canonical UT1 Julian Day.
+  ///
+  /// [dt]'s civil fields are interpreted on [scale]; the returned JD is always
+  /// UT1 (the Moment), so nothing downstream ever learns a scale. Inverse of
+  /// [jdUtToCivil]. On [TimeScale.utc] a value the engine rejects falls back to
+  /// a plain UT1 read.
+  double civilToJdUt(
+    DateTime dt, {
+    required Calendar calendar,
+    required TimeScale scale,
+  }) {
+    switch (scale) {
+      case TimeScale.ut1:
+        return dateTimeToJd(dt, calendar: calendar);
+      case TimeScale.tt:
+        // `julday` yields a JD on the ET scale; step back one ΔT to UT1 (no
+        // iteration, as swetest does).
+        final et = dateTimeToJd(dt, calendar: calendar);
+        return et - _swe.deltat(et);
+      case TimeScale.utc:
+        try {
+          return _swe
+              .utcToJd(
+                dt.year,
+                dt.month,
+                dt.day,
+                dt.hour,
+                dt.minute,
+                dt.second + dt.millisecond / 1000.0,
+                gregorian: calendar.isGregorianForCivil(
+                  dt.year,
+                  dt.month,
+                  dt.day,
+                ),
+              )
+              .ut1;
+        } catch (_) {
+          return dateTimeToJd(dt, calendar: calendar);
+        }
+    }
+  }
+
+  /// Render the canonical UT1 Julian Day [jdUt] as a civil (scale-time)
+  /// [DateTime] for display on [scale]. Inverse of [civilToJdUt], so entering a
+  /// value on a scale and reading it back reproduces the same civil fields.
+  DateTime jdUtToCivil(
+    double jdUt, {
+    required Calendar calendar,
+    required TimeScale scale,
+  }) {
+    switch (scale) {
+      case TimeScale.ut1:
+        return jdToDateTime(jdUt, calendar: calendar);
+      case TimeScale.tt:
+        return jdToDateTime(jdUt + _swe.deltat(jdUt), calendar: calendar);
+      case TimeScale.utc:
+        try {
+          final c = _swe.jdUt1ToUtc(
+            jdUt,
+            gregorian: calendar.isGregorianForJd(jdUt),
+          );
+          final ms = ((c.hour * 3600 + c.minute * 60 + c.second) * 1000)
+              .round();
+          return DateTime.utc(
+            c.year,
+            c.month,
+            c.day,
+          ).add(Duration(milliseconds: ms));
+        } catch (_) {
+          return jdToDateTime(jdUt, calendar: calendar);
+        }
+    }
   }
 
   /// Apply a UTC offset (in hours) to get local DateTime for display.

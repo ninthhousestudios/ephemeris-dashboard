@@ -9,6 +9,7 @@ import 'jd_utils.dart';
 import 'persistence.dart';
 import 'swe_service.dart';
 import 'swe_utils.dart';
+import 'time_scale.dart';
 import 'chart_io.dart';
 
 /// Global context bar state provider.
@@ -66,6 +67,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
           : EpheSource.moshier,
       utcOffset: overrides['utcOffset'] as double?,
       calendar: overrides['calendar'] as Calendar?,
+      timeScale: overrides['timeScale'] as TimeScale?,
     );
   }
 
@@ -92,6 +94,14 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   void setCalendar(Calendar calendar) {
     final dt = _jdUtils.jdToDateTime(state.jdUt, calendar: calendar);
     state = state.copyWith(calendar: calendar, dateTime: dt);
+    _save();
+  }
+
+  /// Set the time scale the civil date/time is entered/displayed on. The Moment
+  /// (UT1 JD) stays canonical; only the derived civil view changes. Advisory —
+  /// never reaches a compute.
+  void setTimeScale(TimeScale scale) {
+    state = state.copyWith(timeScale: scale);
     _save();
   }
 

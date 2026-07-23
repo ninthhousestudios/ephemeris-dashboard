@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'calendar.dart';
+import 'time_scale.dart';
 
 /// Immutable state for the global context bar.
 ///
@@ -15,6 +16,7 @@ class ContextBarState {
     required this.utcOffset,
     required this.jdUt,
     this.calendar = Calendar.auto,
+    this.timeScale = TimeScale.ut1,
     this.latitude = 0.0,
     this.longitude = 0.0,
     this.altitude = 0.0,
@@ -41,6 +43,12 @@ class ContextBarState {
   /// Which calendar civil dates are read in / rendered on. View-layer only:
   /// [jdUt] stays canonical, and the calendar just maps civil ↔ JD.
   final Calendar calendar;
+
+  /// Which time scale the civil date/time is entered in / displayed on
+  /// (swetest `-ut`/`-t`/`-utc`). View-layer only, like [calendar]: [jdUt] stays
+  /// canonical UT1, and the scale is an input transform + display label. Never
+  /// enters a compute signature.
+  final TimeScale timeScale;
 
   // Location
   final double latitude;
@@ -69,6 +77,7 @@ class ContextBarState {
     double? utcOffset,
     double? jdUt,
     Calendar? calendar,
+    TimeScale? timeScale,
     double? latitude,
     double? longitude,
     double? altitude,
@@ -90,6 +99,7 @@ class ContextBarState {
       utcOffset: utcOffset ?? this.utcOffset,
       jdUt: jdUt ?? this.jdUt,
       calendar: calendar ?? this.calendar,
+      timeScale: timeScale ?? this.timeScale,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       altitude: altitude ?? this.altitude,
@@ -118,6 +128,7 @@ class ContextBarState {
           utcOffset == other.utcOffset &&
           jdUt == other.jdUt &&
           calendar == other.calendar &&
+          timeScale == other.timeScale &&
           latitude == other.latitude &&
           longitude == other.longitude &&
           altitude == other.altitude &&
@@ -140,6 +151,7 @@ class ContextBarState {
     utcOffset,
     jdUt,
     calendar,
+    timeScale,
     latitude,
     longitude,
     altitude,

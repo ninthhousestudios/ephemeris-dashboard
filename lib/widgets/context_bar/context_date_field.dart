@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/context_provider.dart';
+import '../../core/context_state.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
@@ -40,34 +41,59 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
     super.dispose();
   }
 
+  /// The displayed local civil date: the canonical Moment rendered on the
+  /// selected time scale, then shifted by the UTC offset.
+  DateTime _localOf(ContextBarState ctx) {
+    final civil = _jdUtils.jdUtToCivil(
+      ctx.jdUt,
+      calendar: ctx.calendar,
+      scale: ctx.timeScale,
+    );
+    return _jdUtils.applyUtcOffset(civil, ctx.utcOffset);
+  }
+
+  /// Commit new civil date fields back to the canonical Moment: keep the current
+  /// time of day, undo the offset, then map the scale-time civil value to a UT1
+  /// Julian Day.
+  void _commitLocal(ContextBarState ctx, int year, int month, int day) {
+    final local = _localOf(ctx);
+    final newLocal = DateTime.utc(
+      year,
+      month,
+      day,
+      local.hour,
+      local.minute,
+      local.second,
+    );
+    final scaleCivil = _jdUtils.removeUtcOffset(newLocal, ctx.utcOffset);
+    final jdUt = _jdUtils.civilToJdUt(
+      scaleCivil,
+      calendar: ctx.calendar,
+      scale: ctx.timeScale,
+    );
+    _selfUpdate = true;
+    ref.read(contextBarProvider.notifier).setJd(jdUt);
+  }
+
   void _sync() {
     if (_focusNode.hasFocus) return;
-    final ctx = ref.read(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    _controller.text = fmtDate(local);
+    _controller.text = fmtDate(_localOf(ref.read(contextBarProvider)));
   }
 
   void _commit() {
     final parsed = parseDateFields(_controller.text);
     if (parsed == null) return;
-    final ctx = ref.read(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
-    final newLocal = DateTime.utc(
+    _commitLocal(
+      ref.read(contextBarProvider),
       parsed.year,
       parsed.month,
       parsed.day,
-      local.hour,
-      local.minute,
-      local.second,
     );
-    final ut = _jdUtils.removeUtcOffset(newLocal, ctx.utcOffset);
-    _selfUpdate = true;
-    ref.read(contextBarProvider.notifier).setDateTime(ut);
   }
 
   Future<void> _pick() async {
     final ctx = ref.read(contextBarProvider);
-    final local = _jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
+    final local = _localOf(ctx);
     final picked = await showDatePicker(
       context: context,
       initialDate: local,
@@ -75,17 +101,7 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
       lastDate: DateTime(4000),
     );
     if (picked == null) return;
-    final newLocal = DateTime.utc(
-      picked.year,
-      picked.month,
-      picked.day,
-      local.hour,
-      local.minute,
-      local.second,
-    );
-    ref
-        .read(contextBarProvider.notifier)
-        .setDateTime(_jdUtils.removeUtcOffset(newLocal, ctx.utcOffset));
+    _commitLocal(ctx, picked.year, picked.month, picked.day);
   }
 
   @override

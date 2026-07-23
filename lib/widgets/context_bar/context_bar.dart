@@ -28,6 +28,7 @@ import 'jpl_file_selector.dart';
 import 'file_in_use_indicator.dart';
 import 'origin_selector.dart';
 import 'projection_selector.dart';
+import 'time_scale_selector.dart';
 import 'zodiac_ref_selector.dart';
 
 /// Persistent top bar with shared global calculation context.
@@ -140,7 +141,12 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     final theme = Theme.of(context);
     final ctx = ref.watch(contextBarProvider);
     final jdUtils = JdUtils(ref.read(sweProvider));
-    final local = jdUtils.applyUtcOffset(ctx.dateTime, ctx.utcOffset);
+    final civil = jdUtils.jdUtToCivil(
+      ctx.jdUt,
+      calendar: ctx.calendar,
+      scale: ctx.timeScale,
+    );
+    final local = jdUtils.applyUtcOffset(civil, ctx.utcOffset);
     final summaryStyle = theme.textTheme.bodySmall;
 
     if (!_mobileExpanded) {
@@ -162,7 +168,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                     Expanded(
                       child: Text(
                         '${fmtDate(local)}  '
-                        '${fmtTime(local)}  '
+                        '${fmtTime(local)} ${ctx.timeScale.label}  '
                         '${fmtOffset(ctx.utcOffset)}  '
                         '${fmtCoord(ctx.latitude)}, ${fmtCoord(ctx.longitude)}',
                         style: summaryStyle,
@@ -301,7 +307,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             children: [
               Expanded(child: ClockSelector()),
               SizedBox(width: 8),
-              Expanded(child: SizedBox()),
+              Expanded(child: TimeScaleSelector()),
             ],
           ),
         ],
@@ -439,6 +445,16 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         Expanded(child: CalendarSelector()),
                         SizedBox(width: _colGap),
                         Expanded(child: ClockSelector()),
+                      ],
+                    ),
+                    SizedBox(height: _rowGap),
+                    const Row(
+                      children: [
+                        Expanded(child: TimeScaleSelector()),
+                        SizedBox(width: _colGap),
+                        Expanded(child: SizedBox()),
+                        SizedBox(width: _colGap),
+                        Expanded(child: SizedBox()),
                       ],
                     ),
                   ],

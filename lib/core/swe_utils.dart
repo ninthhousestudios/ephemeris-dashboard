@@ -89,6 +89,49 @@ class SweUtils {
 
   double deltat(double jd) => _engine.deltaT(rs.JdUt1(jd));
 
+  /// UTC civil components → Julian Day on both scales (`swe_utc_to_jd`). Leap
+  /// seconds are handled by the engine, so this is the correct entry path for a
+  /// UTC time. May throw [rs.SweException] for a value the engine rejects.
+  ({double ut1, double tt}) utcToJd(
+    int year,
+    int month,
+    int day,
+    int hour,
+    int minute,
+    double second, {
+    bool gregorian = true,
+  }) {
+    final cal = gregorian ? rs.CalendarType.gregorian : rs.CalendarType.julian;
+    final r = _engine.utcToJd(
+      rs.UtcComponents(
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+      ),
+      cal,
+    );
+    return (ut1: r.ut1.value, tt: r.tt.value);
+  }
+
+  /// UT1 Julian Day → UTC civil components (`swe_jdut1_to_utc`), the inverse of
+  /// [utcToJd].
+  ({int year, int month, int day, int hour, int minute, double second})
+  jdUt1ToUtc(double jd, {bool gregorian = true}) {
+    final cal = gregorian ? rs.CalendarType.gregorian : rs.CalendarType.julian;
+    final c = _engine.jdut1ToUtc(rs.JdUt1(jd), cal);
+    return (
+      year: c.year,
+      month: c.month,
+      day: c.day,
+      hour: c.hour,
+      minute: c.minute,
+      second: c.second,
+    );
+  }
+
   /// Equation of time in days (LAT − LMT) at the given UT Julian Day.
   double timeEqu(double jd) => _engine.timeEqu(jd);
 

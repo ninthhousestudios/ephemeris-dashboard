@@ -10,6 +10,7 @@ import 'calculation/series_settings.dart';
 import 'calculation/series_spec.dart';
 import 'calendar.dart';
 import 'context_state.dart';
+import 'time_scale.dart';
 import 'flag_state.dart';
 import '../layout/tab_definitions.dart';
 
@@ -41,6 +42,7 @@ class PersistenceService {
     _prefs.setString('ctx_ephe_source', s.epheSource.name);
     _prefs.setDouble('ctx_utc_offset', s.utcOffset);
     _prefs.setString('ctx_calendar', s.calendar.name);
+    _prefs.setString('ctx_time_scale', s.timeScale.name);
   }
 
   /// Returns a map of overrides to apply to the initial ContextBarState.
@@ -117,6 +119,13 @@ class PersistenceService {
       map['calendar'] = Calendar.values.firstWhere(
         (e) => e.name == name,
         orElse: () => Calendar.auto,
+      );
+    }
+    if (_prefs.containsKey('ctx_time_scale')) {
+      final name = _prefs.getString('ctx_time_scale');
+      map['timeScale'] = TimeScale.values.firstWhere(
+        (e) => e.name == name,
+        orElse: () => TimeScale.ut1,
       );
     }
     return map;
