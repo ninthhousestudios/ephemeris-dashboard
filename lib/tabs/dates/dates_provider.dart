@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
-import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
+import '../../core/calculation/obliquity.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
@@ -201,17 +201,15 @@ DatesResult computeDates(
   }
 
   // Obliquity & nutation come from the SE_ECL_NUT pseudo-body (swetest -p o/n).
-  // The frame flags are stripped so the ephemeris source alone selects the
-  // model; the four outputs land in xx[0..3] → lon/lat/dist/lonSpeed.
   double trueObliquity = 0, meanObliquity = 0;
   double nutationLongitude = 0, nutationObliquity = 0;
   String? eclNutError;
   try {
-    final r = eph.calcUt(jdUt, seEclNut, tropicalEclipticFlag(iflag));
-    trueObliquity = r.longitude;
-    meanObliquity = r.latitude;
-    nutationLongitude = r.distance;
-    nutationObliquity = r.longitudeSpeed;
+    final r = computeObliquityNutation(eph, jdUt, iflag);
+    trueObliquity = r.trueObliquity;
+    meanObliquity = r.meanObliquity;
+    nutationLongitude = r.nutationLongitude;
+    nutationObliquity = r.nutationObliquity;
   } catch (e) {
     eclNutError = e.toString();
   }

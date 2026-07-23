@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/obliquity.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
-import '../dates/dates_provider.dart';
 import 'coordinates_provider.dart';
 
 /// Labelled numeric field, shared by all three cards on this tab.
@@ -294,11 +294,12 @@ class _CoTransCardState extends ConsumerState<_CoTransCard> {
     final fmt = ref.watch(coordFormatProvider);
 
     // Default the obliquity field to the Context Moment's true obliquity
-    // (SE_ECL_NUT) until the user overrides it. Reuses the Dates tab compute.
+    // (SE_ECL_NUT) until the user overrides it. Tracks the Context, not the
+    // Dates tab's local override — there is no JD input on this tab.
     if (!_epsCustom) {
-      final trueObliquity = switch (ref.watch(datesResultProvider)) {
-        CalcOk(value: final r) when r.eclNutError == null => r.trueObliquity,
-        _ => null,
+      final trueObliquity = switch (ref.watch(contextObliquityProvider)) {
+        CalcOk(value: final r) => r.trueObliquity,
+        CalcError() => null,
       };
       if (trueObliquity != null) {
         final s = trueObliquity.toStringAsFixed(6);
