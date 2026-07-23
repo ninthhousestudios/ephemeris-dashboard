@@ -3,7 +3,6 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
@@ -12,9 +11,7 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
-import '../../core/flag_provider.dart';
 import '../../core/persistence.dart';
-import '../../core/swe_constants.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -22,53 +19,6 @@ import '../../layout/tab_definitions.dart';
 final housesFormatProvider = StateProvider<DisplayFormat>(
   (ref) => DisplayFormat.dms,
 );
-
-/// The house a body falls in, from `swe_house_pos` (swetest `-fGgj`).
-class BodyHousePos {
-  const BodyHousePos({
-    required this.bodyId,
-    required this.name,
-    required this.longitude,
-    required this.latitude,
-    required this.housePos,
-    this.errorMessage,
-  });
-
-  final int bodyId;
-  final String name;
-
-  /// Tropical ecliptic longitude/latitude fed to `swe_house_pos`.
-  final double longitude;
-  final double latitude;
-
-  /// Raw `swe_house_pos` value (swetest `j`): 1.0–12.999999 (1.0–36.99 for
-  /// Gauquelin), integer part = house number, fraction = position within it.
-  final double housePos;
-
-  final String? errorMessage;
-
-  /// House the body falls in (swetest `j` floored): 1–12 (1–36 Gauquelin).
-  int get houseNumber => housePos.floor();
-
-  /// Position in degrees (swetest `g`/`G`), houses treated as 30° each.
-  double get positionDegrees => (housePos - 1) * 30;
-}
-
-/// Bodies the Houses tab reports house positions for — the classical set,
-/// matching swetest's `-p0123456789`. A fixed set rather than a per-tab picker:
-/// this is a completeness surface, not a selection workflow.
-const houseBodies = <int>[
-  seSun,
-  seMoon,
-  seMercury,
-  seVenus,
-  seMars,
-  seJupiter,
-  seSaturn,
-  seUranus,
-  seNeptune,
-  sePluto,
-];
 
 /// Result of a house calculation.
 class HousesCalcResult {
@@ -78,7 +28,6 @@ class HousesCalcResult {
     required this.hsys,
     required this.hsysName,
     required this.returnFlag,
-    this.bodyPositions = const [],
   });
 
   final List<double> cusps;
@@ -88,9 +37,6 @@ class HousesCalcResult {
   final int hsys;
   final String hsysName;
   final int returnFlag;
-
-  /// House position per body under [hsys] (empty if none requested).
-  final List<BodyHousePos> bodyPositions;
 
   double get asc => ascmc[0];
   double get mc => ascmc[1];
@@ -140,14 +86,7 @@ final selectedHouseSystemProvider = StateProvider<int>((ref) {
   return ref.read(persistenceProvider).loadHouseSystem();
 });
 
-/// Pure compute step: one `houses` call, the house-system display name, and —
-/// for each of [bodies] — its house position via `swe_house_pos`.
-///
-/// House position needs the true obliquity ([seEclNut]) and tropical body
-/// positions, so [iflag]'s sidereal bit is dropped for these calcs: the
-/// handle-free `housePos` assumes the tropical frame that [armc]/eps share, and
-/// swetest's `-fGgj` is tropical. A body whose calc throws is carried as an
-/// error row, not a failure of the whole tab.
+/// Pure compute step: one `houses` call, plus the house-system display name.
 HousesCalcResult computeHouses(
   Ephemeris eph, {
   required double jdUt,
@@ -155,60 +94,14 @@ HousesCalcResult computeHouses(
   required double lon,
   required int hsys,
   required String hsysName,
-  List<int> bodies = const [],
-  int iflag = 0,
-  String Function(int body)? getName,
 }) {
   final r = eph.houses(jdUt, lat, lon, hsys);
-
-  final bodyPositions = <BodyHousePos>[];
-  if (bodies.isNotEmpty) {
-    final calcFlag = iflag & ~seFlgSidereal;
-    final armc = r.ascmc[2];
-    final eps = eph.calcUt(jdUt, seEclNut, calcFlag).longitude;
-    final name = getName ?? (body) => 'Body $body';
-    for (final body in bodies) {
-      try {
-        final pos = eph.calcUt(jdUt, body, calcFlag);
-        final hp = eph.housePos(
-          armc,
-          lat,
-          eps,
-          hsys,
-          pos.longitude,
-          pos.latitude,
-        );
-        bodyPositions.add(
-          BodyHousePos(
-            bodyId: body,
-            name: name(body),
-            longitude: pos.longitude,
-            latitude: pos.latitude,
-            housePos: hp,
-          ),
-        );
-      } catch (e) {
-        bodyPositions.add(
-          BodyHousePos(
-            bodyId: body,
-            name: name(body),
-            longitude: double.nan,
-            latitude: double.nan,
-            housePos: double.nan,
-            errorMessage: e.toString(),
-          ),
-        );
-      }
-    }
-  }
-
   return HousesCalcResult(
     cusps: r.cusps,
     ascmc: r.ascmc,
     hsys: hsys,
     hsysName: hsysName,
     returnFlag: r.returnFlag,
-    bodyPositions: bodyPositions,
   );
 }
 
@@ -216,7 +109,6 @@ HousesCalcResult Function(Ephemeris, Moment) _housesCompute(Ref ref) {
   final ctx = ref.watch(contextBarProvider);
   final swe = ref.read(sweProvider);
   final hsys = ref.watch(selectedHouseSystemProvider);
-  final iflag = ref.watch(flagBarProvider).iflag;
 
   return (eph, moment) => computeHouses(
     eph,
@@ -225,9 +117,6 @@ HousesCalcResult Function(Ephemeris, Moment) _housesCompute(Ref ref) {
     lon: ctx.longitude,
     hsys: hsys,
     hsysName: swe.houseName(hsys),
-    bodies: houseBodies,
-    iflag: iflag,
-    getName: (body) => safeGetName(swe, body),
   );
 }
 
@@ -278,20 +167,6 @@ List<ExportRow> housesToExportRows(HousesCalcResult result, DisplayFormat fmt) {
       ExportRow(
         header: 'Cusp $i',
         fields: [('Longitude', formatAngle(result.cusps[i], fmt))],
-      ),
-    );
-  }
-  // House position per body (swetest -fPGgj)
-  for (final b in result.bodyPositions) {
-    rows.add(
-      ExportRow(
-        header: b.name,
-        fields: b.errorMessage != null
-            ? [('House', '—'), ('House Pos', b.errorMessage!)]
-            : [
-                ('House', '${b.houseNumber}'),
-                ('House Pos', formatAngle(b.positionDegrees, fmt)),
-              ],
       ),
     );
   }
