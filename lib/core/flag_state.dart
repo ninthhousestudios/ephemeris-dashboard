@@ -91,8 +91,13 @@ class FlagBarState {
     }
 
     // Equinox reference
-    if (ctx.eqRef == EqRef.meanEquinox) {
-      locked |= seFlgJ2000;
+    switch (ctx.eqRef) {
+      case EqRef.meanEquinoxOfDate:
+        locked |= seFlgNoNut;
+      case EqRef.meanEquinoxJ2000:
+        locked |= seFlgJ2000;
+      case EqRef.trueEquinoxOfDate:
+        break;
     }
 
     // Ephemeris source

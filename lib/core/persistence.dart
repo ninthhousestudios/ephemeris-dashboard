@@ -75,7 +75,7 @@ class PersistenceService {
       final name = _prefs.getString('ctx_eq_ref');
       map['eqRef'] = EqRef.values.firstWhere(
         (e) => e.name == name,
-        orElse: () => EqRef.trueEquinox,
+        orElse: () => EqRef.trueEquinoxOfDate,
       );
     }
     if (_prefs.containsKey('ctx_ayanamsa')) {

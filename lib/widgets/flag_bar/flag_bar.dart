@@ -126,4 +126,6 @@ const _lockedFlagLabels = {
   seFlgTopoCtr: 'Topocentric',
   seFlgHelCtr: 'Heliocentric',
   seFlgBaryCtr: 'Barycentric',
+  seFlgNoNut: 'No Nut',
+  seFlgJ2000: 'J2000',
 };

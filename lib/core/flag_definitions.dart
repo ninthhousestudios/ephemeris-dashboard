@@ -73,12 +73,6 @@ final flagToggles = [
     tooltip: 'Output in radians instead of degrees',
   ),
   FlagDef(
-    label: 'J2000',
-    value: seFlgJ2000,
-    tooltip: 'J2000 equator/ecliptic reference frame',
-  ),
-  FlagDef(label: 'No Nut', value: seFlgNoNut, tooltip: 'No nutation'),
-  FlagDef(
     label: 'ICRS',
     value: seFlgIcrs,
     tooltip: 'ICRS (International Celestial Reference System)',
@@ -92,6 +86,8 @@ const autoManagedFlags = {
   seFlgTopoCtr, // locked by Origin.topocentric
   seFlgHelCtr, // locked by Origin.heliocentric
   seFlgBaryCtr, // locked by Origin.barycentric
+  seFlgNoNut, // locked by EqRef.meanEquinoxOfDate
+  seFlgJ2000, // locked by EqRef.meanEquinoxJ2000
   seFlgJplEph, // locked by EpheSource.jpl
   seFlgSwiEph, // locked by EpheSource.swissEph
   seFlgMosEph, // locked by EpheSource.moshier

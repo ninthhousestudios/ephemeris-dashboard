@@ -18,7 +18,7 @@ class ContextBarState {
     this.cityLabel = '',
     this.origin = Origin.geocentric,
     this.zodiacRef = ZodiacRef.tropical,
-    this.eqRef = EqRef.trueEquinox,
+    this.eqRef = EqRef.trueEquinoxOfDate,
     this.ayanamsa =
         -1, // -1 = none; 0+ = SE_SIDM_* constant (only meaningful when sidereal)
     this.lastSiderealAyanamsa =
@@ -184,11 +184,15 @@ enum ZodiacRef {
   final String label;
 }
 
-/// Equinoctial reference: where is 0° ecliptic longitude?
-/// True equinox of date, or mean equinox of a standard epoch (J2000).
+/// Equinoctial reference: where is 0° ecliptic longitude referred to?
+/// True equinox of date (precession + nutation), mean equinox of date
+/// (precession, no nutation — SEFLG_NONUT), or the frozen J2000 mean frame
+/// (SEFLG_J2000). Mutually exclusive; drives a locked flag, like the zodiac
+/// and origin references.
 enum EqRef {
-  trueEquinox('True Equinox'),
-  meanEquinox('Mean Equinox (J2000)');
+  trueEquinoxOfDate('True Equinox of Date'),
+  meanEquinoxOfDate('Mean Equinox of Date'),
+  meanEquinoxJ2000('Mean Equinox (J2000)');
 
   const EqRef(this.label);
   final String label;
