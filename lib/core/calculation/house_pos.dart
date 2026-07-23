@@ -9,9 +9,9 @@ import '../swe_constants.dart';
 /// obliquity from [seEclNut].
 ///
 /// `swe_house_pos` is handle-free and cannot honour a sidereal engine config,
-/// so everything feeding it is tropical: [housePosCalcFlag] strips the sidereal
-/// and XYZ bits, and swetest's `-fGgj` (which the seam is pinned against) is
-/// tropical.
+/// so everything feeding it is tropical: [tropicalEclipticFlag] strips the
+/// sidereal, XYZ and equatorial bits, and swetest's `-fGgj` (which the seam is
+/// pinned against) is tropical.
 class HousePosInputs {
   const HousePosInputs({
     required this.armc,
@@ -26,9 +26,16 @@ class HousePosInputs {
   final int hsys;
 }
 
-/// The flag for the body/obliquity calcs that feed [housePosOf]: tropical
-/// ecliptic (never XYZ), never sidereal.
-int housePosCalcFlag(int iflag) => iflag & ~seFlgSidereal & ~seFlgXyz;
+/// The flag for a calc that must return a plain **tropical ecliptic**
+/// longitude/latitude: strips the sidereal, XYZ and equatorial bits.
+///
+/// Shared by the two consumers with that same input contract — `swe_house_pos`
+/// (via [housePosOf]) and the horizontal transform (`swe_azalt` with
+/// `SE_ECL2HOR`, swe-dashboard/69). The equatorial bit matters: without
+/// stripping it, an Equatorial-mode request feeds RA/Dec where ecliptic
+/// lon/lat is expected, silently corrupting both quantities.
+int tropicalEclipticFlag(int iflag) =>
+    iflag & ~seFlgSidereal & ~seFlgXyz & ~seFlgEquatorial;
 
 /// Computes the per-Moment [HousePosInputs] for [hsys] at ([lat], [lon]).
 HousePosInputs housePosInputs(
@@ -39,7 +46,7 @@ HousePosInputs housePosInputs(
   required int hsys,
   required int iflag,
 }) {
-  final calcFlag = housePosCalcFlag(iflag);
+  final calcFlag = tropicalEclipticFlag(iflag);
   final houses = eph.houses(jdUt, lat, lon, hsys);
   final eps = eph.calcUt(jdUt, seEclNut, calcFlag).longitude;
   return HousePosInputs(

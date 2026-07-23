@@ -240,8 +240,12 @@ List<PlanetResult> computePlanets({
   // vanishing from the series picker.
   final houseRequested = hpInputs != null;
 
+  // The main `r` is a tropical ecliptic lon/lat only when none of these bits
+  // are set; otherwise the horizontal feed needs a dedicated tropical calc.
+  // Equatorial matters most: without it, RA/Dec would reach SE_ECL2HOR.
   final needTropicalCalc =
-      doHorizontal && (iflag & (seFlgXyz | seFlgSidereal)) != 0;
+      doHorizontal &&
+      (iflag & (seFlgXyz | seFlgSidereal | seFlgEquatorial)) != 0;
 
   return effectiveBodies.map((body) {
     try {
@@ -273,7 +277,7 @@ List<PlanetResult> computePlanets({
             final trop = eph.calcUt(
               moment.ut,
               body,
-              iflag & ~seFlgXyz & ~seFlgSidereal,
+              tropicalEclipticFlag(iflag),
             );
             eclLon = trop.longitude;
             eclLat = trop.latitude;
@@ -301,7 +305,7 @@ List<PlanetResult> computePlanets({
         try {
           // A dedicated tropical ecliptic calc: swe_house_pos is handle-free
           // and cannot honour a sidereal/XYZ config, so `r` can't be reused.
-          final trop = eph.calcUt(moment.ut, body, housePosCalcFlag(iflag));
+          final trop = eph.calcUt(moment.ut, body, tropicalEclipticFlag(iflag));
           housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
         } catch (_) {}
       }

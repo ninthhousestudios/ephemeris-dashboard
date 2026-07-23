@@ -151,8 +151,12 @@ List<OtherBodyResult> computeOtherBodies({
       gmstHours = eph.sidTime(moment.ut);
     } catch (_) {}
   }
+  // The main `r` is a tropical ecliptic lon/lat only when none of these bits
+  // are set; otherwise the horizontal feed needs a dedicated tropical calc.
+  // Equatorial matters most: without it, RA/Dec would reach SE_ECL2HOR.
   final needTropicalCalc =
-      doHorizontal && (iflag & (seFlgXyz | seFlgSidereal)) != 0;
+      doHorizontal &&
+      (iflag & (seFlgXyz | seFlgSidereal | seFlgEquatorial)) != 0;
 
   // House position is a geocentric-observer quantity: only the geo/topocentric
   // origins, computed once per Moment then reused for every body.
@@ -208,7 +212,7 @@ List<OtherBodyResult> computeOtherBodies({
             final trop = eph.calcUt(
               moment.ut,
               body,
-              iflag & ~seFlgXyz & ~seFlgSidereal,
+              tropicalEclipticFlag(iflag),
             );
             eclLon = trop.longitude;
             eclLat = trop.latitude;
@@ -236,7 +240,7 @@ List<OtherBodyResult> computeOtherBodies({
         try {
           // Dedicated tropical ecliptic calc — swe_house_pos can't honour a
           // sidereal/XYZ config, so `r` can't be reused.
-          final trop = eph.calcUt(moment.ut, body, housePosCalcFlag(iflag));
+          final trop = eph.calcUt(moment.ut, body, tropicalEclipticFlag(iflag));
           housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
         } catch (_) {}
       }

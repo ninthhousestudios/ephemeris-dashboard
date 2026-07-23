@@ -219,14 +219,15 @@ StarResult? computeStar({
   var horizontal = HorizontalCoords.nan;
   if (doHorizontal) {
     double eclLon = r.longitude, eclLat = r.latitude, eclDist = r.distance;
-    if ((iflag & (seFlgXyz | seFlgSidereal)) != 0) {
+    if ((iflag & (seFlgXyz | seFlgSidereal | seFlgEquatorial)) != 0) {
       try {
         // Dedicated tropical ecliptic lookup — the horizontal transform needs
-        // tropical degrees, which a sidereal/XYZ config won't return.
+        // tropical ecliptic lon/lat, which a sidereal/XYZ/equatorial config
+        // won't return (equatorial would hand SE_ECL2HOR raw RA/Dec).
         final trop = eph.fixstar2Ut(
           searchForMag,
           jdUt,
-          iflag & ~seFlgXyz & ~seFlgSidereal,
+          tropicalEclipticFlag(iflag),
         );
         eclLon = trop.longitude;
         eclLat = trop.latitude;
@@ -254,7 +255,11 @@ StarResult? computeStar({
     try {
       // Dedicated tropical ecliptic lookup — swe_house_pos can't honour a
       // sidereal/XYZ config.
-      final trop = eph.fixstar2Ut(searchForMag, jdUt, housePosCalcFlag(iflag));
+      final trop = eph.fixstar2Ut(
+        searchForMag,
+        jdUt,
+        tropicalEclipticFlag(iflag),
+      );
       housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
     } catch (_) {}
   }
