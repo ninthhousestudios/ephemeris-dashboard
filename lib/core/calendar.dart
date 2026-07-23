@@ -41,7 +41,38 @@ enum Calendar {
     Calendar.julian => false,
     Calendar.auto => jd >= reformJd,
   };
+
+  /// Whether [year]-[month]-[day] is a real civil date *on the calendar this
+  /// mode reads it in*. The February leap rule differs between calendars (1900
+  /// is a Julian leap year but not a Gregorian one), so this is calendar-aware,
+  /// unlike a Dart [DateTime] check which is always proleptic Gregorian.
+  ///
+  /// The ten reform-gap dates (5–14 Oct 1582) are *not* rejected: under [auto]
+  /// they read as Julian (matching swetest, which converts rather than rejects),
+  /// and month length is the same on both calendars there anyway.
+  bool isValidCivil(int year, int month, int day) {
+    if (month < 1 || month > 12 || day < 1) return false;
+    return day <=
+        daysInMonth(
+          year,
+          month,
+          gregorian: isGregorianForCivil(year, month, day),
+        );
+  }
 }
+
+bool _isLeapYear(int year, {required bool gregorian}) => gregorian
+    ? year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
+    : year % 4 == 0;
+
+const _monthLengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/// Days in [month] of [year], on the calendar [gregorian] selects (the leap
+/// rule differs for February).
+int daysInMonth(int year, int month, {bool gregorian = true}) =>
+    month == 2 && _isLeapYear(year, gregorian: gregorian)
+    ? 29
+    : _monthLengths[month - 1];
 
 /// Whether civil date [y]-[m]-[d] falls on or after 15 Oct 1582 (the first
 /// Gregorian date). Gap dates (5–14 Oct 1582) compare as *before* the reform,

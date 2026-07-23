@@ -6,12 +6,33 @@ import 'output_clock.dart';
 import 'swe_utils.dart';
 import 'time_scale.dart';
 
+/// A civil date-time as raw integer fields.
+///
+/// Dart's [DateTime] is proleptic Gregorian and silently rolls a date it cannot
+/// represent (e.g. `DateTime.utc(1900, 2, 29)` → 1 Mar 1900), so it is an
+/// unsound carrier for a calendar-aware civil value: a Julian-only date such as
+/// 29 Feb 1900 (a valid Julian leap day) would not survive a round-trip. These
+/// fields do, because nothing normalises them behind the calendar's back.
+typedef Civil = ({
+  int year,
+  int month,
+  int day,
+  int hour,
+  int minute,
+  int second,
+});
+
 /// DateTime ↔ Julian Day conversion helpers.
 ///
 /// Uses SweUtils.julday/revjul for astronomically correct conversions. Each
 /// direction takes a [Calendar]: the Dart [DateTime] carries civil fields only
 /// (its own epoch is proleptic Gregorian and never used for absolute
 /// arithmetic here), so the calendar decides how those fields map to the JD.
+///
+/// The [DateTime]-returning members are kept for callers on representable
+/// (proleptic-Gregorian) dates; the [Civil]-field members ([localCivilOf],
+/// [localCivilToJdUt], [civilFieldsOn]) are the ones to use wherever a
+/// Julian-only civil date must survive, e.g. the context bar's date/time fields.
 class JdUtils {
   const JdUtils(this._swe);
   final SweUtils _swe;
@@ -127,6 +148,115 @@ class JdUtils {
     final totalMinutes = (offsetHours * 60).round();
     return localDt.subtract(Duration(minutes: totalMinutes));
   }
+
+  /// Civil fields for the day-instant containing [jd], rendered on [calendar].
+  ///
+  /// Raw-field twin of [jdToDateTime]. The JD is first snapped to a whole second
+  /// (in JD space, where the calendar is irrelevant) so rounding the time of day
+  /// can never carry it past midnight onto the wrong civil day.
+  Civil civilFieldsOn(double jd, Calendar calendar) {
+    final snapped = (jd * 86400).roundToDouble() / 86400.0;
+    final r = _swe.revjul(
+      snapped,
+      gregorian: calendar.isGregorianForJd(snapped),
+    );
+    final secs = (r.hour * 3600).round().clamp(0, 86399);
+    return (
+      year: r.year,
+      month: r.month,
+      day: r.day,
+      hour: secs ~/ 3600,
+      minute: (secs % 3600) ~/ 60,
+      second: secs % 60,
+    );
+  }
+
+  /// Local civil fields for the Moment [jdUt], rendered on [scale]/[calendar]
+  /// and shifted to local by [offsetHours].
+  ///
+  /// The raw-field twin of [jdUtToCivil] + [applyUtcOffset]. The offset is
+  /// applied in JD space (`offsetHours / 24` days) so no intermediate [DateTime]
+  /// can normalise a Julian-only civil date away.
+  Civil localCivilOf(
+    double jdUt, {
+    required Calendar calendar,
+    required TimeScale scale,
+    required double offsetHours,
+  }) {
+    switch (scale) {
+      case TimeScale.ut1:
+        return civilFieldsOn(jdUt + offsetHours / 24.0, calendar);
+      case TimeScale.tt:
+        return civilFieldsOn(
+          jdUt + _swe.deltat(jdUt) + offsetHours / 24.0,
+          calendar,
+        );
+      case TimeScale.utc:
+        // UTC exists only from 1972 on — always proleptic Gregorian — so the
+        // DateTime path is safe here and keeps the leap-second handling.
+        final dt = applyUtcOffset(
+          jdUtToCivil(jdUt, calendar: calendar, scale: scale),
+          offsetHours,
+        );
+        return (
+          year: dt.year,
+          month: dt.month,
+          day: dt.day,
+          hour: dt.hour,
+          minute: dt.minute,
+          second: dt.second,
+        );
+    }
+  }
+
+  /// Map local civil fields (read on [scale]/[calendar], shifted by
+  /// [offsetHours]) back to the canonical UT1 Julian Day.
+  ///
+  /// The raw-field twin of [removeUtcOffset] + [civilToJdUt]. The offset is
+  /// removed in JD space, so a Julian-only date such as 29 Feb 1900 maps to its
+  /// true JD instead of being rolled to 1 Mar by a [DateTime] intermediary.
+  double localCivilToJdUt(
+    Civil civil, {
+    required Calendar calendar,
+    required TimeScale scale,
+    required double offsetHours,
+  }) {
+    final hour = civil.hour + civil.minute / 60.0 + civil.second / 3600.0;
+    final greg = calendar.isGregorianForCivil(
+      civil.year,
+      civil.month,
+      civil.day,
+    );
+    // JD of the local fields read as if UT, then shifted to the scale reading by
+    // removing the offset (offsetHours / 24 days).
+    final scaleJd =
+        _swe.julday(civil.year, civil.month, civil.day, hour, gregorian: greg) -
+        offsetHours / 24.0;
+    switch (scale) {
+      case TimeScale.ut1:
+        return scaleJd;
+      case TimeScale.tt:
+        // scaleJd is on the ET scale; step back one ΔT to UT1 (as swetest does).
+        return scaleJd - _swe.deltat(scaleJd);
+      case TimeScale.utc:
+        try {
+          final f = civilFieldsOn(scaleJd, calendar);
+          return _swe
+              .utcToJd(
+                f.year,
+                f.month,
+                f.day,
+                f.hour,
+                f.minute,
+                f.second.toDouble(),
+                gregorian: calendar.isGregorianForJd(scaleJd),
+              )
+              .ut1;
+        } catch (_) {
+          return scaleJd;
+        }
+    }
+  }
 }
 
 String _p2(int n) => n.toString().padLeft(2, '0');
@@ -160,19 +290,21 @@ String formatJdDateTime(
   }
   try {
     final jdUtils = JdUtils(swe);
-    String hms(DateTime dt) => seconds
-        ? '${_p2(dt.hour)}:${_p2(dt.minute)}:${_p2(dt.second)}'
-        : '${_p2(dt.hour)}:${_p2(dt.minute)}';
-    String render(DateTime dt) =>
-        '${dt.year}-${_p2(dt.month)}-${_p2(dt.day)} ${hms(dt)}';
+    String hms(Civil c) => seconds
+        ? '${_p2(c.hour)}:${_p2(c.minute)}:${_p2(c.second)}'
+        : '${_p2(c.hour)}:${_p2(c.minute)}';
+    String render(Civil c) =>
+        '${c.year}-${_p2(c.month)}-${_p2(c.day)} ${hms(c)}';
 
     // The base render honours the Context's Scale (UT1/TT/UTC) and Calendar,
     // so a Moment — including each series row — shifts with them, not just with
-    // the companion clock.
-    final base = jdUtils.jdUtToCivil(
+    // the companion clock. Raw civil fields (not a DateTime) so a Julian-only
+    // date such as 29 Feb 1900 renders truthfully.
+    final base = jdUtils.localCivilOf(
       jd,
       calendar: view.calendar,
       scale: view.scale,
+      offsetHours: 0,
     );
     var s = render(base);
     if (showLabel) s = '$s ${view.scale.label}';
@@ -197,7 +329,7 @@ String formatJdDateTime(
             ),
           };
     if (shifted != null) {
-      final local = jdUtils.jdToDateTime(shifted, calendar: view.calendar);
+      final local = jdUtils.civilFieldsOn(shifted, view.calendar);
       final sameDate =
           local.year == base.year &&
           local.month == base.month &&

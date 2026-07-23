@@ -43,34 +43,32 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
   }
 
   /// The displayed local civil date: the canonical Moment rendered on the
-  /// selected time scale, then shifted by the UTC offset.
-  DateTime _localOf(ContextBarState ctx) {
-    final civil = _jdUtils.jdUtToCivil(
-      ctx.jdUt,
-      calendar: ctx.calendar,
-      scale: ctx.timeScale,
-    );
-    return _jdUtils.applyUtcOffset(civil, ctx.utcOffset);
-  }
+  /// selected time scale and calendar, then shifted by the UTC offset. Raw civil
+  /// fields (not a DateTime) so a Julian-only date such as 29 Feb 1900 survives.
+  Civil _localOf(ContextBarState ctx) => _jdUtils.localCivilOf(
+    ctx.jdUt,
+    calendar: ctx.calendar,
+    scale: ctx.timeScale,
+    offsetHours: ctx.utcOffset,
+  );
 
   /// Commit new civil date fields back to the canonical Moment: keep the current
   /// time of day, undo the offset, then map the scale-time civil value to a UT1
-  /// Julian Day.
+  /// Julian Day — all in raw fields so a Julian-only date is not normalised away.
   void _commitLocal(ContextBarState ctx, int year, int month, int day) {
     final local = _localOf(ctx);
-    final newLocal = DateTime.utc(
-      year,
-      month,
-      day,
-      local.hour,
-      local.minute,
-      local.second,
-    );
-    final scaleCivil = _jdUtils.removeUtcOffset(newLocal, ctx.utcOffset);
-    final jdUt = _jdUtils.civilToJdUt(
-      scaleCivil,
+    final jdUt = _jdUtils.localCivilToJdUt(
+      (
+        year: year,
+        month: month,
+        day: day,
+        hour: local.hour,
+        minute: local.minute,
+        second: local.second,
+      ),
       calendar: ctx.calendar,
       scale: ctx.timeScale,
+      offsetHours: ctx.utcOffset,
     );
     _selfUpdate = true;
     ref.read(contextBarProvider.notifier).setJd(jdUt);
@@ -78,26 +76,31 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
 
   void _sync() {
     if (_focusNode.hasFocus) return;
-    _controller.text = fmtDate(_localOf(ref.read(contextBarProvider)));
+    final local = _localOf(ref.read(contextBarProvider));
+    _controller.text = fmtDateFields(local.year, local.month, local.day);
   }
 
   void _commit() {
-    final parsed = parseDateFields(_controller.text);
-    if (parsed == null) return;
-    _commitLocal(
-      ref.read(contextBarProvider),
-      parsed.year,
-      parsed.month,
-      parsed.day,
-    );
+    final ctx = ref.read(contextBarProvider);
+    final parsed = parseDateFields(_controller.text, calendar: ctx.calendar);
+    if (parsed == null) {
+      // Reject invalid input (e.g. 29 Feb 1900 on the Gregorian calendar) by
+      // snapping the field back to the canonical Moment, so a bad entry gives
+      // visible feedback instead of silently sticking in the box.
+      _sync();
+      return;
+    }
+    _commitLocal(ctx, parsed.year, parsed.month, parsed.day);
   }
 
   Future<void> _pick() async {
     final ctx = ref.read(contextBarProvider);
     final local = _localOf(ctx);
+    // The picker is proleptic Gregorian; a Julian-only initial date is clamped
+    // to a representable one, which is fine for seeding the calendar UI.
     final picked = await showDatePicker(
       context: context,
-      initialDate: local,
+      initialDate: DateTime.utc(local.year, local.month, local.day),
       firstDate: DateTime(-4000),
       lastDate: DateTime(4000),
     );

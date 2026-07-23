@@ -141,12 +141,12 @@ class _ContextBarState extends ConsumerState<ContextBar> {
     final theme = Theme.of(context);
     final ctx = ref.watch(contextBarProvider);
     final jdUtils = JdUtils(ref.read(sweProvider));
-    final civil = jdUtils.jdUtToCivil(
+    final local = jdUtils.localCivilOf(
       ctx.jdUt,
       calendar: ctx.calendar,
       scale: ctx.timeScale,
+      offsetHours: ctx.utcOffset,
     );
-    final local = jdUtils.applyUtcOffset(civil, ctx.utcOffset);
     final summaryStyle = theme.textTheme.bodySmall;
 
     if (!_mobileExpanded) {
@@ -167,8 +167,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        '${fmtDate(local)}  '
-                        '${fmtTime(local)} ${ctx.timeScale.label}  '
+                        '${fmtDateFields(local.year, local.month, local.day)}  '
+                        '${fmtHms(local.hour, local.minute, local.second)} ${ctx.timeScale.label}  '
                         '${fmtOffset(ctx.utcOffset)}  '
                         '${fmtCoord(ctx.latitude)}, ${fmtCoord(ctx.longitude)}',
                         style: summaryStyle,

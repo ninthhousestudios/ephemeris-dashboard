@@ -4,10 +4,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-String fmtDate(DateTime dt) {
-  final sign = dt.year < 0 ? '-' : '';
-  final year = dt.year.abs().toString().padLeft(4, '0');
-  return '$sign$year-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+import 'calendar.dart';
+
+String fmtDate(DateTime dt) => fmtDateFields(dt.year, dt.month, dt.day);
+
+/// Formats raw civil date fields (`YYYY-MM-DD`, negative years signed).
+///
+/// The raw-field twin of [fmtDate]; use it to render a [Calendar]-aware civil
+/// date that a Dart [DateTime] cannot hold (e.g. 29 Feb 1900 on the Julian
+/// calendar).
+String fmtDateFields(int year, int month, int day) {
+  final sign = year < 0 ? '-' : '';
+  final y = year.abs().toString().padLeft(4, '0');
+  return '$sign$y-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
 }
 
 String fmtTime(DateTime dt) =>
@@ -16,7 +25,18 @@ String fmtTime(DateTime dt) =>
 String fmtHms(int h, int m, int s) =>
     '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 
-({int year, int month, int day})? parseDateFields(String text) {
+/// Parses a `YYYY-MM-DD` string, rejecting a day that does not exist *on
+/// [calendar]*.
+///
+/// The month-length check is calendar-aware (via [Calendar.isValidCivil]), not
+/// a Dart [DateTime] round-trip: 29 Feb 1900 is a real Julian date but not a
+/// Gregorian one, and a proleptic-Gregorian [DateTime] would wrongly reject the
+/// former (and silently normalise it away). Callers without a calendar in scope
+/// keep the previous behaviour via the [Calendar.gregorian] default.
+({int year, int month, int day})? parseDateFields(
+  String text, {
+  Calendar calendar = Calendar.gregorian,
+}) {
   final negative = text.startsWith('-');
   final parts = (negative ? text.substring(1) : text).split('-');
   if (parts.length != 3) return null;
@@ -24,10 +44,8 @@ String fmtHms(int h, int m, int s) =>
   final mo = int.tryParse(parts[1]);
   final d = int.tryParse(parts[2]);
   if (y == null || mo == null || d == null) return null;
-  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
   final year = negative ? -y : y;
-  final check = DateTime.utc(year, mo, d);
-  if (check.year != year || check.month != mo || check.day != d) return null;
+  if (!calendar.isValidCivil(year, mo, d)) return null;
   return (year: year, month: mo, day: d);
 }
 

@@ -107,19 +107,6 @@ int _jdnFromCivilJulian(int year, int month, int day) {
   return day + (153 * m + 2) ~/ 5 + 365 * y + _floorDiv(y, 4) - 32083;
 }
 
-bool _isLeapYear(int year, {required bool gregorian}) => gregorian
-    ? year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-    : year % 4 == 0;
-
-const _monthLengths = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
-/// Days in [month] of [year], on the calendar [gregorian] selects (the leap
-/// rule differs for February).
-int daysInMonth(int year, int month, {bool gregorian = true}) =>
-    month == 2 && _isLeapYear(year, gregorian: gregorian)
-    ? 29
-    : _monthLengths[month - 1];
-
 /// [ut] advanced by [months] calendar months, preserving the time of day.
 ///
 /// The day of month is clamped to the target month's length, so 31 Jan plus

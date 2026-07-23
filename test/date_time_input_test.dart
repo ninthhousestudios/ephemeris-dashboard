@@ -2,10 +2,12 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:swe_dashboard/core/calendar.dart';
 import 'package:swe_dashboard/core/date_time_input.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/jd_utils.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
+import 'package:swe_dashboard/core/time_scale.dart';
 
 void main() {
   group('fmtDate', () {
@@ -89,6 +91,22 @@ void main() {
     test('accepts Feb 29 on leap year, rejects on non-leap', () {
       expect(parseDateFields('2024-02-29'), isNotNull);
       expect(parseDateFields('2023-02-29'), isNull);
+    });
+
+    test('Feb 29 1900 is valid on the Julian calendar, not the Gregorian', () {
+      // 1900 is a Julian leap year (divisible by 4) but not a Gregorian one
+      // (divisible by 100, not 400). The check must follow the selected
+      // calendar, not a proleptic-Gregorian DateTime.
+      expect(
+        parseDateFields('1900-02-29', calendar: Calendar.julian),
+        isNotNull,
+      );
+      expect(
+        parseDateFields('1900-02-29', calendar: Calendar.gregorian),
+        isNull,
+      );
+      // Auto reads a 1900 date as Gregorian, so it rejects too.
+      expect(parseDateFields('1900-02-29', calendar: Calendar.auto), isNull);
     });
 
     test('parses negative year', () {
@@ -211,6 +229,65 @@ void main() {
       final rt = jdUtils!.jdToDateTime(jd);
       expect(fmtDate(rt), equals('2024-06-15'));
       expect(fmtTime(rt), equals('14:30:45'));
+    });
+  });
+
+  group('Julian-only civil dates survive (raw fields, no DateTime)', () {
+    JdUtils? jdUtils;
+
+    setUp(() {
+      try {
+        jdUtils = JdUtils(SweUtils(EphemerisRunner()));
+      } catch (_) {
+        // Native library not available on this platform
+      }
+    });
+
+    // 29 Feb 1900 (Julian) is JD 2415091.5, not 2415079.5 — the latter is
+    // *Gregorian* 1 Mar 1900, which is exactly what a proleptic-Gregorian
+    // DateTime rolls Feb 29 to. That the correct value flows through is the
+    // whole point of carrying raw fields.
+    test('29 Feb 1900 (Julian) → JD 2415091.5 at 00:00 UT', () {
+      if (jdUtils == null) return markTestSkipped('SwissEph unavailable');
+      final jd = jdUtils!.localCivilToJdUt(
+        (year: 1900, month: 2, day: 29, hour: 0, minute: 0, second: 0),
+        calendar: Calendar.julian,
+        scale: TimeScale.ut1,
+        offsetHours: 0,
+      );
+      expect(jd, closeTo(2415091.5, 1e-9));
+    });
+
+    test('the JD renders back as 29 Feb 1900 on the Julian calendar', () {
+      if (jdUtils == null) return markTestSkipped('SwissEph unavailable');
+      final c = jdUtils!.localCivilOf(
+        2415091.5,
+        calendar: Calendar.julian,
+        scale: TimeScale.ut1,
+        offsetHours: 0,
+      );
+      expect([c.year, c.month, c.day], [1900, 2, 29]);
+      expect(fmtDateFields(c.year, c.month, c.day), equals('1900-02-29'));
+    });
+
+    test('round-trips through a nonzero offset and preserved time of day', () {
+      if (jdUtils == null) return markTestSkipped('SwissEph unavailable');
+      final jd = jdUtils!.localCivilToJdUt(
+        (year: 1900, month: 2, day: 29, hour: 6, minute: 30, second: 0),
+        calendar: Calendar.julian,
+        scale: TimeScale.ut1,
+        offsetHours: -5,
+      );
+      final c = jdUtils!.localCivilOf(
+        jd,
+        calendar: Calendar.julian,
+        scale: TimeScale.ut1,
+        offsetHours: -5,
+      );
+      expect(
+        [c.year, c.month, c.day, c.hour, c.minute, c.second],
+        [1900, 2, 29, 6, 30, 0],
+      );
     });
   });
 }
