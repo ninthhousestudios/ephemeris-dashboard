@@ -154,9 +154,11 @@ void main() {
     test(
       'a body that cannot be placed still keeps the House column (as —)',
       () {
-        // The frame (houses + eps) resolves, but the per-body tropical calc
-        // fails — the House column must survive as `—` so the series quantity
-        // does not vanish (swe-dashboard/58, Other Bodies regression).
+        // The body computes fine and the frame (houses + eps) resolves, but
+        // swe_house_pos cannot place it (returns NaN) — the House column must
+        // survive as `—` so the series quantity does not vanish
+        // (swe-dashboard/58, Other Bodies regression). Distinct from a total
+        // body failure, which surfaces a single Error field (swe-dashboard/71).
         final fake = FakeEphemeris()
           ..onCalcUt = (jdUt, body, flags) {
             if (body == seEclNut) {
@@ -170,7 +172,15 @@ void main() {
                 returnFlag: flags,
               );
             }
-            throw const InvalidArgException('no ephemeris for this body');
+            return CalcResult(
+              longitude: 100,
+              latitude: 2,
+              distance: 1.5,
+              longitudeSpeed: 0.5,
+              latitudeSpeed: 0.01,
+              distanceSpeed: -0.001,
+              returnFlag: flags,
+            );
           }
           ..onHouses = (_, _, _, _) {
             return const HouseResult(
@@ -179,8 +189,7 @@ void main() {
               returnFlag: 0,
             );
           }
-          ..onHousePos = (_, _, _, _, _, _) =>
-              fail('housePos unreachable for an unplaceable body');
+          ..onHousePos = (_, _, _, _, _, _) => double.nan;
 
         final results = computePlanets(
           eph: fake,
@@ -198,6 +207,8 @@ void main() {
 
         expect(results.single.houseRequested, isTrue);
         expect(results.single.housePos, isNaN);
+        // The body itself did not fail, so the row is not an error row.
+        expect(results.single.errorMessage, isNull);
 
         final rows = planetsToExportRows(results, DisplayFormat.dms);
         final labels = rows.single.fields.map((f) => f.$1);

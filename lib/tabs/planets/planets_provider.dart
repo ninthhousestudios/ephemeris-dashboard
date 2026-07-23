@@ -439,80 +439,92 @@ List<ExportRow> planetsToExportRows(
       .map(
         (r) => ExportRow(
           header: r.bodyName,
-          fields: [
-            (
-              lbl.c1,
-              isXyz
-                  ? formatAu(r.longitude, fmt)
-                  : formatAngle(r.longitude, fmt),
-            ),
-            (
-              lbl.c2,
-              isXyz ? formatAu(r.latitude, fmt) : formatAngle(r.latitude, fmt),
-            ),
-            (
-              lbl.c3,
-              isXyz
-                  ? formatAu(r.distance, fmt)
-                  : formatDistance(r.distance, fmt),
-            ),
-            if (isXyz)
-              (
-                'Distance',
-                formatEuclidean(r.longitude, r.latitude, r.distance, fmt),
-              ),
-            ('Dist (ly)', formatDistanceLy(r.distance, fmt)),
-            ('Dist (km)', formatDistanceKm(r.distance, fmt)),
-            if (r.body == seMoon)
-              ('Parallax', formatParallax(r.distance, fmt))
-            else
-              ('Dist (AU)', formatDistance(r.distance, fmt)),
-            if (r.dmin != null)
-              ('Dist (rel)', formatRelativeDistance(r.distance, r.dmin!, fmt)),
-            if (!isXyz) ...[
-              ('U ecl', formatUnitVector(r.longitude, r.latitude, fmt)),
-              if (!r.rascension.isNaN)
-                ('U equ', formatUnitVector(r.rascension, r.declination, fmt)),
-            ],
-            (
-              lbl.sc1,
-              isXyz
-                  ? formatAuSpeed(r.speedLon, fmt)
-                  : formatSpeed(r.speedLon, fmt),
-            ),
-            (
-              lbl.sc2,
-              isXyz
-                  ? formatAuSpeed(r.speedLat, fmt)
-                  : formatSpeed(r.speedLat, fmt),
-            ),
-            (
-              lbl.sc3,
-              isXyz
-                  ? formatAuSpeed(r.speedDist, fmt)
-                  : formatSpeed(r.speedDist, fmt),
-            ),
-            if (!r.azimuth.isNaN) ...[
-              ('Azimuth', formatAngle(r.azimuth, fmt)),
-              ('True Alt', formatAngle(r.trueAltitude, fmt)),
-              ('App. Alt', formatAngle(r.apparentAltitude, fmt)),
-              ('Zenith Dist', formatAngle(r.zenithDistance, fmt)),
-            ],
-            if (!r.meridianDistance.isNaN)
-              ('Meridian Dist', formatAngle(r.meridianDistance, fmt)),
-            if (r.houseRequested) ...[
-              (
-                'House',
-                r.housePos.isNaN ? '—' : '${houseNumberOf(r.housePos)}',
-              ),
-              (
-                'House Pos',
-                r.housePos.isNaN
-                    ? '—'
-                    : formatAngle(housePositionDegrees(r.housePos), fmt),
-              ),
-            ],
-          ],
+          // Mirror the card view: a body that failed at this step shows its
+          // error string, not quantities formatted from NaN fields.
+          fields: r.errorMessage != null
+              ? [('Error', r.errorMessage!)]
+              : [
+                  (
+                    lbl.c1,
+                    isXyz
+                        ? formatAu(r.longitude, fmt)
+                        : formatAngle(r.longitude, fmt),
+                  ),
+                  (
+                    lbl.c2,
+                    isXyz
+                        ? formatAu(r.latitude, fmt)
+                        : formatAngle(r.latitude, fmt),
+                  ),
+                  (
+                    lbl.c3,
+                    isXyz
+                        ? formatAu(r.distance, fmt)
+                        : formatDistance(r.distance, fmt),
+                  ),
+                  if (isXyz)
+                    (
+                      'Distance',
+                      formatEuclidean(r.longitude, r.latitude, r.distance, fmt),
+                    ),
+                  ('Dist (ly)', formatDistanceLy(r.distance, fmt)),
+                  ('Dist (km)', formatDistanceKm(r.distance, fmt)),
+                  if (r.body == seMoon)
+                    ('Parallax', formatParallax(r.distance, fmt))
+                  else
+                    ('Dist (AU)', formatDistance(r.distance, fmt)),
+                  if (r.dmin != null)
+                    (
+                      'Dist (rel)',
+                      formatRelativeDistance(r.distance, r.dmin!, fmt),
+                    ),
+                  if (!isXyz) ...[
+                    ('U ecl', formatUnitVector(r.longitude, r.latitude, fmt)),
+                    if (!r.rascension.isNaN)
+                      (
+                        'U equ',
+                        formatUnitVector(r.rascension, r.declination, fmt),
+                      ),
+                  ],
+                  (
+                    lbl.sc1,
+                    isXyz
+                        ? formatAuSpeed(r.speedLon, fmt)
+                        : formatSpeed(r.speedLon, fmt),
+                  ),
+                  (
+                    lbl.sc2,
+                    isXyz
+                        ? formatAuSpeed(r.speedLat, fmt)
+                        : formatSpeed(r.speedLat, fmt),
+                  ),
+                  (
+                    lbl.sc3,
+                    isXyz
+                        ? formatAuSpeed(r.speedDist, fmt)
+                        : formatSpeed(r.speedDist, fmt),
+                  ),
+                  if (!r.azimuth.isNaN) ...[
+                    ('Azimuth', formatAngle(r.azimuth, fmt)),
+                    ('True Alt', formatAngle(r.trueAltitude, fmt)),
+                    ('App. Alt', formatAngle(r.apparentAltitude, fmt)),
+                    ('Zenith Dist', formatAngle(r.zenithDistance, fmt)),
+                  ],
+                  if (!r.meridianDistance.isNaN)
+                    ('Meridian Dist', formatAngle(r.meridianDistance, fmt)),
+                  if (r.houseRequested) ...[
+                    (
+                      'House',
+                      r.housePos.isNaN ? '—' : '${houseNumberOf(r.housePos)}',
+                    ),
+                    (
+                      'House Pos',
+                      r.housePos.isNaN
+                          ? '—'
+                          : formatAngle(housePositionDegrees(r.housePos), fmt),
+                    ),
+                  ],
+                ],
         ),
       )
       .toList();

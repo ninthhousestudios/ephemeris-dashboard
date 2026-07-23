@@ -135,13 +135,17 @@ List<ExportRow> phenomenaToExportRows(
       .map(
         (r) => ExportRow(
           header: r.bodyName,
-          fields: [
-            ('Phase Angle', formatAngle(r.phaseAngle, fmt)),
-            ('Phase (Illum.)', r.phase.toStringAsFixed(6)),
-            ('Elongation', formatAngle(r.elongation, fmt)),
-            ('App. Diameter', formatAngle(r.apparentDiameter, fmt)),
-            ('App. Magnitude', r.apparentMagnitude.toStringAsFixed(4)),
-          ],
+          // Mirror the card view: a body that failed at this step shows its
+          // error string, not quantities formatted from NaN fields.
+          fields: r.errorMessage != null
+              ? [('Error', r.errorMessage!)]
+              : [
+                  ('Phase Angle', formatAngle(r.phaseAngle, fmt)),
+                  ('Phase (Illum.)', r.phase.toStringAsFixed(6)),
+                  ('Elongation', formatAngle(r.elongation, fmt)),
+                  ('App. Diameter', formatAngle(r.apparentDiameter, fmt)),
+                  ('App. Magnitude', r.apparentMagnitude.toStringAsFixed(4)),
+                ],
         ),
       )
       .toList();

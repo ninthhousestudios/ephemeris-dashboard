@@ -363,81 +363,96 @@ List<ExportRow> starToExportRows(
   return results.map((result) {
     return ExportRow(
       header: result.resolvedName,
-      fields: [
-        (
-          lbl.c1,
-          isXyz
-              ? formatAu(result.longitude, fmt)
-              : formatAngle(result.longitude, fmt),
-        ),
-        (
-          lbl.c2,
-          isXyz
-              ? formatAu(result.latitude, fmt)
-              : formatAngle(result.latitude, fmt),
-        ),
-        (
-          lbl.c3,
-          isXyz
-              ? formatAu(result.distance, fmt)
-              : formatDistance(result.distance, fmt),
-        ),
-        if (isXyz)
-          (
-            'Distance',
-            formatEuclidean(
-              result.longitude,
-              result.latitude,
-              result.distance,
-              fmt,
-              lightYears: true,
-            ),
-          ),
-        ('Dist (ly)', formatDistanceLy(result.distance, fmt)),
-        ('Dist (km)', formatDistanceKm(result.distance, fmt)),
-        (
-          'Magnitude',
-          result.magnitude.isNaN ? '—' : result.magnitude.toStringAsFixed(2),
-        ),
-        if (!isXyz) ...[
-          ('U ecl', formatUnitVector(result.longitude, result.latitude, fmt)),
-          if (!result.rascension.isNaN)
-            (
-              'U equ',
-              formatUnitVector(result.rascension, result.declination, fmt),
-            ),
-        ],
-        (
-          lbl.sc1,
-          isXyz
-              ? formatAuSpeed(result.speedLon, fmt)
-              : formatSpeed(result.speedLon, fmt),
-        ),
-        (
-          lbl.sc2,
-          isXyz
-              ? formatAuSpeed(result.speedLat, fmt)
-              : formatSpeed(result.speedLat, fmt),
-        ),
-        (
-          lbl.sc3,
-          isXyz
-              ? formatAuSpeed(result.speedDist, fmt)
-              : formatSpeed(result.speedDist, fmt),
-        ),
-        if (result.houseRequested) ...[
-          (
-            'House',
-            result.housePos.isNaN ? '—' : '${houseNumberOf(result.housePos)}',
-          ),
-          (
-            'House Pos',
-            result.housePos.isNaN
-                ? '—'
-                : formatAngle(housePositionDegrees(result.housePos), fmt),
-          ),
-        ],
-      ],
+      // Mirror the card view: a star that failed to resolve at this step shows
+      // its error string, not quantities formatted from NaN fields.
+      fields: result.errorMessage != null
+          ? [('Error', result.errorMessage!)]
+          : [
+              (
+                lbl.c1,
+                isXyz
+                    ? formatAu(result.longitude, fmt)
+                    : formatAngle(result.longitude, fmt),
+              ),
+              (
+                lbl.c2,
+                isXyz
+                    ? formatAu(result.latitude, fmt)
+                    : formatAngle(result.latitude, fmt),
+              ),
+              (
+                lbl.c3,
+                isXyz
+                    ? formatAu(result.distance, fmt)
+                    : formatDistance(result.distance, fmt),
+              ),
+              if (isXyz)
+                (
+                  'Distance',
+                  formatEuclidean(
+                    result.longitude,
+                    result.latitude,
+                    result.distance,
+                    fmt,
+                    lightYears: true,
+                  ),
+                ),
+              ('Dist (ly)', formatDistanceLy(result.distance, fmt)),
+              ('Dist (km)', formatDistanceKm(result.distance, fmt)),
+              (
+                'Magnitude',
+                result.magnitude.isNaN
+                    ? '—'
+                    : result.magnitude.toStringAsFixed(2),
+              ),
+              if (!isXyz) ...[
+                (
+                  'U ecl',
+                  formatUnitVector(result.longitude, result.latitude, fmt),
+                ),
+                if (!result.rascension.isNaN)
+                  (
+                    'U equ',
+                    formatUnitVector(
+                      result.rascension,
+                      result.declination,
+                      fmt,
+                    ),
+                  ),
+              ],
+              (
+                lbl.sc1,
+                isXyz
+                    ? formatAuSpeed(result.speedLon, fmt)
+                    : formatSpeed(result.speedLon, fmt),
+              ),
+              (
+                lbl.sc2,
+                isXyz
+                    ? formatAuSpeed(result.speedLat, fmt)
+                    : formatSpeed(result.speedLat, fmt),
+              ),
+              (
+                lbl.sc3,
+                isXyz
+                    ? formatAuSpeed(result.speedDist, fmt)
+                    : formatSpeed(result.speedDist, fmt),
+              ),
+              if (result.houseRequested) ...[
+                (
+                  'House',
+                  result.housePos.isNaN
+                      ? '—'
+                      : '${houseNumberOf(result.housePos)}',
+                ),
+                (
+                  'House Pos',
+                  result.housePos.isNaN
+                      ? '—'
+                      : formatAngle(housePositionDegrees(result.housePos), fmt),
+                ),
+              ],
+            ],
     );
   }).toList();
 }
