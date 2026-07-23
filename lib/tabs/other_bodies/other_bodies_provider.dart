@@ -6,6 +6,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
@@ -17,6 +18,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/ephe/catalog.dart';
+import '../../core/house_systems.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -75,6 +77,7 @@ class OtherBodyResult {
     this.rascension = double.nan,
     this.declination = double.nan,
     this.dmin,
+    this.housePos = double.nan,
     this.errorMessage,
   });
 
@@ -90,8 +93,17 @@ class OtherBodyResult {
   final double rascension;
   final double declination;
   final double? dmin;
+
+  /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested or not
+  /// applicable (helio/barycentric). See [houseNumberOf], [housePositionDegrees].
+  final double housePos;
   final String? errorMessage;
 }
+
+/// Whether the Other Bodies card view shows each body's house position
+/// (swe-dashboard/58). Default off; the house-system dropdown appears only when
+/// on.
+final otherBodiesShowHousePosProvider = StateProvider<bool>((ref) => false);
 
 // ── Computation ──
 
@@ -102,7 +114,30 @@ List<OtherBodyResult> computeOtherBodies({
   required Origin origin,
   required List<int> bodies,
   required String Function(int body) getName,
+  double geolon = 0,
+  double geolat = 0,
+  bool includeHousePos = false,
+  int hsys = 0x50,
 }) {
+  // House position is a geocentric-observer quantity: only the geo/topocentric
+  // origins, computed once per Moment then reused for every body.
+  final doHousePos =
+      includeHousePos &&
+      (origin == Origin.geocentric || origin == Origin.topocentric);
+  HousePosInputs? hpInputs;
+  if (doHousePos) {
+    try {
+      hpInputs = housePosInputs(
+        eph,
+        jdUt: moment.ut,
+        lat: geolat,
+        lon: geolon,
+        hsys: hsys,
+        iflag: iflag,
+      );
+    } catch (_) {}
+  }
+
   return bodies.map((body) {
     try {
       final r = eph.calcUt(moment.ut, body, iflag | seFlgSpeed);
@@ -129,6 +164,16 @@ List<OtherBodyResult> computeOtherBodies({
         // not available for this body
       }
 
+      var housePos = double.nan;
+      if (hpInputs != null) {
+        try {
+          // Dedicated tropical ecliptic calc — swe_house_pos can't honour a
+          // sidereal/XYZ config, so `r` can't be reused.
+          final trop = eph.calcUt(moment.ut, body, housePosCalcFlag(iflag));
+          housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
+        } catch (_) {}
+      }
+
       return OtherBodyResult(
         body: body,
         bodyName: getName(body),
@@ -142,6 +187,7 @@ List<OtherBodyResult> computeOtherBodies({
         rascension: ra,
         declination: dec,
         dmin: dmin,
+        housePos: housePos,
       );
     } on SweException catch (e) {
       return OtherBodyResult(
@@ -181,6 +227,15 @@ List<OtherBodyResult> Function(Ephemeris, Moment) _otherBodiesCompute(Ref ref) {
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(otherBodiesSelectionProvider);
 
+  // House position: computed on card-toggle, or always in series mode where it
+  // is a default quantity (swe-dashboard/58); one app-wide house system.
+  final seriesEnabled = ref.watch(
+    seriesSettingsProvider(AppTab.otherBodies.name).select((s) => s.enabled),
+  );
+  final includeHousePos =
+      ref.watch(otherBodiesShowHousePosProvider) || seriesEnabled;
+  final hsys = ref.watch(selectedHouseSystemProvider);
+
   return (eph, moment) => computeOtherBodies(
     eph: eph,
     moment: moment,
@@ -192,6 +247,10 @@ List<OtherBodyResult> Function(Ephemeris, Moment) _otherBodiesCompute(Ref ref) {
       if (local != 'Body $body') return local;
       return safeGetName(swe, body);
     },
+    geolon: ctx.longitude,
+    geolat: ctx.latitude,
+    includeHousePos: includeHousePos,
+    hsys: hsys,
   );
 }
 
@@ -291,6 +350,10 @@ List<ExportRow> otherBodiesToExportRows(
                   ? formatAuSpeed(r.speedDist, fmt)
                   : formatSpeed(r.speedDist, fmt),
             ),
+            if (!r.housePos.isNaN) ...[
+              ('House', '${houseNumberOf(r.housePos)}'),
+              ('House Pos', formatAngle(housePositionDegrees(r.housePos), fmt)),
+            ],
           ],
         ),
       )

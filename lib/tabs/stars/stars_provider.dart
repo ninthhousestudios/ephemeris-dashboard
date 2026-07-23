@@ -9,14 +9,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
+import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephe/dir_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/house_systems.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -100,6 +103,7 @@ class StarResult {
     required this.returnFlag,
     this.rascension = double.nan,
     this.declination = double.nan,
+    this.housePos = double.nan,
     this.errorMessage,
   });
 
@@ -115,8 +119,17 @@ class StarResult {
   final int returnFlag;
   final double rascension;
   final double declination;
+
+  /// Raw `swe_house_pos` value (swetest `j`), NaN when not requested. See
+  /// [houseNumberOf], [housePositionDegrees].
+  final double housePos;
   final String? errorMessage;
 }
+
+/// Whether the Stars card view shows each star's house position
+/// (swe-dashboard/58). Default off; the house-system dropdown appears only when
+/// on.
+final starsShowHousePosProvider = StateProvider<bool>((ref) => false);
 
 /// Pure compute: resolve a fixed star by name, with Bayer-prefix retry.
 /// Returns null when the search term doesn't match any star (not an error).
@@ -126,6 +139,7 @@ StarResult? computeStar({
   required int iflag,
   required String searchTerm,
   required double Function(String) getMagnitude,
+  HousePosInputs? hpInputs,
 }) {
   final term = searchTerm.trim();
   if (term.isEmpty) return null;
@@ -179,6 +193,16 @@ StarResult? computeStar({
     // equatorial calc failed — leave NaN
   }
 
+  var housePos = double.nan;
+  if (hpInputs != null) {
+    try {
+      // Dedicated tropical ecliptic lookup — swe_house_pos can't honour a
+      // sidereal/XYZ config.
+      final trop = eph.fixstar2Ut(searchForMag, jdUt, housePosCalcFlag(iflag));
+      housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
+    } catch (_) {}
+  }
+
   return StarResult(
     searchTerm: term,
     resolvedName: r.starName,
@@ -192,6 +216,7 @@ StarResult? computeStar({
     returnFlag: r.returnFlag,
     rascension: ra,
     declination: dec,
+    housePos: housePos,
   );
 }
 
@@ -204,7 +229,27 @@ List<StarResult> computeStars({
   required int iflag,
   required List<String> searchTerms,
   required double Function(String) getMagnitude,
+  double geolon = 0,
+  double geolat = 0,
+  bool includeHousePos = false,
+  int hsys = 0x50,
 }) {
+  // House position inputs (ARMC + obliquity) computed once per Moment, reused
+  // for every star.
+  HousePosInputs? hpInputs;
+  if (includeHousePos) {
+    try {
+      hpInputs = housePosInputs(
+        eph,
+        jdUt: jdUt,
+        lat: geolat,
+        lon: geolon,
+        hsys: hsys,
+        iflag: iflag,
+      );
+    } catch (_) {}
+  }
+
   return searchTerms.map((term) {
     try {
       final result = computeStar(
@@ -213,6 +258,7 @@ List<StarResult> computeStars({
         iflag: iflag,
         searchTerm: term,
         getMagnitude: getMagnitude,
+        hpInputs: hpInputs,
       );
       if (result != null) return result;
       return StarResult(
@@ -250,6 +296,15 @@ List<StarResult> Function(Ephemeris, Moment) _starsCompute(Ref ref) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
   final searchTerms = ref.watch(selectedStarsProvider);
+  final ctx = ref.watch(contextBarProvider);
+
+  // House position: computed on card-toggle, or always in series mode where it
+  // is a default quantity (swe-dashboard/58); one app-wide house system.
+  final seriesEnabled = ref.watch(
+    seriesSettingsProvider(AppTab.stars.name).select((s) => s.enabled),
+  );
+  final includeHousePos = ref.watch(starsShowHousePosProvider) || seriesEnabled;
+  final hsys = ref.watch(selectedHouseSystemProvider);
 
   return (eph, moment) => computeStars(
     eph: eph,
@@ -257,6 +312,10 @@ List<StarResult> Function(Ephemeris, Moment) _starsCompute(Ref ref) {
     iflag: flags.iflag,
     searchTerms: searchTerms,
     getMagnitude: (star) => swe.fixstar2Mag(star).magnitude,
+    geolon: ctx.longitude,
+    geolat: ctx.latitude,
+    includeHousePos: includeHousePos,
+    hsys: hsys,
   );
 }
 
@@ -358,6 +417,13 @@ List<ExportRow> starToExportRows(
               ? formatAuSpeed(result.speedDist, fmt)
               : formatSpeed(result.speedDist, fmt),
         ),
+        if (!result.housePos.isNaN) ...[
+          ('House', '${houseNumberOf(result.housePos)}'),
+          (
+            'House Pos',
+            formatAngle(housePositionDegrees(result.housePos), fmt),
+          ),
+        ],
       ],
     );
   }).toList();
