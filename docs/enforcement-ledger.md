@@ -26,15 +26,16 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 | 5 | "Calculation kernel stays acyclic" — PRD ② | a | `no_cycles lib/core/calculation` | live, **blocking** (bound @ `/7`) |
 | 6 | "Kernel/Ephemeris are not god-hubs" — refactor goal | a | `max_fan_in run_tab_calc.dart threshold=30` | live, **advisory** (bound @ `/11`) |
 | 7 | "No in-tree chart parsers" — PRD ③ | a | `confined_external charts_dart allowed_in=lib/widgets/context_bar/**,lib/core/**` | live, **blocking** (clean today, bound @ `/9`) |
-| 8 | "Each recompute synchronous for trace-slice coherence" — ADR-0002 supersedes ADR-0001 C-global hazard | c | CLAUDE.md invariant | routed → CLAUDE.md (rewritten `/32`) |
+| 8 | "Each recompute synchronous" — ADR-0001 reactive projection (trace-slice motivation retired with the trace subsystem @ `/47`; ADR-0002 separately removed the C-global await hazard) | c | CLAUDE.md invariant | routed → CLAUDE.md (rewritten `/32`, trace clause dropped `/60`) |
 | 9 | "JD is canonical; civil is derived" — CONTEXT §Moment | c | CLAUDE.md invariant | routed → CLAUDE.md |
 | 10 | "Locked Flags are a pure function of the Context" — CONTEXT §Locked Flag | c | CLAUDE.md invariant | routed → CLAUDE.md |
 | 11 | "Reactive projection — no explicit Calculate trigger" — ADR-0001 | c | CLAUDE.md (Decision #1 update @ `/15`) | routed → CLAUDE.md |
-| 12 | trace↔emitter coverage (no silent drops) — PRD §Testing | d | coverage test | test @ `/8` |
+| 12 | ~~trace↔emitter coverage (no silent drops) — PRD §Testing~~ | d | coverage test | **RETIRED @ `/47`** — trace subsystem deleted; the coverage test group was dropped with it |
 | 13 | charts_dart per-format round-trips — PRD §Testing | d | round-trip tests | test @ `charts-dart/1` |
 | 14 | Moment civil↔JD conversion — PRD §Testing | d | conversion tests | test @ `/6` |
 | 15 | Kernel Result via fake Ephemeris — PRD §Testing | d | kernel tests | test @ `/7` |
 | 16 | Tab registry completeness — PRD §Testing | d | registry test | test @ `/16` |
+| 17 | "A series compute takes its Moment from the step, never the Context" — Time-Series PRD §Governed invariant | c | CLAUDE.md invariant + structural (computes are `(Ephemeris, Moment)` with no `ref`; `runTabCalcSeries` solely owns the Context-JD read and the step loop) | routed → CLAUDE.md (`/60`). A `forbidden_pattern` banning `jdUt`/`jdEt` under `lib/tabs/**` was **rejected as unsound** — those identifiers are legitimate there (compute params fed from `moment.ut`; Dates result fields `jdUt`/`jdEt`), so the ban would fire on ~100 valid sites. |
 
 ## Maintenance
 

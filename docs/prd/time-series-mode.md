@@ -212,11 +212,13 @@ The pure computes have no `ref` and no Context access, so they cannot violate th
 structurally. The residual risk is a *provider* passing `ctx.jdUt` instead of the
 step Moment inside the loop.
 
-Enforce by making `jdUt`/`jdEt` core-only vocabulary: `Moment` exposes `.ut`/`.et`,
-and tab-layer compute parameters are renamed to match. Then any occurrence of the
-identifier `jdUt` or `jdEt` under `lib/tabs/**` is by definition a Context read:
+The plan below was to make `jdUt`/`jdEt` core-only vocabulary — `Moment` exposes
+`.ut`/`.et`, tab-layer compute parameters renamed to match — so that any occurrence
+of the identifier `jdUt`/`jdEt` under `lib/tabs/**` would be "by definition a Context
+read", enforced by:
 
 ```toml
+# REJECTED at P4 (swe-dashboard/60) — see below. Kept for the record.
 [[constraint]]
 kind = "forbidden_pattern"
 name = "moment-only-from-series-step"
@@ -226,9 +228,22 @@ severity = "blocking"
 provenance = "docs/prd/time-series-mode.md §Governed invariant"
 ```
 
-Waivers: Dates and Differential have their own JD-entry field independent of the
-Context (`overrideJd`). Query needs validation against tree-sitter-dart at seed time
-per the note in `vidhi/language-rules/dart.toml`.
+**Rejected as unsound at P4 (swe-dashboard/60).** The premise — that tab compute
+parameters were renamed to `.ut`/`.et` in series-core — did not hold: only Planets'
+compute *call* switched to `moment.ut`. `jdUt`/`jdEt` occurs ~104 times across 26
+`lib/tabs/` files as legitimate vocabulary — compute params fed from `moment.ut`,
+result-class fields, and most decisively the **Dates tab's own `jdUt`/`jdEt` result
+fields** (its domain output is Julian Day UT/ET). An `^jd(Ut|Et)$` ban would fire on
+~100 valid sites; renaming the Dates fields would corrupt the tab's vocabulary. A
+narrower tree-sitter query can't help either — identifier matching can't see the
+receiver, so it can't tell `context.jdUt` from a param or a result field.
+
+Instead the invariant is **structurally guaranteed and routed to CLAUDE.md**
+(enforcement ledger row 17, bucket c): the pure computes take `(Ephemeris, Moment)`
+with no `ref` and cannot reach the Context; `runTabCalcSeries` is the sole reader of
+the Context JD and owns the step loop, so there is no per-tab loop for a `ctx.jdUt`
+to leak into — the "residual risk" above has no home. This matches how the sibling
+invariants ("JD is canonical", "Locked Flags") are routed.
 
 ## What falls out for free
 
@@ -271,7 +286,7 @@ removal of an existing capability inconsistency.
 | **P1 — series core** | `Moment`, `runTabCalcSeries`, `SeriesSpec`, `SeriesBar`, grid widget, quantity picker, calendar-aware month/year stepping, row caps, dual-layout export. Pilot on Planets, verified against `swetest -p -n -s`. |
 | **P2 — rollout** | Remaining 9 pointwise tabs, interleaved with the cheap quantity gaps above. |
 | **P3 — retirement** | Delete the Table tab; migrate persisted settings. |
-| **P4 — governance** | Seed the `moment-only-from-series-step` constraint; update `docs/architecture-map.md` and `docs/enforcement-ledger.md`. |
+| **P4 — governance** | Route the Moment-from-series-step invariant (the `moment-only-from-series-step` lint was rejected as unsound — see §Governed invariant — and routed to CLAUDE.md instead); update `docs/architecture-map.md` and `docs/enforcement-ledger.md`. |
 
 ## Acceptance
 
@@ -281,4 +296,6 @@ removal of an existing capability inconsistency.
 - Monthly and yearly steps land on calendar dates, not 30.4375-day approximations.
 - No `CallTrace` references remain in the codebase.
 - The Table tab is gone and nothing regressed relative to it.
-- `moment-only-from-series-step` is seeded and passing.
+- The Moment-from-series-step invariant is enforced (structurally + CLAUDE.md
+  bucket-c invariant; the `moment-only-from-series-step` lint was rejected as
+  unsound — see §Governed invariant).

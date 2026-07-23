@@ -85,11 +85,25 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
 — honor them:
 
 - **Synchronous recompute** — each recompute is synchronous, so a tab's result
-  is exactly the product of one compute pass.
-  (Supersedes the ADR-0001 "Applied Globals never set across an await" hazard —
-  that hazard is gone with stateless `swisseph_rs`; see ADR-0002.)
+  is exactly the product of one compute pass (and each series step of one step
+  pass). The Call Trace clause that once co-motivated this is gone with the trace
+  subsystem (swe-dashboard/47); the invariant now rests on ADR-0001 (reactive
+  projection: result is a pure function of the Context, no staleness) alone.
+  (The ADR-0001 "Applied Globals never set across an await" hazard is separately
+  gone with stateless `swisseph_rs`; see ADR-0002.)
 - **JD is canonical** — the Moment is a Julian Day; civil date/time/offset is a
   derived, advisory view. Editing a civil field computes a new Moment.
+- **Moment comes from the series step, never the Context** — in series mode a
+  compute is repeated over the step Moments, whose start is the Context Moment
+  (JD canonical) but whose subsequent values are *not*. This is structural, not
+  linted: the pure computes take `(Ephemeris, Moment)` with no `ref`, so they
+  cannot read the Context; and `runTabCalcSeries` (run_tab_calc.dart) is the sole
+  place that reads the Context JD — it owns the step loop and feeds each
+  `Moment` in, so there is no per-tab loop for a `ctx.jdUt` to leak into. A
+  `forbidden_pattern` banning `jdUt`/`jdEt` under `lib/tabs/**` was considered and
+  rejected: those identifiers are legitimate vocabulary there (compute params fed
+  from `moment.ut`, and the Dates tab's own `jdUt`/`jdEt` result fields), so the
+  ban would be unsound. See enforcement ledger row 17.
 - **Locked Flags are a pure function of the Context** — one source of truth, not a
   hand-maintained set.
 - **swisseph_rs behind the Ephemeris seam** — reach the engine through the `Ephemeris`
