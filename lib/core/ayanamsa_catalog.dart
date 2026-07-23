@@ -19,6 +19,11 @@ const int ayanamsaTropicalId = -1;
 /// SE_SIDM_USER — requires t0 (reference JD) and ayanT0 (value at t0).
 const int ayanamsaUserId = 255;
 
+/// SE_SIDBIT_USER_UT — ORed into sid_mode so the user-defined t0 is read as UT
+/// rather than TT (swetest `jdisut`). Mirrors `rs.SiderealBits.userUt`, kept
+/// here so the tabs layer need not reach into `package:swisseph_rs`.
+const int userAyanUtBit = 1024;
+
 const List<AyanamsaEntry> ayanamsaCatalog = [
   AyanamsaEntry(0, 'Fagan/Bradley'),
   AyanamsaEntry(1, 'Lahiri'),

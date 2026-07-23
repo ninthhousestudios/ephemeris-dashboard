@@ -79,6 +79,34 @@ List<(Moment, CalcOutcome<T>)> runTabCalcSeries<T>(
   );
 }
 
+/// Series counterpart of [runTabCalcWithOverrides]: each step's [compute] gets
+/// the base [AppliedGlobals] and a `reconfigure` hook, so a tab that compares
+/// several engine configurations (e.g. Ayanamsa) can vary them per step
+/// without reaching the runner directly. The base config is applied once
+/// before the loop; per-step reconfiguration is the tab's own concern.
+List<(Moment, CalcOutcome<T>)> runTabCalcSeriesWithOverrides<T>(
+  Ref ref, {
+  required T Function(
+    Ephemeris eph,
+    Moment moment,
+    AppliedGlobals baseGlobals,
+    void Function(AppliedGlobals) reconfigure,
+  )
+  compute,
+  required SeriesSettings settings,
+}) {
+  final globals = ref.watch(appliedGlobalsProvider);
+  final runner = ref.watch(ephemerisRunnerProvider);
+  final jdUt = ref.watch(effectiveContextProvider.select((c) => c.jdUt));
+
+  runner.apply(globals);
+  return computeSeries(
+    runner.eph,
+    settings.specFrom(Moment.fromUt(jdUt, runner.eph)),
+    (eph, moment) => compute(eph, moment, globals, (o) => runner.apply(o)),
+  );
+}
+
 /// The series loop, without Riverpod. The engine must already be configured.
 ///
 /// Error contract, deliberately wider than the engine's: *anything* thrown

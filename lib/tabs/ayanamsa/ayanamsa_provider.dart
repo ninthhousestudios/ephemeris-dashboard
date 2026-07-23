@@ -2,18 +2,17 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/swe_constants.dart';
 
 import '../../core/ayanamsa_catalog.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
-import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/ephemeris/applied_globals.dart';
 import '../../core/ephemeris/ephemeris.dart';
-import '../../core/ephemeris/runner.dart';
 import '../../core/export_service.dart';
+import '../../core/swe_constants.dart' show SweException;
 import '../../layout/tab_definitions.dart';
 
 /// Display format for Ayanamsa tab (promoted from local state).
@@ -22,31 +21,89 @@ final ayanamsaFormatProvider = StateProvider<DisplayFormat>(
 );
 
 /// Result for a single ayanamsa calculation.
+///
+/// [userId] is set only for user-defined entries and identifies which
+/// [UserAyanamsa] produced this row (built-in rows leave it null).
 class AyanamsaCalcResult {
   const AyanamsaCalcResult({
     required this.sidMode,
     required this.name,
     required this.value,
+    this.userId,
   });
 
   final int sidMode;
   final String name;
   final double value;
+  final int? userId;
 }
 
-/// Ayanamsa modes shown on this tab.
-/// Canonical catalog from lib/core/ayanamsa_catalog.dart.
-/// User-defined (255) is omitted unless the user has set t0/value.
-Map<int, String> ayanamsaModesFor({bool includeUser = true}) {
+/// One user-defined ayanamsha (SE_SIDM_USER, 255) on the Ayanamsa tab.
+///
+/// The tab supports an arbitrary number of these, each independently editable
+/// and removable — distinct from the single context-bar user-defined ayanamsha
+/// that drives chart calculations on every other tab.
+class UserAyanamsa {
+  const UserAyanamsa({
+    required this.id,
+    this.t0 = 2451545.0, // J2000
+    this.value = 0.0,
+    this.t0IsUt = false,
+  });
+
+  final int id;
+  final double t0; // reference Julian Day
+  final double value; // ayanamsha at t0, degrees
+  final bool t0IsUt; // SE_SIDBIT_USER_UT (jdisut)
+
+  UserAyanamsa copyWith({double? t0, double? value, bool? t0IsUt}) =>
+      UserAyanamsa(
+        id: id,
+        t0: t0 ?? this.t0,
+        value: value ?? this.value,
+        t0IsUt: t0IsUt ?? this.t0IsUt,
+      );
+}
+
+class UserAyanamsaNotifier extends StateNotifier<List<UserAyanamsa>> {
+  UserAyanamsaNotifier() : super(const []);
+
+  int _nextId = 0;
+
+  void add() {
+    state = [...state, UserAyanamsa(id: _nextId++)];
+  }
+
+  void removeById(int id) {
+    state = state.where((u) => u.id != id).toList();
+  }
+
+  void update(int id, {double? t0, double? value, bool? t0IsUt}) {
+    state = [
+      for (final u in state)
+        if (u.id == id) u.copyWith(t0: t0, value: value, t0IsUt: t0IsUt) else u,
+    ];
+  }
+}
+
+/// User-defined ayanamsha entries shown on the Ayanamsa tab.
+final userAyanamsasProvider =
+    StateNotifierProvider<UserAyanamsaNotifier, List<UserAyanamsa>>(
+      (ref) => UserAyanamsaNotifier(),
+    );
+
+/// Built-in ayanamsa modes shown on this tab (User-defined excluded — it is an
+/// add action, not a toggle). Canonical catalog from ayanamsa_catalog.dart.
+Map<int, String> ayanamsaModesFor() {
   final map = <int, String>{};
   for (final e in ayanamsaCatalog) {
-    if (!includeUser && e.id == ayanamsaUserId) continue;
+    if (e.id == ayanamsaUserId) continue;
     map[e.id] = e.name;
   }
   return map;
 }
 
-/// Selected ayanamsas for compare mode.
+/// Selected built-in ayanamsas.
 final selectedAyanamsasProvider = StateProvider<List<int>>(
   (ref) => [1],
 ); // Lahiri default
@@ -54,40 +111,57 @@ final selectedAyanamsasProvider = StateProvider<List<int>>(
 /// Compare mode toggle.
 final ayanamsaCompareModeProvider = StateProvider<bool>((ref) => false);
 
-List<AyanamsaCalcResult> Function(Ephemeris, Moment) _ayanamsaCompute(Ref ref) {
-  final ctx = ref.watch(contextBarProvider);
+/// Signature the tab's compute takes: it may reconfigure the engine per
+/// ayanamsha, since each mode is a different sidereal configuration. This runs
+/// through the [runTabCalcWithOverrides] seam rather than the runner directly.
+typedef _AyanamsaCompute =
+    List<AyanamsaCalcResult> Function(
+      Ephemeris eph,
+      Moment moment,
+      AppliedGlobals baseGlobals,
+      void Function(AppliedGlobals) reconfigure,
+    );
+
+_AyanamsaCompute _ayanamsaCompute(Ref ref) {
   final selected = ref.watch(selectedAyanamsasProvider);
   final compareMode = ref.watch(ayanamsaCompareModeProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  final baseGlobals = ref.watch(appliedGlobalsProvider);
+  final users = ref.watch(userAyanamsasProvider);
 
-  final hasUserParams = ctx.userAyanT0 != 0.0 || ctx.userAyanValue != 0.0;
-  final modes = compareMode
-      ? ayanamsaModesFor(includeUser: hasUserParams).keys.toList()
-      : selected;
+  final builtins = compareMode ? ayanamsaModesFor().keys.toList() : selected;
 
-  return (eph, moment) {
+  return (eph, moment, baseGlobals, reconfigure) {
     final results = <AyanamsaCalcResult>[];
-    for (final sidMode in modes) {
+    for (final sidMode in builtins) {
       try {
-        final modeGlobals = sidMode == ayanamsaUserId
-            ? baseGlobals.withSidMode(
-                sidMode,
-                t0: ctx.userAyanT0,
-                ayanT0: ctx.userAyanValue,
-              )
-            : baseGlobals.withSidMode(sidMode);
-        runner.apply(modeGlobals);
-        final value = eph.getAyanamsaUt(moment.ut);
+        reconfigure(baseGlobals.withSidMode(sidMode));
         results.add(
           AyanamsaCalcResult(
             sidMode: sidMode,
             name: ayanamsaName(sidMode),
-            value: value,
+            value: eph.getAyanamsaUt(moment.ut),
           ),
         );
       } on SweException {
         // Per-item failure: skip this mode, batch continues.
+      }
+    }
+    for (var i = 0; i < users.length; i++) {
+      final u = users[i];
+      try {
+        final mode = u.t0IsUt
+            ? (ayanamsaUserId | userAyanUtBit)
+            : ayanamsaUserId;
+        reconfigure(baseGlobals.withSidMode(mode, t0: u.t0, ayanT0: u.value));
+        results.add(
+          AyanamsaCalcResult(
+            sidMode: ayanamsaUserId,
+            userId: u.id,
+            name: 'User-defined ${i + 1}',
+            value: eph.getAyanamsaUt(moment.ut),
+          ),
+        );
+      } on SweException {
+        // Per-item failure: skip this entry, batch continues.
       }
     }
     return results;
@@ -97,7 +171,7 @@ List<AyanamsaCalcResult> Function(Ephemeris, Moment) _ayanamsaCompute(Ref ref) {
 final _ayanamsaCalcProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>((
   ref,
 ) {
-  return runTabCalc(ref, compute: _ayanamsaCompute(ref));
+  return runTabCalcWithOverrides(ref, compute: _ayanamsaCompute(ref));
 });
 
 final ayanamsaResultsProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>(
@@ -113,7 +187,7 @@ final ayanamsaSeriesProvider =
       );
       final settings = ref.read(seriesSettingsProvider(AppTab.ayanamsa.name));
       if (!settings.enabled) return const [];
-      return runTabCalcSeries(
+      return runTabCalcSeriesWithOverrides(
         ref,
         compute: _ayanamsaCompute(ref),
         settings: settings,

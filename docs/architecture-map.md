@@ -52,11 +52,20 @@ Watches `contextBarProvider` + `flagBarProvider` directly; no
 `safeGetName` helper in `lib/core/body_utils.dart` (was duplicated in 4
 provider files).
 
-**Per-mode overrides (`runTabCalcWithOverrides`):** `ayanamsa` needs a
-per-mode sidereal config override around each `getAyanamsaUt`. Uses
-`AppliedGlobals.withSidMode()` to build per-mode config, then
-`reconfigure` callback to swap the engine config per iteration. No
-save/restore — each reconfigure is independent.
+**Per-mode overrides (`runTabCalcWithOverrides` / `runTabCalcSeriesWithOverrides`):**
+`ayanamsa` needs a per-mode sidereal config override around each
+`getAyanamsaUt`. Uses `AppliedGlobals.withSidMode()` to build per-mode config,
+then the `reconfigure` callback to swap the engine config per iteration. No
+save/restore — each reconfigure is independent. This is the sanctioned seam
+that keeps `lib/tabs/` off `runner.dart` (rule `tabs-use-kernel-not-runner`);
+the series variant added for the multi-user-defined feature carries the same
+hook through the step loop.
+
+`ayanamsa` also owns a list of user-defined ayanamshas
+(`userAyanamsasProvider` → `UserAyanamsaNotifier`, entries keyed by a stable
+int id): the tab lets the user add/edit/remove arbitrarily many SE_SIDM_USER
+comparisons, separate from the single context-bar user-defined ayanamsha that
+drives the other tabs.
 
 **Deliberate non-kernel tabs:** `math` is a JUSTIFIED EXCEPTION — a stateless
 calculator over user-typed inputs; pure math (`degnorm`/`splitDeg`/…)
@@ -146,7 +155,7 @@ controller, focus node, and sync/commit logic.
 | `zodiac_ref_selector.dart` | `ZodiacRefSelector` — tropical/sidereal dropdown |
 | `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
 | `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown; user-defined opens `showUserAyanamsaDialog` |
-| `user_ayanamsa_dialog.dart` | `showUserAyanamsaDialog` — SE_SIDM_USER params (t0, value, `jdisut`); shared by the selector and the Ayanamsa tab chip |
+| `user_ayanamsa_dialog.dart` | `showUserAyanamsaDialog` — SE_SIDM_USER params (t0, value, `jdisut`) for the context-bar user-defined ayanamsha (the Ayanamsa tab edits its own list inline, not via this dialog) |
 | `projection_selector.dart` | `ProjectionSelector` — sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE), disabled when tropical |
 | `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
