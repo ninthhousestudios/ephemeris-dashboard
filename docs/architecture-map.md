@@ -3,7 +3,13 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-23 (swe-dashboard/69: horizontal coordinates (azimuth,
+Last updated: 2026-07-23 (swe-dashboard/75: time-scale entry {UT1, TT, UTC} on
+the civil time input. `TimeScale` enum on `ContextBarState` (persisted,
+advisory — never in a compute); `JdUtils.civilToJdUt`/`jdUtToCivil` own the
+scale-aware civil↔JD mapping, `SweUtils.utcToJd`/`jdUt1ToUtc` expose the
+engine's date surface, `TimeScaleSelector` in the OPTIONS grid).
+
+Earlier (swe-dashboard/69: horizontal coordinates (azimuth,
 altitude, zenith, meridian distance) added to all three body tabs — card toggle
 + series quantity. Shared `horizontalCoordsOf` kernel helper + `horizontal_fields`
 widget; `HousePosControls` renamed to `BodyDisplayControls` and now hosts both
@@ -137,8 +143,9 @@ Tabs access the engine two ways:
 
 | File | Key types |
 |------|-----------|
-| `context_state.dart` | `ContextBarState` — immutable: jdUt, calendar, lat, lon, alt, zodiacRef, origin, epheSource |
-| `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState. Individual setters: setDateTime, setJd, setCalendar, setUtcOffset, setLatitude, setLongitude, setAltitude, setCityLabel, setOrigin, etc. `setDateTime`/`setJd` read/render civil fields on the current calendar; `setCalendar` re-renders the displayed date from the (canonical) jdUt. |
+| `context_state.dart` | `ContextBarState` — immutable: jdUt, calendar, timeScale, lat, lon, alt, zodiacRef, origin, epheSource |
+| `time_scale.dart` | `TimeScale` (ut1/tt/utc) — pure enum: which time scale the civil date/time is entered/displayed on (swetest `-ut`/`-t`/`-utc`). View-layer only, like `Calendar`; the Moment stays a UT1 JD. Threaded into `JdUtils.civilToJdUt`/`jdUtToCivil` (the scale-aware civil↔JD mapping), Context-owned via `ContextBarState.timeScale`. |
+| `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState. Individual setters: setDateTime, setJd, setCalendar, setTimeScale, setUtcOffset, setLatitude, setLongitude, setAltitude, setCityLabel, setOrigin, etc. `setDateTime`/`setJd` read/render civil fields on the current calendar; `setCalendar` re-renders the displayed date from the (canonical) jdUt. The date/time fields commit through `setJd` (having mapped scale-civil → UT1 via `JdUtils.civilToJdUt`). |
 | `date_time_input.dart` | Shared helpers: fmtDate, fmtTime, fmtOffset, fmtCoord, parseDateFields, parseTimeFields, labeledField, dateTimeIconButton, showPreciseTimePicker |
 | `calc_context.dart` | `EffectiveContext` — merges context + flags into iflag, jdUt, lat, lon, alt |
 | `flag_definitions.dart` | `FlagDef`, `FlagGroup` — flag metadata, locked/toggle classification |
@@ -160,6 +167,7 @@ controller, focus node, and sync/commit logic.
 | `context_time_field.dart` | `ContextTimeField` — time text + clock picker; `showNowButton` param |
 | `context_utc_field.dart` | `ContextUtcField` — UTC offset text + half-hour dropdown |
 | `clock_selector.dart` | `ClockSelector` — output-clock dropdown (Standard/LMT/LAT; Standard uses the Context UTC offset, 0 = UT), drives `outputClockProvider` |
+| `time_scale_selector.dart` | `TimeScaleSelector` — time-scale dropdown (UT1/TT/UTC) for the civil time input; drives `ContextBarState.timeScale`. Tooltip surfaces the ΔT-vs-ephemeris consequence |
 | `context_jd_field.dart` | `ContextJdField` — Julian Day text input |
 | `context_location_field.dart` | `ContextLocationField(LocationFieldKind)` — lat/lon/alt/city, parameterized |
 | `origin_selector.dart` | `OriginSelector` — geocentric/topocentric/helio dropdown |
