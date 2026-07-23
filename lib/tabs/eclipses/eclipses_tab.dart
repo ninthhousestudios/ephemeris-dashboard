@@ -12,6 +12,7 @@ import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/star_search_field.dart';
 import 'eclipses_provider.dart';
 
 class EclipsesTab extends ConsumerStatefulWidget {
@@ -31,14 +32,6 @@ const _occultStars = <String>[
 ];
 
 class _EclipsesTabState extends ConsumerState<EclipsesTab> {
-  final _starController = TextEditingController();
-
-  @override
-  void dispose() {
-    _starController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -197,88 +190,86 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
   Widget _buildOccultTarget(ThemeData theme) {
     final kind = ref.watch(occultTargetKindProvider);
     final swe = ref.read(sweProvider);
-    final scale = MediaQuery.textScalerOf(context).scale(1.0);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            Text('Target ', style: theme.textTheme.labelLarge),
-            const SizedBox(width: 4),
-            ChoiceChip(
-              label: const Text('Planet'),
-              selected: kind == OccultTarget.planet,
-              onSelected: (_) =>
-                  ref.read(occultTargetKindProvider.notifier).state =
-                      OccultTarget.planet,
-              visualDensity: VisualDensity.compact,
-            ),
-            const SizedBox(width: 4),
-            ChoiceChip(
-              label: const Text('Star'),
-              selected: kind == OccultTarget.star,
-              onSelected: (_) =>
-                  ref.read(occultTargetKindProvider.notifier).state =
-                      OccultTarget.star,
-              visualDensity: VisualDensity.compact,
-            ),
-            const SizedBox(width: 12),
-            if (kind == OccultTarget.planet)
-              ...() {
-                final selected = ref.watch(occultPlanetProvider);
-                return occultablePlanets.map(
-                  (body) => Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: ChoiceChip(
-                      label: Text(safeGetName(swe, body)),
-                      selected: selected == body,
-                      onSelected: (_) =>
-                          ref.read(occultPlanetProvider.notifier).state = body,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                );
-              }()
-            else ...[
-              ...() {
-                final selected = ref.watch(occultStarProvider);
-                return _occultStars.map(
-                  (star) => Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: ChoiceChip(
-                      label: Text(star),
-                      selected: selected == star,
-                      onSelected: (_) {
-                        _starController.clear();
-                        ref.read(occultStarProvider.notifier).state = star;
-                      },
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                );
-              }(),
-              SizedBox(
-                width: (150 * scale).floorToDouble(),
-                child: TextField(
-                  controller: _starController,
-                  decoration: const InputDecoration(
-                    isDense: true,
-                    hintText: 'Other star…',
-                  ),
-                  onSubmitted: (v) {
-                    final term = v.trim();
-                    if (term.isNotEmpty) {
-                      ref.read(occultStarProvider.notifier).state = term;
-                    }
-                  },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Kind toggle + planet/star preset chips.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text('Target ', style: theme.textTheme.labelLarge),
+                const SizedBox(width: 4),
+                ChoiceChip(
+                  label: const Text('Planet'),
+                  selected: kind == OccultTarget.planet,
+                  onSelected: (_) =>
+                      ref.read(occultTargetKindProvider.notifier).state =
+                          OccultTarget.planet,
+                  visualDensity: VisualDensity.compact,
                 ),
-              ),
-            ],
-          ],
+                const SizedBox(width: 4),
+                ChoiceChip(
+                  label: const Text('Star'),
+                  selected: kind == OccultTarget.star,
+                  onSelected: (_) =>
+                      ref.read(occultTargetKindProvider.notifier).state =
+                          OccultTarget.star,
+                  visualDensity: VisualDensity.compact,
+                ),
+                const SizedBox(width: 12),
+                if (kind == OccultTarget.planet)
+                  ...() {
+                    final selected = ref.watch(occultPlanetProvider);
+                    return occultablePlanets.map(
+                      (body) => Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: ChoiceChip(
+                          label: Text(safeGetName(swe, body)),
+                          selected: selected == body,
+                          onSelected: (_) =>
+                              ref.read(occultPlanetProvider.notifier).state =
+                                  body,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    );
+                  }()
+                else
+                  ...() {
+                    final selected = ref.watch(occultStarProvider);
+                    return _occultStars.map(
+                      (star) => Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: ChoiceChip(
+                          label: Text(star),
+                          selected: selected == star,
+                          onSelected: (_) =>
+                              ref.read(occultStarProvider.notifier).state =
+                                  star,
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    );
+                  }(),
+              ],
+            ),
+          ),
         ),
-      ),
+        // Full-catalog star search (Bayer / HIP) — the prebuilt selector.
+        if (kind == OccultTarget.star)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(52, 0, 12, 4),
+            child: StarSearchField(
+              onSelect: (name) =>
+                  ref.read(occultStarProvider.notifier).state = name,
+              hintText: 'Search star name, Bayer, or HIP number',
+              dense: true,
+            ),
+          ),
+      ],
     );
   }
 
