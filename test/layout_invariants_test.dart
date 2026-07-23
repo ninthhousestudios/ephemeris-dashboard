@@ -48,21 +48,9 @@ const _scales = [1.0, 1.15, 1.3, 1.7, 2.0];
 /// real fix is to move these labels into `InputDecoration`, which is a visual
 /// redesign. Deferred deliberately; see swe-dashboard/65 for the full analysis.
 const _knownOverflows = <String, Set<String>>{
-  'app_shell': {
-    'mobile @ 1.15x',
-    'mobile @ 1.7x',
-    'mobile @ 2.0x',
-    'desktop @ 1.0x',
-    'desktop @ 1.15x',
-  },
+  'app_shell': {'mobile @ 1.15x', 'mobile @ 1.7x', 'mobile @ 2.0x'},
   // AppShell hosts the ContextBar, so it inherits every ContextBar overflow.
-  'context_bar': {
-    'mobile @ 1.15x',
-    'mobile @ 1.7x',
-    'mobile @ 2.0x',
-    'desktop @ 1.0x',
-    'desktop @ 1.15x',
-  },
+  'context_bar': {'mobile @ 1.15x', 'mobile @ 1.7x', 'mobile @ 2.0x'},
   'coordinates_tab': {'mobile @ 2.0x'},
   'dates_tab': {'mobile @ 1.3x'},
   'differential_tab': {'mobile @ 1.15x'},

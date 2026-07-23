@@ -360,16 +360,22 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                       ],
                     ),
                     SizedBox(height: _rowGap),
-                    // Row 1: Date | Time | UTC | JD
+                    // Row 1: Date | Time | UTC | JD. Time carries the widest
+                    // value ("HH:MM:SS") and grows a "(TT)" scale suffix, so it
+                    // gets an extra flex unit taken from UTC, whose "+00:00" has
+                    // room to spare.
                     const Row(
                       children: [
-                        Expanded(child: ContextDateField()),
+                        Expanded(flex: 4, child: ContextDateField()),
                         SizedBox(width: _colGap),
-                        Expanded(child: ContextTimeField(showNowButton: true)),
+                        Expanded(
+                          flex: 5,
+                          child: ContextTimeField(showNowButton: true),
+                        ),
                         SizedBox(width: _colGap),
-                        Expanded(child: ContextUtcField()),
+                        Expanded(flex: 3, child: ContextUtcField()),
                         SizedBox(width: _colGap),
-                        Expanded(child: ContextJdField()),
+                        Expanded(flex: 4, child: ContextJdField()),
                       ],
                     ),
                     SizedBox(height: _rowGap),

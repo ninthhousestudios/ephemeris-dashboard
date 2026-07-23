@@ -81,7 +81,7 @@ class _ContextUtcFieldState extends ConsumerState<ContextUtcField> {
 
     return Row(
       children: [
-        Text('UTC Offset ', style: labelStyle),
+        Text('UTC ', style: labelStyle),
         Expanded(
           child: TextField(
             controller: _controller,
