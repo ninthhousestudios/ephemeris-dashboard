@@ -10,10 +10,10 @@ import '../../core/export_service.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/jd_utils.dart';
-import '../../core/persistence.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
+import '../../widgets/house_system_dropdown.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
@@ -29,7 +29,6 @@ class HousesTab extends ConsumerStatefulWidget {
 class _HousesTabState extends ConsumerState<HousesTab> {
   @override
   Widget build(BuildContext context) {
-    final hsys = ref.watch(selectedHouseSystemProvider);
     final theme = Theme.of(context);
 
     return Column(
@@ -47,40 +46,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
                 children: [
                   Text('House System:', style: theme.textTheme.labelMedium),
                   const SizedBox(width: 8),
-                  SizedBox(
-                    width: 240,
-                    child: DropdownButtonFormField<int>(
-                      initialValue: hsys,
-                      isDense: true,
-                      isExpanded: true,
-                      decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        border: OutlineInputBorder(),
-                      ),
-                      items: houseSystems
-                          .map(
-                            (h) => DropdownMenuItem(
-                              value: h.code,
-                              child: Text(
-                                '${h.char} — ${h.label}',
-                                style: theme.textTheme.bodySmall,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        if (v != null) {
-                          ref.read(selectedHouseSystemProvider.notifier).state =
-                              v;
-                          ref.read(persistenceProvider).saveHouseSystem(v);
-                        }
-                      },
-                    ),
-                  ),
+                  const HouseSystemDropdown(),
                 ],
               ),
             ),

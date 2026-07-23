@@ -7,6 +7,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
@@ -16,6 +17,7 @@ import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
+import '../../widgets/house_system_dropdown.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
@@ -155,8 +157,8 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
           ),
         ),
         const SizedBox(height: 4),
-        // ── Series mode ──
-        SeriesBar(tabId: AppTab.planets.name),
+        // ── Series mode (with the card-view house-position toggle inline) ──
+        SeriesBar(tabId: AppTab.planets.name, trailing: _buildHousePosToggle()),
         const Divider(height: 1),
         // ── Results ──
         if (ref.watch(
@@ -165,6 +167,38 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
           _buildSeries()
         else
           _buildResults(),
+      ],
+    );
+  }
+
+  /// The card-view house-position toggle, hosted on the Series row. While on, it
+  /// reveals the app-wide house-system dropdown (swe-dashboard/58). In series
+  /// mode house position is instead a default quantity in the picker.
+  Widget _buildHousePosToggle() {
+    final theme = Theme.of(context);
+    final showHousePos = ref.watch(planetsShowHousePosProvider);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        FilterChip(
+          label: const Text('House position'),
+          avatar: const Icon(Icons.home_work_outlined, size: 16),
+          selected: showHousePos,
+          onSelected: (v) =>
+              ref.read(planetsShowHousePosProvider.notifier).state = v,
+          visualDensity: VisualDensity.compact,
+        ),
+        if (showHousePos) ...[
+          const SizedBox(width: 12),
+          Text(
+            'System ',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const HouseSystemDropdown(width: 200),
+        ],
       ],
     );
   }
@@ -316,6 +350,23 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                                     : formatSpeed(r.speedDist, format),
                                 rawValue: r.speedDist,
                               ),
+                              if (!r.housePos.isNaN) ...[
+                                ResultField(
+                                  label: 'House',
+                                  value: '${houseNumberOf(r.housePos)}',
+                                  rawValue: houseNumberOf(
+                                    r.housePos,
+                                  ).toDouble(),
+                                ),
+                                ResultField(
+                                  label: 'House Pos',
+                                  value: formatAngle(
+                                    housePositionDegrees(r.housePos),
+                                    format,
+                                  ),
+                                  rawValue: housePositionDegrees(r.housePos),
+                                ),
+                              ],
                             ],
                     ),
                     Positioned(

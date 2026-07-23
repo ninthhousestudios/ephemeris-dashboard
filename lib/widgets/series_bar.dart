@@ -23,9 +23,14 @@ import '../core/swe_service.dart';
 /// canonical), and an editable start here would be a second place to set the
 /// same thing.
 class SeriesBar extends ConsumerStatefulWidget {
-  const SeriesBar({super.key, required this.tabId});
+  const SeriesBar({super.key, required this.tabId, this.trailing});
 
   final String tabId;
+
+  /// Card-mode extras (e.g. the Planets house-position toggle) rendered on the
+  /// same row, after the Series chip. Hidden while series mode is on, where the
+  /// row fills with the step/row controls and card toggles do not apply.
+  final Widget? trailing;
 
   @override
   ConsumerState<SeriesBar> createState() => _SeriesBarState();
@@ -151,6 +156,10 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
                     onChanged: _onRowCountChanged,
                     onCommit: _commitRowCount,
                   ),
+                ],
+                if (!settings.enabled && widget.trailing != null) ...[
+                  const SizedBox(width: 12),
+                  widget.trailing!,
                 ],
               ],
             ),

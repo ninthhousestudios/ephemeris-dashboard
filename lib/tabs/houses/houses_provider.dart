@@ -11,9 +11,14 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
-import '../../core/persistence.dart';
+import '../../core/house_systems.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
+
+// House-system state (HouseSystemDef, houseSystems, selectedHouseSystemProvider)
+// is app-wide and lives in core so the body tabs can share it without importing
+// this tab. Re-exported so existing Houses-tab consumers keep their import.
+export '../../core/house_systems.dart';
 
 /// Display format for Houses tab (promoted from local state).
 final housesFormatProvider = StateProvider<DisplayFormat>(
@@ -44,47 +49,6 @@ class HousesCalcResult {
   double get vertex => ascmc[3];
   double get equatorialAsc => ascmc[4];
 }
-
-/// Known house system codes and names.
-class HouseSystemDef {
-  const HouseSystemDef(this.code, this.label);
-  final int code; // ASCII char code
-  final String label;
-
-  String get char => String.fromCharCode(code);
-}
-
-final houseSystems = <HouseSystemDef>[
-  HouseSystemDef(0x50, 'Placidus'), // P
-  HouseSystemDef(0x4B, 'Koch'), // K
-  HouseSystemDef(0x4F, 'Porphyry'), // O
-  HouseSystemDef(0x52, 'Regiomontanus'), // R
-  HouseSystemDef(0x43, 'Campanus'), // C
-  HouseSystemDef(0x45, 'Equal (Asc)'), // E
-  HouseSystemDef(0x57, 'Whole Sign'), // W
-  HouseSystemDef(0x41, 'Equal (MC)'), // A
-  HouseSystemDef(0x42, 'Alcabitius'), // B
-  HouseSystemDef(0x4D, 'Morinus'), // M
-  HouseSystemDef(0x55, 'Krusinski'), // U
-  HouseSystemDef(0x48, 'Azimuthal/Horizontal'), // H
-  HouseSystemDef(0x56, 'Vehlow Equal'), // V
-  HouseSystemDef(0x58, 'Meridian (Axial)'), // X
-  HouseSystemDef(0x47, 'Gauquelin (36)'), // G
-  HouseSystemDef(0x54, 'Polich/Page'), // T
-  HouseSystemDef(0x44, 'Equal (MC, desc)'), // D
-  HouseSystemDef(0x4E, 'Equal/1=Aries'), // N
-  HouseSystemDef(0x59, 'APC Houses'), // Y
-  HouseSystemDef(0x46, 'Carter Poli-Equatorial'), // F
-  HouseSystemDef(0x49, 'Sunshine (Treindl)'), // I
-  HouseSystemDef(0x69, 'Sunshine (Makransky)'), // i
-  HouseSystemDef(0x4C, 'Pullen SD'), // L
-  HouseSystemDef(0x51, 'Pullen SR'), // Q
-];
-
-/// Selected house system (persisted).
-final selectedHouseSystemProvider = StateProvider<int>((ref) {
-  return ref.read(persistenceProvider).loadHouseSystem();
-});
 
 /// Pure compute step: one `houses` call, plus the house-system display name.
 HousesCalcResult computeHouses(

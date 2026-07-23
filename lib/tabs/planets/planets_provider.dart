@@ -6,6 +6,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
@@ -16,6 +17,7 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/house_systems.dart';
 import '../../core/swe_service.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -39,6 +41,7 @@ class PlanetResult {
     this.apparentAltitude = double.nan,
     this.zenithDistance = double.nan,
     this.meridianDistance = double.nan,
+    this.housePos = double.nan,
     this.errorMessage,
   });
 
@@ -59,8 +62,18 @@ class PlanetResult {
   final double apparentAltitude;
   final double zenithDistance;
   final double meridianDistance;
+
+  /// Raw `swe_house_pos` value (swetest `j`), NaN when house position was not
+  /// requested or does not apply (helio/barycentric). See [houseNumberOf] and
+  /// [housePositionDegrees].
+  final double housePos;
   final String? errorMessage;
 }
+
+/// Whether the Planets card view shows each body's house position (swetest
+/// `-fGgj`, swe-dashboard/58). Default off to keep cards compact; the
+/// house-system dropdown appears only while this is on.
+final planetsShowHousePosProvider = StateProvider<bool>((ref) => false);
 
 /// Body presets for quick selection.
 class BodyPreset {
@@ -176,6 +189,8 @@ List<PlanetResult> computePlanets({
   required double geolon,
   required double geolat,
   required double geoalt,
+  bool includeHousePos = false,
+  int hsys = 0x50,
 }) {
   var effectiveBodies = bodies;
   if ((origin == Origin.heliocentric || origin == Origin.barycentric) &&
@@ -189,6 +204,24 @@ List<PlanetResult> computePlanets({
   if (doHorizontal) {
     try {
       gmstHours = eph.sidTime(moment.ut);
+    } catch (_) {}
+  }
+
+  // House position is a geocentric-observer quantity — only meaningful for the
+  // geo/topocentric origins, and computed once per Moment (ARMC + obliquity)
+  // then reused for every body.
+  final doHousePos = includeHousePos && doHorizontal;
+  HousePosInputs? hpInputs;
+  if (doHousePos) {
+    try {
+      hpInputs = housePosInputs(
+        eph,
+        jdUt: moment.ut,
+        lat: geolat,
+        lon: geolon,
+        hsys: hsys,
+        iflag: iflag,
+      );
     } catch (_) {}
   }
 
@@ -261,6 +294,16 @@ List<PlanetResult> computePlanets({
         } catch (_) {}
       }
 
+      var housePos = double.nan;
+      if (hpInputs != null) {
+        try {
+          // A dedicated tropical ecliptic calc: swe_house_pos is handle-free
+          // and cannot honour a sidereal/XYZ config, so `r` can't be reused.
+          final trop = eph.calcUt(moment.ut, body, housePosCalcFlag(iflag));
+          housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
+        } catch (_) {}
+      }
+
       return PlanetResult(
         body: body,
         bodyName: getName(body),
@@ -279,6 +322,7 @@ List<PlanetResult> computePlanets({
         apparentAltitude: appAlt,
         zenithDistance: zenith,
         meridianDistance: meridian,
+        housePos: housePos,
       );
     } on SweException catch (e) {
       return PlanetResult(
@@ -308,6 +352,16 @@ List<PlanetResult> Function(Ephemeris, Moment) _planetsCompute(Ref ref) {
   final swe = ref.read(sweProvider);
   final bodies = ref.watch(selectedBodiesProvider);
 
+  // House position is computed when the card toggle asks for it, or always in
+  // series mode where it is a default quantity (swe-dashboard/58). The single
+  // app-wide house system drives it.
+  final seriesEnabled = ref.watch(
+    seriesSettingsProvider(AppTab.planets.name).select((s) => s.enabled),
+  );
+  final includeHousePos =
+      ref.watch(planetsShowHousePosProvider) || seriesEnabled;
+  final hsys = ref.watch(selectedHouseSystemProvider);
+
   return (eph, moment) => computePlanets(
     eph: eph,
     moment: moment,
@@ -318,6 +372,8 @@ List<PlanetResult> Function(Ephemeris, Moment) _planetsCompute(Ref ref) {
     geolon: ctx.longitude,
     geolat: ctx.latitude,
     geoalt: ctx.altitude,
+    includeHousePos: includeHousePos,
+    hsys: hsys,
   );
 }
 
@@ -432,6 +488,10 @@ List<ExportRow> planetsToExportRows(
             ],
             if (!r.meridianDistance.isNaN)
               ('Meridian Dist', formatAngle(r.meridianDistance, fmt)),
+            if (!r.housePos.isNaN) ...[
+              ('House', '${houseNumberOf(r.housePos)}'),
+              ('House Pos', formatAngle(housePositionDegrees(r.housePos), fmt)),
+            ],
           ],
         ),
       )
