@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import '../calendar.dart';
 import 'moment.dart';
 import 'series_layout.dart';
 import 'series_spec.dart';
@@ -43,13 +44,17 @@ class SeriesSettings {
 
   bool showsLabel(String label) => !hiddenLabels.contains(label);
 
-  /// The series to compute from [start], which is the Context Moment.
-  SeriesSpec specFrom(Moment start) => SeriesSpec(
-    start: start,
-    stepValue: stepValue,
-    stepUnit: stepUnit,
-    rowCount: rowCount,
-  );
+  /// The series to compute from [start], which is the Context Moment, stepping
+  /// the month/year units on [calendar] — also Context-owned, and absent from
+  /// the settings for the same reason [start] is.
+  SeriesSpec specFrom(Moment start, [Calendar calendar = Calendar.gregorian]) =>
+      SeriesSpec(
+        start: start,
+        stepValue: stepValue,
+        stepUnit: stepUnit,
+        rowCount: rowCount,
+        calendar: calendar,
+      );
 
   SeriesSettings copyWith({
     bool? enabled,

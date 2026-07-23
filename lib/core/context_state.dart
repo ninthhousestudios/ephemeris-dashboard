@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'calendar.dart';
+
 /// Immutable state for the global context bar.
 ///
 /// All calculation tabs read from this shared state by default.
@@ -12,6 +14,7 @@ class ContextBarState {
     required this.dateTime,
     required this.utcOffset,
     required this.jdUt,
+    this.calendar = Calendar.auto,
     this.latitude = 0.0,
     this.longitude = 0.0,
     this.altitude = 0.0,
@@ -34,6 +37,10 @@ class ContextBarState {
   final DateTime dateTime;
   final double utcOffset; // hours
   final double jdUt;
+
+  /// Which calendar civil dates are read in / rendered on. View-layer only:
+  /// [jdUt] stays canonical, and the calendar just maps civil ↔ JD.
+  final Calendar calendar;
 
   // Location
   final double latitude;
@@ -61,6 +68,7 @@ class ContextBarState {
     DateTime? dateTime,
     double? utcOffset,
     double? jdUt,
+    Calendar? calendar,
     double? latitude,
     double? longitude,
     double? altitude,
@@ -81,6 +89,7 @@ class ContextBarState {
       dateTime: dateTime ?? this.dateTime,
       utcOffset: utcOffset ?? this.utcOffset,
       jdUt: jdUt ?? this.jdUt,
+      calendar: calendar ?? this.calendar,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       altitude: altitude ?? this.altitude,
@@ -108,6 +117,7 @@ class ContextBarState {
           dateTime == other.dateTime &&
           utcOffset == other.utcOffset &&
           jdUt == other.jdUt &&
+          calendar == other.calendar &&
           latitude == other.latitude &&
           longitude == other.longitude &&
           altitude == other.altitude &&
@@ -129,6 +139,7 @@ class ContextBarState {
     dateTime,
     utcOffset,
     jdUt,
+    calendar,
     latitude,
     longitude,
     altitude,

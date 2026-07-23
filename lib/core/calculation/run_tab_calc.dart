@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:swisseph_rs/swisseph_rs.dart' show SweException;
 
 import '../calc_context.dart';
+import '../context_provider.dart';
 import '../ephemeris/applied_globals.dart';
 import '../ephemeris/ephemeris.dart';
 import '../ephemeris/runner.dart';
@@ -70,11 +71,12 @@ List<(Moment, CalcOutcome<T>)> runTabCalcSeries<T>(
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
   final jdUt = ref.watch(effectiveContextProvider.select((c) => c.jdUt));
+  final calendar = ref.watch(contextBarProvider.select((c) => c.calendar));
 
   runner.apply(globals);
   return computeSeries(
     runner.eph,
-    settings.specFrom(Moment.fromUt(jdUt, runner.eph)),
+    settings.specFrom(Moment.fromUt(jdUt, runner.eph), calendar),
     compute,
   );
 }
@@ -98,11 +100,12 @@ List<(Moment, CalcOutcome<T>)> runTabCalcSeriesWithOverrides<T>(
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
   final jdUt = ref.watch(effectiveContextProvider.select((c) => c.jdUt));
+  final calendar = ref.watch(contextBarProvider.select((c) => c.calendar));
 
   runner.apply(globals);
   return computeSeries(
     runner.eph,
-    settings.specFrom(Moment.fromUt(jdUt, runner.eph)),
+    settings.specFrom(Moment.fromUt(jdUt, runner.eph), calendar),
     (eph, moment) => compute(eph, moment, globals, (o) => runner.apply(o)),
   );
 }

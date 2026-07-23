@@ -15,6 +15,7 @@ import '../../core/swe_service.dart';
 import '../../layout/responsive_layout.dart';
 import '../chart_file_dialog.dart';
 import 'ayanamsa_selector.dart';
+import 'calendar_selector.dart';
 import 'context_date_field.dart';
 import 'context_jd_field.dart';
 import 'context_location_field.dart';
@@ -291,7 +292,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             children: [
               Expanded(child: JplFileSelector()),
               SizedBox(width: 8),
-              Expanded(child: SizedBox()),
+              Expanded(child: CalendarSelector()),
             ],
           ),
         ],
@@ -426,7 +427,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                       children: [
                         Expanded(child: JplFileSelector()),
                         SizedBox(width: _colGap),
-                        Expanded(child: SizedBox()),
+                        Expanded(child: CalendarSelector()),
                         SizedBox(width: _colGap),
                         Expanded(child: SizedBox()),
                       ],

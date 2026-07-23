@@ -3,6 +3,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'ayanamsa_catalog.dart';
+import 'calendar.dart';
 import 'context_state.dart';
 import 'jd_utils.dart';
 import 'persistence.dart';
@@ -64,23 +65,34 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
           ? overrides['epheSource'] as EpheSource?
           : EpheSource.moshier,
       utcOffset: overrides['utcOffset'] as double?,
+      calendar: overrides['calendar'] as Calendar?,
     );
   }
 
   void _save() => _persistence.saveContextBar(state);
 
-  /// Set date/time (UT) — JD is recomputed.
+  /// Set date/time (UT) — JD is recomputed by reading the civil fields on the
+  /// current calendar.
   void setDateTime(DateTime dt) {
-    final jd = _jdUtils.dateTimeToJd(dt);
+    final jd = _jdUtils.dateTimeToJd(dt, calendar: state.calendar);
     state = state.copyWith(dateTime: dt, jdUt: jd);
     // dateTime not persisted
   }
 
-  /// Set Julian Day — DateTime is recomputed.
+  /// Set Julian Day — DateTime is recomputed on the current calendar.
   void setJd(double jd) {
-    final dt = _jdUtils.jdToDateTime(jd);
+    final dt = _jdUtils.jdToDateTime(jd, calendar: state.calendar);
     state = state.copyWith(jdUt: jd, dateTime: dt);
     // jd not persisted
+  }
+
+  /// Set the calendar civil dates are read/rendered in. The Moment (JD) stays
+  /// canonical; only the derived civil view changes, so the displayed date is
+  /// recomputed from [jdUt] under the new calendar.
+  void setCalendar(Calendar calendar) {
+    final dt = _jdUtils.jdToDateTime(state.jdUt, calendar: calendar);
+    state = state.copyWith(calendar: calendar, dateTime: dt);
+    _save();
   }
 
   /// Set UTC offset (display only — does not change UT or JD).

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import '../calendar.dart';
 import 'calendar_step.dart';
 import 'moment.dart';
 
@@ -59,22 +60,31 @@ enum StepUnit {
   ///
   /// [stepValue] is assumed to have passed [acceptsStepValue]; the rounding
   /// on the calendar branches is a total-function fallback, not a feature.
-  double advanceFrom(double startUt, double stepValue, int index) =>
-      switch (this) {
-        StepUnit.seconds => startUt + index * stepValue / 86400.0,
-        StepUnit.minutes => startUt + index * stepValue / 1440.0,
-        StepUnit.hours => startUt + index * stepValue / 24.0,
-        StepUnit.days => startUt + index * stepValue,
-        StepUnit.weeks => startUt + index * stepValue * 7.0,
-        StepUnit.months => addCalendarMonths(
-          startUt,
-          (index * stepValue).round(),
-        ),
-        StepUnit.years => addCalendarMonths(
-          startUt,
-          (index * stepValue * 12).round(),
-        ),
-      };
+  ///
+  /// [calendar] only reaches the month/year branches — the fixed-span units are
+  /// pure Julian Day arithmetic and read no calendar.
+  double advanceFrom(
+    double startUt,
+    double stepValue,
+    int index, [
+    Calendar calendar = Calendar.gregorian,
+  ]) => switch (this) {
+    StepUnit.seconds => startUt + index * stepValue / 86400.0,
+    StepUnit.minutes => startUt + index * stepValue / 1440.0,
+    StepUnit.hours => startUt + index * stepValue / 24.0,
+    StepUnit.days => startUt + index * stepValue,
+    StepUnit.weeks => startUt + index * stepValue * 7.0,
+    StepUnit.months => addCalendarMonths(
+      startUt,
+      (index * stepValue).round(),
+      calendar,
+    ),
+    StepUnit.years => addCalendarMonths(
+      startUt,
+      (index * stepValue * 12).round(),
+      calendar,
+    ),
+  };
 }
 
 /// Row count above which the series is still computed but the user is warned.
@@ -112,11 +122,16 @@ class SeriesSpec {
     required this.stepValue,
     required this.stepUnit,
     required this.rowCount,
+    this.calendar = Calendar.gregorian,
   });
 
   final Moment start;
   final double stepValue;
   final StepUnit stepUnit;
+
+  /// Which calendar the month/year steps walk. Context-owned, threaded in from
+  /// the Context bar. Irrelevant to the fixed-span units.
+  final Calendar calendar;
 
   /// Rows as requested by the user, before the caps are applied.
   final int rowCount;
@@ -131,5 +146,6 @@ class SeriesSpec {
   String? get warning => rowCountWarning(rowCount);
 
   /// UT of step [index], counting from 0.
-  double utAt(int index) => stepUnit.advanceFrom(start.ut, stepValue, index);
+  double utAt(int index) =>
+      stepUnit.advanceFrom(start.ut, stepValue, index, calendar);
 }

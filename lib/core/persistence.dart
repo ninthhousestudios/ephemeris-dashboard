@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'calculation/series_layout.dart';
 import 'calculation/series_settings.dart';
 import 'calculation/series_spec.dart';
+import 'calendar.dart';
 import 'context_state.dart';
 import 'flag_state.dart';
 import '../layout/tab_definitions.dart';
@@ -39,6 +40,7 @@ class PersistenceService {
     _prefs.setString('ctx_sidereal_projection', s.projection.name);
     _prefs.setString('ctx_ephe_source', s.epheSource.name);
     _prefs.setDouble('ctx_utc_offset', s.utcOffset);
+    _prefs.setString('ctx_calendar', s.calendar.name);
   }
 
   /// Returns a map of overrides to apply to the initial ContextBarState.
@@ -109,6 +111,13 @@ class PersistenceService {
     }
     if (_prefs.containsKey('ctx_utc_offset')) {
       map['utcOffset'] = _prefs.getDouble('ctx_utc_offset');
+    }
+    if (_prefs.containsKey('ctx_calendar')) {
+      final name = _prefs.getString('ctx_calendar');
+      map['calendar'] = Calendar.values.firstWhere(
+        (e) => e.name == name,
+        orElse: () => Calendar.auto,
+      );
     }
     return map;
   }
