@@ -8,6 +8,7 @@ import '../core/calculation/moment.dart';
 import '../core/calculation/series_export.dart';
 import '../core/calculation/series_settings_provider.dart';
 import '../core/calculation/series_table.dart';
+import '../core/context_provider.dart';
 import 'export_button.dart';
 import 'quantity_picker.dart';
 import 'series_grid.dart';
@@ -23,7 +24,7 @@ class SeriesView extends ConsumerWidget {
     required this.tabId,
     required this.steps,
     required this.momentLabel,
-    this.momentColumnTitle = 'Moment',
+    this.momentColumnTitle,
     this.filenameStem,
   });
 
@@ -32,7 +33,11 @@ class SeriesView extends ConsumerWidget {
 
   final List<SeriesStep> steps;
   final String Function(Moment) momentLabel;
-  final String momentColumnTitle;
+
+  /// Header for the sticky Moment column. Defaults to the Moment expressed on
+  /// the Context's time Scale, e.g. `Date/Time (UT1)` / `(TT)` / `(UTC)`, so it
+  /// stays honest when the rows shift with the Scale.
+  final String? momentColumnTitle;
 
   /// Defaults to [seriesFilenameStem].
   final String? filenameStem;
@@ -42,6 +47,9 @@ class SeriesView extends ConsumerWidget {
     final settings = ref.watch(seriesSettingsProvider(tabId));
     final notifier = ref.read(seriesSettingsProvider(tabId).notifier);
     final table = buildSeriesTable(steps, hiddenLabels: settings.hiddenLabels);
+
+    final scale = ref.watch(contextBarProvider.select((s) => s.timeScale));
+    final columnTitle = momentColumnTitle ?? 'Date/Time (${scale.label})';
 
     return Column(
       // Shrink-wraps. The app shell scrolls the whole page (`AppShell.body` is
@@ -83,7 +91,7 @@ class SeriesView extends ConsumerWidget {
         SeriesGrid(
           table: table,
           momentLabel: momentLabel,
-          momentColumnTitle: momentColumnTitle,
+          momentColumnTitle: columnTitle,
         ),
       ],
     );

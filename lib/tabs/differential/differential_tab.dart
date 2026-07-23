@@ -378,7 +378,6 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

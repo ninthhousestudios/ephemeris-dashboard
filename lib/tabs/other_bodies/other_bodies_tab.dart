@@ -325,7 +325,6 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

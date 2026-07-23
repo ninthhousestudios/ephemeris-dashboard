@@ -433,7 +433,6 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             view: clockView,
             fallbackDigits: 4,
           ),
-          momentColumnTitle: 'Date/Time (UT)',
         ),
       ],
     );

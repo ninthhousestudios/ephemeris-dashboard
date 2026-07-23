@@ -292,7 +292,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

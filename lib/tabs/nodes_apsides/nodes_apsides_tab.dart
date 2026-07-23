@@ -313,7 +313,6 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 }

@@ -213,7 +213,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

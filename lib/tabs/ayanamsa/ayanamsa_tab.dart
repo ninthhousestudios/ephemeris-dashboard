@@ -222,7 +222,6 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

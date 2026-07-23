@@ -185,7 +185,6 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

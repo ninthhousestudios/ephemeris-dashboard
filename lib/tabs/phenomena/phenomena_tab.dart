@@ -129,7 +129,6 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

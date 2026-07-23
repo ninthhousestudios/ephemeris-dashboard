@@ -86,7 +86,6 @@ class _HousesTabState extends ConsumerState<HousesTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 

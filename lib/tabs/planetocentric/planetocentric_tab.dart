@@ -318,7 +318,6 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         view: clockView,
         fallbackDigits: 4,
       ),
-      momentColumnTitle: 'Date/Time (UT)',
     );
   }
 
