@@ -86,6 +86,13 @@ const seEclPartial = 16;
 const seEclHybrid = 32;
 const seEclPenumbral = 64;
 
+// Eclipse/occultation visibility bits (returned in the flag word)
+const seEclVisible = 128;
+const seEclMaxVisible = 256;
+const seEclOccBegDaylight = 8192;
+const seEclOccEndDaylight = 16384;
+const seEclOneTry = 32768;
+
 // Ayanamsa modes
 const seSidmFaganBradley = 0;
 const seSidmLahiri = 1;

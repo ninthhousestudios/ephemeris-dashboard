@@ -326,6 +326,75 @@ class LunarEclipseAttrResult {
   });
 }
 
+/// Global occultation of a planet or fixed star by the Moon
+/// (`swe_lun_occult_when_glob`). Shares the geometry of a solar eclipse's global
+/// result, minus the Saros machinery.
+class OccultGlobalResult {
+  final double maxEclipse;
+  final double localNoon;
+  final double begin;
+  final double end;
+  final double totalityBegin;
+  final double totalityEnd;
+  final double centerLineBegin;
+  final double centerLineEnd;
+  final int returnFlag;
+
+  const OccultGlobalResult({
+    required this.maxEclipse,
+    required this.localNoon,
+    required this.begin,
+    required this.end,
+    required this.totalityBegin,
+    required this.totalityEnd,
+    required this.centerLineBegin,
+    required this.centerLineEnd,
+    required this.returnFlag,
+  });
+}
+
+/// Local occultation of a planet or fixed star by the Moon
+/// (`swe_lun_occult_when_loc`). Carries the four contacts, the target's rise/set
+/// during the event, and the diameter-ratio magnitude (there is no NASA
+/// magnitude or Saros series for occultations).
+class OccultLocalResult {
+  final double maxEclipse;
+  final double firstContact;
+  final double secondContact;
+  final double thirdContact;
+  final double fourthContact;
+  final double rise;
+  final double set;
+  final double magnitude;
+  final double diameterRatio;
+  final double obscuration;
+  final double coreShadowKm;
+  final double azimuth;
+  final double trueAltitude;
+  final double apparentAltitude;
+  final double elongation;
+  final int returnFlag;
+
+  const OccultLocalResult({
+    required this.maxEclipse,
+    required this.firstContact,
+    required this.secondContact,
+    required this.thirdContact,
+    required this.fourthContact,
+    required this.rise,
+    required this.set,
+    required this.magnitude,
+    required this.diameterRatio,
+    required this.obscuration,
+    required this.coreShadowKm,
+    required this.azimuth,
+    required this.trueAltitude,
+    required this.apparentAltitude,
+    required this.elongation,
+    required this.returnFlag,
+  });
+}
+
 class AzAltResult {
   final double azimuth;
   final double trueAltitude;

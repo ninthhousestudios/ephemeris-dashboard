@@ -253,6 +253,39 @@ void main() {
       expect(r.umbralMagnitude, isNotNaN);
       expect(r.penumbralMagnitude, isNotNaN);
     });
+
+    test('lunOccultWhenGlob planet (Venus)', () {
+      final r = rust.lunOccultWhenGlob(jd, 3, flags); // Venus
+      expect(r.maxEclipse, isNotNaN);
+      expect(r.maxEclipse, greaterThan(jd));
+    });
+
+    test('lunOccultWhere planet (Venus)', () {
+      final when = rust.lunOccultWhenGlob(jd, 3, flags);
+      final w = rust.lunOccultWhere(when.maxEclipse, 3, flags);
+      expect(w.geolon, isNotNaN);
+      expect(w.geolat, isNotNaN);
+    });
+
+    test('lunOccultWhenLoc planet (Venus)', () {
+      final r = rust.lunOccultWhenLoc(
+        jd,
+        3,
+        flags,
+        geolon: 13.41,
+        geolat: 52.52,
+      );
+      expect(r.maxEclipse, isNotNaN);
+      expect(r.diameterRatio, isNotNaN);
+    });
+
+    test('lunOccultWhenGlob fixed star (Aldebaran)', () {
+      // Fixed-star lookup needs the sefstars catalog, bundled under assets/ephe.
+      rust.reconfigure(const rs.EphemerisConfig(ephePath: 'assets/ephe'));
+      final r = rust.lunOccultWhenGlob(jd, 0, flags, starName: 'Aldebaran');
+      expect(r.maxEclipse, isNotNaN);
+      expect(r.maxEclipse, greaterThan(jd));
+    });
   });
 
   group('rise/set', () {

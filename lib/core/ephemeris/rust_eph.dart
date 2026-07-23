@@ -405,6 +405,107 @@ class RustEph implements Ephemeris {
     );
   }
 
+  // --------------- Occultations ---------------
+
+  @override
+  OccultGlobalResult lunOccultWhenGlob(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    int eclType = 0,
+    bool backward = false,
+  }) {
+    final r = _engine.lunOccultWhenGlob(
+      rs.JdUt1(jdStart),
+      rs.Body.fromRawId(body),
+      rs.CalcFlags(flags),
+      starname: starName,
+      eclType: rs.EclipseFlags(eclType),
+      backward: backward,
+    );
+    return OccultGlobalResult(
+      maxEclipse: r.timeMaximum,
+      localNoon: r.timeRaConjunction,
+      begin: r.timeBegin,
+      end: r.timeEnd,
+      totalityBegin: r.timeTotalityBegin,
+      totalityEnd: r.timeTotalityEnd,
+      centerLineBegin: r.timeCenterlineBegin,
+      centerLineEnd: r.timeCenterlineEnd,
+      returnFlag: r.flags.value,
+    );
+  }
+
+  @override
+  OccultLocalResult lunOccultWhenLoc(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    required double geolon,
+    required double geolat,
+    double geoalt = 0,
+    bool backward = false,
+  }) {
+    final r = _engine.lunOccultWhenLoc(
+      rs.JdUt1(jdStart),
+      rs.Body.fromRawId(body),
+      rs.CalcFlags(flags),
+      starname: starName,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      backward: backward,
+    );
+    return OccultLocalResult(
+      maxEclipse: r.timeMaximum,
+      firstContact: r.timeFirstContact,
+      secondContact: r.timeSecondContact,
+      thirdContact: r.timeThirdContact,
+      fourthContact: r.timeFourthContact,
+      rise: r.timeRise,
+      set: r.timeSet,
+      magnitude: r.attr.magnitude,
+      diameterRatio: r.attr.diameterRatio,
+      obscuration: r.attr.obscuration,
+      coreShadowKm: r.attr.coreDiameterKm,
+      azimuth: r.attr.azimuth,
+      trueAltitude: r.attr.trueAltitude,
+      apparentAltitude: r.attr.apparentAltitude,
+      elongation: r.attr.elongation,
+      returnFlag: r.flags.value,
+    );
+  }
+
+  @override
+  EclipseWhereResult lunOccultWhere(
+    double jdUt,
+    int body,
+    int flags, {
+    String? starName,
+  }) {
+    final r = _engine.lunOccultWhere(
+      rs.JdUt1(jdUt),
+      rs.Body.fromRawId(body),
+      rs.CalcFlags(flags),
+      starname: starName,
+    );
+    return EclipseWhereResult(
+      geolon: r.centralLongitude,
+      geolat: r.centralLatitude,
+      magnitude: 0,
+      diameterRatio: 0,
+      obscuration: 0,
+      coreShadowKm: r.coreDiameterKm,
+      sunAzimuth: 0,
+      sunTrueAltitude: 0,
+      sunApparentAltitude: 0,
+      moonSunAngle: 0,
+      returnFlag: r.flags.value,
+    );
+  }
+
   // --------------- Rise/set ---------------
 
   @override

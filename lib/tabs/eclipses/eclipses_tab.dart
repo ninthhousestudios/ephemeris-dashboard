@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
+import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
@@ -20,7 +21,24 @@ class EclipsesTab extends ConsumerStatefulWidget {
   ConsumerState<EclipsesTab> createState() => _EclipsesTabState();
 }
 
+/// Bright near-ecliptic stars the Moon regularly occults.
+const _occultStars = <String>[
+  'Aldebaran',
+  'Regulus',
+  'Spica',
+  'Antares',
+  'Pollux',
+];
+
 class _EclipsesTabState extends ConsumerState<EclipsesTab> {
+  final _starController = TextEditingController();
+
+  @override
+  void dispose() {
+    _starController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -59,6 +77,15 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                           EclipseType.lunar,
                   visualDensity: VisualDensity.compact,
                 ),
+                const SizedBox(width: 4),
+                ChoiceChip(
+                  label: const Text('Occultation'),
+                  selected: eclType == EclipseType.occultation,
+                  onSelected: (_) =>
+                      ref.read(eclipseTypeProvider.notifier).state =
+                          EclipseType.occultation,
+                  visualDensity: VisualDensity.compact,
+                ),
                 const SizedBox(width: 16),
                 Text('Scope ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
@@ -83,6 +110,8 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
             ),
           ),
         ),
+        // ── Occultation target (planet / fixed star) ──
+        if (eclType == EclipseType.occultation) _buildOccultTarget(theme),
         // ── Filter + count + Calculate ──
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
@@ -96,12 +125,17 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                     .where((f) {
                       // Penumbral only for lunar
                       if (f.$2 == seEclPenumbral &&
-                          eclType == EclipseType.solar) {
+                          eclType != EclipseType.lunar) {
                         return false;
                       }
                       // Annular/Hybrid not for lunar
                       if ((f.$2 == seEclAnnular || f.$2 == seEclHybrid) &&
                           eclType == EclipseType.lunar) {
+                        return false;
+                      }
+                      // Hybrid doesn't apply to occultations
+                      if (f.$2 == seEclHybrid &&
+                          eclType == EclipseType.occultation) {
                         return false;
                       }
                       return true;
@@ -160,6 +194,94 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     );
   }
 
+  Widget _buildOccultTarget(ThemeData theme) {
+    final kind = ref.watch(occultTargetKindProvider);
+    final swe = ref.read(sweProvider);
+    final scale = MediaQuery.textScalerOf(context).scale(1.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            Text('Target ', style: theme.textTheme.labelLarge),
+            const SizedBox(width: 4),
+            ChoiceChip(
+              label: const Text('Planet'),
+              selected: kind == OccultTarget.planet,
+              onSelected: (_) =>
+                  ref.read(occultTargetKindProvider.notifier).state =
+                      OccultTarget.planet,
+              visualDensity: VisualDensity.compact,
+            ),
+            const SizedBox(width: 4),
+            ChoiceChip(
+              label: const Text('Star'),
+              selected: kind == OccultTarget.star,
+              onSelected: (_) =>
+                  ref.read(occultTargetKindProvider.notifier).state =
+                      OccultTarget.star,
+              visualDensity: VisualDensity.compact,
+            ),
+            const SizedBox(width: 12),
+            if (kind == OccultTarget.planet)
+              ...() {
+                final selected = ref.watch(occultPlanetProvider);
+                return occultablePlanets.map(
+                  (body) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(safeGetName(swe, body)),
+                      selected: selected == body,
+                      onSelected: (_) =>
+                          ref.read(occultPlanetProvider.notifier).state = body,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                );
+              }()
+            else ...[
+              ...() {
+                final selected = ref.watch(occultStarProvider);
+                return _occultStars.map(
+                  (star) => Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: ChoiceChip(
+                      label: Text(star),
+                      selected: selected == star,
+                      onSelected: (_) {
+                        _starController.clear();
+                        ref.read(occultStarProvider.notifier).state = star;
+                      },
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
+                );
+              }(),
+              SizedBox(
+                width: (150 * scale).floorToDouble(),
+                child: TextField(
+                  controller: _starController,
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    hintText: 'Other star…',
+                  ),
+                  onSubmitted: (v) {
+                    final term = v.trim();
+                    if (term.isNotEmpty) {
+                      ref.read(occultStarProvider.notifier).state = term;
+                    }
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildResults(CalcOutcome<List<EclipseEvent>> outcome) {
     final List<EclipseEvent> events;
     switch (outcome) {
@@ -208,6 +330,9 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     if (e.error != null) {
       fields.add(ResultField(label: 'Error', value: e.error!));
     } else {
+      if (e.targetLabel != null) {
+        fields.add(ResultField(label: 'Target', value: e.targetLabel!));
+      }
       fields.add(ResultField(label: 'Type', value: e.eclipseTypeLabel));
 
       if (e.maxEclipseJd != null) {
@@ -238,6 +363,8 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
       _addJdField(fields, '2nd Contact', e.secondContactJd, swe);
       _addJdField(fields, '3rd Contact', e.thirdContactJd, swe);
       _addJdField(fields, '4th Contact', e.fourthContactJd, swe);
+      _addJdField(fields, 'Sunrise', e.sunriseJd, swe);
+      _addJdField(fields, 'Sunset', e.sunsetJd, swe);
 
       // Attributes
       if (e.magnitude != null) {
@@ -267,6 +394,11 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
           ),
         );
       }
+      if (e.visibilityRemark != null) {
+        fields.add(
+          ResultField(label: 'Visibility', value: e.visibilityRemark!),
+        );
+      }
       if (e.sarosSeries != null) {
         fields.add(
           ResultField(
@@ -278,11 +410,15 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
       }
     }
 
-    final typeLabel = e.type == EclipseType.solar ? 'Solar' : 'Lunar';
     final scopeLabel = e.scope == EclipseScope.global ? 'Global' : 'Local';
+    final title = switch (e.type) {
+      EclipseType.solar => '#${e.index} Solar Eclipse',
+      EclipseType.lunar => '#${e.index} Lunar Eclipse',
+      EclipseType.occultation => '#${e.index} Occultation',
+    };
 
     return ResultCard(
-      title: '#${e.index} $typeLabel Eclipse',
+      title: title,
       subtitle: scopeLabel,
       flagHex: '0x${e.returnFlag.toRadixString(16).toUpperCase()}',
       fields: fields,

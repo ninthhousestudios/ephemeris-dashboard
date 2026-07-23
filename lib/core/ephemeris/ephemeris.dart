@@ -103,6 +103,40 @@ abstract class Ephemeris {
     double geoalt,
   });
 
+  /// Next occultation of a body ([body], a planet id) or a fixed star
+  /// ([starName], overriding [body] when non-null) by the Moon, anywhere on
+  /// Earth. Backs `swe_lun_occult_when_glob`.
+  OccultGlobalResult lunOccultWhenGlob(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    int eclType,
+    bool backward,
+  });
+
+  /// Next occultation visible from a given place. Backs
+  /// `swe_lun_occult_when_loc`.
+  OccultLocalResult lunOccultWhenLoc(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    bool backward,
+  });
+
+  /// Geographic position where the occultation is central/maximal. Backs
+  /// `swe_lun_occult_where`.
+  EclipseWhereResult lunOccultWhere(
+    double jdUt,
+    int body,
+    int flags, {
+    String? starName,
+  });
+
   RiseTransResult riseTrans(
     double jdUt,
     int body, {

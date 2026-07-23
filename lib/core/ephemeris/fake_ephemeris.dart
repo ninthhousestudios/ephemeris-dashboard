@@ -89,6 +89,33 @@ class FakeEphemeris implements Ephemeris {
     double geoalt,
   })?
   onLunEclipseHow;
+  OccultGlobalResult Function(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    int eclType,
+    bool backward,
+  })?
+  onLunOccultWhenGlob;
+  OccultLocalResult Function(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    required double geolon,
+    required double geolat,
+    double geoalt,
+    bool backward,
+  })?
+  onLunOccultWhenLoc;
+  EclipseWhereResult Function(
+    double jdUt,
+    int body,
+    int flags, {
+    String? starName,
+  })?
+  onLunOccultWhere;
   RiseTransResult Function(
     double jdUt,
     int body, {
@@ -418,6 +445,67 @@ class FakeEphemeris implements Ephemeris {
       geolat: geolat,
       geoalt: geoalt,
     );
+  }
+
+  @override
+  OccultGlobalResult lunOccultWhenGlob(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    int eclType = 0,
+    bool backward = false,
+  }) {
+    if (onLunOccultWhenGlob == null) {
+      throw UnimplementedError('lunOccultWhenGlob not scripted');
+    }
+    return onLunOccultWhenGlob!(
+      jdStart,
+      body,
+      flags,
+      starName: starName,
+      eclType: eclType,
+      backward: backward,
+    );
+  }
+
+  @override
+  OccultLocalResult lunOccultWhenLoc(
+    double jdStart,
+    int body,
+    int flags, {
+    String? starName,
+    required double geolon,
+    required double geolat,
+    double geoalt = 0,
+    bool backward = false,
+  }) {
+    if (onLunOccultWhenLoc == null) {
+      throw UnimplementedError('lunOccultWhenLoc not scripted');
+    }
+    return onLunOccultWhenLoc!(
+      jdStart,
+      body,
+      flags,
+      starName: starName,
+      geolon: geolon,
+      geolat: geolat,
+      geoalt: geoalt,
+      backward: backward,
+    );
+  }
+
+  @override
+  EclipseWhereResult lunOccultWhere(
+    double jdUt,
+    int body,
+    int flags, {
+    String? starName,
+  }) {
+    if (onLunOccultWhere == null) {
+      throw UnimplementedError('lunOccultWhere not scripted');
+    }
+    return onLunOccultWhere!(jdUt, body, flags, starName: starName);
   }
 
   @override
