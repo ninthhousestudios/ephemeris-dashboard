@@ -79,10 +79,9 @@ String formatJdDateTime(
     // Shift the UT Julian Day onto the selected output clock, then render its
     // civil fields. LMT = UT + longitude/15h (= /360 days); LAT = LMT + eqTime.
     final (double shifted, String label) = switch (view.clock) {
-      OutputClock.ut => (jd, 'UT'),
-      OutputClock.utcOffset => (
+      OutputClock.standard => (
         jd + view.utcOffset / 24.0,
-        'UTC${_fmtOffset(view.utcOffset)}',
+        view.utcOffset == 0.0 ? 'UT' : 'UTC${_fmtOffset(view.utcOffset)}',
       ),
       OutputClock.lmt => (jd + view.longitude / 360.0, 'LMT'),
       OutputClock.lat => (jd + view.longitude / 360.0 + swe.timeEqu(jd), 'LAT'),

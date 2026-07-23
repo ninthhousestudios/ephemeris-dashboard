@@ -85,7 +85,7 @@ Richer result shapes among the search / multi-call tabs:
   formatter (parameterized: `view` (ClockView) / seconds / showLabel /
   emptyPlaceholder / fallbackDigits); it replaced 6 near-duplicate copies across
   eclipses, heliacal, and crossings, plus rise_set's `formattedWithLocal`.
-- `output_clock.dart` | `OutputClock` (ut/utcOffset/lmt/lat), `ClockView`.
+- `output_clock.dart` | `OutputClock` (standard/lmt/lat), `ClockView`.
   Pure leaf: which clock event times and Moments render in. UT is canonical;
   the clock only shifts the *displayed* instant (LMT = ut + longitude/15h,
   LAT = LMT + equationOfTime via `SweUtils.timeEqu`, matching swetest -lmt/-lat).
@@ -157,7 +157,7 @@ controller, focus node, and sync/commit logic.
 | `context_date_field.dart` | `ContextDateField` — date text + calendar picker |
 | `context_time_field.dart` | `ContextTimeField` — time text + clock picker; `showNowButton` param |
 | `context_utc_field.dart` | `ContextUtcField` — UTC offset text + half-hour dropdown |
-| `clock_selector.dart` | `ClockSelector` — output-clock dropdown (UT/UTC offset/LMT/LAT), drives `outputClockProvider` |
+| `clock_selector.dart` | `ClockSelector` — output-clock dropdown (Standard/LMT/LAT; Standard uses the Context UTC offset, 0 = UT), drives `outputClockProvider` |
 | `context_jd_field.dart` | `ContextJdField` — Julian Day text input |
 | `context_location_field.dart` | `ContextLocationField(LocationFieldKind)` — lat/lon/alt/city, parameterized |
 | `origin_selector.dart` | `OriginSelector` — geocentric/topocentric/helio dropdown |

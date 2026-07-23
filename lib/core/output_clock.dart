@@ -5,14 +5,12 @@
 ///
 /// Mutually exclusive output-time rendering: the canonical Moment stays a UT
 /// Julian Day, and the clock only shifts how that instant is *displayed*.
-///   * [ut]        — Universal Time (no shift).
-///   * [utcOffset] — civil time at the Context's UTC offset.
-///   * [lmt]       — Local Mean Time (swetest -lmt): UT + longitude/15h.
-///   * [lat]       — Local Apparent Time (swetest -lat): LMT + equation of time.
+///   * [standard] — civil time at the Context's UTC offset (offset 0 = UT).
+///   * [lmt]      — Local Mean Time (swetest -lmt): UT + longitude/15h.
+///   * [lat]      — Local Apparent Time (swetest -lat): LMT + equation of time.
 /// View-layer only, like the Calendar toggle.
 enum OutputClock {
-  ut('UT'),
-  utcOffset('UTC offset'),
+  standard('Standard'),
   lmt('LMT'),
   lat('LAT');
 
@@ -36,9 +34,10 @@ class ClockView {
   final double longitude;
   final double utcOffset;
 
-  /// Neutral default: render in UT. Used where no Context is in scope.
+  /// Neutral default: Standard clock at zero offset, i.e. plain UT. Used where
+  /// no Context is in scope (e.g. export paths).
   static const ut = ClockView(
-    clock: OutputClock.ut,
+    clock: OutputClock.standard,
     longitude: 0.0,
     utcOffset: 0.0,
   );

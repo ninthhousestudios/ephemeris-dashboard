@@ -16,7 +16,9 @@ final planetsFormatProvider = StateProvider<DisplayFormat>(
 
 /// Global output-clock choice: which clock event times and Moments render in.
 /// A display concern (sibling to [DisplayFormat]), not a computation flag.
-final outputClockProvider = StateProvider<OutputClock>((ref) => OutputClock.ut);
+final outputClockProvider = StateProvider<OutputClock>(
+  (ref) => OutputClock.standard,
+);
 
 /// The [ClockView] to hand [formatJdDateTime], assembled from the current clock
 /// choice plus the Context's longitude (LMT/LAT) and UTC offset (civil clock).
