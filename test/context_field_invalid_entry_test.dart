@@ -104,4 +104,29 @@ void main() {
       );
     });
   }
+
+  // A number the field accepts is not yet a Moment it can date. The civil view
+  // goes through DateTime, which throws past year 275760 and — worse — silently
+  // wraps further out (JD 2.7e9 reads back as year -55154), so the bound has to
+  // be checked on entry. Both values below are parseable and typeable.
+  for (final bad in const ['120000000', '2700000000']) {
+    testWidgets('JD field reverts and reports out-of-range entry $bad', (
+      tester,
+    ) async {
+      await pump(tester, const ContextJdField());
+      final before = tester
+          .widget<TextField>(find.byType(TextField).first)
+          .controller!
+          .text;
+
+      final after = await enterAndBlur(tester, bad);
+
+      expect(
+        after,
+        before,
+        reason: 'JD field kept an undateable Moment instead of reverting',
+      );
+      expect(find.textContaining('outside the range'), findsOneWidget);
+    });
+  }
 }

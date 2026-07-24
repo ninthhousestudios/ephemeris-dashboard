@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/date_time_input.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
 import '../../core/swe_utils.dart';
 import '../../core/time_scale.dart';
@@ -63,10 +64,15 @@ class _ContextJdFieldState extends ConsumerState<ContextJdField> {
       // Snap back to the canonical Moment and say why, matching the date and
       // time fields: a rejected entry that just vanished on blur looked like
       // the field had eaten it. Empty is not "invalid" — it reverts silently.
-      _sync();
-      if (text.isNotEmpty && mounted) {
-        showInvalidEntry(context, '"$text" is not a valid Julian Day');
-      }
+      _reject(text.isEmpty ? null : '"$text" is not a valid Julian Day');
+      return;
+    }
+    // Out of range is rejected here, not caught downstream: setJd renders the
+    // civil view through DateTime, which throws for some far-future years and
+    // silently wraps for others, so a value past the bound has to be refused
+    // before it is committed rather than after.
+    if (!isRepresentableJd(entered)) {
+      _reject('$text is outside the range this app can date');
       return;
     }
     final ctx = ref.read(contextBarProvider);
@@ -75,8 +81,21 @@ class _ContextJdFieldState extends ConsumerState<ContextJdField> {
     final jdUt = ctx.timeScale == TimeScale.tt
         ? entered - _swe.deltat(entered)
         : entered;
+    if (!isRepresentableJd(jdUt)) {
+      // ΔT is seconds, so this only trips at the very edge — but the bound is
+      // on the Moment, and the Moment is what gets committed.
+      _reject('$text is outside the range this app can date');
+      return;
+    }
     _selfUpdate = true;
     ref.read(contextBarProvider.notifier).setJd(jdUt);
+  }
+
+  /// Snaps the field back to the canonical Moment, naming [message] if there is
+  /// something to name (an empty entry is a revert, not an error).
+  void _reject(String? message) {
+    _sync();
+    if (message != null && mounted) showInvalidEntry(context, message);
   }
 
   @override

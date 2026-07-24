@@ -22,6 +22,26 @@ typedef Civil = ({
   int second,
 });
 
+/// The widest Julian Day whose derived civil view is trustworthy.
+///
+/// The civil view goes through Dart's [DateTime], whose year is capped near
+/// ±275760 — roughly JD ∓1e8. Past the cap the two failure modes are not
+/// distinguishable after the fact: `DateTime.utc(300000, 1, 1)` throws, while
+/// `DateTime.utc(2700000000, 1, 1)` silently reads back as year -55154. So an
+/// entry field has to refuse the value up front rather than catch what comes
+/// back. ±9.5e7 sits inside the cap with room for the reform offset.
+///
+/// This is a representability bound, not an astronomical one: the ephemeris
+/// itself gives up long before here, and says so through its own errors.
+const double minRepresentableJd = -9.5e7;
+
+/// See [minRepresentableJd].
+const double maxRepresentableJd = 9.5e7;
+
+/// Whether [jd] has a civil view that [JdUtils.jdToDateTime] can render.
+bool isRepresentableJd(double jd) =>
+    jd.isFinite && jd >= minRepresentableJd && jd <= maxRepresentableJd;
+
 /// DateTime ↔ Julian Day conversion helpers.
 ///
 /// Uses SweUtils.julday/revjul for astronomically correct conversions. Each
