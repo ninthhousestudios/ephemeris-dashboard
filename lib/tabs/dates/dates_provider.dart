@@ -9,6 +9,7 @@ import '../../core/calculation/moment.dart';
 import '../../core/calculation/obliquity.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
+import '../../core/calendar.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -140,12 +141,16 @@ DatesResult computeDates(
   required double jdUt,
   required double geolon,
   required int iflag,
+  required Calendar calendar,
 }) {
   int revYear = 0, revMonth = 0, revDay = 0;
   double revHour = 0;
   String? revjulError;
   try {
-    final r = swe.revjul(jdUt);
+    // On the Context's calendar, not revjul's Gregorian default. One Moment
+    // must not read as two different civil dates depending on which surface is
+    // showing it — this card sits under a context bar rendering the same JD.
+    final r = swe.revjul(jdUt, gregorian: calendar.isGregorianForJd(jdUt));
     revYear = r.year;
     revMonth = r.month;
     revDay = r.day;
@@ -253,6 +258,7 @@ DatesResult Function(Ephemeris, Moment) _datesCompute(
     jdUt: overrideJd ?? moment.ut,
     geolon: ctx.longitude,
     iflag: flags.iflag,
+    calendar: ctx.calendar,
   );
 }
 

@@ -8,10 +8,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
+import '../../core/calendar.dart';
 import '../../core/display_format.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_service.dart';
+import '../../core/time_scale.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -43,11 +45,16 @@ class _DatesTabState extends ConsumerState<DatesTab> {
 
   JdUtils get _jdUtils => JdUtils(ref.read(sweProvider));
 
+  Calendar get _calendar => ref.read(contextBarProvider).calendar;
+
+  /// The tab's own JD editor renders on the Context's Calendar, like every
+  /// other civil date in the app. Raw civil fields rather than a [DateTime], so
+  /// a Julian-only date (29 Feb 1900) survives instead of rolling to 1 Mar.
   void _syncFromContext() {
     final ctx = ref.read(contextBarProvider);
-    final dt = _jdUtils.jdToDateTime(ctx.jdUt);
-    _dateCtrl.text = fmtDate(dt);
-    _timeCtrl.text = fmtTime(dt);
+    final civil = _jdUtils.civilFieldsOn(ctx.jdUt, ctx.calendar);
+    _dateCtrl.text = fmtDateFields(civil.year, civil.month, civil.day);
+    _timeCtrl.text = fmtHms(civil.hour, civil.minute, civil.second);
     _jdCtrl.text = ctx.jdUt.toStringAsFixed(8);
   }
 
@@ -61,19 +68,25 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   }
 
   double? _parseDateTime() {
-    final d = parseDateFields(_dateCtrl.text);
+    final calendar = _calendar;
+    final d = parseDateFields(_dateCtrl.text, calendar: calendar);
     if (d == null) return null;
     final t = parseTimeFields(_timeCtrl.text);
     try {
-      return _jdUtils.dateTimeToJd(
-        DateTime.utc(
-          d.year,
-          d.month,
-          d.day,
-          t?.hour ?? 0,
-          t?.minute ?? 0,
-          t?.second ?? 0,
+      // UT and no offset: this editor is labelled "Time (UT)" and edits the JD
+      // directly, so there is no scale or zone to undo.
+      return _jdUtils.localCivilToJdUt(
+        (
+          year: d.year,
+          month: d.month,
+          day: d.day,
+          hour: t?.hour ?? 0,
+          minute: t?.minute ?? 0,
+          second: t?.second ?? 0,
         ),
+        calendar: calendar,
+        scale: TimeScale.ut1,
+        offsetHours: 0,
       );
     } on ArgumentError {
       return null;
@@ -82,9 +95,11 @@ class _DatesTabState extends ConsumerState<DatesTab> {
 
   void _setNow() {
     final now = DateTime.now().toUtc();
-    _dateCtrl.text = fmtDate(now);
-    _timeCtrl.text = fmtTime(now);
-    _jdCtrl.text = _jdUtils.dateTimeToJd(now).toStringAsFixed(8);
+    final jd = _jdUtils.dateTimeToJd(now);
+    final civil = _jdUtils.civilFieldsOn(jd, _calendar);
+    _dateCtrl.text = fmtDateFields(civil.year, civil.month, civil.day);
+    _timeCtrl.text = fmtHms(civil.hour, civil.minute, civil.second);
+    _jdCtrl.text = jd.toStringAsFixed(8);
     setState(() => _isCustom = true);
     _commitFields();
   }
@@ -107,7 +122,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
       lastDate: DateTime(4000),
     );
     if (picked == null) return;
-    _dateCtrl.text = fmtDate(picked);
+    // The picker is proleptic Gregorian; its fields are read back on the
+    // Context calendar, same as a typed date.
+    _dateCtrl.text = fmtDateFields(picked.year, picked.month, picked.day);
     _syncJdFromDateTimeFields();
     setState(() => _isCustom = true);
   }
@@ -127,7 +144,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   }
 
   DateTime? _parseDateFromCtrl() {
-    final d = parseDateFields(_dateCtrl.text);
+    final d = parseDateFields(_dateCtrl.text, calendar: _calendar);
     if (d == null) return null;
     return DateTime(d.year, d.month, d.day);
   }
@@ -144,9 +161,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     // Keep fields synced with context bar unless user has customized
     if (!_isCustom) {
       final ctx = ref.watch(contextBarProvider);
-      final dt = _jdUtils.jdToDateTime(ctx.jdUt);
-      final dateStr = fmtDate(dt);
-      final timeStr = fmtTime(dt);
+      final civil = _jdUtils.civilFieldsOn(ctx.jdUt, ctx.calendar);
+      final dateStr = fmtDateFields(civil.year, civil.month, civil.day);
+      final timeStr = fmtHms(civil.hour, civil.minute, civil.second);
       final jdStr = ctx.jdUt.toStringAsFixed(8);
       if (_dateCtrl.text != dateStr) _dateCtrl.text = dateStr;
       if (_timeCtrl.text != timeStr) _timeCtrl.text = timeStr;
@@ -297,15 +314,18 @@ class _DatesTabState extends ConsumerState<DatesTab> {
 
   Widget _buildResults() {
     final outcome = ref.watch(datesResultProvider);
+    // Watched, not read: the Calendar card names the calendar it rendered on,
+    // so switching it in the context bar must repaint the card.
+    final calendar = ref.watch(contextBarProvider.select((s) => s.calendar));
     return switch (outcome) {
       CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
-      CalcOk(value: final result) => _buildResultCards(result),
+      CalcOk(value: final result) => _buildResultCards(result, calendar),
     };
   }
 
-  Widget _buildResultCards(DatesResult result) {
+  Widget _buildResultCards(DatesResult result, Calendar calendar) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 600 ? 2 : 1;
@@ -319,7 +339,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             children: [
               SizedBox(
                 width: cardWidth,
-                child: _buildCalendarCard(context, result),
+                child: _buildCalendarCard(context, result, calendar),
               ),
               SizedBox(
                 width: cardWidth,
@@ -344,7 +364,11 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     );
   }
 
-  Widget _buildCalendarCard(BuildContext context, DatesResult r) {
+  Widget _buildCalendarCard(
+    BuildContext context,
+    DatesResult r,
+    Calendar calendar,
+  ) {
     final t = r.revjulTime;
     final timeStr =
         '${t.h.toString().padLeft(2, '0')}:'
@@ -353,7 +377,10 @@ class _DatesTabState extends ConsumerState<DatesTab> {
 
     return ResultCard(
       title: 'Calendar',
-      subtitle: 'revjul(JD UT)',
+      // Names the calendar it was read on: under Auto the answer changes at the
+      // 1582 reform, so "revjul(JD UT)" alone left the reader to guess which of
+      // two civil dates this is.
+      subtitle: 'revjul(JD UT) — ${calendar.label}',
       fields: r.revjulError != null
           ? [
               ResultField(
