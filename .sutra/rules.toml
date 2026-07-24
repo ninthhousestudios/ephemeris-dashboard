@@ -75,14 +75,16 @@ provenance = "CONTEXT.md §Result; yojana:swe-dashboard/4 §Problem"
 # ═══════════════════════════════════════════════════════════════════
 # Context bar (PRD module ⑥)
 # ═══════════════════════════════════════════════════════════════════
-# One real cycle exists today: app_shell ↔ context_bar ↔ file_in_use_indicator.
-# The ContextBar decomposition breaks it.
+# The app_shell ↔ context_bar ↔ file_in_use_indicator cycle this was staged
+# against is gone: the indicator reached into app_shell only for
+# selectedTabProvider, which moved to lib/core/active_tab.dart in
+# swe-dashboard/81. Clean today.
 
 [[constraint]]
 kind = "no_cycles"
 scope = "lib/widgets/context_bar"
 name = "context-bar-acyclic"
-severity = "advisory"  # FLIP TO BLOCKING at swe-dashboard/17 (ContextBar decomposition)
+severity = "blocking"  # FLIPPED 2026-07-24 (swe-dashboard/81): the named cycle is broken, so the debt-staging rationale is spent. Flipped here rather than waiting for swe-dashboard/17 (ContextBar decomposition), which was only ever the expected *route* to breaking it — per L26, an advisory with no live debt is the thing to avoid.
 provenance = "yojana:swe-dashboard/4 §Implementation ⑥"
 
 # ═══════════════════════════════════════════════════════════════════

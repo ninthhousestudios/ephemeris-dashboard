@@ -22,7 +22,7 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 | 1 | "Engine routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ①, ADR-0002 | a | `confined_external swisseph_rs allowed_in=lib/core/**` | live, **blocking** (cutover complete @ `/29`; documented `/32`) |
 | 2 | "Tabs use the kernel, not the runner" — PRD ② | a | `forbidden_dep lib/tabs/** → runner.dart` | live, **advisory** → blocking @ `/11` |
 | 3 | "Tabs are independent" — PRD §Problem | a | `no_cycles lib/tabs` | live, **blocking** (clean today) |
-| 4 | "Context bar / shell cycle removed" — PRD ⑥ | a | `no_cycles lib/widgets/context_bar` | live, **advisory** → blocking @ `/17` (1 cycle today) |
+| 4 | "Context bar / shell cycle removed" — PRD ⑥ | a | `no_cycles lib/widgets/context_bar` | live, **blocking** (flipped @ `/81`: the app_shell ↔ context_bar ↔ file_in_use_indicator cycle is broken — the indicator's only reason to import app_shell was `selectedTabProvider`, now `lib/core/active_tab.dart`. Clean today.) |
 | 5 | "Calculation kernel stays acyclic" — PRD ② | a | `no_cycles lib/core/calculation` | live, **blocking** (bound @ `/7`) |
 | 6 | "Kernel/Ephemeris are not god-hubs" — refactor goal | a | `max_fan_in run_tab_calc.dart threshold=30` | live, **advisory** (bound @ `/11`) |
 | 7 | "No in-tree chart parsers" — PRD ③ | a | `confined_external charts_dart allowed_in=lib/widgets/context_bar/**,lib/core/**` | live, **blocking** (clean today, bound @ `/9`) |

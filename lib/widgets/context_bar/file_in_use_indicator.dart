@@ -4,11 +4,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/active_tab.dart';
 import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/ephe/active_file.dart';
 import '../../core/ephe/types.dart';
-import '../../layout/app_shell.dart';
 import '../../layout/tab_definitions.dart';
 
 /// Small badge next to the time-and-place section that shows which
@@ -53,8 +53,7 @@ class FileInUseIndicator extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () {
-          ref.read(selectedTabProvider.notifier).state =
-              AppTab.ephemerisManager;
+          ref.read(activeTabProvider.notifier).state = AppTab.ephemerisManager;
         },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

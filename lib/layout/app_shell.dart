@@ -12,11 +12,6 @@ import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
 import '../widgets/flag_bar/flag_bar.dart';
 
-final selectedTabProvider = StateProvider<AppTab>((ref) {
-  final persistence = ref.read(persistenceProvider);
-  return persistence.loadTab();
-});
-
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({super.key});
 
@@ -34,7 +29,7 @@ class _AppShellState extends ConsumerState<AppShell>
   void initState() {
     super.initState();
 
-    final initialTab = ref.read(selectedTabProvider);
+    final initialTab = ref.read(activeTabProvider);
     final initialIndex = _allTabs.indexOf(initialTab);
 
     _tabController = TabController(
@@ -45,8 +40,7 @@ class _AppShellState extends ConsumerState<AppShell>
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         final tab = _allTabs[_tabController.index];
-        ref.read(selectedTabProvider.notifier).state = tab;
-        ref.read(activeTabIdProvider.notifier).state = tab.name;
+        ref.read(activeTabProvider.notifier).state = tab;
         ref.read(persistenceProvider).saveTab(tab);
       }
     });
@@ -60,13 +54,13 @@ class _AppShellState extends ConsumerState<AppShell>
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AppTab>(selectedTabProvider, (_, tab) {
+    ref.listen<AppTab>(activeTabProvider, (_, tab) {
       final idx = _allTabs.indexOf(tab);
       if (idx >= 0 && _tabController.index != idx) {
         _tabController.animateTo(idx);
       }
     });
-    final selectedTab = ref.watch(selectedTabProvider);
+    final selectedTab = ref.watch(activeTabProvider);
     final screenSize = ResponsiveLayout.of(context);
 
     return Scaffold(
@@ -141,7 +135,7 @@ class _AppShellState extends ConsumerState<AppShell>
           ? _MobileTabBar(
               selectedTab: selectedTab,
               onSelected: (tab) {
-                ref.read(selectedTabProvider.notifier).state = tab;
+                ref.read(activeTabProvider.notifier).state = tab;
                 final idx = AppTab.values.indexOf(tab);
                 if (idx >= 0) _tabController.index = idx;
               },
