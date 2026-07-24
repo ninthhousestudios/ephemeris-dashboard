@@ -37,7 +37,6 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     final jd = jdUtils.dateTimeToJd(now);
     final localOffset = DateTime.now().timeZoneOffset.inMinutes / 60.0;
     return ContextBarState(
-      dateTime: now,
       utcOffset: localOffset,
       jdUt: jd,
       // Prefer the ephemeris we ship. `ContextBarState`'s own default stays
@@ -80,18 +79,9 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
 
   void _save() => _persistence.saveContextBar(state);
 
-  /// Set date/time (UT) — JD is recomputed by reading the civil fields on the
-  /// current calendar.
-  void setDateTime(DateTime dt) {
-    final jd = _jdUtils.dateTimeToJd(dt, calendar: state.calendar);
-    state = state.copyWith(dateTime: dt, jdUt: jd);
-    // dateTime not persisted
-  }
-
-  /// Set Julian Day — DateTime is recomputed on the current calendar.
+  /// Set Julian Day. The Moment is canonical; the civil view is derived on read.
   void setJd(double jd) {
-    final dt = _jdUtils.jdToDateTime(jd, calendar: state.calendar);
-    state = state.copyWith(jdUt: jd, dateTime: dt);
+    state = state.copyWith(jdUt: jd);
     // jd not persisted
   }
 
@@ -99,8 +89,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   /// canonical; only the derived civil view changes, so the displayed date is
   /// recomputed from [jdUt] under the new calendar.
   void setCalendar(Calendar calendar) {
-    final dt = _jdUtils.jdToDateTime(state.jdUt, calendar: calendar);
-    state = state.copyWith(calendar: calendar, dateTime: dt);
+    state = state.copyWith(calendar: calendar);
     _save();
   }
 
@@ -120,10 +109,9 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
 
   /// Set "now" — current system time.
   void setNow() {
-    final now = DateTime.now().toUtc();
-    final jd = _jdUtils.dateTimeToJd(now);
-    state = state.copyWith(dateTime: now, jdUt: jd);
-    // dateTime not persisted
+    final jd = _jdUtils.dateTimeToJd(DateTime.now().toUtc());
+    state = state.copyWith(jdUt: jd);
+    // jd not persisted
   }
 
   /// Set geographic location.
@@ -241,7 +229,6 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     final totalOffset = chart.utcOffsetHours + chart.dstOffsetHours;
     final loc = chart.birthLocation;
     state = state.copyWith(
-      dateTime: utcDt,
       jdUt: jd,
       utcOffset: totalOffset,
       latitude: loc.latitude,

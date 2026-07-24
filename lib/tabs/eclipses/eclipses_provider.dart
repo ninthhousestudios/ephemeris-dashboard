@@ -346,7 +346,7 @@ EclipseEvent _findSolarEclipse({
       scope: scope,
       returnFlag: g.returnFlag,
       maxEclipseJd: g.maxEclipse,
-      localNoonJd: g.localNoon,
+      localNoonJd: _nonZero(g.localNoon),
       beginJd: g.begin,
       endJd: g.end,
       totalityBeginJd: _nonZero(g.totalityBegin),

@@ -13,7 +13,8 @@ import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
-import '../../core/swe_service.dart';
+import '../../core/jd_utils.dart';
+import '../../core/output_clock.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -155,42 +156,13 @@ final riseSetModifiersProvider = StateProvider<RiseSetModifiers>(
 
 // ── Result model ──────────────────────────────────────────────────────────────
 
-/// Readable date/time broken out from a JD by revjul().
-class RiseSetDateTime {
-  const RiseSetDateTime({
-    required this.year,
-    required this.month,
-    required this.day,
-    required this.hour,
-  });
-
-  final int year;
-  final int month;
-  final int day;
-  final double hour;
-
-  String formatted() {
-    final h = hour.floor();
-    final mFrac = (hour - h) * 60;
-    final m = mFrac.floor();
-    final s = ((mFrac - m) * 60).round();
-    return '$year-${_pad(month)}-${_pad(day)} ${_pad(h)}:${_pad(m)}:${_pad(s)} UT';
-  }
-
-  static String _pad(int n) => n.toString().padLeft(2, '0');
-}
-
 /// Rise/set/transit results for one body.
 class RiseSetResult {
   const RiseSetResult({
     this.riseJd,
-    this.riseDateTime,
     this.setJd,
-    this.setDateTime,
     this.upperTransitJd,
-    this.upperTransitDateTime,
     this.lowerTransitJd,
-    this.lowerTransitDateTime,
     this.riseError,
     this.setError,
     this.upperTransitError,
@@ -198,17 +170,9 @@ class RiseSetResult {
   });
 
   final double? riseJd;
-  final RiseSetDateTime? riseDateTime;
-
   final double? setJd;
-  final RiseSetDateTime? setDateTime;
-
   final double? upperTransitJd;
-  final RiseSetDateTime? upperTransitDateTime;
-
   final double? lowerTransitJd;
-  final RiseSetDateTime? lowerTransitDateTime;
-
   final String? riseError;
   final String? setError;
   final String? upperTransitError;
@@ -227,26 +191,11 @@ double localMidnightStart(double jdUt, double utcOffsetHours) {
   return (jdUt + offsetDays + 0.5).floorToDouble() - 0.5 - offsetDays;
 }
 
-RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
-  try {
-    final r = swe.revjul(jd);
-    return RiseSetDateTime(
-      year: r.year,
-      month: r.month,
-      day: r.day,
-      hour: r.hour,
-    );
-  } catch (_) {
-    return null;
-  }
-}
-
 /// One rise/set/transit event: a single `riseTrans` call wrapped so a
 /// per-event `SweException` becomes an error string instead of failing the
-/// batch. Returns (jd, dateTime) on success; (error) otherwise.
-({double? jd, RiseSetDateTime? dt, String? error}) _event(
-  Ephemeris eph,
-  SweUtils swe, {
+/// batch. Returns (jd) on success; (error) otherwise.
+({double? jd, String? error}) _event(
+  Ephemeris eph, {
   required double jdUt,
   required int body,
   required int rsmi,
@@ -271,13 +220,9 @@ RiseSetDateTime? _toDateTime(SweUtils swe, double jd) {
       atpress: atpress,
       attemp: attemp,
     );
-    return (
-      jd: r.transitTime,
-      dt: _toDateTime(swe, r.transitTime),
-      error: null,
-    );
+    return (jd: r.transitTime, error: null);
   } catch (e) {
-    return (jd: null, dt: null, error: e.toString());
+    return (jd: null, error: e.toString());
   }
 }
 
@@ -290,8 +235,7 @@ class RiseSetGroupResult {
 }
 
 RiseSetResult _computeOne(
-  Ephemeris eph,
-  SweUtils swe, {
+  Ephemeris eph, {
   required RiseSetTarget target,
   required double jdUt,
   required int modifiers,
@@ -302,9 +246,8 @@ RiseSetResult _computeOne(
   required double atpress,
   required double attemp,
 }) {
-  ({double? jd, RiseSetDateTime? dt, String? error}) run(int rsmi) => _event(
+  ({double? jd, String? error}) run(int rsmi) => _event(
     eph,
-    swe,
     jdUt: jdUt,
     body: target.bodyId,
     starName: target.starName,
@@ -324,16 +267,12 @@ RiseSetResult _computeOne(
 
   return RiseSetResult(
     riseJd: rise.jd,
-    riseDateTime: rise.dt,
     riseError: rise.error,
     setJd: set.jd,
-    setDateTime: set.dt,
     setError: set.error,
     upperTransitJd: upper.jd,
-    upperTransitDateTime: upper.dt,
     upperTransitError: upper.error,
     lowerTransitJd: lower.jd,
-    lowerTransitDateTime: lower.dt,
     lowerTransitError: lower.error,
   );
 }
@@ -343,7 +282,6 @@ final _riseSetCalcProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
 ) {
   final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
-  final swe = ref.read(sweProvider);
   final targets = ref.watch(riseSetTargetsProvider);
   final atpress = ref.watch(riseSetAtpressProvider);
   final attemp = ref.watch(riseSetAttempProvider);
@@ -367,7 +305,6 @@ final _riseSetCalcProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
             target: target,
             result: _computeOne(
               eph,
-              swe,
               target: target,
               jdUt: jdUt,
               modifiers: modifiers.rsmi,
@@ -402,7 +339,6 @@ final riseSetResultProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
 RiseSetResult Function(Ephemeris, Moment) _riseSetSeriesCompute(Ref ref) {
   final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
-  final swe = ref.read(sweProvider);
   final targets = ref.watch(riseSetTargetsProvider);
   final atpress = ref.watch(riseSetAtpressProvider);
   final attemp = ref.watch(riseSetAttempProvider);
@@ -418,7 +354,6 @@ RiseSetResult Function(Ephemeris, Moment) _riseSetSeriesCompute(Ref ref) {
     if (target == null) return const RiseSetResult();
     return _computeOne(
       eph,
-      swe,
       target: target,
       jdUt: localMidnightStart(moment.ut, utcOffset),
       modifiers: rsmi,
@@ -481,16 +416,24 @@ List<ExportRow> riseSetSeriesToExportRows(
 
 String _jdStr(double? jd) => jd != null ? jd.toStringAsFixed(8) : '—';
 
-String _dtStr(RiseSetDateTime? dt) => dt?.formatted() ?? '—';
+/// Card export. Event times render through [formatJdDateTime] on the same
+/// [ClockView] the screen uses, so an export matches what was on screen under a
+/// non-default scale, calendar or output clock.
+List<ExportRow> riseSetToExportRows(
+  List<RiseSetGroupResult> groups,
+  SweUtils swe,
+  ClockView view,
+) {
+  String dtStr(double? jd) =>
+      jd != null ? formatJdDateTime(swe, jd, view: view) : '—';
 
-List<ExportRow> riseSetToExportRows(List<RiseSetGroupResult> groups) {
   return [
     for (final group in groups) ...[
       ExportRow(
         header: '${group.target.label} — Rise',
         fields: [
           ('JD', _jdStr(group.result.riseJd)),
-          ('Date/Time', _dtStr(group.result.riseDateTime)),
+          ('Date/Time', dtStr(group.result.riseJd)),
           if (group.result.riseError != null)
             ('Error', group.result.riseError!),
         ],
@@ -499,7 +442,7 @@ List<ExportRow> riseSetToExportRows(List<RiseSetGroupResult> groups) {
         header: '${group.target.label} — Set',
         fields: [
           ('JD', _jdStr(group.result.setJd)),
-          ('Date/Time', _dtStr(group.result.setDateTime)),
+          ('Date/Time', dtStr(group.result.setJd)),
           if (group.result.setError != null) ('Error', group.result.setError!),
         ],
       ),
@@ -507,7 +450,7 @@ List<ExportRow> riseSetToExportRows(List<RiseSetGroupResult> groups) {
         header: '${group.target.label} — Upper Transit',
         fields: [
           ('JD', _jdStr(group.result.upperTransitJd)),
-          ('Date/Time', _dtStr(group.result.upperTransitDateTime)),
+          ('Date/Time', dtStr(group.result.upperTransitJd)),
           if (group.result.upperTransitError != null)
             ('Error', group.result.upperTransitError!),
         ],
@@ -516,7 +459,7 @@ List<ExportRow> riseSetToExportRows(List<RiseSetGroupResult> groups) {
         header: '${group.target.label} — Lower Transit',
         fields: [
           ('JD', _jdStr(group.result.lowerTransitJd)),
-          ('Date/Time', _dtStr(group.result.lowerTransitDateTime)),
+          ('Date/Time', dtStr(group.result.lowerTransitJd)),
           if (group.result.lowerTransitError != null)
             ('Error', group.result.lowerTransitError!),
         ],

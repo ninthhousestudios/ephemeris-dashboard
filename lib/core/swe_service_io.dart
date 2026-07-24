@@ -4,8 +4,10 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart' show StandardMessageCodec, rootBundle;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
+
+import 'ephe_assets.dart';
 
 /// Initialize ephemeris path on native platforms.
 /// Returns the resolved ephe directory path, or null if none found.
@@ -71,7 +73,7 @@ Future<String?> initNativeEphePath() async {
 
     if (needsExtract) {
       await epheDir.create(recursive: true);
-      final epheFiles = await _listEpheAssets();
+      final epheFiles = await listEpheAssets(fallback: bundledEpheFileNames());
 
       for (final fileName in epheFiles) {
         final data = await rootBundle.load('assets/ephe/$fileName');
@@ -126,28 +128,5 @@ bool _isValidEpheDir(String path) {
     return dir.listSync().any((e) => e.path.endsWith('.se1'));
   } catch (_) {
     return false;
-  }
-}
-
-Future<List<String>> _listEpheAssets() async {
-  try {
-    final manifestBytes = await rootBundle.load('AssetManifest.bin');
-    final manifest =
-        const StandardMessageCodec().decodeMessage(manifestBytes)
-            as Map<Object?, Object?>;
-    return manifest.keys
-        .map((k) => k.toString())
-        .where((k) => k.startsWith('assets/ephe/'))
-        .map((k) => k.split('/').last)
-        .toList();
-  } catch (_) {
-    final files = ['sefstars.txt'];
-    for (final n in ['00', '06', '12', '18', '24', '30', '36', '42', '48']) {
-      files.addAll(['seas_$n.se1', 'semo_$n.se1', 'sepl_$n.se1']);
-    }
-    for (final n in ['06', '12', '18', '24', '30', '36', '42', '48', '54']) {
-      files.addAll(['seasm$n.se1', 'semom$n.se1', 'seplm$n.se1']);
-    }
-    return files;
   }
 }

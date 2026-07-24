@@ -14,7 +14,7 @@
 /// twice: the custom value must differ from the default (or the round trip
 /// would prove nothing), and it must survive save → restore.
 ///
-/// The Moment (`jdUt`/`dateTime`) is deliberately not persisted — the app
+/// The Moment (`jdUt`) is deliberately not persisted — the app
 /// always starts at "now" — so it is absent from the table.
 library;
 
@@ -51,18 +51,11 @@ final _persistedFields = <String, Object? Function(ContextBarState)>{
   'jplFilename': (s) => s.jplFilename,
 };
 
-final _epoch = DateTime.utc(2000, 1, 1, 12);
-
 /// All defaults, with the Moment pinned so the comparison is about the rest.
-final _defaults = ContextBarState(
-  dateTime: _epoch,
-  utcOffset: 0.0,
-  jdUt: 2451545.0,
-);
+final _defaults = ContextBarState(utcOffset: 0.0, jdUt: 2451545.0);
 
 /// Every persisted field moved off its default.
 final _custom = ContextBarState(
-  dateTime: _epoch,
   utcOffset: 5.5,
   jdUt: 2451545.0,
   calendar: Calendar.julian,

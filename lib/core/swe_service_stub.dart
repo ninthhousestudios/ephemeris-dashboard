@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-import 'package:flutter/services.dart' show StandardMessageCodec, rootBundle;
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:swisseph_rs/swisseph_rs.dart' show initializeWasm, loadEpheFile;
+
+import 'ephe_assets.dart';
 
 /// Initialize ephemeris path stub — not used on web.
 Future<String?> initNativeEphePath() =>
@@ -14,7 +16,7 @@ Future<void> initWasm() => initializeWasm('swisseph_ffi.js');
 /// Load bundled .se1/sefstars.txt from Flutter assets into Emscripten MEMFS.
 /// Returns (MEMFS path, loaded filenames) on success, null path if no files.
 Future<(String?, List<String>)> loadBundledEpheFiles() async {
-  final names = await _listEpheAssets();
+  final names = await listEpheAssets();
   if (names.isEmpty) return (null, const <String>[]);
   await Future.wait(
     names.map((name) async {
@@ -26,20 +28,4 @@ Future<(String?, List<String>)> loadBundledEpheFiles() async {
     }),
   );
   return ('/ephe', names);
-}
-
-Future<List<String>> _listEpheAssets() async {
-  try {
-    final manifestBytes = await rootBundle.load('AssetManifest.bin');
-    final manifest =
-        const StandardMessageCodec().decodeMessage(manifestBytes)
-            as Map<Object?, Object?>;
-    return manifest.keys
-        .map((k) => k.toString())
-        .where((k) => k.startsWith('assets/ephe/'))
-        .map((k) => k.split('/').last)
-        .toList();
-  } catch (_) {
-    return const [];
-  }
 }

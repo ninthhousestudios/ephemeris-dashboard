@@ -163,12 +163,6 @@ class JdUtils {
     return utcDt.add(Duration(minutes: totalMinutes));
   }
 
-  /// Remove a UTC offset to get back to UT.
-  DateTime removeUtcOffset(DateTime localDt, double offsetHours) {
-    final totalMinutes = (offsetHours * 60).round();
-    return localDt.subtract(Duration(minutes: totalMinutes));
-  }
-
   /// Civil fields for the day-instant containing [jd], rendered on [calendar].
   ///
   /// Raw-field twin of [jdToDateTime]. The JD is first snapped to a whole second
@@ -232,9 +226,9 @@ class JdUtils {
   /// Map local civil fields (read on [scale]/[calendar], shifted by
   /// [offsetHours]) back to the canonical UT1 Julian Day.
   ///
-  /// The raw-field twin of [removeUtcOffset] + [civilToJdUt]. The offset is
-  /// removed in JD space, so a Julian-only date such as 29 Feb 1900 maps to its
-  /// true JD instead of being rolled to 1 Mar by a [DateTime] intermediary.
+  /// The raw-field inverse of [localCivilOf]: the offset is removed in JD
+  /// space, so a Julian-only date such as 29 Feb 1900 maps to its true JD
+  /// instead of being rolled to 1 Mar by a [DateTime] intermediary.
   double localCivilToJdUt(
     Civil civil, {
     required Calendar calendar,

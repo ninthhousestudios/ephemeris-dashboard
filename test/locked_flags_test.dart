@@ -6,12 +6,8 @@ import 'package:swe_dashboard/core/context_state.dart';
 import 'package:swe_dashboard/core/flag_state.dart';
 import 'package:swe_dashboard/core/swe_constants.dart';
 
-ContextBarState _ctx(EqRef eqRef) => ContextBarState(
-  dateTime: DateTime.utc(2000),
-  utcOffset: 0,
-  jdUt: 0,
-  eqRef: eqRef,
-);
+ContextBarState _ctx(EqRef eqRef) =>
+    ContextBarState(utcOffset: 0, jdUt: 0, eqRef: eqRef);
 
 void main() {
   group('FlagBarState.lockedFlagsFrom — equinox reference', () {

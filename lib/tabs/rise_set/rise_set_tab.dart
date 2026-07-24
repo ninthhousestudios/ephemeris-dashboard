@@ -265,7 +265,11 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                   hasResults: outcome is CalcOk<List<RiseSetGroupResult>>,
                   filenameStem: 'rise_set',
                   getRows: () => switch (outcome) {
-                    CalcOk(value: final r) => riseSetToExportRows(r),
+                    CalcOk(value: final r) => riseSetToExportRows(
+                      r,
+                      ref.read(sweProvider),
+                      ref.read(clockViewProvider),
+                    ),
                     CalcError() => [],
                   },
                 ),

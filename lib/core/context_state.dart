@@ -12,7 +12,6 @@ const Object _sentinel = Object();
 
 class ContextBarState {
   const ContextBarState({
-    required this.dateTime,
     required this.utcOffset,
     required this.jdUt,
     this.calendar = Calendar.auto,
@@ -36,7 +35,6 @@ class ContextBarState {
     this.jplFilename,
   });
 
-  final DateTime dateTime;
   final double utcOffset; // hours
   final double jdUt;
 
@@ -73,7 +71,6 @@ class ContextBarState {
   jplFilename; // e.g. 'de440.eph'; only used when epheSource == jpl
 
   ContextBarState copyWith({
-    DateTime? dateTime,
     double? utcOffset,
     double? jdUt,
     Calendar? calendar,
@@ -95,7 +92,6 @@ class ContextBarState {
     Object? jplFilename = _sentinel,
   }) {
     return ContextBarState(
-      dateTime: dateTime ?? this.dateTime,
       utcOffset: utcOffset ?? this.utcOffset,
       jdUt: jdUt ?? this.jdUt,
       calendar: calendar ?? this.calendar,
@@ -124,7 +120,6 @@ class ContextBarState {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is ContextBarState &&
-          dateTime == other.dateTime &&
           utcOffset == other.utcOffset &&
           jdUt == other.jdUt &&
           calendar == other.calendar &&
@@ -147,7 +142,6 @@ class ContextBarState {
 
   @override
   int get hashCode => Object.hash(
-    dateTime,
     utcOffset,
     jdUt,
     calendar,
