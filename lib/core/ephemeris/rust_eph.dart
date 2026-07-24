@@ -786,12 +786,18 @@ class RustEph implements Ephemeris {
   }) {
     final eventType =
         _heliacalEventTypes[typeEvent] ?? rs.HeliacalEventType.morningFirst;
+    // OPTICAL_PARAMS is what makes swe_heliacal_ut *read* the four optical
+    // arguments below — without it they are zeroed on entry and the four
+    // instrument inputs the tab collects are silently inert. Setting it
+    // unconditionally is safe: with magnification 0 (the naked-eye default) SE
+    // still falls back to naked-eye binocular vision, so an unconfigured
+    // observer gets the same answer either way.
     final r = _engine.heliacalUt(
       rs.JdUt1(jdStart),
       objectName,
       eventType,
       rs.CalcFlags(flags),
-      rs.HeliacalFlags.none,
+      rs.HeliacalFlags.opticalParams,
       geolon: geolon,
       geolat: geolat,
       geoalt: geoalt,

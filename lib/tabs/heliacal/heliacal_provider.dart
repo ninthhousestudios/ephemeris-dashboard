@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/flag_masks.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/context_provider.dart';
+import '../../core/flag_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
@@ -97,6 +99,40 @@ class HeliacalCalcResult {
 
 // ── Result provider ──────────────────────────────────────────────────────────
 
+/// Pure compute step: one heliacal search per selected target, capturing a
+/// failing target's error as its own `error` instead of losing the batch.
+///
+/// [epheflag] is the Context's Ephemeris Source, reduced to the bare source
+/// bits `swe_heliacal_ut` accepts — passing 0 would silently compute on Swiss
+/// files whatever the Context asked for.
+List<HeliacalCalcResult> computeHeliacal({
+  required Ephemeris eph,
+  required double jdUt,
+  required List<String> targets,
+  required int typeEvent,
+  required double geolon,
+  required double geolat,
+  required double geoalt,
+  required AtmoConditions atmo,
+  required ObserverConditions observer,
+  required int epheflag,
+}) => targets
+    .map(
+      (name) => _computeOne(
+        eph,
+        jdUt,
+        geolon,
+        geolat,
+        geoalt,
+        atmo,
+        observer,
+        name,
+        typeEvent,
+        epheflag,
+      ),
+    )
+    .toList();
+
 HeliacalCalcResult _computeOne(
   Ephemeris eph,
   double jdUt,
@@ -107,6 +143,7 @@ HeliacalCalcResult _computeOne(
   ObserverConditions observer,
   String name,
   int typeEvent,
+  int epheflag,
 ) {
   try {
     final r = eph.heliacalUt(
@@ -118,6 +155,7 @@ HeliacalCalcResult _computeOne(
       observer: observer,
       objectName: name,
       typeEvent: typeEvent,
+      flags: epheflag,
     );
     return HeliacalCalcResult(
       objectName: name,
@@ -154,6 +192,10 @@ final _heliacalCalcProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>((
   final ctx = ref.watch(contextBarProvider);
   final targets = ref.watch(heliacalTargetsProvider);
   final typeEvent = ref.watch(heliacalEventTypeProvider);
+  // swe_heliacal_ut takes a bare ephemeris flag; with none set it defaults to
+  // Swiss files whatever the Context asked for. Watched, so switching the
+  // Ephemeris Source recomputes this tab like it does its siblings.
+  final epheflag = epheSourceFlag(ref.watch(flagBarProvider).iflag);
 
   final atmo = AtmoConditions(
     pressure: ref.watch(heliacalPressureProvider),
@@ -172,21 +214,18 @@ final _heliacalCalcProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>((
 
   return runTabCalc(
     ref,
-    compute: (eph, moment) => targets
-        .map(
-          (name) => _computeOne(
-            eph,
-            moment.ut,
-            ctx.longitude,
-            ctx.latitude,
-            ctx.altitude,
-            atmo,
-            observer,
-            name,
-            typeEvent,
-          ),
-        )
-        .toList(),
+    compute: (eph, moment) => computeHeliacal(
+      eph: eph,
+      jdUt: moment.ut,
+      targets: targets,
+      typeEvent: typeEvent,
+      geolon: ctx.longitude,
+      geolat: ctx.latitude,
+      geoalt: ctx.altitude,
+      atmo: atmo,
+      observer: observer,
+      epheflag: epheflag,
+    ),
   );
 });
 
