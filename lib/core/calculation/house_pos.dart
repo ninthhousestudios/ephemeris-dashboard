@@ -3,15 +3,18 @@
 
 import '../ephemeris/ephemeris.dart';
 import '../swe_constants.dart';
+import 'flag_masks.dart';
 
 /// Per-Moment inputs to `swe_house_pos`, computed once and reused for every
 /// body at that Moment: the ARMC from a [Ephemeris.houses] call and the true
 /// obliquity from [seEclNut].
 ///
 /// `swe_house_pos` is handle-free and cannot honour a sidereal engine config,
-/// so everything feeding it is tropical: [tropicalEclipticFlag] strips the
-/// sidereal, XYZ and equatorial bits, and swetest's `-fGgj` (which the seam is
-/// pinned against) is tropical.
+/// so everything feeding it is tropical *and of date*: [frameOfDateFlag] strips
+/// the sidereal, XYZ, equatorial, J2000 and no-nutation bits, and swetest's
+/// `-fGgj` (which the seam is pinned against) is tropical. The ARMC below is of
+/// date, so a body position in any other equinox would be differenced against
+/// the wrong one.
 class HousePosInputs {
   const HousePosInputs({
     required this.armc,
@@ -26,17 +29,6 @@ class HousePosInputs {
   final int hsys;
 }
 
-/// The flag for a calc that must return a plain **tropical ecliptic**
-/// longitude/latitude: strips the sidereal, XYZ and equatorial bits.
-///
-/// Shared by the two consumers with that same input contract — `swe_house_pos`
-/// (via [housePosOf]) and the horizontal transform (`swe_azalt` with
-/// `SE_ECL2HOR`, swe-dashboard/69). The equatorial bit matters: without
-/// stripping it, an Equatorial-mode request feeds RA/Dec where ecliptic
-/// lon/lat is expected, silently corrupting both quantities.
-int tropicalEclipticFlag(int iflag) =>
-    iflag & ~seFlgSidereal & ~seFlgXyz & ~seFlgEquatorial;
-
 /// Computes the per-Moment [HousePosInputs] for [hsys] at ([lat], [lon]).
 HousePosInputs housePosInputs(
   Ephemeris eph, {
@@ -46,7 +38,7 @@ HousePosInputs housePosInputs(
   required int hsys,
   required int iflag,
 }) {
-  final calcFlag = tropicalEclipticFlag(iflag);
+  final calcFlag = frameOfDateFlag(iflag);
   final houses = eph.houses(jdUt, lat, lon, hsys);
   final eps = eph.calcUt(jdUt, seEclNut, calcFlag).longitude;
   return HousePosInputs(

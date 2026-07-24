@@ -53,41 +53,58 @@ void main() {
     includeHorizontal: true,
   ).single;
 
-  test('az/alt are identical across Ecliptic, Equatorial and XYZ modes', () {
-    final ecliptic = sun(seFlgSwiEph).horizontal;
-    final equatorial = sun(seFlgSwiEph | seFlgEquatorial).horizontal;
-    final xyz = sun(seFlgSwiEph | seFlgXyz).horizontal;
+  // Every flag that only re-expresses *where the coordinate grid is anchored*.
+  // None of them moves the body in the sky, so none may move the horizontal
+  // frame. Display modes first (the original three), then the frame flags the
+  // locked Zodiac/Equinox references set.
+  const frameFlags = <String, int>{
+    'Equatorial': seFlgEquatorial,
+    'XYZ': seFlgXyz,
+    'Sidereal': seFlgSidereal,
+    'Mean equinox of date (no nutation)': seFlgNoNut,
+    'Mean equinox J2000': seFlgJ2000,
+    'Sidereal + Equatorial': seFlgSidereal | seFlgEquatorial,
+    'J2000 + Equatorial': seFlgJ2000 | seFlgEquatorial,
+  };
 
-    // All three actually produced a frame.
-    for (final h in [ecliptic, equatorial, xyz]) {
-      expect(h.hasValue, isTrue);
-    }
+  // Bit-for-bit would be ideal, but these paths route through a second
+  // engine call, so allow sub-arcsecond slack (1e-6°).
+  const tol = 1e-6;
 
-    // Bit-for-bit would be ideal, but the XYZ/Equatorial paths route through a
-    // second engine call, so allow sub-arcsecond slack (1e-6°).
-    const tol = 1e-6;
-    for (final other in [equatorial, xyz]) {
-      expect(other.azimuth, closeTo(ecliptic.azimuth, tol), reason: 'azimuth');
+  for (final entry in frameFlags.entries) {
+    final mode = entry.key;
+    test('$mode leaves az/alt and meridian distance unchanged', () {
+      final ecliptic = sun(seFlgSwiEph).horizontal;
+      expect(ecliptic.hasValue, isTrue);
+      expect(ecliptic.meridianDistance.isNaN, isFalse);
+
+      final other = sun(seFlgSwiEph | entry.value).horizontal;
+      expect(other.hasValue, isTrue, reason: '$mode produced no frame');
+      expect(
+        other.azimuth,
+        closeTo(ecliptic.azimuth, tol),
+        reason: '$mode azimuth',
+      );
       expect(
         other.trueAltitude,
         closeTo(ecliptic.trueAltitude, tol),
-        reason: 'true altitude',
+        reason: '$mode true altitude',
       );
       expect(
         other.apparentAltitude,
         closeTo(ecliptic.apparentAltitude, tol),
-        reason: 'apparent altitude',
+        reason: '$mode apparent altitude',
       );
       expect(
         other.zenithDistance,
         closeTo(ecliptic.zenithDistance, tol),
-        reason: 'zenith distance',
+        reason: '$mode zenith distance',
       );
       expect(
         other.meridianDistance,
         closeTo(ecliptic.meridianDistance, tol),
-        reason: 'meridian distance',
+        reason: '$mode meridian distance',
       );
-    }
-  });
+    });
+  }
 }

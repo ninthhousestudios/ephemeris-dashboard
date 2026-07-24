@@ -6,6 +6,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/flag_masks.dart';
 import '../../core/calculation/horizontal_coords.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
@@ -234,12 +235,11 @@ List<PlanetResult> computePlanets({
   // vanishing from the series picker.
   final houseRequested = hpInputs != null;
 
-  // The main `r` is a tropical ecliptic lon/lat only when none of these bits
-  // are set; otherwise the horizontal feed needs a dedicated tropical calc.
-  // Equatorial matters most: without it, RA/Dec would reach SE_ECL2HOR.
-  final needTropicalCalc =
-      doHorizontal &&
-      (iflag & (seFlgXyz | seFlgSidereal | seFlgEquatorial)) != 0;
+  // The main `r` is already the frame-of-date tropical ecliptic lon/lat the
+  // horizontal transform needs when the Context sets none of the frame bits;
+  // otherwise the horizontal feed needs a dedicated calc. Equatorial matters
+  // most: without it, RA/Dec would reach SE_ECL2HOR.
+  final needFrameOfDateCalc = doHorizontal && !isFrameOfDate(iflag);
 
   return bodies.map((body) {
     try {
@@ -266,13 +266,9 @@ List<PlanetResult> computePlanets({
       var horizontal = HorizontalCoords.nan;
       if (doHorizontal) {
         double eclLon = r.longitude, eclLat = r.latitude, eclDist = r.distance;
-        if (needTropicalCalc) {
+        if (needFrameOfDateCalc) {
           try {
-            final trop = eph.calcUt(
-              moment.ut,
-              body,
-              tropicalEclipticFlag(iflag),
-            );
+            final trop = eph.calcUt(moment.ut, body, frameOfDateFlag(iflag));
             eclLon = trop.longitude;
             eclLat = trop.latitude;
             eclDist = trop.distance;
@@ -289,7 +285,11 @@ List<PlanetResult> computePlanets({
           eclLon: eclLon,
           eclLat: eclLat,
           eclDist: eclDist,
-          ra: ra,
+          ra: meridianRaOf(
+            iflag: iflag,
+            displayRa: ra,
+            raAt: (flag) => eph.calcUt(moment.ut, body, flag).longitude,
+          ),
           gmstHours: gmstHours,
         );
       }
@@ -297,9 +297,10 @@ List<PlanetResult> computePlanets({
       var housePos = double.nan;
       if (hpInputs != null) {
         try {
-          // A dedicated tropical ecliptic calc: swe_house_pos is handle-free
-          // and cannot honour a sidereal/XYZ config, so `r` can't be reused.
-          final trop = eph.calcUt(moment.ut, body, tropicalEclipticFlag(iflag));
+          // A dedicated tropical ecliptic-of-date calc: swe_house_pos is
+          // handle-free and cannot honour a sidereal/XYZ config, and its ARMC
+          // is of date, so `r` can't be reused.
+          final trop = eph.calcUt(moment.ut, body, frameOfDateFlag(iflag));
           housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
         } catch (_) {}
       }

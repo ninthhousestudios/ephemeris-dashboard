@@ -6,6 +6,7 @@ import '../../core/swe_constants.dart';
 
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/flag_masks.dart';
 import '../../core/calculation/horizontal_coords.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
@@ -151,12 +152,11 @@ List<OtherBodyResult> computeOtherBodies({
       gmstHours = eph.sidTime(moment.ut);
     } catch (_) {}
   }
-  // The main `r` is a tropical ecliptic lon/lat only when none of these bits
-  // are set; otherwise the horizontal feed needs a dedicated tropical calc.
-  // Equatorial matters most: without it, RA/Dec would reach SE_ECL2HOR.
-  final needTropicalCalc =
-      doHorizontal &&
-      (iflag & (seFlgXyz | seFlgSidereal | seFlgEquatorial)) != 0;
+  // The main `r` is already the frame-of-date tropical ecliptic lon/lat the
+  // horizontal transform needs when the Context sets none of the frame bits;
+  // otherwise the horizontal feed needs a dedicated calc. Equatorial matters
+  // most: without it, RA/Dec would reach SE_ECL2HOR.
+  final needFrameOfDateCalc = doHorizontal && !isFrameOfDate(iflag);
 
   // House position is a geocentric-observer quantity: only the geo/topocentric
   // origins, computed once per Moment then reused for every body.
@@ -207,13 +207,9 @@ List<OtherBodyResult> computeOtherBodies({
       var horizontal = HorizontalCoords.nan;
       if (doHorizontal) {
         double eclLon = r.longitude, eclLat = r.latitude, eclDist = r.distance;
-        if (needTropicalCalc) {
+        if (needFrameOfDateCalc) {
           try {
-            final trop = eph.calcUt(
-              moment.ut,
-              body,
-              tropicalEclipticFlag(iflag),
-            );
+            final trop = eph.calcUt(moment.ut, body, frameOfDateFlag(iflag));
             eclLon = trop.longitude;
             eclLat = trop.latitude;
             eclDist = trop.distance;
@@ -230,7 +226,11 @@ List<OtherBodyResult> computeOtherBodies({
           eclLon: eclLon,
           eclLat: eclLat,
           eclDist: eclDist,
-          ra: ra,
+          ra: meridianRaOf(
+            iflag: iflag,
+            displayRa: ra,
+            raAt: (flag) => eph.calcUt(moment.ut, body, flag).longitude,
+          ),
           gmstHours: gmstHours,
         );
       }
@@ -238,9 +238,10 @@ List<OtherBodyResult> computeOtherBodies({
       var housePos = double.nan;
       if (hpInputs != null) {
         try {
-          // Dedicated tropical ecliptic calc — swe_house_pos can't honour a
-          // sidereal/XYZ config, so `r` can't be reused.
-          final trop = eph.calcUt(moment.ut, body, tropicalEclipticFlag(iflag));
+          // Dedicated tropical ecliptic-of-date calc — swe_house_pos can't
+          // honour a sidereal/XYZ config and its ARMC is of date, so `r` can't
+          // be reused.
+          final trop = eph.calcUt(moment.ut, body, frameOfDateFlag(iflag));
           housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
         } catch (_) {}
       }

@@ -4,6 +4,7 @@
 import '../display_format.dart';
 import '../ephemeris/ephemeris.dart';
 import '../swe_constants.dart';
+import 'flag_masks.dart';
 
 /// A body's position in the observer's horizontal frame at one Moment
 /// (swetest `-fPADIH`-adjacent quantities): azimuth, true/apparent altitude,
@@ -35,6 +36,31 @@ class HorizontalCoords {
   /// True once the frame was computed — the single gate every consumer uses,
   /// so a body that could not be placed shows nothing rather than NaN cells.
   bool get hasValue => !azimuth.isNaN;
+}
+
+/// The right ascension to feed [horizontalCoordsOf] as [ra].
+///
+/// The meridian distance differences RA against GMST *of date*, so the RA has
+/// to be referred to the equinox of date too. [displayRa] — the RA the tab
+/// shows, which deliberately follows the Context frame, J2000 and all — is only
+/// usable when the Context is already of date ([isEquinoxOfDate]). Otherwise
+/// [raAt] re-reads the body at [frameOfDateFlag], the one extra engine call
+/// being the price of not mixing two equinoxes into a physical angle.
+///
+/// [raAt] is the tab's own position lookup (`calcUt` for bodies, `fixstar2Ut`
+/// for stars) reduced to "give me the RA at this flag"; a throw leaves the
+/// meridian distance NaN, as an unavailable RA already does.
+double meridianRaOf({
+  required int iflag,
+  required double displayRa,
+  required double Function(int flag) raAt,
+}) {
+  if (isEquinoxOfDate(iflag)) return displayRa;
+  try {
+    return raAt(frameOfDateFlag(iflag) | seFlgEquatorial);
+  } catch (_) {
+    return double.nan;
+  }
 }
 
 /// Computes [HorizontalCoords] from a body's tropical ecliptic position.

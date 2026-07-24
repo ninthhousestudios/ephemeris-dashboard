@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/flag_masks.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/calculation/series_settings_provider.dart';
@@ -355,7 +356,7 @@ final _riseSetCalcProvider = Provider<CalcOutcome<List<RiseSetGroupResult>>>((
   final geolat = ctx.latitude;
   final geoalt = ctx.altitude;
   // riseTrans uses the basic ephe flag (no speed, no extras needed).
-  final epheflag = flags.iflag & 0xF; // low bits: ephe source
+  final epheflag = epheSourceFlag(flags.iflag);
 
   return runTabCalc(
     ref,
@@ -410,7 +411,7 @@ RiseSetResult Function(Ephemeris, Moment) _riseSetSeriesCompute(Ref ref) {
   final geolon = ctx.longitude;
   final geolat = ctx.latitude;
   final geoalt = ctx.altitude;
-  final epheflag = flags.iflag & 0xF;
+  final epheflag = epheSourceFlag(flags.iflag);
   final target = targets.isEmpty ? null : targets.first;
 
   return (eph, moment) {

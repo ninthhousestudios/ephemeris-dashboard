@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/flag_masks.dart';
 import '../../core/calculation/run_tab_calc.dart';
 import '../../core/body_utils.dart';
 import '../../core/context_provider.dart';
@@ -191,7 +192,7 @@ final _eclipsesCalcProvider = Provider<CalcOutcome<List<EclipseEvent>>>((ref) {
       ? targetStar
       : safeGetName(swe, targetPlanet);
 
-  final epheflag = flags.iflag & 0xF;
+  final epheflag = epheSourceFlag(flags.iflag);
 
   return runTabCalc(
     ref,

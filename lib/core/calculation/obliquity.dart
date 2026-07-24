@@ -7,7 +7,7 @@ import '../ephemeris/ephemeris.dart';
 import '../flag_provider.dart';
 import '../swe_constants.dart';
 import 'calc_outcome.dart';
-import 'house_pos.dart';
+import 'flag_masks.dart';
 import 'run_tab_calc.dart';
 
 /// Obliquity of the ecliptic and nutation for one Moment, from the SE_ECL_NUT
@@ -34,7 +34,7 @@ ObliquityNutation computeObliquityNutation(
   double jdUt,
   int iflag,
 ) {
-  final r = eph.calcUt(jdUt, seEclNut, tropicalEclipticFlag(iflag));
+  final r = eph.calcUt(jdUt, seEclNut, frameOfDateFlag(iflag));
   return (
     trueObliquity: r.longitude,
     meanObliquity: r.latitude,

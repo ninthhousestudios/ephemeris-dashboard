@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
 import '../../core/calculation/calc_outcome.dart';
+import '../../core/calculation/flag_masks.dart';
 import '../../core/calculation/horizontal_coords.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/moment.dart';
@@ -219,16 +220,13 @@ StarResult? computeStar({
   var horizontal = HorizontalCoords.nan;
   if (doHorizontal) {
     double eclLon = r.longitude, eclLat = r.latitude, eclDist = r.distance;
-    if ((iflag & (seFlgXyz | seFlgSidereal | seFlgEquatorial)) != 0) {
+    if (!isFrameOfDate(iflag)) {
       try {
-        // Dedicated tropical ecliptic lookup — the horizontal transform needs
-        // tropical ecliptic lon/lat, which a sidereal/XYZ/equatorial config
-        // won't return (equatorial would hand SE_ECL2HOR raw RA/Dec).
-        final trop = eph.fixstar2Ut(
-          searchForMag,
-          jdUt,
-          tropicalEclipticFlag(iflag),
-        );
+        // Dedicated tropical ecliptic-of-date lookup — the horizontal
+        // transform needs tropical ecliptic lon/lat of date, which a
+        // sidereal/XYZ/equatorial/J2000 config won't return (equatorial would
+        // hand SE_ECL2HOR raw RA/Dec).
+        final trop = eph.fixstar2Ut(searchForMag, jdUt, frameOfDateFlag(iflag));
         eclLon = trop.longitude;
         eclLat = trop.latitude;
         eclDist = trop.distance;
@@ -245,7 +243,11 @@ StarResult? computeStar({
       eclLon: eclLon,
       eclLat: eclLat,
       eclDist: eclDist,
-      ra: ra,
+      ra: meridianRaOf(
+        iflag: iflag,
+        displayRa: ra,
+        raAt: (flag) => eph.fixstar2Ut(searchForMag, jdUt, flag).longitude,
+      ),
       gmstHours: gmstHours,
     );
   }
@@ -253,13 +255,9 @@ StarResult? computeStar({
   var housePos = double.nan;
   if (hpInputs != null) {
     try {
-      // Dedicated tropical ecliptic lookup — swe_house_pos can't honour a
-      // sidereal/XYZ config.
-      final trop = eph.fixstar2Ut(
-        searchForMag,
-        jdUt,
-        tropicalEclipticFlag(iflag),
-      );
+      // Dedicated tropical ecliptic-of-date lookup — swe_house_pos can't
+      // honour a sidereal/XYZ config, and its ARMC is of date.
+      final trop = eph.fixstar2Ut(searchForMag, jdUt, frameOfDateFlag(iflag));
       housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
     } catch (_) {}
   }
