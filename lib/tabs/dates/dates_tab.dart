@@ -58,13 +58,26 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     _jdCtrl.text = ctx.jdUt.toStringAsFixed(8);
   }
 
-  /// Commits the local editor fields into the per-tab override JD, which the
-  /// result provider watches — the recompute is reactive, no Calculate press.
-  void _commitFields() {
-    final jd = double.tryParse(_jdCtrl.text) ?? _parseDateTime();
+  /// Commits the JD editor into the per-tab override JD, which the result
+  /// provider watches — the recompute is reactive, no Calculate press.
+  void _commitJd() {
+    final jd = double.tryParse(_jdCtrl.text);
     if (jd != null) {
       ref.read(datesOverrideJdProvider.notifier).state = jd;
     }
+  }
+
+  /// Commits the Date/Time editors, read on the Context Calendar.
+  ///
+  /// Split from [_commitJd] *by source*. One shared commit that preferred the
+  /// JD field made this path unreachable: while the user types a date, _jdCtrl
+  /// still holds the last good JD, so the JD parse always won and the civil
+  /// entry was silently computed away.
+  void _commitCivil() {
+    final jd = _parseDateTime();
+    if (jd == null) return;
+    _jdCtrl.text = jd.toStringAsFixed(8);
+    ref.read(datesOverrideJdProvider.notifier).state = jd;
   }
 
   double? _parseDateTime() {
@@ -101,7 +114,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     _timeCtrl.text = fmtHms(civil.hour, civil.minute, civil.second);
     _jdCtrl.text = jd.toStringAsFixed(8);
     setState(() => _isCustom = true);
-    _commitFields();
+    _commitJd();
   }
 
   void _resetToContext() {
@@ -125,7 +138,9 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     // The picker is proleptic Gregorian; its fields are read back on the
     // Context calendar, same as a typed date.
     _dateCtrl.text = fmtDateFields(picked.year, picked.month, picked.day);
-    _syncJdFromDateTimeFields();
+    // Commit, not just sync: a picked date that only refreshed the JD text left
+    // the Calendar card showing the previous Moment until some later submit.
+    _commitCivil();
     setState(() => _isCustom = true);
   }
 
@@ -139,7 +154,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     );
     if (picked == null) return;
     _timeCtrl.text = fmtHms(picked.$1, picked.$2, picked.$3);
-    _syncJdFromDateTimeFields();
+    _commitCivil();
     setState(() => _isCustom = true);
   }
 
@@ -147,13 +162,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     final d = parseDateFields(_dateCtrl.text, calendar: _calendar);
     if (d == null) return null;
     return DateTime(d.year, d.month, d.day);
-  }
-
-  void _syncJdFromDateTimeFields() {
-    final jd = _parseDateTime();
-    if (jd != null) {
-      _jdCtrl.text = jd.toStringAsFixed(8);
-    }
   }
 
   @override
@@ -197,7 +205,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                         FilteringTextInputFormatter.allow(RegExp(r'[\d-]')),
                       ],
                       onChanged: (_) => setState(() => _isCustom = true),
-                      onSubmitted: (_) => _commitFields(),
+                      onSubmitted: (_) => _commitCivil(),
                     ),
                   ),
                   dateTimeIconButton(
@@ -217,7 +225,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                         FilteringTextInputFormatter.allow(RegExp(r'[\d:]')),
                       ],
                       onChanged: (_) => setState(() => _isCustom = true),
-                      onSubmitted: (_) => _commitFields(),
+                      onSubmitted: (_) => _commitCivil(),
                     ),
                   ),
                   dateTimeIconButton(Icons.access_time, 'Pick time', _pickTime),
@@ -233,7 +241,7 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                         FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                       ],
                       onChanged: (_) => setState(() => _isCustom = true),
-                      onSubmitted: (_) => _commitFields(),
+                      onSubmitted: (_) => _commitJd(),
                     ),
                   ),
                 ],
