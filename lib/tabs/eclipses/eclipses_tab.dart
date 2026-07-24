@@ -33,6 +33,11 @@ const _occultStars = <String>[
   'Pollux',
 ];
 
+const _localFilterTooltip =
+    'Type filtering is unavailable under Local scope: the engine searches for '
+    'the next eclipse visible at the location, and those calls take no '
+    'eclipse-type argument. Switch to Global to filter by type.';
+
 class _EclipsesTabState extends ConsumerState<EclipsesTab> {
   @override
   Widget build(BuildContext context) {
@@ -42,6 +47,9 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
     final filter = ref.watch(eclipseFilterProvider);
     final count = ref.watch(eclipseCountProvider);
     final outcome = ref.watch(eclipseResultsProvider);
+    // The *WhenLoc engine calls take no eclType, so under Local scope the
+    // filter chips would advertise a constraint the search never receives.
+    final filterApplies = eclipseFilterApplies(scope);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -114,7 +122,12 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                Text('Filter ', style: theme.textTheme.labelLarge),
+                Text(
+                  'Filter ',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: filterApplies ? null : theme.disabledColor,
+                  ),
+                ),
                 const SizedBox(width: 4),
                 ...eclipseFilters
                     .where((f) {
@@ -135,19 +148,32 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                       }
                       return true;
                     })
-                    .map(
-                      (f) => Padding(
+                    .map((f) {
+                      final chip = ChoiceChip(
+                        label: Text(f.$1),
+                        // Nothing reads as selected under Local scope — showing
+                        // a live selection would claim a constraint the search
+                        // never receives.
+                        selected: filterApplies && filter == f.$2,
+                        onSelected: filterApplies
+                            ? (_) =>
+                                  ref
+                                          .read(eclipseFilterProvider.notifier)
+                                          .state =
+                                      f.$2
+                            : null,
+                        visualDensity: VisualDensity.compact,
+                      );
+                      return Padding(
                         padding: const EdgeInsets.only(right: 4),
-                        child: ChoiceChip(
-                          label: Text(f.$1),
-                          selected: filter == f.$2,
-                          onSelected: (_) =>
-                              ref.read(eclipseFilterProvider.notifier).state =
-                                  f.$2,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                    ),
+                        child: filterApplies
+                            ? chip
+                            : Tooltip(
+                                message: _localFilterTooltip,
+                                child: chip,
+                              ),
+                      );
+                    }),
                 const SizedBox(width: 12),
                 Text('Count ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),

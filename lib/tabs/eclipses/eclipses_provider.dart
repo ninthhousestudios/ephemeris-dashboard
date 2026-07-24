@@ -62,6 +62,16 @@ final eclipseScopeProvider = StateProvider<EclipseScope>(
 
 final eclipseFilterProvider = StateProvider<int>((ref) => 0);
 
+/// Whether the eclipse-type filter reaches the engine at all under [scope].
+///
+/// Only the global searches (`solEclipseWhenGlob`, `lunEclipseWhen`,
+/// `lunOccultWhenGlob`) take an `eclType`. Their `*WhenLoc` counterparts answer
+/// a different question — the next eclipse *visible from this place* — and have
+/// no type argument, so a filter set here is silently dropped. Named here rather
+/// than inlined in the tab so the UI that disables the chips and the search that
+/// ignores them read off one fact.
+bool eclipseFilterApplies(EclipseScope scope) => scope == EclipseScope.global;
+
 /// How many eclipses to search for in a single Calculate press.
 final eclipseCountProvider = StateProvider<int>((ref) => 5);
 
@@ -176,7 +186,11 @@ final _eclipsesCalcProvider = Provider<CalcOutcome<List<EclipseEvent>>>((ref) {
   final flags = ref.watch(flagBarProvider);
   final type = ref.watch(eclipseTypeProvider);
   final scope = ref.watch(eclipseScopeProvider);
-  final eclFilter = ref.watch(eclipseFilterProvider);
+  // Zeroed under Local scope: the *WhenLoc searches take no eclType, so passing
+  // one along would leave the tab holding a filter that never reached them.
+  final eclFilter = eclipseFilterApplies(scope)
+      ? ref.watch(eclipseFilterProvider)
+      : 0;
   final count = ref.watch(eclipseCountProvider);
 
   // Occultation target: resolved to a body id / star name / display label here,
