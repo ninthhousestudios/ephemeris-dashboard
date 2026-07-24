@@ -132,3 +132,16 @@ provenance = "vidhi-sutra-tend (R1)"
 # swe-dashboard/11) via vidhi-sutra-tend. Promoting conventions now would lock
 # patterns the refactor is about to delete. No suppressions yet — FCA will have
 # settled data after the foundation lands.
+
+# ═══════════════════════════════════════════════════════════════════
+# Forbidden patterns (vidhi/language-rules/dart.toml)
+# ═══════════════════════════════════════════════════════════════════
+
+[[constraint]]
+kind = "forbidden_pattern"
+language = "dart"
+query = '((comment) @match (#match? @match "^//+ *ignore(_for_file)?:"))'
+name = "no-ignore-comments"
+severity = "blocking"
+provenance = "house analysis_options.yaml baseline"
+scope = "lib/"
