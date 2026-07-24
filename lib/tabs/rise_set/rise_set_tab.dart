@@ -404,10 +404,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     // A per-event cell: the error string if the search failed (e.g. polar day),
     // otherwise the JD rendered on the selected clock, or an em-dash.
     String cell(double? jd, String? error) =>
-        error ??
-        (jd != null
-            ? formatJdDateTime(swe, jd, view: clockView, showLabel: false)
-            : '—');
+        error ?? formatRiseSetEventTime(swe, jd, clockView, showLabel: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -540,13 +537,11 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
       fields.add(
         ResultField(
           label: 'Date/Time',
-          value: jd != null
-              ? formatJdDateTime(
-                  ref.read(sweProvider),
-                  jd,
-                  view: ref.watch(clockViewProvider),
-                )
-              : '—',
+          value: formatRiseSetEventTime(
+            ref.read(sweProvider),
+            jd,
+            ref.watch(clockViewProvider),
+          ),
         ),
       );
     }

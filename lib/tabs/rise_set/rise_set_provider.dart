@@ -194,6 +194,14 @@ double localMidnightStart(double jdUt, double utcOffsetHours) {
 /// One rise/set/transit event: a single `riseTrans` call wrapped so a
 /// per-event `SweException` becomes an error string instead of failing the
 /// batch. Returns (jd) on success; (error) otherwise.
+///
+/// "No event" is an *exception*, not a sentinel time: swisseph_rs raises
+/// `CircumpolarBodyException` on the C `-2` return and throws on every other
+/// negative code, so the returned time is only written on success. A JD of 0.0
+/// is therefore a real (if absurd) result here, not an "unset" marker — unlike
+/// the eclipse arrays, which do use 0.0 that way and get `_nonZero`. The one
+/// value that cannot be trusted is a non-finite time, which no calendar can
+/// render; it becomes a per-event error like any other engine failure.
 ({double? jd, String? error}) _event(
   Ephemeris eph, {
   required double jdUt,
@@ -220,7 +228,11 @@ double localMidnightStart(double jdUt, double utcOffsetHours) {
       atpress: atpress,
       attemp: attemp,
     );
-    return (jd: r.transitTime, error: null);
+    final t = r.transitTime;
+    if (!t.isFinite) {
+      return (jd: null, error: 'Engine returned a non-finite time ($t).');
+    }
+    return (jd: t, error: null);
   } catch (e) {
     return (jd: null, error: e.toString());
   }
@@ -416,7 +428,24 @@ List<ExportRow> riseSetSeriesToExportRows(
 
 String _jdStr(double? jd) => jd != null ? jd.toStringAsFixed(8) : '—';
 
-/// Card export. Event times render through [formatJdDateTime] on the same
+/// The Date/Time render for one event, on the selected [view].
+///
+/// The single renderer for both the on-screen card and the export, so the two
+/// cannot drift apart again (swe-dashboard/82). A missing event is an em-dash,
+/// and so is a non-finite JD: [formatJdDateTime] has no calendar for one and
+/// would fall through to its `toStringAsFixed` escape hatch, printing the
+/// literal `NaN` (swe-dashboard/88). A JD of 0.0 is *not* special-cased — it is
+/// a real instant here, not a sentinel (see [_event]).
+String formatRiseSetEventTime(
+  SweUtils swe,
+  double? jd,
+  ClockView view, {
+  bool showLabel = true,
+}) => jd != null && jd.isFinite
+    ? formatJdDateTime(swe, jd, view: view, showLabel: showLabel)
+    : '—';
+
+/// Card export. Event times render through [formatRiseSetEventTime] on the same
 /// [ClockView] the screen uses, so an export matches what was on screen under a
 /// non-default scale, calendar or output clock.
 List<ExportRow> riseSetToExportRows(
@@ -424,8 +453,7 @@ List<ExportRow> riseSetToExportRows(
   SweUtils swe,
   ClockView view,
 ) {
-  String dtStr(double? jd) =>
-      jd != null ? formatJdDateTime(swe, jd, view: view) : '—';
+  String dtStr(double? jd) => formatRiseSetEventTime(swe, jd, view);
 
   return [
     for (final group in groups) ...[
