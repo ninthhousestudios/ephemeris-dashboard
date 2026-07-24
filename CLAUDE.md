@@ -4,29 +4,6 @@
 
 Flutter cross-platform GUI for the Swiss Ephemeris via [swisseph_rs](https://pub.dev/packages/swisseph_rs) (stateless Rust engine, per-instance config). Pure astronomical values, no interpretation. Riverpod for state management (StateNotifier, no codegen).
 
-## Project Structure
-
-```
-lib/
-  main.dart, app.dart              # Entry point, MaterialApp
-  core/                            # Shared state & services
-    swe_service.dart               #   sweProvider (SweUtils), initSweEphePath
-    context_state.dart             #   Immutable ContextBarState
-    context_provider.dart          #   ContextBarNotifier (JD/DateTime/location)
-    calc_context.dart              #   EffectiveContext (merges context + flags)
-    active_tab.dart                #   activeTabIdProvider (selected tab tracking)
-    flag_definitions.dart          #   FlagDef, FlagGroup, auto-managed flags
-    flag_state.dart, flag_provider #   FlagBarState/Notifier
-    display_format.dart            #   DMS/Decimal/Raw formatters
-    jd_utils.dart                  #   JD <-> DateTime conversion
-  layout/                          # Shell, tabs, responsive breakpoints
-  tabs/                            # Per-tab UI + providers (planets, houses, ayanamsa)
-  widgets/                         # Reusable widgets (context_bar, flag_bar, result_card)
-  chart_formats/                   # File format parsers (.chtk, .jhd, .aaf, etc.)
-  theme/                           # Dark/light/cosmic/forest themes
-test/layout_invariants_test.dart   # Overflow/zoom sweep over every surface
-```
-
 ## Architecture: Zoom & Responsive Scaling
 
 This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must remain functional across zoom levels. These rules are non-negotiable:
@@ -111,13 +88,6 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
   `lib/tabs/` and `lib/widgets/` — blocking; enforced by `.sutra/rules.toml`,
   constants re-exported via `lib/core/swe_constants.dart`).
 
-## Running
-
-```bash
-flutter run -d linux    # or macos, windows, chrome
-flutter test            # the whole suite; there is no separate path to run
-```
-
 ## Layout Tests
 
 **There are no golden image tests.** Don't add any. Snapshot baselines were
@@ -125,33 +95,12 @@ tried twice and removed twice: they spent three separate defects being green
 against images nobody compared (swe-dashboard/63), and once genuinely working
 they failed on ~1% cosmetic drift after every unrelated UI edit while never
 catching a bug. Verification of *appearance* is Josh's, by eye. Verification of
-*layout correctness* is the sweep below, which fails on facts rather than
-pixels.
+*layout correctness* is `test/layout_invariants_test.dart`, which fails on facts
+rather than pixels.
 
-**`test/layout_invariants_test.dart`** is the load-bearing one. It sweeps all
-18 screen-level surfaces x 3 viewports (400x800 mobile, 800x1024 tablet,
-1400x900 desktop) x 5 text scales (1.0, 1.15, 1.3, 1.7, 2.0) and asserts no
-overflow, plus that each surface still paints text at 2x. Diffs as text, no
-binaries, no baselines to regenerate.
-
-`test/support/widget_fixtures.dart` holds the shared surface list and pump
-helpers it runs against — add a new screen-level surface there and the sweep
-picks it up.
-
-`_knownOverflows` in the invariants test is an itemised defect list
-(yojana `swe-dashboard/65`), **checked both ways** — a new overflow fails, and
-an entry that stops overflowing also fails and asks you to delete it. It can
-only shrink. Never widen it to make a test pass; fix the layout.
-
-`pumpAppWidget(hostInScrollView: true)` reproduces how `AppShell` hosts its
-children (its `body` is a `SingleChildScrollView`). Without it, pumping a tab
-into a fixed-height Scaffold reports a bottom overflow for any tab taller than
-the viewport — a fact about the harness, not the app.
-
-Overflow-collecting tests must restore `FlutterError.onError` **before** any
-`expect`. Calling `expect` while it is overridden trips a binding assertion and
-flutter_tools then deadlocks on shutdown instead of reporting the failure;
-`addTearDown` is too late.
+Harness mechanics (the sweep's shape, `_knownOverflows`, `pumpAppWidget`, the
+`FlutterError.onError` ordering rule) live in `test/CLAUDE.md`, which loads when
+you work under `test/`.
 
 ## Agent skills
 
