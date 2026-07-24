@@ -67,19 +67,11 @@ List<(Moment, CalcOutcome<T>)> runTabCalcSeries<T>(
   Ref ref, {
   required T Function(Ephemeris eph, Moment moment) compute,
   required SeriesSettings settings,
-}) {
-  final globals = ref.watch(appliedGlobalsProvider);
-  final runner = ref.watch(ephemerisRunnerProvider);
-  final jdUt = ref.watch(effectiveContextProvider.select((c) => c.jdUt));
-  final calendar = ref.watch(contextBarProvider.select((c) => c.calendar));
-
-  runner.apply(globals);
-  return computeSeries(
-    runner.eph,
-    settings.specFrom(Moment.fromUt(jdUt, runner.eph), calendar),
-    compute,
-  );
-}
+}) => _runTabCalcSeries(
+  ref,
+  settings,
+  (eph, moment, _, _) => compute(eph, moment),
+);
 
 /// Series counterpart of [runTabCalcWithOverrides]: each step's [compute] gets
 /// the base [AppliedGlobals] and a `reconfigure` hook, so a tab that compares
@@ -96,16 +88,50 @@ List<(Moment, CalcOutcome<T>)> runTabCalcSeriesWithOverrides<T>(
   )
   compute,
   required SeriesSettings settings,
-}) {
+}) => _runTabCalcSeries(ref, settings, compute);
+
+/// Shared body of the two series entry points.
+///
+/// The prologue — configuring the engine and building the Context Moment the
+/// series starts from — happens before any step exists, and both halves can
+/// throw [SweException]. That failure is not a property of one step, so it
+/// cannot be reported like one; left uncaught it escaped the provider and took
+/// down the subtree, while the card path ([_runTabCalc]) turned the identical
+/// throw into a [CalcError]. Here it becomes a CalcError on every row, so the
+/// series stays inside the outcome envelope and the table renders the reason.
+///
+/// The row count comes from [SeriesSettings] rather than the [SeriesSpec],
+/// because on this path there is no spec — the same clamp [SeriesSpec] applies.
+List<(Moment, CalcOutcome<T>)> _runTabCalcSeries<T>(
+  Ref ref,
+  SeriesSettings settings,
+  T Function(
+    Ephemeris eph,
+    Moment moment,
+    AppliedGlobals baseGlobals,
+    void Function(AppliedGlobals) reconfigure,
+  )
+  compute,
+) {
   final globals = ref.watch(appliedGlobalsProvider);
   final runner = ref.watch(ephemerisRunnerProvider);
   final jdUt = ref.watch(effectiveContextProvider.select((c) => c.jdUt));
   final calendar = ref.watch(contextBarProvider.select((c) => c.calendar));
 
-  runner.apply(globals);
+  final SeriesSpec spec;
+  try {
+    runner.apply(globals);
+    spec = settings.specFrom(Moment.fromUt(jdUt, runner.eph), calendar);
+  } on SweException catch (e) {
+    return List.generate(
+      settings.rowCount.clamp(1, seriesHardRowCap),
+      (_) => (_unbuiltMoment, CalcError<T>(e.message)),
+    );
+  }
+
   return computeSeries(
     runner.eph,
-    settings.specFrom(Moment.fromUt(jdUt, runner.eph), calendar),
+    spec,
     (eph, moment) => compute(eph, moment, globals, (o) => runner.apply(o)),
   );
 }
