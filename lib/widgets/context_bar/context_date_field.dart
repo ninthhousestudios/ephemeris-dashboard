@@ -90,25 +90,15 @@ class _ContextDateFieldState extends ConsumerState<ContextDateField> {
       // telling the user why, so a bad entry never just silently vanishes.
       // Empty is not "invalid" — it just reverts, no complaint.
       _sync();
-      if (text.isNotEmpty) {
-        _showInvalid('"$text" is not a valid ${ctx.calendar.label} date');
+      if (text.isNotEmpty && mounted) {
+        showInvalidEntry(
+          context,
+          '"$text" is not a valid ${ctx.calendar.label} date',
+        );
       }
       return;
     }
     _commitLocal(ctx, parsed.year, parsed.month, parsed.day);
-  }
-
-  void _showInvalid(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-        ),
-      );
   }
 
   Future<void> _pick() async {

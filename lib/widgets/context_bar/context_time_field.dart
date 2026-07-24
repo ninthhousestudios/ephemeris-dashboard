@@ -90,8 +90,8 @@ class _ContextTimeFieldState extends ConsumerState<ContextTimeField> {
       // Revert to the canonical time and say why, so a bad entry (e.g. 25:00)
       // never just silently sticks. Empty reverts without complaint.
       _sync();
-      if (text.isNotEmpty) {
-        _showInvalid('"$text" is not a valid time (HH:MM:SS)');
+      if (text.isNotEmpty && mounted) {
+        showInvalidEntry(context, '"$text" is not a valid time (HH:MM:SS)');
       }
       return;
     }
@@ -101,19 +101,6 @@ class _ContextTimeFieldState extends ConsumerState<ContextTimeField> {
       parsed.minute,
       parsed.second,
     );
-  }
-
-  void _showInvalid(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 3),
-        ),
-      );
   }
 
   Future<void> _pick() async {

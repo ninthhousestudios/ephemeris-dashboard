@@ -61,6 +61,24 @@ String fmtHms(int h, int m, int s) =>
   return (hour: h, minute: m, second: s);
 }
 
+/// Tells the user why an entry was rejected, after the field has snapped back
+/// to the canonical Moment.
+///
+/// Shared by every context-bar entry field: a bad value reverting in silence
+/// looks like the app ate the keystrokes, so each field that reverts also says
+/// so. One helper rather than one per field — they had drifted to three copies.
+void showInvalidEntry(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+}
+
 InputDecoration dateTimeInputDecoration(String hint) => InputDecoration(
   isDense: true,
   contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),

@@ -57,8 +57,18 @@ class _ContextJdFieldState extends ConsumerState<ContextJdField> {
   }
 
   void _commit() {
-    final entered = double.tryParse(_controller.text);
-    if (entered == null) return;
+    final text = _controller.text.trim();
+    final entered = double.tryParse(text);
+    if (entered == null) {
+      // Snap back to the canonical Moment and say why, matching the date and
+      // time fields: a rejected entry that just vanished on blur looked like
+      // the field had eaten it. Empty is not "invalid" — it reverts silently.
+      _sync();
+      if (text.isNotEmpty && mounted) {
+        showInvalidEntry(context, '"$text" is not a valid Julian Day');
+      }
+      return;
+    }
     final ctx = ref.read(contextBarProvider);
     // In TT the entered value is a JD on the TT scale: step back one ΔT to the
     // canonical UT1 JD (as swetest does), so Moment.ut stays canonical.
@@ -88,7 +98,11 @@ class _ContextJdFieldState extends ConsumerState<ContextJdField> {
       focusNode: _focusNode,
       hint: '2460000.0',
       onCommit: _commit,
-      formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.]'))],
+      // '-' is allowed through: the engine's range reaches back past JD 0, and
+      // silently swallowing the sign turned "-100" into "100" — the same
+      // vanishing-keystroke problem the snackbar above fixes. Anything the
+      // formatter now lets through that is not a number is caught on commit.
+      formatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d.\-]'))],
     );
   }
 }
