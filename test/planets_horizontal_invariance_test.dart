@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swisseph_rs/swisseph_rs.dart' as rs;
+import 'package:swe_dashboard/core/calculation/flag_masks.dart';
 import 'package:swe_dashboard/core/calculation/moment.dart';
 import 'package:swe_dashboard/core/context_state.dart';
 import 'package:swe_dashboard/core/ephemeris/rust_eph.dart';
@@ -65,6 +66,11 @@ void main() {
     'Mean equinox J2000': seFlgJ2000,
     'Sidereal + Equatorial': seFlgSidereal | seFlgEquatorial,
     'J2000 + Equatorial': seFlgJ2000 | seFlgEquatorial,
+    // ICRS skips the ICRS -> dynamical-J2000 frame bias, so precession to date
+    // lands on a grid ~17 mas (4.7e-6 deg) off the true equinox of date. Small,
+    // but above the tolerance below — and a frame error either way.
+    'ICRS': seFlgIcrs,
+    'ICRS + Equatorial': seFlgIcrs | seFlgEquatorial,
   };
 
   // Bit-for-bit would be ideal, but these paths route through a second
@@ -107,4 +113,24 @@ void main() {
       );
     });
   }
+
+  // The gap that put ICRS in this file: it was a user-exposed frame bit that no
+  // row exercised, so nothing noticed when `frameOfDateFlag` failed to strip it
+  // and `isFrameOfDate` waved an ICRS position through as already of-date. This
+  // makes the matrix's completeness a fact the suite checks rather than
+  // something the next person to add a frame bit has to remember.
+  test('every equinox-shifting bit has a row of its own', () {
+    final covered = frameFlags.values.toSet();
+    for (var i = 0; i < 32; i++) {
+      final bit = 1 << i;
+      if (equinoxShiftMask & bit == 0) continue;
+      expect(
+        covered,
+        contains(bit),
+        reason:
+            'equinoxShiftMask carries bit $bit with no standalone row in '
+            'frameFlags — add one before trusting it is stripped',
+      );
+    }
+  });
 }
