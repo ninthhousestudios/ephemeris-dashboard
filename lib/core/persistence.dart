@@ -40,6 +40,14 @@ class PersistenceService {
     _prefs.setBool('ctx_user_ayan_t0_is_ut', s.userAyanT0IsUt);
     _prefs.setString('ctx_sidereal_projection', s.projection.name);
     _prefs.setString('ctx_ephe_source', s.epheSource.name);
+    // Null (no JPL file chosen) has to erase the key, not leave the previous
+    // choice behind for the next restore to pick up.
+    final jplFilename = s.jplFilename;
+    if (jplFilename == null) {
+      _prefs.remove('ctx_jpl_filename');
+    } else {
+      _prefs.setString('ctx_jpl_filename', jplFilename);
+    }
     _prefs.setDouble('ctx_utc_offset', s.utcOffset);
     _prefs.setString('ctx_calendar', s.calendar.name);
     _prefs.setString('ctx_time_scale', s.timeScale.name);
@@ -110,6 +118,9 @@ class PersistenceService {
         (e) => e.name == name,
         orElse: () => EpheSource.swissEph,
       );
+    }
+    if (_prefs.containsKey('ctx_jpl_filename')) {
+      map['jplFilename'] = _prefs.getString('ctx_jpl_filename');
     }
     if (_prefs.containsKey('ctx_utc_offset')) {
       map['utcOffset'] = _prefs.getDouble('ctx_utc_offset');

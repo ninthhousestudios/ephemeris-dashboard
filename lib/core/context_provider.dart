@@ -62,6 +62,8 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
       lastSiderealAyanamsa: overrides['lastSiderealAyanamsa'] as int?,
       userAyanT0: overrides['userAyanT0'] as double?,
       userAyanValue: overrides['userAyanValue'] as double?,
+      userAyanT0IsUt: overrides['userAyanT0IsUt'] as bool?,
+      projection: overrides['projection'] as SiderealProjection?,
       epheSource: hasEpheFiles
           ? overrides['epheSource'] as EpheSource?
           : EpheSource.moshier,
@@ -69,6 +71,11 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
       calendar: overrides['calendar'] as Calendar?,
       timeScale: overrides['timeScale'] as TimeScale?,
     );
+    // Nullable field, so it cannot ride along in the copyWith above: passing
+    // null there is "keep", not "clear". Only apply it when it was stored.
+    if (overrides.containsKey('jplFilename')) {
+      state = state.copyWith(jplFilename: overrides['jplFilename'] as String?);
+    }
   }
 
   void _save() => _persistence.saveContextBar(state);
