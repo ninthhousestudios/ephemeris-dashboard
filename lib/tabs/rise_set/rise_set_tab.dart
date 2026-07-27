@@ -514,30 +514,23 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   }
 
   Widget _eventCard(String title, double? jd, String? error, double cardWidth) {
-    final fields = <ResultField>[];
-
-    if (error != null) {
-      fields.add(ResultField(label: 'Error', value: error));
-    } else {
-      fields
-        ..add(
-          ResultField(
-            label: 'JD',
-            value: jd != null ? jd.toStringAsFixed(8) : '—',
-            rawValue: jd,
-          ),
-        )
-        ..add(
-          ResultField(
-            label: 'Date/Time',
-            value: formatRiseSetEventTime(
-              ref.read(sweProvider),
-              jd,
-              ref.watch(clockViewProvider),
+    final fields = error != null
+        ? <ResultField>[ResultField(label: 'Error', value: error)]
+        : <ResultField>[
+            ResultField(
+              label: 'JD',
+              value: jd != null ? jd.toStringAsFixed(8) : '—',
+              rawValue: jd,
             ),
-          ),
-        );
-    }
+            ResultField(
+              label: 'Date/Time',
+              value: formatRiseSetEventTime(
+                ref.read(sweProvider),
+                jd,
+                ref.watch(clockViewProvider),
+              ),
+            ),
+          ];
 
     return SizedBox(
       width: cardWidth,
