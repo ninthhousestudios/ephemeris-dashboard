@@ -103,6 +103,15 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
   final user = ctx.ayanamsa == ayanamsaUserId
       ? resolveUserAyanamsa(ref.watch(userAyanamsasProvider), ctx.userAyanId)
       : null;
+  // 255 with nothing behind it is not a frame the engine can compute: it would
+  // configure SE_SIDM_USER from a zeroed t0/value and return a zodiac nobody
+  // chose, looking like a real result. `contextBarProvider` reconciles the
+  // selection off user-defined the moment the entry goes away, so this is the
+  // same landing spot, held here too because a derived value must not depend
+  // on that having happened first.
+  final ayanamsa = user == null && ctx.ayanamsa == ayanamsaUserId
+      ? ayanamsaDefaultSiderealId
+      : ctx.ayanamsa;
 
   return EffectiveContext(
     jdUt: ctx.jdUt,
@@ -113,7 +122,7 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
     origin: ctx.origin,
     zodiacRef: ctx.zodiacRef,
     eqRef: ctx.eqRef,
-    ayanamsa: ctx.ayanamsa,
+    ayanamsa: ayanamsa,
     userAyanT0: user?.t0 ?? 0.0,
     userAyanValue: user?.value ?? 0.0,
     userAyanT0IsUt: user?.t0IsUt ?? false,

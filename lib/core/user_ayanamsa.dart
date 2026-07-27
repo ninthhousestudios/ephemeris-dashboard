@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ayanamsa_catalog.dart';
-import 'context_provider.dart';
 import 'persistence.dart';
 import 'pref_field.dart';
 
@@ -63,18 +62,25 @@ class UserAyanamsa {
 
   /// Null when the stored shape is no longer usable, so one bad entry is
   /// dropped rather than taking the whole list down with it.
+  ///
+  /// `t0` and `value` are required, not defaulted: [toJson] always writes both,
+  /// so their absence means corruption or schema drift rather than a valid
+  /// saved entry. Substituting J2000 and 0° there would hand the engine a
+  /// selectable entry that computes in a frame the user never chose.
   static UserAyanamsa? fromJson(Object? json) {
     if (json is! Map) return null;
     final id = json['id'];
     if (id is! int) return null;
-    final name = json['name'];
     final t0 = json['t0'];
     final value = json['value'];
+    if (t0 is! num || !t0.isFinite) return null;
+    if (value is! num || !value.isFinite) return null;
+    final name = json['name'];
     return UserAyanamsa(
       id: id,
       name: name is String ? name : null,
-      t0: t0 is num ? t0.toDouble() : 2451545.0,
-      value: value is num ? value.toDouble() : 0.0,
+      t0: t0.toDouble(),
+      value: value.toDouble(),
       t0IsUt: json['t0IsUt'] == true,
     );
   }
@@ -143,11 +149,55 @@ class UserAyanamsaListPrefCodec extends PrefCodec<List<UserAyanamsa>> {
 const userAyanamsaListPref = UserAyanamsaListPrefCodec();
 const userAyanamsasPrefKey = 'user_ayanamsas';
 
+/// Pref keys written by builds before swe-dashboard/96, when the Context
+/// carried one user-defined ayanamsha's parameters as scalars of its own.
+const _legacyT0Key = 'ctx_user_ayan_t0';
+const _legacyValueKey = 'ctx_user_ayan_value';
+const _legacyT0IsUtKey = 'ctx_user_ayan_t0_is_ut';
+const _ayanamsaKey = 'ctx_ayanamsa';
+const _userAyanIdKey = 'ctx_user_ayan_id';
+
+/// Fold a pre-swe-dashboard/96 store into the list shape, in place.
+///
+/// Those builds stored the single user-defined ayanamsha as three scalar
+/// Context fields. Nothing reads those keys any more, so without this the
+/// user's ayanamsha is simply gone — and worse, a Context that still says
+/// `ayanamsa == 255` restores selecting a user-defined entry that does not
+/// exist. The parameters become one entry, and the selection follows only if
+/// the old Context was actually on 255.
+///
+/// Runs against storage before any provider reads it (from `main`), so the
+/// list and the Context both come up already migrated and neither has to know
+/// the old shape. Idempotent: the legacy keys are dropped, and a store that
+/// already has [userAyanamsasPrefKey] is left alone.
+void migrateLegacyUserAyanamsa(SharedPreferences prefs) {
+  if (prefs.containsKey(userAyanamsasPrefKey)) return;
+  final t0 = prefs.getDouble(_legacyT0Key);
+  final value = prefs.getDouble(_legacyValueKey);
+  if (t0 == null && value == null) return;
+
+  const migrated = 0;
+  userAyanamsaListPref.write(prefs, userAyanamsasPrefKey, [
+    UserAyanamsa(
+      id: migrated,
+      t0: t0 ?? const UserAyanamsa(id: migrated).t0,
+      value: value ?? 0.0,
+      t0IsUt: prefs.getBool(_legacyT0IsUtKey) ?? false,
+    ),
+  ]);
+  if (prefs.getInt(_ayanamsaKey) == ayanamsaUserId) {
+    prefs.setInt(_userAyanIdKey, migrated);
+  }
+  prefs
+    ..remove(_legacyT0Key)
+    ..remove(_legacyValueKey)
+    ..remove(_legacyT0IsUtKey);
+}
+
 /// The app-wide list of user-defined ayanamshas.
 ///
 /// [onChanged] fires after every mutation: the provider uses it to persist the
-/// list and to keep the Context's selection from dangling. Left null in tests,
-/// which exercise the notifier on its own.
+/// list. Left null in tests, which exercise the notifier on its own.
 class UserAyanamsaNotifier extends StateNotifier<List<UserAyanamsa>> {
   UserAyanamsaNotifier({List<UserAyanamsa> initial = const [], this.onChanged})
     : _nextId = initial.fold(0, (m, u) => u.id >= m ? u.id + 1 : m),
@@ -201,6 +251,12 @@ class UserAyanamsaNotifier extends StateNotifier<List<UserAyanamsa>> {
 }
 
 /// User-defined ayanamshas, shared by the Ayanamsa tab and the context bar.
+///
+/// Owns the entries and nothing else. Keeping the Context's selection from
+/// dangling when an entry goes away is `contextBarProvider`'s job, done by
+/// listening to this provider: the Context is what holds the id, and this file
+/// importing `context_provider.dart` to push at it put a plain core data list
+/// inside the context/engine import cycle (swe-dashboard/97).
 final userAyanamsasProvider =
     StateNotifierProvider<UserAyanamsaNotifier, List<UserAyanamsa>>((ref) {
       final persistence = ref.watch(persistenceProvider);
@@ -208,18 +264,10 @@ final userAyanamsasProvider =
         initial:
             persistence.loadValue(userAyanamsaListPref, userAyanamsasPrefKey) ??
             const [],
-        onChanged: (entries) {
-          persistence.saveValue(
-            userAyanamsaListPref,
-            userAyanamsasPrefKey,
-            entries,
-          );
-          // Removing the selected entry must not leave the Context pointing at
-          // an id that no longer exists — the dropdown would have no item to
-          // show for it, and the engine no parameters to configure from.
-          ref.read(contextBarProvider.notifier).reconcileUserAyanamsa([
-            for (final u in entries) u.id,
-          ]);
-        },
+        onChanged: (entries) => persistence.saveValue(
+          userAyanamsaListPref,
+          userAyanamsasPrefKey,
+          entries,
+        ),
       );
     });

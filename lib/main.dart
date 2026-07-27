@@ -7,11 +7,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/ephe/bootstrap.dart';
 import 'core/persistence.dart';
+import 'core/user_ayanamsa.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final ephe = await bootstrapEpheSource();
   final prefs = await SharedPreferences.getInstance();
+  // Before any provider reads the store, so the Context and the user-defined
+  // list both come up on the current shape and neither has to know the old one.
+  migrateLegacyUserAyanamsa(prefs);
   runApp(
     ProviderScope(
       overrides: [

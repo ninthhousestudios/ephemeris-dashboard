@@ -19,6 +19,12 @@ const int ayanamsaTropicalId = -1;
 /// SE_SIDM_USER — requires t0 (reference JD) and ayanT0 (value at t0).
 const int ayanamsaUserId = 255;
 
+/// Where a sidereal Context lands when its chosen ayanamsha cannot be used —
+/// a user-defined selection whose entry is gone. Lahiri, the app's default
+/// sidereal choice. Shared so the Context's reconciliation and the derived
+/// effective context agree on the landing spot rather than each picking one.
+const int ayanamsaDefaultSiderealId = 1;
+
 /// SE_SIDBIT_USER_UT — ORed into sid_mode so the user-defined t0 is read as UT
 /// rather than TT (swetest `jdisut`). Mirrors `rs.SiderealBits.userUt`, kept
 /// here so the tabs layer need not reach into `package:swisseph_rs`.

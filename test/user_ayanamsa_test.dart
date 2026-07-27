@@ -8,14 +8,24 @@
 /// stored round trip, and the Context's reconciliation when an entry goes away.
 library;
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swe_dashboard/core/ayanamsa_catalog.dart';
+import 'package:swe_dashboard/core/calc_context.dart';
 import 'package:swe_dashboard/core/context_provider.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
 import 'package:swe_dashboard/core/user_ayanamsa.dart';
+import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_provider.dart';
+import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_tab.dart';
+import 'package:swe_dashboard/theme/app_themes.dart';
+import 'package:swe_dashboard/widgets/context_bar/ayanamsa_selector.dart';
+import 'package:swe_dashboard/widgets/context_bar/user_ayanamsa_dialog.dart';
+
+import 'support/widget_fixtures.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -193,6 +203,110 @@ void main() {
       final loaded = userAyanamsaListPref.read(prefs, userAyanamsasPrefKey);
       expect(loaded?.map((u) => u.id), [1]);
     });
+
+    test('an entry missing its astronomy is dropped, not defaulted', () async {
+      // `toJson` always writes t0 and value, so their absence is drift, not a
+      // valid saved entry — defaulting them would make it selectable and
+      // computable in a frame the user never chose.
+      final prefs = await freshPrefs();
+      await prefs.setString(
+        userAyanamsasPrefKey,
+        '[{"id":1,"value":23.85},{"id":2,"t0":2451545.0},'
+        '{"id":3,"t0":"J2000","value":23.85},'
+        '{"id":4,"t0":2451545.0,"value":23.85}]',
+      );
+      final loaded = userAyanamsaListPref.read(prefs, userAyanamsasPrefKey);
+      expect(loaded?.map((u) => u.id), [4]);
+    });
+  });
+
+  group('legacy store migration', () {
+    /// A store as a build before swe-dashboard/96 left it: the one user-defined
+    /// ayanamsha as scalar Context fields, no list and no selected id.
+    Future<SharedPreferences> legacyPrefs({required int ayanamsa}) {
+      SharedPreferences.setMockInitialValues({
+        'ctx_ayanamsa': ayanamsa,
+        'ctx_user_ayan_t0': 2415020.0,
+        'ctx_user_ayan_value': 22.5,
+        'ctx_user_ayan_t0_is_ut': true,
+      });
+      return SharedPreferences.getInstance();
+    }
+
+    test('the old scalar params become one entry in the list', () async {
+      final prefs = await legacyPrefs(ayanamsa: ayanamsaUserId);
+      migrateLegacyUserAyanamsa(prefs);
+
+      final entry = userAyanamsaListPref
+          .read(prefs, userAyanamsasPrefKey)
+          ?.single;
+      expect(entry?.t0, 2415020.0);
+      expect(entry?.value, 22.5);
+      expect(entry?.t0IsUt, isTrue);
+    });
+
+    test(
+      'a Context that was on user-defined selects the migrated entry',
+      () async {
+        final prefs = await legacyPrefs(ayanamsa: ayanamsaUserId);
+        migrateLegacyUserAyanamsa(prefs);
+
+        final entry = userAyanamsaListPref
+            .read(prefs, userAyanamsasPrefKey)
+            ?.single;
+        expect(prefs.getInt('ctx_user_ayan_id'), entry?.id);
+      },
+    );
+
+    test('a Context on a built-in mode keeps its selection', () async {
+      // The parameters are still carried over — they are the user's work — but
+      // nothing about the chart's frame changes.
+      final prefs = await legacyPrefs(ayanamsa: 1);
+      migrateLegacyUserAyanamsa(prefs);
+
+      expect(
+        userAyanamsaListPref.read(prefs, userAyanamsasPrefKey),
+        hasLength(1),
+      );
+      expect(prefs.getInt('ctx_user_ayan_id'), isNull);
+      expect(prefs.getInt('ctx_ayanamsa'), 1);
+    });
+
+    test('the legacy keys are dropped, so a second run is a no-op', () async {
+      final prefs = await legacyPrefs(ayanamsa: ayanamsaUserId);
+      migrateLegacyUserAyanamsa(prefs);
+      expect(prefs.containsKey('ctx_user_ayan_t0'), isFalse);
+      expect(prefs.containsKey('ctx_user_ayan_value'), isFalse);
+      expect(prefs.containsKey('ctx_user_ayan_t0_is_ut'), isFalse);
+
+      // Editing the migrated entry away must not resurrect it on next launch.
+      userAyanamsaListPref.write(prefs, userAyanamsasPrefKey, const []);
+      migrateLegacyUserAyanamsa(prefs);
+      expect(userAyanamsaListPref.read(prefs, userAyanamsasPrefKey), isEmpty);
+    });
+
+    test('a store already on the list shape is left alone', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      const existing = [UserAyanamsa(id: 9, name: 'Mine', value: 24.0)];
+      userAyanamsaListPref.write(prefs, userAyanamsasPrefKey, existing);
+
+      migrateLegacyUserAyanamsa(prefs);
+
+      expect(userAyanamsaListPref.read(prefs, userAyanamsasPrefKey), existing);
+    });
+
+    test(
+      'a store that never had a user-defined ayanamsha stays empty',
+      () async {
+        SharedPreferences.setMockInitialValues({'ctx_ayanamsa': 1});
+        final prefs = await SharedPreferences.getInstance();
+
+        migrateLegacyUserAyanamsa(prefs);
+
+        expect(prefs.containsKey(userAyanamsasPrefKey), isFalse);
+      },
+    );
   });
 
   group('ContextBarNotifier reconciliation', () {
@@ -243,6 +357,155 @@ void main() {
         ..setAyanamsa(1)
         ..reconcileUserAyanamsa([]);
       expect(n.state.ayanamsa, 1);
+    });
+  });
+
+  group('cross-surface visibility — one list, two surfaces', () {
+    /// One container shared by both surfaces, so what each pump sees is the
+    /// other's writes rather than a fixture staged for it.
+    Future<ProviderContainer> sharedApp() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+          ...tabOverrides,
+          ayanamsaCompareModeProvider.overrideWith((ref) => false),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    Future<void> pumpInto(
+      WidgetTester tester,
+      ProviderContainer container,
+      Widget child,
+    ) async {
+      tester.view.physicalSize = kDesktop;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppThemes.dark,
+            themeAnimationDuration: Duration.zero,
+            home: Scaffold(body: SingleChildScrollView(child: child)),
+          ),
+        ),
+      );
+      await tester.pump();
+    }
+
+    testWidgets('one defined on the tab is offered by the context bar', (
+      tester,
+    ) async {
+      final container = await sharedApp();
+
+      // The tab's own "User-defined" add chip.
+      await pumpInto(tester, container, const AyanamsaTab());
+      // The chip row scrolls horizontally, so the add chip can sit off-screen.
+      final addChip = find.widgetWithText(ActionChip, 'User-defined');
+      await tester.ensureVisible(addChip);
+      await tester.pumpAndSettle();
+      await tester.tap(addChip);
+      await tester.pump();
+      container
+          .read(userAyanamsasProvider.notifier)
+          .update(container.read(userAyanamsasProvider).single.id, name: 'Tab');
+
+      // Same container, the context bar's selector: it offers the tab's entry.
+      await pumpInto(tester, container, const AyanamsaSelector());
+      expect(find.text('Tab', skipOffstage: false), findsOneWidget);
+    });
+
+    testWidgets('one defined in the context bar is editable on the tab', (
+      tester,
+    ) async {
+      final container = await sharedApp();
+
+      // The context bar's "Add user-defined…" dialog, driven as the selector
+      // drives it.
+      await pumpInto(
+        tester,
+        container,
+        Consumer(
+          builder: (context, ref, _) => TextButton(
+            onPressed: () => showUserAyanamsaDialog(context, ref),
+            child: const Text('open'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Name (optional)'),
+        'From the context bar',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'OK'));
+      await tester.pumpAndSettle();
+
+      // It is the Context's selection...
+      final ctx = container.read(contextBarProvider);
+      expect(ctx.ayanamsa, ayanamsaUserId);
+      expect(ctx.userAyanId, container.read(userAyanamsasProvider).single.id);
+
+      // ...and the tab renders an editor for it, by name.
+      await pumpInto(tester, container, const AyanamsaTab());
+      expect(find.byTooltip('Remove From the context bar'), findsOneWidget);
+    });
+
+    testWidgets('deleting the selected entry on the tab moves the Context', (
+      tester,
+    ) async {
+      final container = await sharedApp();
+      final id = container
+          .read(userAyanamsasProvider.notifier)
+          .add(name: 'Doomed');
+      container.read(contextBarProvider.notifier).selectUserAyanamsa(id);
+
+      await pumpInto(tester, container, const AyanamsaTab());
+      await tester.tap(find.byTooltip('Remove Doomed'));
+      await tester.pump();
+
+      expect(container.read(userAyanamsasProvider), isEmpty);
+      expect(
+        container.read(contextBarProvider).ayanamsa,
+        isNot(ayanamsaUserId),
+      );
+    });
+
+    test('a restored selection with no entry behind it is reconciled', () async {
+      // A store left mid-flight by an older build: the Context says 255 and
+      // names an entry, the list does not have it. Nothing edits the list here,
+      // so only reconciling at creation catches this.
+      SharedPreferences.setMockInitialValues({
+        'ctx_ayanamsa': ayanamsaUserId,
+        'ctx_user_ayan_id': 7,
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final container = ProviderContainer(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
+      );
+      addTearDown(container.dispose);
+
+      expect(
+        container.read(contextBarProvider).ayanamsa,
+        isNot(ayanamsaUserId),
+      );
+      // And the derived context never hands the engine 255 with no parameters.
+      expect(
+        container.read(effectiveContextProvider).ayanamsa,
+        isNot(ayanamsaUserId),
+      );
     });
   });
 

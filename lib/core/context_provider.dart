@@ -11,6 +11,7 @@ import 'ephe/bootstrap.dart';
 import 'swe_utils_provider.dart';
 import 'swe_utils.dart';
 import 'time_scale.dart';
+import 'user_ayanamsa.dart';
 import 'chart_io.dart';
 
 /// Global context bar state provider.
@@ -18,11 +19,26 @@ final contextBarProvider =
     StateNotifierProvider<ContextBarNotifier, ContextBarState>((ref) {
       final swe = ref.watch(sweProvider);
       final persistence = ref.watch(persistenceProvider);
-      return ContextBarNotifier(
+      final notifier = ContextBarNotifier(
         swe,
         persistence,
         ref.watch(epheBootstrapProvider).hasEpheFiles,
       );
+
+      // The Context holds an id into a list it does not own, so it reconciles
+      // against that list from here rather than the list reaching back into it.
+      // Once at creation, because the restored id can name an entry the store
+      // no longer has; and on every later edit, because deleting the selected
+      // entry has to move the selection instead of dangling it.
+      void reconcile(List<UserAyanamsa> entries) =>
+          notifier.reconcileUserAyanamsa([for (final u in entries) u.id]);
+      reconcile(ref.read(userAyanamsasProvider));
+      ref.listen<List<UserAyanamsa>>(
+        userAyanamsasProvider,
+        (_, entries) => reconcile(entries),
+      );
+
+      return notifier;
     });
 
 /// Manages context bar state with bidirectional JD ↔ DateTime sync.
@@ -193,13 +209,13 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
 
   /// Keep the selection from dangling when the user-defined list changes.
   ///
-  /// Called after every edit to `userAyanamsasProvider` with the surviving
-  /// entry ids. Deleting the selected entry falls back to another user-defined
-  /// one if there is one, and otherwise off user-defined entirely — leaving 255
-  /// selected with no entry behind it would give the dropdown nothing to show
-  /// and the engine no parameters to configure from. Ids rather than entries
-  /// because that is all this needs, and it keeps the Context from importing
-  /// the list that already imports it.
+  /// Called with the surviving entry ids when the Context is created — a
+  /// restored id can name an entry the store no longer has — and after every
+  /// later edit to `userAyanamsasProvider`. Losing the selected entry falls
+  /// back to another user-defined one if there is one, and otherwise off
+  /// user-defined entirely: leaving 255 selected with no entry behind it would
+  /// give the dropdown nothing to show and the engine no parameters to
+  /// configure from. Ids rather than entries because that is all this needs.
   void reconcileUserAyanamsa(List<int> entryIds) {
     if (state.ayanamsa != ayanamsaUserId) return;
     if (entryIds.contains(state.userAyanId)) return;
@@ -210,9 +226,8 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     }
   }
 
-  /// Where a Context lands when its user-defined ayanamsha disappears: Lahiri,
-  /// the app's default sidereal choice.
-  static const int _fallbackAyanamsa = 1;
+  /// Where a Context lands when its user-defined ayanamsha disappears.
+  static const int _fallbackAyanamsa = ayanamsaDefaultSiderealId;
 
   /// Set the sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE).
   void setSiderealProjection(SiderealProjection projection) {
