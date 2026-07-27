@@ -257,7 +257,13 @@ class ConfigTab extends ConsumerWidget {
                     'calendars, time scales, and projections — with the '
                     'flags they imply locked and managed for you.',
                   ),
-                  _bullet(theme, 'Charts. Save a context and reload it later.'),
+                  _bullet(
+                    theme,
+                    'Chart import. Open a chart from Kala, Jagannatha Hora, '
+                    'Astrolog, Solar Fire, AAF, or a plain JSON, CSV, or '
+                    'TOML file, and the date, time, and place load straight '
+                    'into the context.',
+                  ),
                   _bullet(theme, 'Export. Copy or save results from any tab.'),
                   _bullet(
                     theme,
