@@ -113,7 +113,7 @@ class PersistenceService {
         _seriesKey(tabId, 'hidden_labels'),
         s.hiddenLabels.toList(),
       )
-      ..setString(_seriesKey(tabId, 'export_layout'), s.exportLayout.name);
+      ..setString(_seriesKey(tabId, 'export_layout'), s.layout.name);
   }
 
   /// Loaded field by field against the defaults, so a tab that has never been
@@ -141,9 +141,9 @@ class PersistenceService {
       hiddenLabels:
           _prefs.getStringList(_seriesKey(tabId, 'hidden_labels'))?.toSet() ??
           defaults.hiddenLabels,
-      exportLayout: SeriesLayout.byName(
+      layout: SeriesLayout.byName(
         _prefs.getString(_seriesKey(tabId, 'export_layout')),
-        fallback: defaults.exportLayout,
+        fallback: defaults.layout,
       ),
     );
   }

@@ -55,8 +55,7 @@ class SeriesSettingsNotifier extends StateNotifier<SeriesSettings> {
     return true;
   }
 
-  void setExportLayout(SeriesLayout layout) =>
-      _set(state.copyWith(exportLayout: layout));
+  void setLayout(SeriesLayout layout) => _set(state.copyWith(layout: layout));
 
   void setLabelVisible(String label, bool visible) {
     final hidden = {...state.hiddenLabels};

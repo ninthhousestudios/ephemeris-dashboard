@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
 import 'package:swe_dashboard/core/calculation/moment.dart';
+import 'package:swe_dashboard/core/calculation/series_layout.dart';
 import 'package:swe_dashboard/core/calculation/series_settings_provider.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/layout/tab_definitions.dart';
@@ -98,7 +99,11 @@ void main() {
     tester,
   ) async {
     final container = await pumpTab(tester);
-    container.read(seriesSettingsProvider(_tabId).notifier).setEnabled(true);
+    container.read(seriesSettingsProvider(_tabId).notifier)
+      ..setEnabled(true)
+      // Horizontal: the shape this test describes, one row per step with the
+      // body in the heading.
+      ..setLayout(SeriesLayout.horizontal);
     await tester.pump();
 
     expect(tester.takeException(), isNull);
@@ -118,7 +123,11 @@ void main() {
 
   testWidgets('hiding a quantity drops it for every body', (tester) async {
     final container = await pumpTab(tester);
-    container.read(seriesSettingsProvider(_tabId).notifier).setEnabled(true);
+    container.read(seriesSettingsProvider(_tabId).notifier)
+      ..setEnabled(true)
+      // Horizontal, so a hidden quantity is visible as a heading disappearing
+      // per body rather than as one shared column going.
+      ..setLayout(SeriesLayout.horizontal);
     await tester.pump();
 
     expect(find.text('Sun Latitude'), findsOneWidget);

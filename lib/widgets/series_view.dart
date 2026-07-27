@@ -96,9 +96,9 @@ class SeriesView extends ConsumerWidget {
                     ),
                   ),
               ],
-              selected: settings.exportLayout.index,
+              selected: settings.layout.index,
               onSelected: (index) =>
-                  notifier.setExportLayout(SeriesLayout.values[index]),
+                  notifier.setLayout(SeriesLayout.values[index]),
               filenameStem: filenameStem ?? seriesFilenameStem(tabId, steps),
               disabledTooltip: 'Export disabled: no series rows',
             ),
@@ -108,6 +108,7 @@ class SeriesView extends ConsumerWidget {
           table: table,
           momentLabel: momentLabel,
           momentColumnTitle: columnTitle,
+          layout: settings.layout,
         ),
       ],
     );

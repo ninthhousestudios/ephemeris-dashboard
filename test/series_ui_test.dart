@@ -448,8 +448,8 @@ void main() {
     });
 
     test('export layout defaults vertical and persists per tab', () async {
-      expect(read('planets').exportLayout, SeriesLayout.vertical);
-      notifier('planets').setExportLayout(SeriesLayout.horizontal);
+      expect(read('planets').layout, SeriesLayout.vertical);
+      notifier('planets').setLayout(SeriesLayout.horizontal);
 
       final prefs = await SharedPreferences.getInstance();
       final reopened = ProviderContainer(
@@ -460,11 +460,11 @@ void main() {
       );
       addTearDown(reopened.dispose);
       expect(
-        reopened.read(seriesSettingsProvider('planets')).exportLayout,
+        reopened.read(seriesSettingsProvider('planets')).layout,
         SeriesLayout.horizontal,
       );
       expect(
-        reopened.read(seriesSettingsProvider('houses')).exportLayout,
+        reopened.read(seriesSettingsProvider('houses')).layout,
         SeriesLayout.vertical,
       );
     });
@@ -568,7 +568,7 @@ void main() {
 
       notifier()
         ..setLabelVisible('Longitude', false)
-        ..setExportLayout(SeriesLayout.horizontal);
+        ..setLayout(SeriesLayout.horizontal);
 
       expect(identical(container.read(stepsProvider), first), isTrue);
       expect(factoryCalls, callsAfterFirst);
@@ -721,6 +721,7 @@ void main() {
           table: table,
           momentLabel: (m) => m.ut.toStringAsFixed(1),
           momentColumnTitle: 'UT',
+          layout: SeriesLayout.horizontal,
         ),
         size: const Size(1400, 900),
       );
@@ -743,11 +744,17 @@ void main() {
         ]),
       ];
 
-      await pump(
+      final container = await pump(
         tester,
         SeriesView(tabId: 'planets', steps: steps),
         size: const Size(1400, 900),
       );
+      // Horizontal, so the headings carry the body name and the chip label is
+      // not itself a heading.
+      container
+          .read(seriesSettingsProvider('planets').notifier)
+          .setLayout(SeriesLayout.horizontal);
+      await tester.pump();
 
       expect(find.byType(QuantityPicker), findsOneWidget);
       expect(find.text('Sun Latitude'), findsOneWidget);
@@ -760,6 +767,72 @@ void main() {
       expect(find.text('Sun Latitude'), findsNothing);
       expect(find.text('Moon Latitude'), findsNothing);
       expect(find.text('Sun Longitude'), findsOneWidget);
+    });
+
+    testWidgets('the chosen layout is the one the grid renders', (
+      tester,
+    ) async {
+      final steps = [
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10'), ('Latitude', '0')]),
+          _row('Moon', [('Longitude', '20'), ('Latitude', '5')]),
+        ]),
+      ];
+
+      final container = await pump(
+        tester,
+        SeriesView(tabId: 'planets', steps: steps),
+        size: const Size(1400, 900),
+      );
+
+      // Vertical is the default: a Name column, one row per body, and the
+      // quantity headings bare because they are shared down the column.
+      expect(find.text('Name'), findsOneWidget);
+      expect(find.text('Sun'), findsOneWidget);
+      expect(find.text('Moon'), findsOneWidget);
+      expect(find.text('Sun Longitude'), findsNothing);
+
+      container
+          .read(seriesSettingsProvider('planets').notifier)
+          .setLayout(SeriesLayout.horizontal);
+      await tester.pump();
+
+      // Horizontal folds both bodies into the one step row: no Name column,
+      // and the body name moves into the headings.
+      expect(find.text('Name'), findsNothing);
+      expect(find.text('Sun Longitude'), findsOneWidget);
+      expect(find.text('Moon Latitude'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a vertical grid renders an errored step once', (tester) async {
+      final table = buildSeriesTable([
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+          _row('Moon', [('Longitude', '20')]),
+        ]),
+        _err(2.0, 'out of range'),
+      ]);
+
+      await pump(
+        tester,
+        SeriesGrid(
+          table: table,
+          momentLabel: (m) => m.ut.toStringAsFixed(1),
+          momentColumnTitle: 'UT',
+          layout: SeriesLayout.vertical,
+        ),
+        size: const Size(1400, 900),
+      );
+
+      // Two body rows for the good step, one row for the failed one — an
+      // error is a property of the step, not of each body in it.
+      expect(find.text('Longitude'), findsOneWidget);
+      expect(find.text('1.0'), findsNWidgets(2));
+      expect(find.text('2.0'), findsOneWidget);
+      expect(find.text('—'), findsOneWidget);
+      expect(find.text('out of range'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('SeriesView export menu offers both layouts', (tester) async {
@@ -837,7 +910,7 @@ void main() {
 
       // The choice went to the settings, not to widget state.
       expect(
-        container.read(seriesSettingsProvider('planets')).exportLayout,
+        container.read(seriesSettingsProvider('planets')).layout,
         SeriesLayout.horizontal,
       );
     });
@@ -858,7 +931,7 @@ void main() {
       );
       container
           .read(seriesSettingsProvider('planets').notifier)
-          .setExportLayout(SeriesLayout.horizontal);
+          .setLayout(SeriesLayout.horizontal);
       await tester.pump();
 
       await tester.tap(find.byIcon(Icons.arrow_drop_down));

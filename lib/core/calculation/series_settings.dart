@@ -19,7 +19,7 @@ class SeriesSettings {
     this.stepUnit = StepUnit.days,
     this.rowCount = 30,
     this.hiddenLabels = const {},
-    this.exportLayout = SeriesLayout.vertical,
+    this.layout = SeriesLayout.vertical,
   });
 
   /// Series mode is per-tab and defaults off: 7 of 17 tabs are ineligible, so
@@ -37,10 +37,15 @@ class SeriesSettings {
   /// the user having to go and enable it.
   final Set<String> hiddenLabels;
 
-  /// Which shape the export offers first. A setting rather than widget state
-  /// because a user who works in horizontal wants it on the next tab too —
-  /// the same reason the hidden quantities are stored.
-  final SeriesLayout exportLayout;
+  /// The shape the series is shown *and* exported in — one setting, because a
+  /// screen that disagreed with the file it saves is what made the layout
+  /// choice read as broken. A setting rather than widget state because a user
+  /// who works in horizontal wants it on the next tab too — the same reason
+  /// the hidden quantities are stored.
+  ///
+  /// Persisted under the key `export_layout`, from when it only reached the
+  /// file; the key stays as it is so an existing choice survives the rename.
+  final SeriesLayout layout;
 
   bool showsLabel(String label) => !hiddenLabels.contains(label);
 
@@ -62,13 +67,13 @@ class SeriesSettings {
     StepUnit? stepUnit,
     int? rowCount,
     Set<String>? hiddenLabels,
-    SeriesLayout? exportLayout,
+    SeriesLayout? layout,
   }) => SeriesSettings(
     enabled: enabled ?? this.enabled,
     stepValue: stepValue ?? this.stepValue,
     stepUnit: stepUnit ?? this.stepUnit,
     rowCount: rowCount ?? this.rowCount,
     hiddenLabels: hiddenLabels ?? this.hiddenLabels,
-    exportLayout: exportLayout ?? this.exportLayout,
+    layout: layout ?? this.layout,
   );
 }
