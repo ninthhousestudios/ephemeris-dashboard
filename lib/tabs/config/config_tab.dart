@@ -226,15 +226,16 @@ class ConfigTab extends ConsumerWidget {
                     theme,
                     'No Calculate button. Results are now live: change the '
                     'moment, the place, or any flag and every figure on '
-                    'screen recomputes immediately.',
+                    'screen recomputes immediately, across all sixteen '
+                    'calculation tabs.',
                   ),
                   _bullet(
                     theme,
-                    'Series. Repeat any calculation over a stepped range of '
-                    'moments — seconds through years — and read it as a grid '
-                    'or a table, or export it. Monthly and yearly steps walk '
-                    'the civil calendar, so a series holds its date instead '
-                    'of drifting off it.',
+                    'Series. Repeat any of the sixteen calculations over a '
+                    'stepped range of moments — seconds through years — and '
+                    'read it as a grid or a table, or export it. Monthly and '
+                    'yearly steps walk the civil calendar, so a series holds '
+                    'its date instead of drifting off it.',
                   ),
                   _bullet(
                     theme,
@@ -242,14 +243,6 @@ class ConfigTab extends ConsumerWidget {
                     'Swiss Ephemeris data files (.se1) for extended date '
                     'ranges and precision, and see which file a result '
                     'actually came from.',
-                  ),
-                  _bullet(
-                    theme,
-                    'Far more calculations. The tab set now covers eclipses, '
-                    'rise and set, heliacal events, planetary phenomena, '
-                    'nodes and apsides, planetocentric and differential '
-                    'positions, crossings, fixed stars, coordinate '
-                    'transforms, and date and time conversions.',
                   ),
                   _bullet(
                     theme,
