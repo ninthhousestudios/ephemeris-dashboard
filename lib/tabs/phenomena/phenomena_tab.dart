@@ -17,7 +17,6 @@ import '../../layout/tab_definitions.dart';
 import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids, namedComets;
 import '../../widgets/export_button.dart';
-import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'phenomena_provider.dart';
@@ -422,93 +421,48 @@ class _ResultsView extends ConsumerWidget {
                       : 1;
                   final cardWidth =
                       (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+                  // One label/value source for cards and export alike — see
+                  // phenomenaSections. Zipped 1:1 with results (same order,
+                  // same length) so the close button can still key off body id.
+                  final sections = phenomenaSections(results, format);
 
                   return SingleChildScrollView(
                     padding: const EdgeInsets.all(8),
                     child: Wrap(
                       spacing: 4,
                       runSpacing: 4,
-                      children: results.map((r) {
-                        return SizedBox(
-                          width: cardWidth,
-                          child: Stack(
-                            children: [
-                              ResultCard(
-                                title: r.bodyName,
-                                subtitle: 'phenoUt(${r.body})',
-                                fields: r.errorMessage != null
-                                    ? [
-                                        ResultField(
-                                          label: 'Error',
-                                          value: r.errorMessage!,
-                                          rawValue: double.nan,
-                                        ),
-                                      ]
-                                    : [
-                                        ResultField(
-                                          label: 'Phase Angle',
-                                          value: formatAngle(
-                                            r.phaseAngle,
-                                            format,
-                                          ),
-                                          rawValue: r.phaseAngle,
-                                        ),
-                                        ResultField(
-                                          label: 'Elongation',
-                                          value: formatAngle(
-                                            r.elongation,
-                                            format,
-                                          ),
-                                          rawValue: r.elongation,
-                                        ),
-                                        ResultField(
-                                          label: 'App. Diameter',
-                                          value: formatAngle(
-                                            r.apparentDiameter,
-                                            format,
-                                          ),
-                                          rawValue: r.apparentDiameter,
-                                        ),
-                                        ResultField(
-                                          label: 'Phase (Illum.)',
-                                          value: r.phase.isNaN
-                                              ? 'n/a'
-                                              : r.phase.toStringAsFixed(6),
-                                          rawValue: r.phase,
-                                        ),
-                                        ResultField(
-                                          label: 'App. Magnitude',
-                                          value: r.apparentMagnitude.isNaN
-                                              ? 'n/a'
-                                              : r.apparentMagnitude
-                                                    .toStringAsFixed(4),
-                                          rawValue: r.apparentMagnitude,
-                                        ),
-                                      ],
-                              ),
-                              Positioned(
-                                top: 4,
-                                right: 4,
-                                child: IconButton(
-                                  icon: const Icon(Icons.close, size: 16),
-                                  tooltip: 'Remove ${r.bodyName}',
-                                  visualDensity: VisualDensity.compact,
-                                  onPressed: () {
-                                    final current = ref.read(
-                                      phenomenaBodiesProvider,
-                                    );
-                                    ref
-                                        .read(phenomenaBodiesProvider.notifier)
-                                        .state = current
-                                        .where((b) => b != r.body)
-                                        .toList();
-                                  },
+                      children: [
+                        for (var i = 0; i < results.length; i++)
+                          SizedBox(
+                            width: cardWidth,
+                            child: Stack(
+                              children: [
+                                sections[i].toCard(),
+                                Positioned(
+                                  top: 4,
+                                  right: 4,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.close, size: 16),
+                                    tooltip: 'Remove ${results[i].bodyName}',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () {
+                                      final current = ref.read(
+                                        phenomenaBodiesProvider,
+                                      );
+                                      ref
+                                          .read(
+                                            phenomenaBodiesProvider.notifier,
+                                          )
+                                          .state = current
+                                          .where((b) => b != results[i].body)
+                                          .toList();
+                                    },
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        );
-                      }).toList(),
+                      ],
                     ),
                   );
                 },

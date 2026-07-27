@@ -15,6 +15,8 @@ import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
+import '../../widgets/result_card.dart';
+import '../../widgets/result_section.dart';
 
 /// Selected bodies for phenomena calculation.
 final phenomenaBodiesProvider = StateProvider<List<int>>(
@@ -126,27 +128,62 @@ final phenomenaSeriesProvider =
       );
     });
 
+/// The Results as card sections — the one encoding of this tab's labels,
+/// order and formatted values. The cards render these; [phenomenaToExportRows]
+/// projects the same list, so a per-field NaN or a relabeling cannot land on
+/// one side only (yojana swe-dashboard/91).
+List<ResultSection> phenomenaSections(
+  List<PhenomenaResult> results,
+  DisplayFormat fmt,
+) {
+  return [
+    for (final r in results)
+      ResultSection(
+        title: r.bodyName,
+        subtitle: 'phenoUt(${r.body})',
+        fields: r.errorMessage != null
+            ? [
+                ResultField(
+                  label: 'Error',
+                  value: r.errorMessage!,
+                  rawValue: double.nan,
+                ),
+              ]
+            : [
+                ResultField(
+                  label: 'Phase Angle',
+                  value: formatAngle(r.phaseAngle, fmt),
+                  rawValue: r.phaseAngle,
+                ),
+                ResultField(
+                  label: 'Elongation',
+                  value: formatAngle(r.elongation, fmt),
+                  rawValue: r.elongation,
+                ),
+                ResultField(
+                  label: 'App. Diameter',
+                  value: formatAngle(r.apparentDiameter, fmt),
+                  rawValue: r.apparentDiameter,
+                ),
+                ResultField(
+                  label: 'Phase (Illum.)',
+                  value: r.phase.isNaN ? 'n/a' : r.phase.toStringAsFixed(6),
+                  rawValue: r.phase,
+                ),
+                ResultField(
+                  label: 'App. Magnitude',
+                  value: r.apparentMagnitude.isNaN
+                      ? 'n/a'
+                      : r.apparentMagnitude.toStringAsFixed(4),
+                  rawValue: r.apparentMagnitude,
+                ),
+              ],
+      ),
+  ];
+}
+
 /// Convert phenomena results to export rows.
 List<ExportRow> phenomenaToExportRows(
   List<PhenomenaResult> results,
   DisplayFormat fmt,
-) {
-  return results
-      .map(
-        (r) => ExportRow(
-          header: r.bodyName,
-          // Mirror the card view: a body that failed at this step shows its
-          // error string, not quantities formatted from NaN fields.
-          fields: r.errorMessage != null
-              ? [('Error', r.errorMessage!)]
-              : [
-                  ('Phase Angle', formatAngle(r.phaseAngle, fmt)),
-                  ('Phase (Illum.)', r.phase.toStringAsFixed(6)),
-                  ('Elongation', formatAngle(r.elongation, fmt)),
-                  ('App. Diameter', formatAngle(r.apparentDiameter, fmt)),
-                  ('App. Magnitude', r.apparentMagnitude.toStringAsFixed(4)),
-                ],
-        ),
-      )
-      .toList();
-}
+) => sectionsToExportRows(phenomenaSections(results, fmt));

@@ -13,8 +13,11 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
+import '../../core/output_clock.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
+import '../../widgets/result_card.dart';
+import '../../widgets/result_section.dart';
 
 // ── Eclipse search mode ──────────────────────────────────────────────────────
 
@@ -534,76 +537,139 @@ String? _occultVisibility(int flag) {
 
 double? _nonZero(double v) => v == 0.0 ? null : v;
 
+// ── Card sections (the single label/value source) ──────────────────────────────
+
+/// The events as card sections — the one encoding of this tab's labels and
+/// formatters. The cards render these; [eclipsesToExportRows] projects the same
+/// list, so the two cannot drift apart again (swe-dashboard/91). Sharing is
+/// also how the export gained Local Noon / Penumbral Begin / Penumbral End,
+/// which the card had and the hand-written export had simply never grown.
+List<ResultSection> eclipseSections(
+  List<EclipseEvent> events,
+  SweUtils swe,
+  ClockView view,
+) {
+  return events.map((e) => _eclipseSection(e, swe, view)).toList();
+}
+
+ResultSection _eclipseSection(EclipseEvent e, SweUtils swe, ClockView view) {
+  final fields = <ResultField>[];
+
+  if (e.error != null) {
+    fields.add(ResultField(label: 'Error', value: e.error!));
+  } else {
+    if (e.targetLabel != null) {
+      fields.add(ResultField(label: 'Target', value: e.targetLabel!));
+    }
+    fields.add(ResultField(label: 'Type', value: e.eclipseTypeLabel));
+
+    if (e.maxEclipseJd != null) {
+      fields.addAll([
+        ResultField(
+          label: 'Max Eclipse',
+          value: formatJdDateTime(swe, e.maxEclipseJd!, view: view),
+        ),
+        ResultField(
+          label: 'Max JD',
+          value: e.maxEclipseJd!.toStringAsFixed(8),
+          rawValue: e.maxEclipseJd,
+        ),
+      ]);
+    }
+
+    // Timing fields
+    void addTime(String label, double? jd) {
+      if (jd == null) return;
+      fields.add(
+        ResultField(
+          label: label,
+          value: formatJdDateTime(swe, jd, view: view),
+          rawValue: jd,
+        ),
+      );
+    }
+
+    addTime('Begin', e.beginJd);
+    addTime('End', e.endJd);
+    addTime('Totality Begin', e.totalityBeginJd);
+    addTime('Totality End', e.totalityEndJd);
+    addTime('Penumbral Begin', e.penumbralBeginJd);
+    addTime('Penumbral End', e.penumbralEndJd);
+    addTime('Local Noon', e.localNoonJd);
+    addTime('1st Contact', e.firstContactJd);
+    addTime('2nd Contact', e.secondContactJd);
+    addTime('3rd Contact', e.thirdContactJd);
+    addTime('4th Contact', e.fourthContactJd);
+    addTime('Sunrise', e.sunriseJd);
+    addTime('Sunset', e.sunsetJd);
+
+    // Attributes
+    if (e.magnitude != null) {
+      fields.add(
+        ResultField(
+          label: 'Magnitude',
+          value: e.magnitude!.toStringAsFixed(4),
+          rawValue: e.magnitude,
+        ),
+      );
+    }
+    if (e.obscuration != null) {
+      fields.add(
+        ResultField(
+          label: 'Obscuration',
+          value: '${(e.obscuration! * 100).toStringAsFixed(2)}%',
+          rawValue: e.obscuration,
+        ),
+      );
+    }
+    if (e.centralLat != null && e.centralLon != null) {
+      // Two numeric fields rather than the card's old combined "lat° / lon°"
+      // string: the split shape is the one a CSV consumer can use, and the
+      // combined one was the reason these two encodings disagreed.
+      fields.addAll([
+        ResultField(
+          label: 'Central Lat (°)',
+          value: e.centralLat!.toStringAsFixed(4),
+          rawValue: e.centralLat,
+        ),
+        ResultField(
+          label: 'Central Lon (°)',
+          value: e.centralLon!.toStringAsFixed(4),
+          rawValue: e.centralLon,
+        ),
+      ]);
+    }
+    if (e.visibilityRemark != null) {
+      fields.add(ResultField(label: 'Visibility', value: e.visibilityRemark!));
+    }
+    if (e.sarosSeries != null) {
+      fields.add(
+        ResultField(
+          label: 'Saros',
+          value: '${e.sarosSeries!.round()} / ${e.sarosMember?.round() ?? "?"}',
+        ),
+      );
+    }
+  }
+
+  final title = switch (e.type) {
+    EclipseType.solar => '#${e.index} Solar Eclipse',
+    EclipseType.lunar => '#${e.index} Lunar Eclipse',
+    EclipseType.occultation => '#${e.index} Occultation',
+  };
+
+  return ResultSection(
+    title: title,
+    subtitle: e.scope == EclipseScope.global ? 'Global' : 'Local',
+    flagHex: '0x${e.returnFlag.toRadixString(16).toUpperCase()}',
+    fields: fields,
+  );
+}
+
 // ── Export ────────────────────────────────────────────────────────────────────
 
-String _typeShort(EclipseType t) => switch (t) {
-  EclipseType.solar => 'Solar',
-  EclipseType.lunar => 'Lunar',
-  EclipseType.occultation => 'Occultation',
-};
-
-List<ExportRow> eclipsesToExportRows(List<EclipseEvent> events, SweUtils swe) {
-  return events.map((e) {
-    final fields = <(String, String)>[('Type', e.eclipseTypeLabel)];
-    if (e.error != null) {
-      fields.add(('Error', e.error!));
-    } else {
-      if (e.targetLabel != null) fields.add(('Target', e.targetLabel!));
-      if (e.maxEclipseJd != null) {
-        fields.add(('Max Eclipse', formatJdDateTime(swe, e.maxEclipseJd!)));
-        fields.add(('Max JD', e.maxEclipseJd!.toStringAsFixed(8)));
-      }
-      if (e.beginJd != null) {
-        fields.add(('Begin', formatJdDateTime(swe, e.beginJd!)));
-      }
-      if (e.endJd != null) {
-        fields.add(('End', formatJdDateTime(swe, e.endJd!)));
-      }
-      if (e.totalityBeginJd != null) {
-        fields.add((
-          'Totality Begin',
-          formatJdDateTime(swe, e.totalityBeginJd!),
-        ));
-      }
-      if (e.totalityEndJd != null) {
-        fields.add(('Totality End', formatJdDateTime(swe, e.totalityEndJd!)));
-      }
-      void addContact(String label, double? jd) {
-        if (jd != null) fields.add((label, formatJdDateTime(swe, jd)));
-      }
-
-      addContact('1st Contact', e.firstContactJd);
-      addContact('2nd Contact', e.secondContactJd);
-      addContact('3rd Contact', e.thirdContactJd);
-      addContact('4th Contact', e.fourthContactJd);
-      addContact('Sunrise', e.sunriseJd);
-      addContact('Sunset', e.sunsetJd);
-      if (e.magnitude != null) {
-        fields.add(('Magnitude', e.magnitude!.toStringAsFixed(4)));
-      }
-      if (e.obscuration != null) {
-        fields.add((
-          'Obscuration',
-          '${(e.obscuration! * 100).toStringAsFixed(2)}%',
-        ));
-      }
-      if (e.centralLat != null && e.centralLon != null) {
-        fields.add(('Central Lat', e.centralLat!.toStringAsFixed(4)));
-        fields.add(('Central Lon', e.centralLon!.toStringAsFixed(4)));
-      }
-      if (e.visibilityRemark != null) {
-        fields.add(('Visibility', e.visibilityRemark!));
-      }
-      if (e.sarosSeries != null) {
-        fields.add((
-          'Saros',
-          '${e.sarosSeries!.round()}/${e.sarosMember?.round() ?? "?"}',
-        ));
-      }
-    }
-    return ExportRow(
-      header: '#${e.index} ${_typeShort(e.type)}',
-      fields: fields,
-    );
-  }).toList();
-}
+List<ExportRow> eclipsesToExportRows(
+  List<EclipseEvent> events,
+  SweUtils swe,
+  ClockView view,
+) => sectionsToExportRows(eclipseSections(events, swe, view));

@@ -15,6 +15,8 @@ import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
+import '../../widgets/result_card.dart';
+import '../../widgets/result_section.dart';
 
 /// Body A selection.
 final diffBodyAProvider = StateProvider<int>((ref) => seSun);
@@ -141,18 +143,48 @@ final diffSeriesProvider = Provider<List<(Moment, CalcOutcome<DiffResult>)>>((
   return runTabCalcSeries(ref, compute: _diffCompute(ref), settings: settings);
 });
 
-/// Convert a DiffResult to export rows.
-List<ExportRow> diffToExportRows(DiffResult result, DisplayFormat fmt) {
+/// The Result as card sections — the one encoding of this tab's labels and
+/// formatters. The card renders these; [diffToExportRows] projects the same
+/// list, so a rename cannot land on one side only (yojana swe-dashboard/91).
+List<ResultSection> diffSections(DiffResult result, DisplayFormat fmt) {
   return [
-    ExportRow(
-      header: '${result.nameA} / ${result.nameB}',
+    ResultSection(
+      title: '${result.nameA} — ${result.nameB}',
+      subtitle: 'Differential',
+      flagHex:
+          '0x${result.returnFlagA.toRadixString(16).toUpperCase()} / '
+          '0x${result.returnFlagB.toRadixString(16).toUpperCase()}',
       fields: [
-        ('Longitude ${result.nameA}', formatAngle(result.lonA, fmt)),
-        ('Longitude ${result.nameB}', formatAngle(result.lonB, fmt)),
-        ('Difference (short arc)', formatAngle(result.difference, fmt)),
-        ('Complement (long arc)', formatAngle(result.complement, fmt)),
-        ('Midpoint', formatAngle(result.midpoint, fmt)),
+        ResultField(
+          label: 'Longitude ${result.nameA}',
+          value: formatAngle(result.lonA, fmt),
+          rawValue: result.lonA,
+        ),
+        ResultField(
+          label: 'Longitude ${result.nameB}',
+          value: formatAngle(result.lonB, fmt),
+          rawValue: result.lonB,
+        ),
+        ResultField(
+          label: 'Difference (short arc)',
+          value: formatAngle(result.difference, fmt),
+          rawValue: result.difference,
+        ),
+        ResultField(
+          label: 'Complement (long arc)',
+          value: formatAngle(result.complement, fmt),
+          rawValue: result.complement,
+        ),
+        ResultField(
+          label: 'Midpoint',
+          value: formatAngle(result.midpoint, fmt),
+          rawValue: result.midpoint,
+        ),
       ],
     ),
   ];
 }
+
+/// Convert a DiffResult to export rows.
+List<ExportRow> diffToExportRows(DiffResult result, DisplayFormat fmt) =>
+    sectionsToExportRows(diffSections(result, fmt));

@@ -15,6 +15,7 @@ class ResultSection {
   const ResultSection({
     required this.title,
     this.subtitle,
+    this.flagHex,
     required this.fields,
   });
 
@@ -24,11 +25,18 @@ class ResultSection {
   /// Card subtitle. Card-only: export rows have no room for it.
   final String? subtitle;
 
+  /// Return-flag hex, shown in the card header. Card-only, like [subtitle].
+  final String? flagHex;
+
   final List<ResultField> fields;
 
   /// This section as a card.
-  ResultCard toCard() =>
-      ResultCard(title: title, subtitle: subtitle, fields: fields);
+  ResultCard toCard() => ResultCard(
+    title: title,
+    subtitle: subtitle,
+    flagHex: flagHex,
+    fields: fields,
+  );
 }
 
 /// Project card sections into export rows, one row per section.

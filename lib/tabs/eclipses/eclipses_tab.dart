@@ -8,12 +8,8 @@ import '../../core/swe_constants.dart';
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
-import '../../core/jd_utils.dart';
-import '../../core/output_clock.dart';
 import '../../core/swe_utils_provider.dart';
-import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
-import '../../widgets/result_card.dart';
 import '../../widgets/star_search_field.dart';
 import 'eclipses_provider.dart';
 
@@ -200,6 +196,9 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                     CalcOk(value: final events) => eclipsesToExportRows(
                       events,
                       ref.read(sweProvider),
+                      // Export follows the Context's clock view, as the card
+                      // always did — the old hand-written export defaulted it.
+                      ref.read(clockViewProvider),
                     ),
                     CalcError() => [],
                   },
@@ -315,6 +314,8 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
 
     final swe = ref.read(sweProvider);
     final view = ref.watch(clockViewProvider);
+    // One label/value source for cards and export alike — see eclipseSections.
+    final sections = eclipseSections(events, swe, view);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -330,139 +331,13 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
           child: Wrap(
             spacing: 4,
             runSpacing: 4,
-            children: events
-                .map(
-                  (e) => SizedBox(
-                    width: cardWidth,
-                    child: _eclipseCard(context, e, swe, view),
-                  ),
-                )
-                .toList(),
+            children: [
+              for (final section in sections)
+                SizedBox(width: cardWidth, child: section.toCard()),
+            ],
           ),
         );
       },
-    );
-  }
-
-  Widget _eclipseCard(
-    BuildContext context,
-    EclipseEvent e,
-    SweUtils swe,
-    ClockView view,
-  ) {
-    final fields = <ResultField>[];
-
-    if (e.error != null) {
-      fields.add(ResultField(label: 'Error', value: e.error!));
-    } else {
-      if (e.targetLabel != null) {
-        fields.add(ResultField(label: 'Target', value: e.targetLabel!));
-      }
-      fields.add(ResultField(label: 'Type', value: e.eclipseTypeLabel));
-
-      if (e.maxEclipseJd != null) {
-        fields.add(
-          ResultField(
-            label: 'Max Eclipse',
-            value: formatJdDateTime(swe, e.maxEclipseJd!, view: view),
-          ),
-        );
-        fields.add(
-          ResultField(
-            label: 'Max JD',
-            value: e.maxEclipseJd!.toStringAsFixed(8),
-            rawValue: e.maxEclipseJd,
-          ),
-        );
-      }
-
-      // Timing fields
-      _addJdField(fields, 'Begin', e.beginJd, swe, view);
-      _addJdField(fields, 'End', e.endJd, swe, view);
-      _addJdField(fields, 'Totality Begin', e.totalityBeginJd, swe, view);
-      _addJdField(fields, 'Totality End', e.totalityEndJd, swe, view);
-      _addJdField(fields, 'Penumbral Begin', e.penumbralBeginJd, swe, view);
-      _addJdField(fields, 'Penumbral End', e.penumbralEndJd, swe, view);
-      _addJdField(fields, 'Local Noon', e.localNoonJd, swe, view);
-      _addJdField(fields, '1st Contact', e.firstContactJd, swe, view);
-      _addJdField(fields, '2nd Contact', e.secondContactJd, swe, view);
-      _addJdField(fields, '3rd Contact', e.thirdContactJd, swe, view);
-      _addJdField(fields, '4th Contact', e.fourthContactJd, swe, view);
-      _addJdField(fields, 'Sunrise', e.sunriseJd, swe, view);
-      _addJdField(fields, 'Sunset', e.sunsetJd, swe, view);
-
-      // Attributes
-      if (e.magnitude != null) {
-        fields.add(
-          ResultField(
-            label: 'Magnitude',
-            value: e.magnitude!.toStringAsFixed(4),
-            rawValue: e.magnitude,
-          ),
-        );
-      }
-      if (e.obscuration != null) {
-        fields.add(
-          ResultField(
-            label: 'Obscuration',
-            value: '${(e.obscuration! * 100).toStringAsFixed(2)}%',
-            rawValue: e.obscuration,
-          ),
-        );
-      }
-      if (e.centralLat != null && e.centralLon != null) {
-        fields.add(
-          ResultField(
-            label: 'Central Line',
-            value:
-                '${e.centralLat!.toStringAsFixed(4)}° / ${e.centralLon!.toStringAsFixed(4)}°',
-          ),
-        );
-      }
-      if (e.visibilityRemark != null) {
-        fields.add(
-          ResultField(label: 'Visibility', value: e.visibilityRemark!),
-        );
-      }
-      if (e.sarosSeries != null) {
-        fields.add(
-          ResultField(
-            label: 'Saros',
-            value:
-                '${e.sarosSeries!.round()} / ${e.sarosMember?.round() ?? "?"}',
-          ),
-        );
-      }
-    }
-
-    final scopeLabel = e.scope == EclipseScope.global ? 'Global' : 'Local';
-    final title = switch (e.type) {
-      EclipseType.solar => '#${e.index} Solar Eclipse',
-      EclipseType.lunar => '#${e.index} Lunar Eclipse',
-      EclipseType.occultation => '#${e.index} Occultation',
-    };
-
-    return ResultCard(
-      title: title,
-      subtitle: scopeLabel,
-      flagHex: '0x${e.returnFlag.toRadixString(16).toUpperCase()}',
-      fields: fields,
-    );
-  }
-
-  void _addJdField(
-    List<ResultField> fields,
-    String label,
-    double? jd,
-    SweUtils swe,
-    ClockView view,
-  ) {
-    if (jd == null) return;
-    fields.add(
-      ResultField(
-        label: label,
-        value: formatJdDateTime(swe, jd, view: view),
-      ),
     );
   }
 }
