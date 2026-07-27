@@ -56,26 +56,26 @@ void main() {
       double? capturedGeolat;
       double? capturedAtpress;
 
-      fake
-        ..onRiseTrans =
-            (
-              jdUt,
-              body, {
-              starName,
-              epheflag = 4,
-              rsmi = 1,
-              required geolon,
-              required geolat,
-              geoalt = 0,
-              atpress = 1013.25,
-              attemp = 15.0,
-            }) {
-              capturedGeolon = geolon;
-              capturedGeolat = geolat;
-              capturedAtpress = atpress;
-              return const RiseTransResult(transitTime: 2451545.5);
-            }
-        ..riseTrans(2451545.0, 0, geolon: 13.4, geolat: 52.5, atpress: 900.0);
+      fake.onRiseTrans =
+          (
+            jdUt,
+            body, {
+            starName,
+            epheflag = 4,
+            rsmi = 1,
+            required geolon,
+            required geolat,
+            geoalt = 0,
+            atpress = 1013.25,
+            attemp = 15.0,
+          }) {
+            capturedGeolon = geolon;
+            capturedGeolat = geolat;
+            capturedAtpress = atpress;
+            return const RiseTransResult(transitTime: 2451545.5);
+          };
+
+      fake.riseTrans(2451545.0, 0, geolon: 13.4, geolat: 52.5, atpress: 900.0);
 
       expect(capturedGeolon, 13.4);
       expect(capturedGeolat, 52.5);
@@ -86,47 +86,47 @@ void main() {
       double? capturedGeolat;
       bool? capturedBackward;
 
-      fake
-        ..onSolEclipseWhenLoc =
-            (
-              jdStart,
-              flags, {
-              required geolon,
-              required geolat,
-              geoalt = 0,
-              backward = false,
-            }) {
-              capturedGeolat = geolat;
-              capturedBackward = backward;
-              return const SolarEclipseLocalResult(
-                maxEclipse: 0,
-                firstContact: 0,
-                secondContact: 0,
-                thirdContact: 0,
-                fourthContact: 0,
-                sunrise: 0,
-                sunset: 0,
-                magnitude: 0,
-                diameterRatio: 0,
-                obscuration: 0,
-                coreShadowKm: 0,
-                sunAzimuth: 0,
-                sunTrueAltitude: 0,
-                sunApparentAltitude: 0,
-                moonSunAngle: 0,
-                magnitudeNasa: 0,
-                sarosSeries: 0,
-                sarosMember: 0,
-                returnFlag: 0,
-              );
-            }
-        ..solEclipseWhenLoc(
-          2451545.0,
-          0,
-          geolon: 13.4,
-          geolat: 52.5,
-          backward: true,
-        );
+      fake.onSolEclipseWhenLoc =
+          (
+            jdStart,
+            flags, {
+            required geolon,
+            required geolat,
+            geoalt = 0,
+            backward = false,
+          }) {
+            capturedGeolat = geolat;
+            capturedBackward = backward;
+            return const SolarEclipseLocalResult(
+              maxEclipse: 0,
+              firstContact: 0,
+              secondContact: 0,
+              thirdContact: 0,
+              fourthContact: 0,
+              sunrise: 0,
+              sunset: 0,
+              magnitude: 0,
+              diameterRatio: 0,
+              obscuration: 0,
+              coreShadowKm: 0,
+              sunAzimuth: 0,
+              sunTrueAltitude: 0,
+              sunApparentAltitude: 0,
+              moonSunAngle: 0,
+              magnitudeNasa: 0,
+              sarosSeries: 0,
+              sarosMember: 0,
+              returnFlag: 0,
+            );
+          };
+
+      fake.solEclipseWhenLoc(
+        2451545.0,
+        0,
+        geolon: 13.4,
+        geolat: 52.5,
+        backward: true,
+      );
 
       expect(capturedGeolat, 52.5);
       expect(capturedBackward, true);

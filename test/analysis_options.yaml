@@ -1,0 +1,11 @@
+include: ../analysis_options.yaml
+
+linter:
+  rules:
+    # Off in tests only; kept on in lib/. A test is arrange/act/assert -- a
+    # deliberate statement sequence -- so a repeated receiver is structure, not
+    # duplication. Folding the arrange into the declaration also costs
+    # debuggability: a call that throws inside a cascade is attributed to the
+    # declaration line, which is the wrong answer precisely when you are
+    # diagnosing a failing test. (swe-dashboard/93)
+    cascade_invocations: false
