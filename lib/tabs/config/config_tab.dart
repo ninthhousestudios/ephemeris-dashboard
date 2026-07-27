@@ -5,15 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'config_provider.dart';
-
 class ConfigTab extends ConsumerWidget {
   const ConfigTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final info = ref.watch(libraryInfoProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -114,6 +111,45 @@ class ConfigTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
+          // ── Bugs and Feature Requests card ──
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Bugs and Feature Requests',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Found something wrong, or want a calculation the app '
+                    'does not do yet? Get in touch — by email, or by '
+                    'filing an issue on GitHub.',
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 12),
+                  _launchRow(
+                    theme,
+                    Icons.mail_outline,
+                    'Email',
+                    'josh@ninthhouse.studio',
+                    'mailto:josh@ninthhouse.studio',
+                  ),
+                  const SizedBox(height: 8),
+                  _launchRow(
+                    theme,
+                    Icons.bug_report_outlined,
+                    'File an issue on GitHub',
+                    'https://github.com/ninthhousestudios/swe-dashboard/issues',
+                    'https://github.com/ninthhousestudios/swe-dashboard/issues',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           // ── Source Code card ──
           Card(
             child: Padding(
@@ -169,30 +205,65 @@ class ConfigTab extends ConsumerWidget {
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 12),
-                  _infoRow(theme, 'Engine (Rust)', info.version),
+                  _infoRow(theme, 'Engine (Rust)', '0.1.8'),
                   const SizedBox(height: 4),
-                  _infoRow(theme, 'Dart Package', '0.2.4'),
+                  _infoRow(theme, 'Dart Package', '0.2.9'),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 12),
-          // ── v2 note ──
+          // ── v2 release notes ──
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Coming in v2', style: theme.textTheme.titleMedium),
+                  Text('New in v2', style: theme.textTheme.titleMedium),
                   const SizedBox(height: 8),
-                  Text(
-                    'Ephemeris file viewer and manager — browse, download, '
-                    'and manage Swiss Ephemeris data files (.se1) for '
-                    'extended date ranges and precision.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  _bullet(
+                    theme,
+                    'No Calculate button. Results are now live: change the '
+                    'moment, the place, or any flag and every figure on '
+                    'screen recomputes immediately.',
+                  ),
+                  _bullet(
+                    theme,
+                    'Series. Repeat any calculation over a stepped range of '
+                    'moments — by minute, day, month, or year — and read it '
+                    'as a grid or a table, or export it.',
+                  ),
+                  _bullet(
+                    theme,
+                    'Ephemeris file manager. Browse, download, and manage '
+                    'Swiss Ephemeris data files (.se1) for extended date '
+                    'ranges and precision, and see which file a result '
+                    'actually came from.',
+                  ),
+                  _bullet(
+                    theme,
+                    'Far more calculations. The tab set now covers eclipses, '
+                    'rise and set, heliacal events, planetary phenomena, '
+                    'nodes and apsides, planetocentric and differential '
+                    'positions, crossings, fixed stars, coordinate '
+                    'transforms, and date and time conversions.',
+                  ),
+                  _bullet(
+                    theme,
+                    'A richer context. Sidereal and tropical zodiacs with '
+                    'user-defined ayanamsas, geocentric, topocentric, '
+                    'heliocentric, and barycentric origins, house systems, '
+                    'calendars, time scales, and projections — with the '
+                    'flags they imply locked and managed for you.',
+                  ),
+                  _bullet(theme, 'Charts. Save a context and reload it later.'),
+                  _bullet(theme, 'Export. Copy or save results from any tab.'),
+                  _bullet(
+                    theme,
+                    'Display. Light and dark themes, per-body selection, '
+                    'configurable coordinate formatting, and a layout that '
+                    'stays usable at any zoom level.',
                   ),
                 ],
               ),
@@ -203,7 +274,35 @@ class ConfigTab extends ConsumerWidget {
     );
   }
 
-  Widget _repoLink(ThemeData theme, String label, String url) {
+  /// A bullet for the release-notes list. The marker is a plain `Text` in a
+  /// `Row` rather than an indented `SizedBox` so it reflows with the text at
+  /// any zoom level.
+  Widget _bullet(ThemeData theme, String text) {
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('•  ', style: style),
+          Expanded(child: Text(text, style: style)),
+        ],
+      ),
+    );
+  }
+
+  Widget _repoLink(ThemeData theme, String label, String url) =>
+      _launchRow(theme, Icons.open_in_new, label, url, url);
+
+  Widget _launchRow(
+    ThemeData theme,
+    IconData icon,
+    String label,
+    String subtitle,
+    String url,
+  ) {
     return InkWell(
       onTap: () =>
           launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
@@ -213,7 +312,7 @@ class ConfigTab extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.open_in_new, size: 16, color: theme.colorScheme.primary),
+            Icon(icon, size: 16, color: theme.colorScheme.primary),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -226,7 +325,7 @@ class ConfigTab extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    url,
+                    subtitle,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
