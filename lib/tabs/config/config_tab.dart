@@ -231,8 +231,10 @@ class ConfigTab extends ConsumerWidget {
                   _bullet(
                     theme,
                     'Series. Repeat any calculation over a stepped range of '
-                    'moments — by minute, day, month, or year — and read it '
-                    'as a grid or a table, or export it.',
+                    'moments — seconds through years — and read it as a grid '
+                    'or a table, or export it. Monthly and yearly steps walk '
+                    'the civil calendar, so a series holds its date instead '
+                    'of drifting off it.',
                   ),
                   _bullet(
                     theme,
