@@ -9,6 +9,8 @@ Flutter cross-platform GUI for the Swiss Ephemeris via [swisseph_rs](https://pub
 This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must remain functional across zoom levels. These rules are non-negotiable:
 
 ### Cards and Grids
+- Render result cards through `ResultCardGrid` (`lib/widgets/result_card_grid.dart`) — do not
+  re-paste a `LayoutBuilder`/`Wrap`/`cardWidth` block into a tab (swe-dashboard/92)
 - Use `Wrap` + `SingleChildScrollView`, never `GridView` with fixed aspect ratios
 - Compute card width from `LayoutBuilder` constraints; let cards size to intrinsic content height
 - Fixed aspect ratios break at fractional scale factors due to sub-pixel rounding

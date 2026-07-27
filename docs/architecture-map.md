@@ -223,12 +223,14 @@ controller, focus node, and sync/commit logic.
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
 | `labeled_dropdown.dart` | `LabeledDropdown<T>` — reusable labeled dropdown layout |
 
-## Series widgets (lib/widgets/)
+## Shared tab widgets (lib/widgets/)
 
 Shared across every eligible tab — they take a `tabId` string and data, never a
-tab-specific type, so rolling a tab into series mode is wiring, not new UI.
-Sizing follows the CLAUDE.md zoom rules: horizontal-scrolling chip bars,
-two-axis scroll and intrinsic column widths in the grid.
+tab-specific type, so rolling a tab into series mode is wiring, not new UI. The
+same holds for card mode: `ResultCardGrid` is the one grid, `ResultSection` the
+one card-and-export label source. Sizing follows the CLAUDE.md zoom rules:
+horizontal-scrolling chip bars, two-axis scroll and intrinsic column widths in
+the grid, `Wrap` + intrinsic card heights in the card grid.
 
 | File | Widget |
 |------|--------|
@@ -238,6 +240,7 @@ two-axis scroll and intrinsic column widths in the grid.
 | `body_display_controls.dart` | `BodyDisplayControls({tabId, housePosToggle, horizontalToggle})` — the body tabs' `SeriesBar.trailing` (renamed from `HousePosControls`, swe-dashboard/69). Card mode: the "Horizontal coords" and "House position" toggles + house-system dropdown while house position is on. Series mode: both are picker quantities, so no toggles — only the house-system dropdown whenever House/House Pos is an active picker quantity. |
 | `horizontal_fields.dart` | `horizontalResultFields(HorizontalCoords, DisplayFormat)` — the horizontal-frame `ResultField`s for a single-Moment card, gated by each tab's card toggle. Widget-side twin of the kernel's `horizontalExportRows`. |
 | `result_section.dart` | `ResultSection(title, subtitle, flagHex, fields)` + `sectionsToExportRows` — a card's worth of a Result, and its projection into `ExportRow`s. A tab builds its sections once and uses them for *both* encodings (cards and CSV/series columns/quantity chips), so a label or formatter has one home. Adopted by the five tabs that had bespoke unshared field lists and had drifted (swe-dashboard/91: `datesSections`, `eclipseSections`, `diffSections`, `phenomenaSections`, `heliacalSections`); the other tabs already shared a label source of their own (`coordLabels()`, `coordResultToFields`, math's card→export map). |
+| `result_card_grid.dart` | `ResultCardGrid<T>` (`.outcome` / `.items` / `.cards`) + `resultGridColumns`, `resultCardWidth` — the card-mode counterpart to `SeriesView`: the one responsive grid every card tab renders into (swe-dashboard/92). Owns the `CalcOutcome` switch, the error text, the per-tab empty message, the breakpoints (`> 1200` → 3 cols, `> 600` → 2, capped by `maxColumns`), and the `SingleChildScrollView` + `Wrap` chrome — so the CLAUDE.md zoom rules are honoured in one place instead of fourteen. `cardOverlay(index)` is the top-right ✕ slot the six selectable-body tabs use; `footer` is the full-width card below the grid (Houses' Angles). Heliacal and Rise/Set stay grouped (per-target Wraps under a heading, their own breakpoints) and call `resultCardWidth` only. |
 | `series_grid.dart` | `SeriesGrid` — renders a `SeriesTable`. Moment column + one column per quantity; an `Error` column appears only when some step failed, and errored rows show `—` in the quantity cells. Sticky Moment column deliberately deferred. |
 | `series_view.dart` | `SeriesView(tabId, steps)` — picker over grid, wired to `seriesSettingsProvider`. Renders each step's Moment itself (`formatJdDateTime` over `clockViewProvider`/`sweProvider`): one app-wide policy, not eleven identical tab lambdas. The one widget a tab drops in. Shrink-wraps (`MainAxisSize.min`, no flex child): `AppShell.body` is a `SingleChildScrollView`, so tab content is laid out under unbounded height and an `Expanded` here throws. |
 
