@@ -17,27 +17,12 @@ linter:
     # Async hygiene: a Future silently dropped is a fire-and-forget bug
     - unawaited_futures
     # Errors: throw only Error/Exception, log properly.
-    #
-    # avoid_catches_without_on_clauses is deliberately OFF here, deviating from
-    # the house baseline (swe-dashboard/93). This app's error handling is built
-    # on broad catches used as boundaries: ADR-0001 makes a tab's result a pure
-    # function of the Context, so an escaped throw breaks the whole projection.
-    # Every compute is therefore wrapped to turn any failure into a displayed
-    # CalcError -- see computeSeries in core/calculation/run_tab_calc.dart, which
-    # catches SweException by type and then keeps a bare catch as the backstop.
-    # There is no narrower type to name in that position; naming one would mean
-    # guessing, and a wrong guess converts graceful degradation into a crash.
-    # The same shape covers staging probes (core/ephe/staging_io.dart), the
-    # native-library-unavailable guards in tests, and value fallbacks like
-    # safeGetName in core/body_utils.dart.
-    #
-    # Not a swe_dashboard quirk: all three repos that adopted this rule
-    # (swe_dashboard, swisseph.rs.dart, adityas/explore) violate it in the same
-    # deliberate way. Raising it against the canonical baseline in
-    # vidhi/vidhi-dart/ is open; this comment is not a substitute for that.
-    #
-    # What the rule was catching that IS worth fixing -- empty catch bodies that
-    # swallow silently -- is tracked separately as swe-dashboard/94.
+    # (avoid_catches_without_on_clauses was dropped from the house baseline
+    # itself @ swe-dashboard/93 — no local deviation needed. This app is why:
+    # ADR-0001 makes a tab's result a pure function of the Context, so every
+    # compute is wrapped to turn any failure into a displayed CalcError rather
+    # than an escaped throw. See computeSeries in calculation/run_tab_calc.dart.
+    # Empty catch bodies that swallow silently are swe-dashboard/94.)
     - only_throw_errors
     - avoid_print
     # const discipline (coding_discipline: Enforce Const Constructors)
