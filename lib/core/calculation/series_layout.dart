@@ -29,7 +29,14 @@ enum SeriesLayout {
 
   /// Round-trips through persistence by [name], falling back rather than
   /// throwing on a value written by a build that named its layouts differently.
-  static SeriesLayout byName(String? name, {SeriesLayout fallback = vertical}) {
+  ///
+  /// The bare [fallback] tracks `SeriesSettings`'s own default; persistence
+  /// always passes `defaults.layout` explicitly rather than relying on it,
+  /// since this file deliberately has no dependency on the settings type.
+  static SeriesLayout byName(
+    String? name, {
+    SeriesLayout fallback = horizontal,
+  }) {
     if (name == null) return fallback;
     for (final layout in values) {
       if (layout.name == name) return layout;

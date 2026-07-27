@@ -514,9 +514,9 @@ void main() {
       );
     });
 
-    test('export layout defaults vertical and persists per tab', () async {
-      expect(read('planets').layout, SeriesLayout.vertical);
-      notifier('planets').setLayout(SeriesLayout.horizontal);
+    test('export layout defaults horizontal and persists per tab', () async {
+      expect(read('planets').layout, SeriesLayout.horizontal);
+      notifier('planets').setLayout(SeriesLayout.vertical);
 
       final prefs = await SharedPreferences.getInstance();
       final reopened = ProviderContainer(
@@ -528,11 +528,11 @@ void main() {
       addTearDown(reopened.dispose);
       expect(
         reopened.read(seriesSettingsProvider('planets')).layout,
-        SeriesLayout.horizontal,
+        SeriesLayout.vertical,
       );
       expect(
         reopened.read(seriesSettingsProvider('houses')).layout,
-        SeriesLayout.vertical,
+        SeriesLayout.horizontal,
       );
     });
 
@@ -540,8 +540,9 @@ void main() {
       SharedPreferences.setMockInitialValues({
         'series_planets_export_layout': 'diagonal',
       });
-      expect(SeriesLayout.byName('diagonal'), SeriesLayout.vertical);
-      expect(SeriesLayout.byName(null), SeriesLayout.vertical);
+      expect(SeriesLayout.byName('diagonal'), SeriesLayout.horizontal);
+      expect(SeriesLayout.byName(null), SeriesLayout.horizontal);
+      expect(SeriesLayout.byName('vertical'), SeriesLayout.vertical);
       expect(SeriesLayout.byName('horizontal'), SeriesLayout.horizontal);
     });
   });
@@ -852,25 +853,25 @@ void main() {
         size: const Size(1400, 900),
       );
 
-      // Vertical is the default and is the transpose: the (body, quantity)
-      // pair is a row label, and the steps are the columns.
+      // Horizontal is the default: the (body, quantity) pairs run along the
+      // top, with the Moment leading each row.
+      expect(find.text('Name'), findsNothing);
+      expect(find.text('Date/Time (UT1)'), findsOneWidget);
+      expect(find.text('Sun Longitude'), findsOneWidget);
+      expect(find.text('Moon Latitude'), findsOneWidget);
+
+      container
+          .read(seriesSettingsProvider('planets').notifier)
+          .setLayout(SeriesLayout.vertical);
+      await tester.pump();
+
+      // Vertical is the transpose: the same pair becomes a row label, and the
+      // steps are the columns.
       expect(find.text('Name'), findsOneWidget);
       expect(find.text('Sun Longitude'), findsOneWidget);
       expect(find.text('Moon Latitude'), findsOneWidget);
       // One step, so one step column and no Moment column heading.
       expect(find.text('Date/Time (UT1)'), findsNothing);
-
-      container
-          .read(seriesSettingsProvider('planets').notifier)
-          .setLayout(SeriesLayout.horizontal);
-      await tester.pump();
-
-      // Horizontal puts the same pairs back along the top, with the Moment
-      // leading each row.
-      expect(find.text('Name'), findsNothing);
-      expect(find.text('Date/Time (UT1)'), findsOneWidget);
-      expect(find.text('Sun Longitude'), findsOneWidget);
-      expect(find.text('Moon Latitude'), findsOneWidget);
 
       container
           .read(seriesSettingsProvider('planets').notifier)
@@ -985,26 +986,26 @@ void main() {
         size: const Size(1400, 900),
       );
 
-      // Default layout is vertical: the one step is the only column, and
-      // 'Sun Longitude' names a row.
+      // Default layout is horizontal: the Moment is the row identifier and the
+      // column carries the body name.
       await tester.tap(find.byIcon(Icons.file_download));
       await tester.pumpAndSettle();
-      expect(copied, contains('\nSun Longitude\t10'));
+      expect(copied, startsWith('Name\tJD\tDate\tSun Longitude\n'));
 
-      // Selecting horizontal transposes it: the Moment is the row identifier
-      // and the column carries the body name.
+      // Selecting vertical transposes it: the one step is the only column, and
+      // 'Sun Longitude' names a row.
       await tester.tap(find.byIcon(Icons.arrow_drop_down));
       await tester.pumpAndSettle();
-      await tester.tap(find.text(SeriesLayout.horizontal.label));
+      await tester.tap(find.text(SeriesLayout.vertical.label));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Copy as TSV'));
       await tester.pumpAndSettle();
-      expect(copied, startsWith('Name\tJD\tDate\tSun Longitude\n'));
+      expect(copied, contains('\nSun Longitude\t10'));
 
       // The choice went to the settings, not to widget state.
       expect(
         container.read(seriesSettingsProvider('planets')).layout,
-        SeriesLayout.horizontal,
+        SeriesLayout.vertical,
       );
     });
 

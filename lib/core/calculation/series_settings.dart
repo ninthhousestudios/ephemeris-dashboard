@@ -19,7 +19,7 @@ class SeriesSettings {
     this.stepUnit = StepUnit.days,
     this.rowCount = 30,
     this.hiddenLabels = const {},
-    this.layout = SeriesLayout.vertical,
+    this.layout = SeriesLayout.horizontal,
   });
 
   /// Series mode is per-tab and defaults off: 7 of 17 tabs are ineligible, so
