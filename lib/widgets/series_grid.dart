@@ -86,7 +86,7 @@ class SeriesGrid extends StatelessWidget {
         children: [
           _headerCell(theme, momentColumnTitle),
           for (final column in table.columns) _headerCell(theme, column.title),
-          if (hasErrors) _headerCell(theme, 'Error'),
+          if (hasErrors) _headerCell(theme, table.errorHeading),
         ],
       ),
       for (final row in table.rows)
@@ -142,7 +142,7 @@ class SeriesGrid extends StatelessWidget {
       if (hasErrors)
         TableRow(
           children: [
-            _headerCell(theme, 'Error'),
+            _headerCell(theme, table.errorHeading),
             for (final row in table.rows)
               _cell(theme, row.error ?? '', isError: true),
           ],
@@ -168,7 +168,7 @@ class SeriesGrid extends StatelessWidget {
           _headerCell(theme, momentColumnTitle),
           if (showNames) _headerCell(theme, 'Name'),
           for (final label in long.labels) _headerCell(theme, label),
-          if (hasErrors) _headerCell(theme, 'Error'),
+          if (hasErrors) _headerCell(theme, long.errorHeading),
         ],
       ),
       for (final row in long.rows)

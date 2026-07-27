@@ -61,6 +61,22 @@ class SeriesTableRow {
   bool get isError => error != null;
 }
 
+/// The heading a step-level failure gets, kept clear of the headings in
+/// [taken].
+///
+/// A per-body `Error` is a quantity like any other — planets, stars,
+/// other_bodies and rise_set all emit one — so in a shape where such a field
+/// is headed by the bare word `Error`, a step-level error column of the same
+/// name is a second, unrelated column wearing an identical label. The grid
+/// then shows two indistinguishable `Error` headings while `ExportService`,
+/// which keys its schema on the label, folds them into one: the screen and the
+/// file disagree on exactly the series that has both kinds of error.
+///
+/// Every shape derives the name from here, so none of them can disagree about
+/// which error is which.
+String stepErrorHeading(Iterable<String> taken) =>
+    taken.contains('Error') ? 'Step Error' : 'Error';
+
 /// The grid, ready to render: a stable column set and one row per step.
 class SeriesTable {
   const SeriesTable({required this.columns, required this.rows});
@@ -70,6 +86,11 @@ class SeriesTable {
 
   bool get isEmpty => rows.isEmpty;
   bool get hasErrors => rows.any((r) => r.isError);
+
+  /// Heading for the step-level error column, clear of the column titles —
+  /// which is where the wide shapes would collide, a tab with no row
+  /// identifier titling its per-body error column `Error` outright.
+  String get errorHeading => stepErrorHeading(columns.map((c) => c.title));
 }
 
 /// One row of the long shape: a single step's values for a single row
@@ -120,6 +141,11 @@ class SeriesLongTable {
 
   bool get isEmpty => rows.isEmpty;
   bool get hasErrors => rows.any((r) => r.isError);
+
+  /// Heading for the step-level error column, clear of the quantity labels —
+  /// which is where this shape collides, a per-body `Error` field being one of
+  /// the shared labels rather than part of a wider column title.
+  String get errorHeading => stepErrorHeading(labels);
 }
 
 /// Re-shapes [table] into one row per (step, row identifier).

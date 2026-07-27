@@ -70,7 +70,7 @@ List<ExportRow> _vertical(SeriesTable table, String Function(Moment) label) {
       ),
     if (table.hasErrors)
       ExportRow(
-        header: 'Error',
+        header: table.errorHeading,
         fields: [for (final (i, row) in indexed) (steps[i], row.error ?? '')],
       ),
   ];
@@ -81,9 +81,13 @@ List<ExportRow> _horizontal(SeriesTable table, String Function(Moment) label) {
   return table.rows.map((row) {
     final leading = _leading(row.moment, label);
     if (row.error case final message?) {
-      return _errorRow(leading.last.$2, leading, [
-        for (final column in table.columns) column.title,
-      ], message);
+      return _errorRow(
+        leading.last.$2,
+        leading,
+        [for (final column in table.columns) column.title],
+        message,
+        table.errorHeading,
+      );
     }
     return ExportRow(
       header: leading.last.$2,
@@ -107,7 +111,7 @@ List<ExportRow> _long(SeriesTable table, String Function(Moment) label) {
   for (final row in long.rows) {
     final leading = _leading(row.moment, label);
     if (row.error case final message?) {
-      rows.add(_errorRow('', leading, long.labels, message));
+      rows.add(_errorRow('', leading, long.labels, message, long.errorHeading));
       continue;
     }
     rows.add(
@@ -127,20 +131,25 @@ List<ExportRow> _long(SeriesTable table, String Function(Moment) label) {
 ///
 /// The padding is load-bearing, not decoration: `ExportService` derives its
 /// columns from first appearance across rows, so an unpadded error row as step
-/// 0 would put Error ahead of every quantity and make the exported column
+/// 0 would put the error ahead of every quantity and make the exported column
 /// order depend on which step failed.
+///
+/// [errorHeading] comes from the table rather than being spelt `Error` here,
+/// because a tab that emits a per-body error field already occupies that name
+/// in [schema] — see [stepErrorHeading].
 ExportRow _errorRow(
   String header,
   List<(String, String)> leading,
   List<String> schema,
   String message,
+  String errorHeading,
 ) {
   return ExportRow(
     header: header,
     fields: [
       ...leading,
       for (final label in schema) (label, ''),
-      ('Error', message),
+      (errorHeading, message),
     ],
   );
 }
