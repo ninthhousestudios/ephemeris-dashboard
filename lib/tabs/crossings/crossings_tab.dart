@@ -102,11 +102,11 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                   child: TextField(
                     controller: _lonController,
                     style: theme.textTheme.bodyLarge,
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: '0',
                       suffixText: '°',
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 10,
                       ),

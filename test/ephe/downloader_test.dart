@@ -135,7 +135,7 @@ void main() {
 
   test('large-download callback can cancel before any bytes move', () async {
     final dl = EphemerisDownloader(Dio());
-    final entry = CatalogEntry(
+    const entry = CatalogEntry(
       filename: 'huge.eph',
       family: BodyFamily.jpl,
       url: 'http://127.0.0.1:1/nope', // should never be hit

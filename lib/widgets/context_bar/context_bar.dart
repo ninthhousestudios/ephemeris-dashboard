@@ -359,7 +359,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         }),
                       ],
                     ),
-                    SizedBox(height: _rowGap),
+                    const SizedBox(height: _rowGap),
                     // Row 1: Date | Time | UTC | JD. Time carries the widest
                     // value ("HH:MM:SS") and grows a "(TT)" scale suffix, so it
                     // gets an extra flex unit taken from UTC, whose "+00:00" has
@@ -378,7 +378,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         Expanded(flex: 4, child: ContextJdField()),
                       ],
                     ),
-                    SizedBox(height: _rowGap),
+                    const SizedBox(height: _rowGap),
                     // Row 2: Lat | Lon | Alt | City
                     const Row(
                       children: [
@@ -423,7 +423,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('OPTIONS', style: sectionLabel),
-                    SizedBox(height: _rowGap),
+                    const SizedBox(height: _rowGap),
                     const Row(
                       children: [
                         Expanded(child: OriginSelector()),
@@ -433,7 +433,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         Expanded(child: EqRefSelector()),
                       ],
                     ),
-                    SizedBox(height: _rowGap),
+                    const SizedBox(height: _rowGap),
                     const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -453,7 +453,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         ),
                       ],
                     ),
-                    SizedBox(height: _rowGap),
+                    const SizedBox(height: _rowGap),
                     const Row(
                       children: [
                         Expanded(child: CalendarSelector()),

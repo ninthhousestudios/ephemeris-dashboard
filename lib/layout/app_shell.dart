@@ -299,7 +299,7 @@ class _MobileTabBarState extends State<_MobileTabBar> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final allTabs = AppTab.values;
+    const allTabs = AppTab.values;
     final dividerIndex = AppTab.primaryTabs.length;
 
     return Container(

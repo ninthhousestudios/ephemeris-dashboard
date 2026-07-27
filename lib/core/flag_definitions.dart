@@ -24,10 +24,10 @@ class FlagGroup {
 }
 
 /// Coordinate system group — mutually exclusive.
-final coordGroup = FlagGroup(
+const coordGroup = FlagGroup(
   label: 'Coordinates',
   members: [
-    const FlagDef(
+    FlagDef(
       label: 'Ecliptic',
       value: 0, // default — no flag bit needed
       tooltip: 'Ecliptic longitude/latitude (default)',
@@ -47,12 +47,12 @@ final coordGroup = FlagGroup(
 
 /// Independent composable toggles (shown as a flat row, not a labeled group).
 final flagToggles = [
-  FlagDef(
+  const FlagDef(
     label: 'Speed',
     value: seFlgSpeed,
     tooltip: 'Include speed (daily motion) in output',
   ),
-  FlagDef(
+  const FlagDef(
     label: 'ICRS',
     value: seFlgIcrs,
     tooltip:
@@ -66,7 +66,7 @@ final flagToggles = [
 /// apparent position (where you would actually see the body), moving it toward
 /// the geometric position. Shown together under a "Corrections" label.
 final positionCorrectionToggles = [
-  FlagDef(
+  const FlagDef(
     label: 'True Pos',
     value: seFlgTruePos,
     tooltip:
@@ -74,14 +74,14 @@ final positionCorrectionToggles = [
         'where it actually is at t, not where its light shows it. Carries no '
         'aberration or deflection either.',
   ),
-  FlagDef(
+  const FlagDef(
     label: 'No Aberr',
     value: seFlgNoAberr,
     tooltip:
         "Removes annual aberration — the ~20″ apparent shift from Earth's "
         'orbital velocity.',
   ),
-  FlagDef(
+  const FlagDef(
     label: 'No Grav',
     value: seFlgNoGdefl,
     tooltip:

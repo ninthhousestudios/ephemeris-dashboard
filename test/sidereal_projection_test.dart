@@ -78,7 +78,7 @@ void main() {
 
     test('tropical yields no sidMode regardless of projection', () {
       final g = AppliedGlobals.fromContext(
-        EffectiveContext(
+        const EffectiveContext(
           jdUt: 2460412.5,
           iflag: seFlgSwiEph,
           latitude: 0,

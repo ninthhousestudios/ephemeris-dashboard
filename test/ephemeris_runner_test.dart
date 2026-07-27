@@ -21,7 +21,7 @@ void main() {
 
   group('apply configures engine', () {
     test('apply with sidereal globals produces sidereal results', () {
-      final tropical = AppliedGlobals(
+      const tropical = AppliedGlobals(
         ephePath: null,
         epheSource: EpheSource.moshier,
         sidMode: null,
@@ -30,7 +30,7 @@ void main() {
         topo: null,
         jplFile: null,
       );
-      final sidereal = AppliedGlobals(
+      const sidereal = AppliedGlobals(
         ephePath: null,
         epheSource: EpheSource.moshier,
         sidMode: 1,
@@ -54,7 +54,7 @@ void main() {
     });
 
     test('apply skips reconfigure when globals unchanged', () {
-      final globals = AppliedGlobals(
+      const globals = AppliedGlobals(
         ephePath: null,
         epheSource: EpheSource.moshier,
         sidMode: null,
@@ -79,7 +79,7 @@ void main() {
 
   group('integration: calc values', () {
     test('values match a direct engine calculation', () {
-      final globals = AppliedGlobals(
+      const globals = AppliedGlobals(
         ephePath: null,
         epheSource: EpheSource.moshier,
         sidMode: null,

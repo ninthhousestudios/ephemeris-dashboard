@@ -142,7 +142,7 @@ void main() {
 
     setUp(() {
       rust.reconfigure(
-        rs.EphemerisConfig(
+        const rs.EphemerisConfig(
           topographic: rs.TopoPosition(
             longitude: 13.41,
             latitude: 52.52,
@@ -387,7 +387,7 @@ void main() {
         '/home/josh/.local/share/studio.ninthhouse.ephemeris_dashboard/ephe';
 
     test('fixstar2Ut Sirius', () {
-      rust.reconfigure(rs.EphemerisConfig(ephePath: ephePath));
+      rust.reconfigure(const rs.EphemerisConfig(ephePath: ephePath));
 
       final r = rust.fixstar2Ut('Sirius', jd, flags);
       expect(r.longitude, isNotNaN);

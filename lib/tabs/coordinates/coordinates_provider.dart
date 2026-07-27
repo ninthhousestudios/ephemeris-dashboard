@@ -269,7 +269,7 @@ final refracResultProvider = Provider<CalcOutcome<CoordResult>>(
 
 List<ResultField> coordResultToFields(CoordResult result, DisplayFormat fmt) {
   switch (result) {
-    case CoordAzAltResult r:
+    case final CoordAzAltResult r:
       return [
         ResultField(
           label: 'Azimuth',
@@ -288,7 +288,7 @@ List<ResultField> coordResultToFields(CoordResult result, DisplayFormat fmt) {
         ),
       ];
 
-    case CoordAzAltRevResult r:
+    case final CoordAzAltRevResult r:
       return [
         ResultField(
           label: 'Longitude',
@@ -302,7 +302,7 @@ List<ResultField> coordResultToFields(CoordResult result, DisplayFormat fmt) {
         ),
       ];
 
-    case CoordCoTransResult r:
+    case final CoordCoTransResult r:
       return [
         ResultField(label: 'Direction', value: r.direction, rawValue: null),
         ResultField(
@@ -322,7 +322,7 @@ List<ResultField> coordResultToFields(CoordResult result, DisplayFormat fmt) {
         ),
       ];
 
-    case CoordRefracResult r:
+    case final CoordRefracResult r:
       return [
         ResultField(
           label: 'Input alt',
@@ -341,7 +341,7 @@ List<ResultField> coordResultToFields(CoordResult result, DisplayFormat fmt) {
         ),
       ];
 
-    case CoordErrorResult r:
+    case final CoordErrorResult r:
       return [ResultField(label: 'Error', value: r.message, rawValue: 0.0)];
   }
 }

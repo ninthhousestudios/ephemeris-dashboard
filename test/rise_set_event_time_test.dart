@@ -35,7 +35,7 @@ void main() {
   /// The Date/Time cell of the first export row.
   String dateTimeCell(RiseSetResult result) {
     final rows = riseSetToExportRows(
-      [RiseSetGroupResult(target: RiseSetTarget.body(0), result: result)],
+      [RiseSetGroupResult(target: const RiseSetTarget.body(0), result: result)],
       swe,
       view,
     );

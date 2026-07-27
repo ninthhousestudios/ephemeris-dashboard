@@ -114,7 +114,7 @@ final fakePlanetResults = [
   ),
 ];
 
-final fakeHousesResult = HousesCalcResult(
+const fakeHousesResult = HousesCalcResult(
   cusps: [
     0, // index 0 unused
     10.5, 42.3, 72.1, 100.8, 130.6, 160.2,
@@ -158,7 +158,7 @@ final planetsResultsOverride = planetsResultsProvider.overrideWith(
 );
 
 final housesResultOverride = housesResultProvider.overrideWith(
-  (ref) => CalcOk(fakeHousesResult),
+  (ref) => const CalcOk(fakeHousesResult),
 );
 
 final ayanamsaResultsOverride = ayanamsaResultsProvider.overrideWith(
@@ -166,7 +166,7 @@ final ayanamsaResultsOverride = ayanamsaResultsProvider.overrideWith(
 );
 
 final heliacalResultOverride = heliacalResultProvider.overrideWith(
-  (ref) => CalcOk(fakeHeliacalResults),
+  (ref) => const CalcOk(fakeHeliacalResults),
 );
 
 /// All overrides needed for tab-level tests.

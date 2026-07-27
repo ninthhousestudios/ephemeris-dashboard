@@ -155,9 +155,9 @@ EpheFile? parseEpheFilename(String filename, int sizeBytes) {
 double gregorianYearStartJd(int year) {
   const month = 1;
   const day = 1;
-  final a = (14 - month) ~/ 12;
+  const a = (14 - month) ~/ 12;
   final y = year + 4800 - a;
-  final m = month + 12 * a - 3;
+  const m = month + 12 * a - 3;
   // Fliegel–Van Flandern Gregorian JD (noon TT).
   final jdn =
       day + (153 * m + 2) ~/ 5 + 365 * y + y ~/ 4 - y ~/ 100 + y ~/ 400 - 32045;

@@ -68,7 +68,7 @@ void main() {
   group('addCalendarMonths', () {
     test('default is proleptic Gregorian (unchanged behaviour)', () {
       // 31 Jan 2000 + 1 month clamps to 29 Feb 2000 (leap).
-      final jan31 = 2451574.5;
+      const jan31 = 2451574.5;
       expect(addCalendarMonths(jan31, 1), 2451603.5); // 29 Feb 2000
     });
 
@@ -108,7 +108,7 @@ void main() {
     );
 
     test('time of day is carried across a calendar-crossing step', () {
-      final atNoon = _sep15_1582jul + 0.5; // 15.9.1582 12:00
+      const atNoon = _sep15_1582jul + 0.5; // 15.9.1582 12:00
       final stepped = addCalendarMonths(atNoon, 1, Calendar.auto);
       expect(stepped - _oct15_1582greg, closeTo(0.5, 1e-9));
     });

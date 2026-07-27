@@ -15,30 +15,30 @@ class HouseSystemDef {
 }
 
 final houseSystems = <HouseSystemDef>[
-  HouseSystemDef(0x50, 'Placidus'), // P
-  HouseSystemDef(0x4B, 'Koch'), // K
-  HouseSystemDef(0x4F, 'Porphyry'), // O
-  HouseSystemDef(0x52, 'Regiomontanus'), // R
-  HouseSystemDef(0x43, 'Campanus'), // C
-  HouseSystemDef(0x45, 'Equal (Asc)'), // E
-  HouseSystemDef(0x57, 'Whole Sign'), // W
-  HouseSystemDef(0x41, 'Equal (MC)'), // A
-  HouseSystemDef(0x42, 'Alcabitius'), // B
-  HouseSystemDef(0x4D, 'Morinus'), // M
-  HouseSystemDef(0x55, 'Krusinski'), // U
-  HouseSystemDef(0x48, 'Azimuthal/Horizontal'), // H
-  HouseSystemDef(0x56, 'Vehlow Equal'), // V
-  HouseSystemDef(0x58, 'Meridian (Axial)'), // X
-  HouseSystemDef(0x47, 'Gauquelin (36)'), // G
-  HouseSystemDef(0x54, 'Polich/Page'), // T
-  HouseSystemDef(0x44, 'Equal (MC, desc)'), // D
-  HouseSystemDef(0x4E, 'Equal/1=Aries'), // N
-  HouseSystemDef(0x59, 'APC Houses'), // Y
-  HouseSystemDef(0x46, 'Carter Poli-Equatorial'), // F
-  HouseSystemDef(0x49, 'Sunshine (Treindl)'), // I
-  HouseSystemDef(0x69, 'Sunshine (Makransky)'), // i
-  HouseSystemDef(0x4C, 'Pullen SD'), // L
-  HouseSystemDef(0x51, 'Pullen SR'), // Q
+  const HouseSystemDef(0x50, 'Placidus'), // P
+  const HouseSystemDef(0x4B, 'Koch'), // K
+  const HouseSystemDef(0x4F, 'Porphyry'), // O
+  const HouseSystemDef(0x52, 'Regiomontanus'), // R
+  const HouseSystemDef(0x43, 'Campanus'), // C
+  const HouseSystemDef(0x45, 'Equal (Asc)'), // E
+  const HouseSystemDef(0x57, 'Whole Sign'), // W
+  const HouseSystemDef(0x41, 'Equal (MC)'), // A
+  const HouseSystemDef(0x42, 'Alcabitius'), // B
+  const HouseSystemDef(0x4D, 'Morinus'), // M
+  const HouseSystemDef(0x55, 'Krusinski'), // U
+  const HouseSystemDef(0x48, 'Azimuthal/Horizontal'), // H
+  const HouseSystemDef(0x56, 'Vehlow Equal'), // V
+  const HouseSystemDef(0x58, 'Meridian (Axial)'), // X
+  const HouseSystemDef(0x47, 'Gauquelin (36)'), // G
+  const HouseSystemDef(0x54, 'Polich/Page'), // T
+  const HouseSystemDef(0x44, 'Equal (MC, desc)'), // D
+  const HouseSystemDef(0x4E, 'Equal/1=Aries'), // N
+  const HouseSystemDef(0x59, 'APC Houses'), // Y
+  const HouseSystemDef(0x46, 'Carter Poli-Equatorial'), // F
+  const HouseSystemDef(0x49, 'Sunshine (Treindl)'), // I
+  const HouseSystemDef(0x69, 'Sunshine (Makransky)'), // i
+  const HouseSystemDef(0x4C, 'Pullen SD'), // L
+  const HouseSystemDef(0x51, 'Pullen SR'), // Q
 ];
 
 /// The single app-wide house system (persisted).

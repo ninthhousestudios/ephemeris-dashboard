@@ -51,10 +51,10 @@ final _persistedFields = <String, Object? Function(ContextBarState)>{
 };
 
 /// All defaults, with the Moment pinned so the comparison is about the rest.
-final _defaults = ContextBarState(utcOffset: 0.0, jdUt: 2451545.0);
+const _defaults = ContextBarState(utcOffset: 0.0, jdUt: 2451545.0);
 
 /// Every persisted field moved off its default.
-final _custom = ContextBarState(
+const _custom = ContextBarState(
   utcOffset: 5.5,
   jdUt: 2451545.0,
   calendar: Calendar.julian,

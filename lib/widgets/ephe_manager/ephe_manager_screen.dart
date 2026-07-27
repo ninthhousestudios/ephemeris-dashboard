@@ -712,7 +712,7 @@ class _EphemerisManagerScreenState
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Delete ${f.filename}?'),
-        content: Text(
+        content: const Text(
           'This will remove the file from disk. You can re-download it '
           'from the catalog afterwards.',
         ),

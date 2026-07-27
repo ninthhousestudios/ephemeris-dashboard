@@ -100,7 +100,7 @@ class RustEph implements Ephemeris {
 
   @override
   double getAyanamsaUt(double jdUt) {
-    final r = _engine.getAyanamsaUt(rs.JdUt1(jdUt), rs.CalcFlags(0));
+    final r = _engine.getAyanamsaUt(rs.JdUt1(jdUt), const rs.CalcFlags(0));
     return r.ayanamsa;
   }
 
