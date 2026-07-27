@@ -132,7 +132,7 @@ class ConfigTab extends ConsumerWidget {
                   _repoLink(
                     theme,
                     'Ephemeris Dashboard',
-                    'https://gitlab.com/ninthhouse/swe-dashboard',
+                    'https://github.com/ninthhousestudios/swe-dashboard',
                   ),
                   const SizedBox(height: 8),
                   _repoLink(

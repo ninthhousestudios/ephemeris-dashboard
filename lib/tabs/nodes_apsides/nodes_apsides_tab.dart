@@ -15,6 +15,7 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -221,6 +222,8 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                       CalcOk(value: final result) => nodesApsToExportRows(
                         result,
                         ref.read(nodesFormatProvider),
+                        ref.read(sweProvider),
+                        ref.read(clockViewProvider).scale,
                         isXyz: f.isXyz,
                         coordValue: f.coordValue,
                       ),
@@ -253,9 +256,14 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
     final flags = ref.watch(flagBarProvider);
     final steps = ref.watch(nodesApsSeriesProvider);
 
+    final swe = ref.read(sweProvider);
+    final scale = ref.watch(clockViewProvider).scale;
+
     List<ExportRow> rows(NodesApsResult result) => nodesApsToExportRows(
       result,
       format,
+      swe,
+      scale,
       isXyz: flags.isXyz,
       coordValue: flags.coordValue,
     );
@@ -465,11 +473,20 @@ class _NodesResults extends ConsumerWidget {
               value: raw(el.synodicPeriodDays),
               rawValue: el.synodicPeriodDays,
             ),
-            ResultField(
-              label: 'Perihelion Passage (JD)',
-              value: raw(el.perihelionPassage),
-              rawValue: el.perihelionPassage,
-            ),
+            () {
+              // Label and value from the same helper the export calls, so the
+              // card cannot name this scale differently from the file.
+              final (label, value) = perihelionPassageField(
+                el.perihelionPassage,
+                ref.read(sweProvider),
+                ref.watch(clockViewProvider).scale,
+              );
+              return ResultField(
+                label: label,
+                value: value,
+                rawValue: double.parse(value),
+              );
+            }(),
           ],
         ),
       );

@@ -129,6 +129,37 @@ void main() {
       expect(jdScaleLabel(TimeScale.tt), 'TT');
     });
 
+    test('an ET Julian Day converts the other way', () {
+      if (jd == null) return markTestSkipped('SwissEph unavailable');
+      // `getOrbitalElements` takes jdEt and answers on that scale, so its
+      // perihelion passage starts on TT, not UT1. Asking for TT must leave it
+      // alone, and asking for UT1 must step *down* — the opposite of what a
+      // UT1 Moment does, and a silent ~2 ΔT error if the direction is wrong.
+      const jdEt = _ut1Jd;
+      expect(jd!.jdOnScale(jdEt, TimeScale.tt, fromEt: true), jdEt);
+      expect(
+        jd!.jdOnScale(jdEt, TimeScale.ut1, fromEt: true),
+        closeTo(jdEt - deltaT, 1e-6),
+      );
+      // UTC has no numbering of its own, so it follows UT1 here too.
+      expect(
+        jd!.jdOnScale(jdEt, TimeScale.utc, fromEt: true),
+        closeTo(jdEt - deltaT, 1e-6),
+      );
+    });
+
+    test('the two directions are inverses, to display precision', () {
+      if (jd == null) return markTestSkipped('SwissEph unavailable');
+      // One ΔT step each way, evaluated at slightly different arguments — the
+      // round trip is not bit-exact and is not meant to be, but it must agree
+      // far beyond the 8 decimals these cards print.
+      final tt = jd!.jdOnScale(_ut1Jd, TimeScale.tt);
+      expect(
+        jd!.jdOnScale(tt, TimeScale.ut1, fromEt: true),
+        closeTo(_ut1Jd, 1e-9),
+      );
+    });
+
     test('the shift agrees with the civil render of the same Moment', () {
       if (jd == null) return markTestSkipped('SwissEph unavailable');
       // The point of routing both through JdUtils: a JD card beside a

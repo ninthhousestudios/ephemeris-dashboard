@@ -51,8 +51,10 @@ Future<bool> showUserAyanamsaDialog(BuildContext context, WidgetRef ref) async {
                 decimal: true,
                 signed: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 't0 (reference Julian Day)',
+              // Tracks the checkbox below, which is the only thing that
+              // decides how the engine reads this number.
+              decoration: InputDecoration(
+                labelText: 't0 (reference Julian Day, ${t0IsUt ? 'UT' : 'TT'})',
                 helperText: 'e.g. 2451545.0 for J2000',
               ),
             ),

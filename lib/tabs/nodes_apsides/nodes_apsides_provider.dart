@@ -13,7 +13,10 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
+import '../../core/swe_utils.dart';
 import '../../core/swe_utils_provider.dart';
+import '../../core/time_scale.dart';
 import '../../layout/tab_definitions.dart';
 
 /// Method for nodApsUt: a NodApsMethod bitflag (seNodBit*), passed untranslated
@@ -130,10 +133,29 @@ final nodesApsSeriesProvider =
       );
     });
 
+/// The perihelion passage as a (label, value) pair on the Context's Scale.
+///
+/// The one Julian Day this tab reports that does *not* start on UT1:
+/// `getOrbitalElements` takes `jdEt`, so it answers on ET/TT, and renumbering
+/// it as though it were a UT1 Moment would move it by ΔT the wrong way — hence
+/// `fromEt`. Shared by the card and the export because this tab builds those
+/// two field lists separately, and a number this easy to mislabel must not be
+/// spelled out twice.
+(String, String) perihelionPassageField(
+  double jdEt,
+  SweUtils swe,
+  TimeScale scale,
+) => (
+  'Perihelion Passage (JD ${jdScaleLabel(scale)})',
+  JdUtils(swe).jdOnScale(jdEt, scale, fromEt: true).toStringAsFixed(8),
+);
+
 /// Convert a NodesApsResult to export rows.
 List<ExportRow> nodesApsToExportRows(
   NodesApsResult result,
-  DisplayFormat fmt, {
+  DisplayFormat fmt,
+  SweUtils swe,
+  TimeScale scale, {
   bool isXyz = false,
   int coordValue = 0,
 }) {
@@ -208,7 +230,7 @@ List<ExportRow> nodesApsToExportRows(
           ('Sidereal Period (yr)', raw(el.siderealPeriodYears)),
           ('Tropical Period (yr)', raw(el.tropicalPeriodYears)),
           ('Synodic Period (days)', raw(el.synodicPeriodDays)),
-          ('Perihelion Passage (JD)', raw(el.perihelionPassage)),
+          perihelionPassageField(el.perihelionPassage, swe, scale),
         ],
       ),
     );

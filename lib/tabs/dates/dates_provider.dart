@@ -390,8 +390,12 @@ List<ResultSection> datesSections(DatesResult r, Calendar calendar) {
         if (r.lmtToLatError != null)
           _err('LMT→LAT Error', r.lmtToLatError!)
         else
+          // Named for the clock each result lands on, not the Context Scale:
+          // LMT and LAT are local solar clocks derived from UT (LMT = UT +
+          // longitude/15h), so a ΔT shift onto TT would be meaningless here —
+          // these are not the same kind of quantity as a JD UT/ET.
           ResultField(
-            label: 'LMT→LAT (JD)',
+            label: 'LMT→LAT (JD LAT)',
             value: r.lmtToLat.toStringAsFixed(8),
             rawValue: r.lmtToLat,
           ),
@@ -399,7 +403,7 @@ List<ResultSection> datesSections(DatesResult r, Calendar calendar) {
           _err('LAT→LMT Error', r.latToLmtError!)
         else
           ResultField(
-            label: 'LAT→LMT (JD)',
+            label: 'LAT→LMT (JD LMT)',
             value: r.latToLmt.toStringAsFixed(8),
             rawValue: r.latToLmt,
           ),

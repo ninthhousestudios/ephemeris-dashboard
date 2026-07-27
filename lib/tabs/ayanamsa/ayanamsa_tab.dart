@@ -410,7 +410,13 @@ class _UserAyanamsaEditorState extends ConsumerState<_UserAyanamsaEditor> {
           children: [
             field(_name, 'Name', hint: widget.fallbackName, numeric: false),
             const SizedBox(width: 8),
-            field(_t0, 't0 (JD)'),
+            // t0 is typed, not computed, so nothing is converted here — the
+            // label only says which scale the number the user enters is read
+            // on. That is the entry's own `jdisut` flag, not the Context
+            // Scale: the engine reads t0 on this flag alone, so a label
+            // following the global setting would name a scale that has no
+            // bearing on this field.
+            field(_t0, 't0 (JD ${widget.entry.t0IsUt ? 'UT' : 'TT'})'),
             const SizedBox(width: 8),
             field(_val, 'ayanamsa at t0 (°)'),
             const SizedBox(width: 4),
