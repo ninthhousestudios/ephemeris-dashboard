@@ -167,6 +167,46 @@ void main() {
       ]);
     });
 
+    test('long is one row per (step, body), JD and date leading', () {
+      final rows = seriesToExportRows(
+        table,
+        SeriesLayout.long,
+        momentLabel: label,
+      );
+
+      expect(rows.map((r) => r.header), ['Sun', 'Moon', '']);
+      expect(rows[0].fields, [
+        ('JD', '2451545.00000000'),
+        ('Date', 'day 2451545'),
+        ('Longitude', '10'),
+        ('Latitude', '0'),
+      ]);
+      expect(rows[1].fields.last, ('Latitude', '5'));
+      // The errored step is one row carrying the message, not one per body,
+      // padded to the quantity schema so the message stays the last column.
+      expect(rows[2].fields, [
+        ('JD', '2451546.00000000'),
+        ('Date', 'day 2451546'),
+        ('Longitude', ''),
+        ('Latitude', ''),
+        ('Error', 'out of range'),
+      ]);
+    });
+
+    test('long stays tidy: one label per quantity, whatever the body', () {
+      // The point of the shape — every row has the same schema, so it loads
+      // as a dataframe without reshaping.
+      final rows = seriesToExportRows(
+        table,
+        SeriesLayout.long,
+        momentLabel: label,
+      );
+      expect(
+        ExportService.toCsv(rows).split('\n').first,
+        'Name,JD,Date,Longitude,Latitude,Error',
+      );
+    });
+
     test('two steps that format alike still get a column each', () {
       final rows = seriesToExportRows(
         table,
@@ -831,6 +871,19 @@ void main() {
       expect(find.text('Date/Time (UT1)'), findsOneWidget);
       expect(find.text('Sun Longitude'), findsOneWidget);
       expect(find.text('Moon Latitude'), findsOneWidget);
+
+      container
+          .read(seriesSettingsProvider('planets').notifier)
+          .setLayout(SeriesLayout.long);
+      await tester.pump();
+
+      // Long splits the pair over both axes: the body names a row, the
+      // quantity a column, and the Moment leads as it does horizontally.
+      expect(find.text('Date/Time (UT1)'), findsOneWidget);
+      expect(find.text('Name'), findsOneWidget);
+      expect(find.text('Sun'), findsOneWidget);
+      expect(find.text('Moon'), findsOneWidget);
+      expect(find.text('Sun Longitude'), findsNothing);
       expect(tester.takeException(), isNull);
     });
 
@@ -873,7 +926,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('SeriesView export menu offers both layouts', (tester) async {
+    testWidgets('SeriesView export menu offers every layout', (tester) async {
       final steps = [
         _ok(1.0, [
           _row('Sun', [('Longitude', '10')]),
@@ -889,8 +942,9 @@ void main() {
       await tester.tap(find.byIcon(Icons.arrow_drop_down));
       await tester.pumpAndSettle();
 
-      expect(find.text(SeriesLayout.vertical.label), findsOneWidget);
-      expect(find.text(SeriesLayout.horizontal.label), findsOneWidget);
+      for (final layout in SeriesLayout.values) {
+        expect(find.text(layout.label), findsOneWidget);
+      }
       expect(find.text('Copy as TSV'), findsOneWidget);
 
       // Choosing a layout leaves the menu open so a format can follow.

@@ -17,6 +17,8 @@ import '../core/calculation/series_table.dart';
 ///   (row identifier, quantity). Time down the y-axis.
 /// - [SeriesLayout.vertical] — the transpose: one row per (row identifier,
 ///   quantity), one column per Moment. Time across the x-axis.
+/// - [SeriesLayout.long] — one row per (Moment, row identifier), one column
+///   per quantity, via [toLongTable]. Tall rather than wide.
 ///
 /// Tab-agnostic — it takes a built table and a way to label a Moment, and has
 /// no idea what the quantities mean.
@@ -66,6 +68,7 @@ class SeriesGrid extends StatelessWidget {
         children: switch (layout) {
           SeriesLayout.horizontal => _horizontalRows(theme),
           SeriesLayout.vertical => _verticalRows(theme),
+          SeriesLayout.long => _longRows(theme),
         },
       ),
     );
@@ -142,6 +145,40 @@ class SeriesGrid extends StatelessWidget {
             _headerCell(theme, 'Error'),
             for (final row in table.rows)
               _cell(theme, row.error ?? '', isError: true),
+          ],
+        ),
+    ];
+  }
+
+  /// One row per (Moment, row identifier), quantities across.
+  ///
+  /// The Moment repeats down its own group of rows rather than spanning them:
+  /// `Table` has no row spanning, and a blank-until-it-changes column would
+  /// break the moment a row is read out of order or copied.
+  List<TableRow> _longRows(ThemeData theme) {
+    final long = toLongTable(table);
+    final hasErrors = long.hasErrors;
+    // 'Name' is what `ExportService` calls this column, and the long export is
+    // exactly these rows — the heading should not disagree.
+    final showNames = long.hasIdentifiers;
+
+    return [
+      TableRow(
+        children: [
+          _headerCell(theme, momentColumnTitle),
+          if (showNames) _headerCell(theme, 'Name'),
+          for (final label in long.labels) _headerCell(theme, label),
+          if (hasErrors) _headerCell(theme, 'Error'),
+        ],
+      ),
+      for (final row in long.rows)
+        TableRow(
+          children: [
+            _cell(theme, momentLabel(row.moment), isMoment: true),
+            if (showNames) _cell(theme, row.header, isMoment: true),
+            for (final label in long.labels)
+              _cell(theme, row.isError ? '—' : (row.values[label] ?? '')),
+            if (hasErrors) _cell(theme, row.error ?? '', isError: true),
           ],
         ),
     ];

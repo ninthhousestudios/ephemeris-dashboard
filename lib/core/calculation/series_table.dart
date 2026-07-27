@@ -72,6 +72,101 @@ class SeriesTable {
   bool get hasErrors => rows.any((r) => r.isError);
 }
 
+/// One row of the long shape: a single step's values for a single row
+/// identifier, keyed by field label.
+class SeriesLongRow {
+  const SeriesLongRow({
+    required this.moment,
+    required this.header,
+    required this.values,
+    this.error,
+  });
+
+  final Moment moment;
+
+  /// The row identifier — `ExportRow.header`. Empty on an errored step, and on
+  /// a tab whose rows carry no identifier.
+  final String header;
+
+  /// Cell text by field label, in the column order of the source table.
+  final Map<String, String> values;
+
+  /// Step-level failure message, null on a successful step.
+  final String? error;
+
+  bool get isError => error != null;
+}
+
+/// The long shape of a [SeriesTable]: one row per (step, row identifier),
+/// quantities as the columns.
+///
+/// Derived rather than built alongside the source table, because the two must
+/// not disagree: the source has already dropped the hidden quantities and
+/// fixed the column order, so every shape inherits those.
+class SeriesLongTable {
+  const SeriesLongTable({required this.labels, required this.rows});
+
+  /// Distinct quantity labels in column order. Shared across row identifiers —
+  /// every body has the same quantities — which is what makes this shape
+  /// narrow where the horizontal one is wide.
+  final List<String> labels;
+
+  final List<SeriesLongRow> rows;
+
+  /// Whether the row identifier earns a column. A tab with one row per step
+  /// leaves the header empty, and a column of blanks is worse than no column —
+  /// the same call [SeriesColumn.title] makes for the horizontal heading.
+  bool get hasIdentifiers => rows.any((r) => r.header.isNotEmpty);
+
+  bool get isEmpty => rows.isEmpty;
+  bool get hasErrors => rows.any((r) => r.isError);
+}
+
+/// Re-shapes [table] into one row per (step, row identifier).
+///
+/// A row identifier that contributed nothing to a step yields no row at all,
+/// rather than a row of blanks that would read as a result of "".
+SeriesLongTable toLongTable(SeriesTable table) {
+  final headers = <String>[];
+  final seenHeaders = <String>{};
+  final labels = <String>[];
+  final seenLabels = <String>{};
+  for (final column in table.columns) {
+    if (seenHeaders.add(column.header)) headers.add(column.header);
+    if (seenLabels.add(column.label)) labels.add(column.label);
+  }
+
+  final rows = <SeriesLongRow>[];
+  for (final row in table.rows) {
+    if (row.error case final message?) {
+      rows.add(
+        SeriesLongRow(
+          moment: row.moment,
+          header: '',
+          values: const {},
+          error: message,
+        ),
+      );
+      continue;
+    }
+    for (final header in headers) {
+      final values = <String, String>{};
+      for (final column in table.columns) {
+        if (column.header != header) continue;
+        final value = row.values[column];
+        if (value != null) values[column.label] = value;
+      }
+      if (values.isNotEmpty) {
+        rows.add(
+          SeriesLongRow(moment: row.moment, header: header, values: values),
+        );
+      }
+    }
+  }
+
+  return SeriesLongTable(labels: labels, rows: rows);
+}
+
 /// Column headings for the transposed shape, where the steps run across.
 ///
 /// Transposing a [SeriesTable] is otherwise nothing but reading its two lists

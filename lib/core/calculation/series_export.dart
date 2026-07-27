@@ -37,6 +37,7 @@ List<ExportRow> seriesToExportRows(
   return switch (layout) {
     SeriesLayout.vertical => _vertical(table, momentLabel),
     SeriesLayout.horizontal => _horizontal(table, momentLabel),
+    SeriesLayout.long => _long(table, momentLabel),
   };
 }
 
@@ -93,6 +94,33 @@ List<ExportRow> _horizontal(SeriesTable table, String Function(Moment) label) {
       ],
     );
   }).toList();
+}
+
+/// One row per (step, row identifier), quantities as columns.
+///
+/// The re-shaping itself is [toLongTable], shared with `SeriesGrid` so the
+/// file and the screen cannot render different long tables; this only prefixes
+/// the leading Moment fields and pads the errored steps.
+List<ExportRow> _long(SeriesTable table, String Function(Moment) label) {
+  final long = toLongTable(table);
+  final rows = <ExportRow>[];
+  for (final row in long.rows) {
+    final leading = _leading(row.moment, label);
+    if (row.error case final message?) {
+      rows.add(_errorRow('', leading, long.labels, message));
+      continue;
+    }
+    rows.add(
+      ExportRow(
+        header: row.header,
+        fields: [
+          ...leading,
+          for (final entry in row.values.entries) (entry.key, entry.value),
+        ],
+      ),
+    );
+  }
+  return rows;
 }
 
 /// A failed step, padded out to the full [schema] before the message.
