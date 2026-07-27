@@ -10,12 +10,10 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/jd_utils.dart';
 import '../../core/output_clock.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
-import '../../widgets/result_card.dart';
 import '../../widgets/star_search_field.dart';
 import 'heliacal_provider.dart';
 
@@ -245,7 +243,11 @@ class _HeliacalTabState extends ConsumerState<HeliacalTab> {
                     return ExportButton(
                       hasResults: results != null && results.isNotEmpty,
                       getRows: () => results != null
-                          ? heliacalToExportRows(results, ref.read(sweProvider))
+                          ? heliacalToExportRows(
+                              results,
+                              ref.read(sweProvider),
+                              ref.read(clockViewProvider),
+                            )
                           : [],
                       filenameStem: 'swe_heliacal_${jd.toStringAsFixed(4)}',
                     );
@@ -519,6 +521,8 @@ class _ResultsView extends ConsumerWidget {
     double cardWidth,
   ) {
     final theme = Theme.of(context);
+    // One label/value source for cards and export alike — see heliacalSections.
+    final sections = heliacalSections(r, swe, view);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -546,94 +550,18 @@ class _ResultsView extends ConsumerWidget {
             ),
           ),
           if (r.hasError)
-            SizedBox(
-              width: cardWidth,
-              child: ResultCard(
-                title: r.objectName,
-                subtitle: HeliacalCalcResult.eventLabel(r.eventType),
-                fields: [
-                  ResultField(
-                    label: 'Error',
-                    value: r.error!,
-                    rawValue: double.nan,
-                  ),
-                ],
-              ),
-            )
+            SizedBox(width: cardWidth, child: sections.single.toCard())
           else
             Wrap(
               spacing: 4,
               runSpacing: 4,
               children: [
-                SizedBox(
-                  width: cardWidth,
-                  child: _buildEventCard(r, swe, view),
-                ),
-                SizedBox(width: cardWidth, child: _buildJdCard(r)),
+                for (final section in sections)
+                  SizedBox(width: cardWidth, child: section.toCard()),
               ],
             ),
         ],
       ),
     );
   }
-
-  Widget _buildEventCard(HeliacalCalcResult r, SweUtils swe, ClockView view) {
-    return ResultCard(
-      title: HeliacalCalcResult.eventLabel(r.eventType),
-      subtitle: 'heliacalUt("${r.objectName}")',
-      fields: [
-        ResultField(
-          label: 'Start Visible',
-          value: _fmtHeliacalJd(swe, r.startVisibleJd, view),
-          rawValue: r.startVisibleJd,
-        ),
-        ResultField(
-          label: 'Best Visible',
-          value: _fmtHeliacalJd(swe, r.bestVisibleJd, view),
-          rawValue: r.bestVisibleJd,
-        ),
-        ResultField(
-          label: 'End Visible',
-          value: _fmtHeliacalJd(swe, r.endVisibleJd, view),
-          rawValue: r.endVisibleJd,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildJdCard(HeliacalCalcResult r) {
-    return ResultCard(
-      title: 'Julian Days',
-      subtitle: r.objectName,
-      fields: [
-        ResultField(
-          label: 'Start (JD)',
-          value: r.startVisibleJd.toStringAsFixed(6),
-          rawValue: r.startVisibleJd,
-        ),
-        ResultField(
-          label: 'Best (JD)',
-          value: r.bestVisibleJd.toStringAsFixed(6),
-          rawValue: r.bestVisibleJd,
-        ),
-        ResultField(
-          label: 'End (JD)',
-          value: r.endVisibleJd.toStringAsFixed(6),
-          rawValue: r.endVisibleJd,
-        ),
-      ],
-    );
-  }
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-String _fmtHeliacalJd(SweUtils swe, double jd, ClockView view) =>
-    formatJdDateTime(
-      swe,
-      jd,
-      seconds: false,
-      view: view,
-      emptyPlaceholder: '—',
-      fallbackDigits: 4,
-    );

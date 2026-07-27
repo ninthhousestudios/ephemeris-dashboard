@@ -12,7 +12,10 @@ import '../../core/flag_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
+import '../../core/output_clock.dart';
 import '../../core/swe_utils.dart';
+import '../../widgets/result_card.dart';
+import '../../widgets/result_section.dart';
 
 // ── Input providers ──────────────────────────────────────────────────────────
 
@@ -234,43 +237,102 @@ final heliacalResultProvider = Provider<CalcOutcome<List<HeliacalCalcResult>>>(
   (ref) => ref.watch(_heliacalCalcProvider),
 );
 
+// ── Card sections (the single label/value source) ───────────────────────────
+
+/// The civil-date render for one heliacal event JD, on the selected [view].
+///
+/// The single renderer for both the on-screen card and the export, so the two
+/// cannot drift apart again (swe-dashboard/91). Previously the export path
+/// rendered on a hard-coded neutral UT view regardless of the Context's
+/// Scale/Calendar/companion-clock choice, so an export silently disagreed with
+/// what was on screen under a non-default view (compare swe-dashboard/82).
+String _fmtHeliacalJd(SweUtils swe, double jd, ClockView view) =>
+    formatJdDateTime(
+      swe,
+      jd,
+      seconds: false,
+      view: view,
+      emptyPlaceholder: '—',
+      fallbackDigits: 4,
+    );
+
+/// One [HeliacalCalcResult] as card sections — the one encoding of this tab's
+/// labels and formatters. The cards render these; [heliacalToExportRows]
+/// projects the same list. The object name is folded into each section title
+/// (not just shown as an outer heading, as the card layout alone would invite)
+/// because a [ResultSection.title] doubles as the export row header, and a
+/// batch of several targets needs that header to disambiguate rows.
+List<ResultSection> heliacalSections(
+  HeliacalCalcResult r,
+  SweUtils swe,
+  ClockView view,
+) {
+  final eventLabel = HeliacalCalcResult.eventLabel(r.eventType);
+  if (r.hasError) {
+    return [
+      ResultSection(
+        title: '${r.objectName} — $eventLabel',
+        fields: [
+          ResultField(label: 'Error', value: r.error!, rawValue: double.nan),
+        ],
+      ),
+    ];
+  }
+
+  String fmt(double jd) => _fmtHeliacalJd(swe, jd, view);
+
+  return [
+    ResultSection(
+      title: '${r.objectName} — $eventLabel',
+      subtitle: 'heliacalUt("${r.objectName}")',
+      fields: [
+        ResultField(
+          label: 'Start Visible',
+          value: fmt(r.startVisibleJd),
+          rawValue: r.startVisibleJd,
+        ),
+        ResultField(
+          label: 'Best Visible',
+          value: fmt(r.bestVisibleJd),
+          rawValue: r.bestVisibleJd,
+        ),
+        ResultField(
+          label: 'End Visible',
+          value: fmt(r.endVisibleJd),
+          rawValue: r.endVisibleJd,
+        ),
+      ],
+    ),
+    ResultSection(
+      title: '${r.objectName} — Julian Days',
+      subtitle: eventLabel,
+      fields: [
+        ResultField(
+          label: 'Start Visible (JD)',
+          value: r.startVisibleJd.toStringAsFixed(6),
+          rawValue: r.startVisibleJd,
+        ),
+        ResultField(
+          label: 'Best Visible (JD)',
+          value: r.bestVisibleJd.toStringAsFixed(6),
+          rawValue: r.bestVisibleJd,
+        ),
+        ResultField(
+          label: 'End Visible (JD)',
+          value: r.endVisibleJd.toStringAsFixed(6),
+          rawValue: r.endVisibleJd,
+        ),
+      ],
+    ),
+  ];
+}
+
 // ── Export ───────────────────────────────────────────────────────────────────
 
 List<ExportRow> heliacalToExportRows(
   List<HeliacalCalcResult> results,
   SweUtils swe,
-) {
-  String jdToDateStr(double jd) => formatJdDateTime(
-    swe,
-    jd,
-    seconds: false,
-    showLabel: false,
-    fallbackDigits: 4,
-  );
-
-  return results.expand((r) {
-    if (r.hasError) {
-      return [
-        ExportRow(
-          header:
-              '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
-          fields: [('Error', r.error!)],
-        ),
-      ];
-    }
-    return [
-      ExportRow(
-        header:
-            '${r.objectName} — ${HeliacalCalcResult.eventLabel(r.eventType)}',
-        fields: [
-          ('Start Visible', jdToDateStr(r.startVisibleJd)),
-          ('Start Visible (JD)', r.startVisibleJd.toStringAsFixed(6)),
-          ('Best Visible', jdToDateStr(r.bestVisibleJd)),
-          ('Best Visible (JD)', r.bestVisibleJd.toStringAsFixed(6)),
-          ('End Visible', jdToDateStr(r.endVisibleJd)),
-          ('End Visible (JD)', r.endVisibleJd.toStringAsFixed(6)),
-        ],
-      ),
-    ];
-  }).toList();
-}
+  ClockView view,
+) => sectionsToExportRows([
+  for (final r in results) ...heliacalSections(r, swe, view),
+]);
