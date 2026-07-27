@@ -31,6 +31,8 @@ import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
 import 'package:swe_dashboard/core/time_scale.dart';
 
+import 'support/pref_field_checks.dart';
+
 /// All defaults, with the Moment pinned so the comparison is about the rest.
 const _defaults = ContextBarState(utcOffset: 0.0, jdUt: 2451545.0);
 
@@ -57,41 +59,34 @@ const _custom = ContextBarState(
   jplFilename: 'de440.eph',
 );
 
-/// A fresh store holding [s], plus the raw prefs the fields read through.
-Future<(PersistenceService, SharedPreferences)> _storeHolding(
-  ContextBarState s,
-) async {
+/// A fresh store holding [s].
+Future<PersistenceService> _storeHolding(ContextBarState s) async {
   SharedPreferences.setMockInitialValues({});
-  final prefs = await SharedPreferences.getInstance();
-  return (PersistenceService(prefs)..saveContextBar(s), prefs);
+  return PersistenceService(await SharedPreferences.getInstance())
+    ..saveContextBar(s);
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test(
-    'every pref field carries an off-default value through the store',
-    () async {
-      final (_, prefs) = await _storeHolding(_custom);
+  test('every pref field carries an off-default value through the store', () {
+    return expectEveryFieldCarriesAnOffDefaultValue(
+      contextBarPrefFields,
+      defaults: _defaults,
+      custom: _custom,
+    );
+  });
 
-      // Restoring a single field onto the defaults changes the state exactly
-      // when that field both stored something and stored something non-default —
-      // the two halves of a meaningful round trip, per field, with no list of
-      // field names to keep in sync with anything.
-      for (final field in contextBarPrefFields) {
-        expect(
-          field.restore(prefs, _defaults),
-          isNot(_defaults),
-          reason:
-              '${field.key} restored to the default — give it an off-default '
-              'value in _custom, or it is not actually being round-tripped',
-        );
-      }
-    },
-  );
+  test("each row's getter and setter address the same field", () {
+    return expectGetterAndSetterAgree(
+      contextBarPrefFields,
+      defaults: _defaults,
+      custom: _custom,
+    );
+  });
 
   test('the whole state survives save → restore', () async {
-    final (store, _) = await _storeHolding(_custom);
+    final store = await _storeHolding(_custom);
     // This is the one that pins the pref list to the state class: a field
     // added to ContextBarState and to _custom but given no pref row comes back
     // as its default here, and the whole-state comparison fails.
@@ -99,7 +94,7 @@ void main() {
   });
 
   test('the notifier restores on construction', () async {
-    final (store, _) = await _storeHolding(_custom);
+    final store = await _storeHolding(_custom);
 
     // The notifier restores in its constructor, starting from its own
     // defaults — i.e. exactly the fresh-launch path.
@@ -120,7 +115,7 @@ void main() {
   test(
     'a cleared JPL filename does not resurrect the previous choice',
     () async {
-      final (store, _) = await _storeHolding(_custom);
+      final store = await _storeHolding(_custom);
       store.saveContextBar(_custom.copyWith(jplFilename: null));
 
       // Restored onto the defaults — the fresh-launch path, where nothing but
