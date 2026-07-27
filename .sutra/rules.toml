@@ -146,3 +146,25 @@ name = "no-ignore-comments"
 severity = "blocking"
 provenance = "house analysis_options.yaml baseline"
 scope = "lib/"
+
+# Covers the gap left by the analyzer @ swe-dashboard/93: empty_catches
+# (lints/recommended) exempts `catch (_) {}`, which is exactly the form people
+# write, so all 16 silent swallows in swe-dashboard/94 are invisible to it.
+#
+# The catch body is a SIBLING of catch_clause under try_statement, not a child —
+# catch_clause carries only `exception`/`stack_trace` fields — hence the `.`
+# anchor rather than a `body:` field. Text predicate on the block: `{}`, `{ }`
+# and `{\n}` match; `{ /* why */ }` does not, which deliberately mirrors
+# empty_catches' own escape hatch (a comment justifies the silence).
+#
+# Verified against a probe file 2026-07-27: blocks a newly introduced empty
+# catch, allows a commented one, and allows edits to files carrying the existing
+# 16 (the guard fires on NEW matches only, so brownfield debt is not a tax).
+[[constraint]]
+kind = "forbidden_pattern"
+language = "dart"
+query = '((try_statement (catch_clause) . (block) @match) (#match? @match "^\\{\\s*\\}$"))'
+name = "no-silent-empty-catch"
+severity = "blocking"
+provenance = "swe-dashboard/93 — gap left by empty_catches"
+scope = "lib/"
