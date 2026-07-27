@@ -15,6 +15,7 @@ import '../../widgets/body_display_controls.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/horizontal_fields.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/result_card_grid.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import '../../widgets/star_search_field.dart';
@@ -152,7 +153,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
         ))
           _buildSeries()
         else
-          _buildResults(theme),
+          _buildResults(),
       ],
     );
   }
@@ -177,169 +178,121 @@ class _StarsTabState extends ConsumerState<StarsTab> {
     );
   }
 
-  Widget _buildResults(ThemeData theme) {
+  Widget _buildResults() {
     final outcome = ref.watch(starResultProvider);
     final fmt = ref.watch(starsFormatProvider);
-
-    return switch (outcome) {
-      CalcError(:final message) => Center(
-        child: Text(
-          'Calculation error: $message',
-          style: TextStyle(color: theme.colorScheme.error),
-        ),
-      ),
-      CalcOk(value: final results) =>
-        results.isEmpty
-            ? const Center(child: Text('No stars selected'))
-            : _buildResultCards(results, fmt),
+    final results = switch (outcome) {
+      CalcOk(:final value) => value,
+      CalcError() => const <StarResult>[],
     };
+
+    return ResultCardGrid<StarResult>.outcome(
+      outcome: outcome,
+      emptyMessage: 'No stars selected',
+      cardOverlay: (i) => IconButton(
+        icon: const Icon(Icons.close, size: 16),
+        tooltip: 'Remove ${results[i].resolvedName}',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => _removeStar(results[i].searchTerm),
+      ),
+      cardBuilder: (r) => _buildCard(r, fmt),
+    );
   }
 
-  Widget _buildResultCards(List<StarResult> results, DisplayFormat fmt) {
+  Widget _buildCard(StarResult r, DisplayFormat fmt) {
     final flags = ref.watch(flagBarProvider);
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
     final showHorizontal = ref.watch(starsShowHorizontalProvider);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: results.map((r) {
-              return SizedBox(
-                width: cardWidth,
-                child: Stack(
-                  children: [
-                    ResultCard(
-                      title: r.resolvedName,
-                      subtitle: 'fixstar2Ut("${r.searchTerm}")',
-                      flagHex:
-                          '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
-                      fields: r.errorMessage != null
-                          ? [
-                              ResultField(
-                                label: 'Error',
-                                value: r.errorMessage!,
-                              ),
-                            ]
-                          : [
-                              ResultField(
-                                label: lbl.c1,
-                                value: isXyz
-                                    ? formatAu(r.longitude, fmt)
-                                    : formatAngle(r.longitude, fmt),
-                                rawValue: r.longitude,
-                              ),
-                              ResultField(
-                                label: lbl.c2,
-                                value: isXyz
-                                    ? formatAu(r.latitude, fmt)
-                                    : formatAngle(r.latitude, fmt),
-                                rawValue: r.latitude,
-                              ),
-                              ResultField(
-                                label: lbl.c3,
-                                value: isXyz
-                                    ? formatAu(r.distance, fmt)
-                                    : formatDistance(r.distance, fmt),
-                                rawValue: r.distance,
-                              ),
-                              if (isXyz)
-                                ResultField(
-                                  label: 'Distance',
-                                  value: formatEuclidean(
-                                    r.longitude,
-                                    r.latitude,
-                                    r.distance,
-                                    fmt,
-                                    lightYears: true,
-                                  ),
-                                  rawValue: euclideanDistance(
-                                    r.longitude,
-                                    r.latitude,
-                                    r.distance,
-                                  ),
-                                ),
-                              ResultField(
-                                label: 'Magnitude',
-                                value: r.magnitude.isNaN
-                                    ? '—'
-                                    : r.magnitude.toStringAsFixed(2),
-                                rawValue: r.magnitude,
-                              ),
-                              ResultField(
-                                label: lbl.sc1,
-                                value: isXyz
-                                    ? formatAuSpeed(r.speedLon, fmt)
-                                    : formatSpeed(r.speedLon, fmt),
-                                rawValue: r.speedLon,
-                              ),
-                              ResultField(
-                                label: lbl.sc2,
-                                value: isXyz
-                                    ? formatAuSpeed(r.speedLat, fmt)
-                                    : formatSpeed(r.speedLat, fmt),
-                                rawValue: r.speedLat,
-                              ),
-                              ResultField(
-                                label: lbl.sc3,
-                                value: isXyz
-                                    ? formatAuSpeed(r.speedDist, fmt)
-                                    : formatSpeed(r.speedDist, fmt),
-                                rawValue: r.speedDist,
-                              ),
-                              if (showHorizontal)
-                                ...horizontalResultFields(r.horizontal, fmt),
-                              if (r.houseRequested) ...[
-                                ResultField(
-                                  label: 'House',
-                                  value: r.housePos.isNaN
-                                      ? '—'
-                                      : '${houseNumberOf(r.housePos)}',
-                                  rawValue: houseNumberOf(
-                                    r.housePos,
-                                  ).toDouble(),
-                                ),
-                                ResultField(
-                                  label: 'House Pos',
-                                  value: r.housePos.isNaN
-                                      ? '—'
-                                      : formatAngle(
-                                          housePositionDegrees(r.housePos),
-                                          fmt,
-                                        ),
-                                  rawValue: housePositionDegrees(r.housePos),
-                                ),
-                              ],
-                            ],
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, size: 16),
-                        tooltip: 'Remove ${r.resolvedName}',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => _removeStar(r.searchTerm),
-                      ),
-                    ),
-                  ],
+    return ResultCard(
+      title: r.resolvedName,
+      subtitle: 'fixstar2Ut("${r.searchTerm}")',
+      flagHex: '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
+      fields: r.errorMessage != null
+          ? [ResultField(label: 'Error', value: r.errorMessage!)]
+          : [
+              ResultField(
+                label: lbl.c1,
+                value: isXyz
+                    ? formatAu(r.longitude, fmt)
+                    : formatAngle(r.longitude, fmt),
+                rawValue: r.longitude,
+              ),
+              ResultField(
+                label: lbl.c2,
+                value: isXyz
+                    ? formatAu(r.latitude, fmt)
+                    : formatAngle(r.latitude, fmt),
+                rawValue: r.latitude,
+              ),
+              ResultField(
+                label: lbl.c3,
+                value: isXyz
+                    ? formatAu(r.distance, fmt)
+                    : formatDistance(r.distance, fmt),
+                rawValue: r.distance,
+              ),
+              if (isXyz)
+                ResultField(
+                  label: 'Distance',
+                  value: formatEuclidean(
+                    r.longitude,
+                    r.latitude,
+                    r.distance,
+                    fmt,
+                    lightYears: true,
+                  ),
+                  rawValue: euclideanDistance(
+                    r.longitude,
+                    r.latitude,
+                    r.distance,
+                  ),
                 ),
-              );
-            }).toList(),
-          ),
-        );
-      },
+              ResultField(
+                label: 'Magnitude',
+                value: r.magnitude.isNaN ? '—' : r.magnitude.toStringAsFixed(2),
+                rawValue: r.magnitude,
+              ),
+              ResultField(
+                label: lbl.sc1,
+                value: isXyz
+                    ? formatAuSpeed(r.speedLon, fmt)
+                    : formatSpeed(r.speedLon, fmt),
+                rawValue: r.speedLon,
+              ),
+              ResultField(
+                label: lbl.sc2,
+                value: isXyz
+                    ? formatAuSpeed(r.speedLat, fmt)
+                    : formatSpeed(r.speedLat, fmt),
+                rawValue: r.speedLat,
+              ),
+              ResultField(
+                label: lbl.sc3,
+                value: isXyz
+                    ? formatAuSpeed(r.speedDist, fmt)
+                    : formatSpeed(r.speedDist, fmt),
+                rawValue: r.speedDist,
+              ),
+              if (showHorizontal) ...horizontalResultFields(r.horizontal, fmt),
+              if (r.houseRequested) ...[
+                ResultField(
+                  label: 'House',
+                  value: r.housePos.isNaN
+                      ? '—'
+                      : '${houseNumberOf(r.housePos)}',
+                  rawValue: houseNumberOf(r.housePos).toDouble(),
+                ),
+                ResultField(
+                  label: 'House Pos',
+                  value: r.housePos.isNaN
+                      ? '—'
+                      : formatAngle(housePositionDegrees(r.housePos), fmt),
+                  rawValue: housePositionDegrees(r.housePos),
+                ),
+              ],
+            ],
     );
   }
 }

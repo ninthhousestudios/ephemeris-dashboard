@@ -19,6 +19,7 @@ import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/result_card_grid.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'planetocentric_provider.dart';
@@ -315,126 +316,83 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     final format = ref.watch(planetocentricFormatProvider);
     final outcome = ref.watch(planetocentricResultsProvider);
 
-    return switch (outcome) {
-      CalcError(:final message) => Center(
-        child: Text('Calculation error: $message'),
-      ),
-      CalcOk(value: final results) =>
-        results.isEmpty
-            ? const Center(child: Text('No target bodies selected'))
-            : _buildResultCards(format, results),
+    final results = switch (outcome) {
+      CalcOk(:final value) => value,
+      CalcError() => const <PlanetoCentricResult>[],
     };
+
+    return ResultCardGrid<PlanetoCentricResult>.outcome(
+      outcome: outcome,
+      emptyMessage: 'No target bodies selected',
+      cardOverlay: (i) => IconButton(
+        icon: const Icon(Icons.close, size: 16),
+        tooltip: 'Remove ${results[i].bodyName}',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => _toggleBody(results[i].body),
+      ),
+      cardBuilder: (r) => _buildCard(r, format),
+    );
   }
 
-  Widget _buildResultCards(
-    DisplayFormat format,
-    List<PlanetoCentricResult> results,
-  ) {
+  Widget _buildCard(PlanetoCentricResult r, DisplayFormat format) {
     final flags = ref.watch(flagBarProvider);
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: results.map((r) {
-              return SizedBox(
-                width: cardWidth,
-                child: Stack(
-                  children: [
-                    ResultCard(
-                      title: r.bodyName,
-                      subtitle: 'calcPctr(${r.body}, ${r.centerBody})',
-                      flagHex:
-                          '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
-                      fields: [
-                        ResultField(
-                          label: lbl.c1,
-                          value: isXyz
-                              ? formatAu(r.longitude, format)
-                              : formatAngle(r.longitude, format),
-                          rawValue: r.longitude,
-                        ),
-                        ResultField(
-                          label: lbl.c2,
-                          value: isXyz
-                              ? formatAu(r.latitude, format)
-                              : formatAngle(r.latitude, format),
-                          rawValue: r.latitude,
-                        ),
-                        ResultField(
-                          label: lbl.c3,
-                          value: isXyz
-                              ? formatAu(r.distance, format)
-                              : formatDistance(r.distance, format),
-                          rawValue: r.distance,
-                        ),
-                        if (isXyz)
-                          ResultField(
-                            label: 'Distance',
-                            value: formatEuclidean(
-                              r.longitude,
-                              r.latitude,
-                              r.distance,
-                              format,
-                            ),
-                            rawValue: euclideanDistance(
-                              r.longitude,
-                              r.latitude,
-                              r.distance,
-                            ),
-                          ),
-                        ResultField(
-                          label: lbl.sc1,
-                          value: isXyz
-                              ? formatAuSpeed(r.speedLon, format)
-                              : formatSpeed(r.speedLon, format),
-                          rawValue: r.speedLon,
-                        ),
-                        ResultField(
-                          label: lbl.sc2,
-                          value: isXyz
-                              ? formatAuSpeed(r.speedLat, format)
-                              : formatSpeed(r.speedLat, format),
-                          rawValue: r.speedLat,
-                        ),
-                        ResultField(
-                          label: lbl.sc3,
-                          value: isXyz
-                              ? formatAuSpeed(r.speedDist, format)
-                              : formatSpeed(r.speedDist, format),
-                          rawValue: r.speedDist,
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, size: 16),
-                        tooltip: 'Remove ${r.bodyName}',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => _toggleBody(r.body),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+    return ResultCard(
+      title: r.bodyName,
+      subtitle: 'calcPctr(${r.body}, ${r.centerBody})',
+      flagHex: '0x${r.returnFlag.toRadixString(16).toUpperCase()}',
+      fields: [
+        ResultField(
+          label: lbl.c1,
+          value: isXyz
+              ? formatAu(r.longitude, format)
+              : formatAngle(r.longitude, format),
+          rawValue: r.longitude,
+        ),
+        ResultField(
+          label: lbl.c2,
+          value: isXyz
+              ? formatAu(r.latitude, format)
+              : formatAngle(r.latitude, format),
+          rawValue: r.latitude,
+        ),
+        ResultField(
+          label: lbl.c3,
+          value: isXyz
+              ? formatAu(r.distance, format)
+              : formatDistance(r.distance, format),
+          rawValue: r.distance,
+        ),
+        if (isXyz)
+          ResultField(
+            label: 'Distance',
+            value: formatEuclidean(r.longitude, r.latitude, r.distance, format),
+            rawValue: euclideanDistance(r.longitude, r.latitude, r.distance),
           ),
-        );
-      },
+        ResultField(
+          label: lbl.sc1,
+          value: isXyz
+              ? formatAuSpeed(r.speedLon, format)
+              : formatSpeed(r.speedLon, format),
+          rawValue: r.speedLon,
+        ),
+        ResultField(
+          label: lbl.sc2,
+          value: isXyz
+              ? formatAuSpeed(r.speedLat, format)
+              : formatSpeed(r.speedLat, format),
+          rawValue: r.speedLat,
+        ),
+        ResultField(
+          label: lbl.sc3,
+          value: isXyz
+              ? formatAuSpeed(r.speedDist, format)
+              : formatSpeed(r.speedDist, format),
+          rawValue: r.speedDist,
+        ),
+      ],
     );
   }
 }
