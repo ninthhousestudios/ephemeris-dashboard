@@ -17,6 +17,8 @@ import '../../core/flag_provider.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/tab_definitions.dart';
+import '../../widgets/result_card.dart';
+import '../../widgets/result_section.dart';
 
 /// Optional override JD — when non-null, use this instead of the context bar JD.
 final datesOverrideJdProvider = StateProvider<double?>((ref) => null);
@@ -284,10 +286,14 @@ final datesSeriesProvider = Provider<List<(Moment, CalcOutcome<DatesResult>)>>((
   return runTabCalcSeries(ref, compute: _datesCompute(ref), settings: settings);
 });
 
-// ── Export ───────────────────────────────────────────────────────────────────
+// ── Card sections (the single label/value source) ─────────────────────────────
 
-/// Convert a DatesResult to exportable rows, one per card section.
-List<ExportRow> datesToExportRows(DatesResult r) {
+/// The Result as card sections — the one encoding of this tab's labels and
+/// formatters. The cards render these; [datesToExportRows] projects the same
+/// list. Per-field errors therefore reach the export too: before this was
+/// shared, a failed sub-call exported its zero-initialised number as data
+/// (swe-dashboard/91).
+List<ResultSection> datesSections(DatesResult r, Calendar calendar) {
   final t = r.revjulTime;
   final timeStr =
       '${t.h.toString().padLeft(2, '0')}:'
@@ -295,46 +301,177 @@ List<ExportRow> datesToExportRows(DatesResult r) {
       '${t.s.toStringAsFixed(2).padLeft(5, '0')}';
 
   return [
-    ExportRow(
-      header: 'Calendar',
+    ResultSection(
+      title: 'Calendar',
+      // Names the calendar it was read on: under Auto the answer changes at the
+      // 1582 reform, so "revjul(JD UT)" alone left the reader to guess which of
+      // two civil dates this is.
+      subtitle: 'revjul(JD UT) — ${calendar.label}',
+      fields: r.revjulError != null
+          ? [_err('Error', r.revjulError!)]
+          : [
+              ResultField(
+                label: 'Year',
+                value: r.revjulYear.toString(),
+                rawValue: r.revjulYear.toDouble(),
+              ),
+              ResultField(
+                label: 'Month',
+                value: _monthName(r.revjulMonth),
+                rawValue: r.revjulMonth.toDouble(),
+              ),
+              ResultField(
+                label: 'Day',
+                value: r.revjulDay.toString(),
+                rawValue: r.revjulDay.toDouble(),
+              ),
+              ResultField(
+                label: 'Time (UT)',
+                value: timeStr,
+                rawValue: r.revjulHour,
+              ),
+              ResultField(
+                label: 'Day of Week',
+                value: r.dayOfWeekName,
+                rawValue: double.nan,
+              ),
+            ],
+    ),
+    ResultSection(
+      title: 'Julian Day',
+      subtitle: 'JD UT and ET',
       fields: [
-        ('Year', r.revjulYear.toString()),
-        ('Month', r.revjulMonth.toString()),
-        ('Day', r.revjulDay.toString()),
-        ('Time (UT)', timeStr),
-        ('Day of Week', r.dayOfWeekName),
+        ResultField(
+          label: 'JD UT',
+          value: r.jdUt.toStringAsFixed(8),
+          rawValue: r.jdUt,
+        ),
+        ResultField(
+          label: 'JD ET',
+          value: r.jdEt.toStringAsFixed(8),
+          rawValue: r.jdEt,
+        ),
       ],
     ),
-    ExportRow(
-      header: 'Julian Day',
+    ResultSection(
+      title: 'Time',
+      subtitle: 'Delta-T · Sidereal · Equation of Time',
       fields: [
-        ('JD UT', r.jdUt.toStringAsFixed(8)),
-        ('JD ET', r.jdEt.toStringAsFixed(8)),
+        if (r.deltaTError != null)
+          _err('Delta-T Error', r.deltaTError!)
+        else
+          ResultField(
+            label: 'Delta-T (s)',
+            value: r.deltaT.toStringAsFixed(3),
+            rawValue: r.deltaT,
+          ),
+        if (r.siderealTimeError != null)
+          _err('GMST Error', r.siderealTimeError!)
+        else
+          ResultField(
+            // Sexagesimal, so the unit is spelled out rather than the bare
+            // "(h)" the export used for its decimal hours.
+            label: 'Sidereal Time (h:m:s)',
+            value: _formatHours(r.siderealTime),
+            rawValue: r.siderealTime,
+          ),
+        if (r.equationOfTimeError != null)
+          _err('EqT Error', r.equationOfTimeError!)
+        else
+          ResultField(
+            label: 'Equation of Time (min)',
+            value: r.equationOfTimeMinutes.toStringAsFixed(4),
+            rawValue: r.equationOfTimeMinutes,
+          ),
       ],
     ),
-    ExportRow(
-      header: 'Time',
+    ResultSection(
+      title: 'Local Time',
+      subtitle: 'LMT ↔ LAT (by longitude)',
       fields: [
-        ('Delta-T (s)', r.deltaT.toStringAsFixed(3)),
-        ('Sidereal Time (h)', r.siderealTime.toStringAsFixed(8)),
-        ('Equation of Time (min)', r.equationOfTimeMinutes.toStringAsFixed(4)),
+        if (r.lmtToLatError != null)
+          _err('LMT→LAT Error', r.lmtToLatError!)
+        else
+          ResultField(
+            label: 'LMT→LAT (JD)',
+            value: r.lmtToLat.toStringAsFixed(8),
+            rawValue: r.lmtToLat,
+          ),
+        if (r.latToLmtError != null)
+          _err('LAT→LMT Error', r.latToLmtError!)
+        else
+          ResultField(
+            label: 'LAT→LMT (JD)',
+            value: r.latToLmt.toStringAsFixed(8),
+            rawValue: r.latToLmt,
+          ),
       ],
     ),
-    ExportRow(
-      header: 'Local Time',
-      fields: [
-        ('LMT→LAT (JD)', r.lmtToLat.toStringAsFixed(8)),
-        ('LAT→LMT (JD)', r.latToLmt.toStringAsFixed(8)),
-      ],
-    ),
-    ExportRow(
-      header: 'Obliquity & Nutation',
-      fields: [
-        ('True Obliquity (°)', r.trueObliquity.toStringAsFixed(8)),
-        ('Mean Obliquity (°)', r.meanObliquity.toStringAsFixed(8)),
-        ('Nutation in Longitude (°)', r.nutationLongitude.toStringAsFixed(8)),
-        ('Nutation in Obliquity (°)', r.nutationObliquity.toStringAsFixed(8)),
-      ],
+    ResultSection(
+      title: 'Obliquity & Nutation',
+      subtitle: 'SE_ECL_NUT (swetest -p o/n)',
+      fields: r.eclNutError != null
+          ? [_err('Error', r.eclNutError!)]
+          : [
+              ResultField(
+                label: 'True Obliquity (°)',
+                value: r.trueObliquity.toStringAsFixed(8),
+                rawValue: r.trueObliquity,
+              ),
+              ResultField(
+                label: 'Mean Obliquity (°)',
+                value: r.meanObliquity.toStringAsFixed(8),
+                rawValue: r.meanObliquity,
+              ),
+              ResultField(
+                label: 'Nutation in Longitude (°)',
+                value: r.nutationLongitude.toStringAsFixed(8),
+                rawValue: r.nutationLongitude,
+              ),
+              ResultField(
+                label: 'Nutation in Obliquity (°)',
+                value: r.nutationObliquity.toStringAsFixed(8),
+                rawValue: r.nutationObliquity,
+              ),
+            ],
     ),
   ];
 }
+
+ResultField _err(String label, String message) =>
+    ResultField(label: label, value: message, rawValue: double.nan);
+
+String _monthName(int month) {
+  const names = [
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+  if (month < 1 || month > 12) return month.toString();
+  return '${names[month]} ($month)';
+}
+
+String _formatHours(double hours) {
+  final h = hours.truncate();
+  final m = ((hours - h) * 60).truncate();
+  final s = ((hours - h) * 3600 - m * 60);
+  return '${h.toString().padLeft(2, '0')}:'
+      '${m.toString().padLeft(2, '0')}:'
+      '${s.toStringAsFixed(2).padLeft(5, '0')}';
+}
+
+// ── Export ───────────────────────────────────────────────────────────────────
+
+/// Convert a DatesResult to exportable rows, one per card section.
+List<ExportRow> datesToExportRows(DatesResult r, Calendar calendar) =>
+    sectionsToExportRows(datesSections(r, calendar));

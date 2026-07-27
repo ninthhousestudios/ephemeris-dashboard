@@ -16,7 +16,6 @@ import '../../core/swe_utils_provider.dart';
 import '../../core/time_scale.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
-import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'dates_provider.dart';
@@ -269,11 +268,15 @@ class _DatesTabState extends ConsumerState<DatesTab> {
                     Consumer(
                       builder: (context, ref, _) {
                         final outcome = ref.watch(datesResultProvider);
-                        final jd = ref.watch(contextBarProvider).jdUt;
+                        final ctx = ref.watch(contextBarProvider);
+                        final jd = ctx.jdUt;
                         return ExportButton(
                           hasResults: outcome is CalcOk<DatesResult>,
                           getRows: () => switch (outcome) {
-                            CalcOk(value: final r) => datesToExportRows(r),
+                            CalcOk(value: final r) => datesToExportRows(
+                              r,
+                              ctx.calendar,
+                            ),
                             CalcError() => [],
                           },
                           filenameStem: 'swe_dates_${jd.toStringAsFixed(4)}',
@@ -303,12 +306,15 @@ class _DatesTabState extends ConsumerState<DatesTab> {
     final clockView = ref.watch(clockViewProvider);
     final swe = ref.read(sweProvider);
     final steps = ref.watch(datesSeriesProvider);
+    // Watched for the same reason the Calendar card watches it: the civil
+    // fields a step exports are read on the Context Calendar.
+    final calendar = ref.watch(contextBarProvider.select((s) => s.calendar));
 
     return SeriesView(
       tabId: AppTab.dates.name,
       steps: [
         for (final (moment, outcome) in steps)
-          (moment, outcome.map(datesToExportRows)),
+          (moment, outcome.map((r) => datesToExportRows(r, calendar))),
       ],
       momentLabel: (m) => formatJdDateTime(
         swe,
@@ -334,6 +340,8 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   }
 
   Widget _buildResultCards(DatesResult result, Calendar calendar) {
+    // One label/value source for cards and export alike — see datesSections.
+    final sections = datesSections(result, calendar);
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 600 ? 2 : 1;
@@ -345,250 +353,12 @@ class _DatesTabState extends ConsumerState<DatesTab> {
             spacing: 4,
             runSpacing: 4,
             children: [
-              SizedBox(
-                width: cardWidth,
-                child: _buildCalendarCard(context, result, calendar),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildJulianDayCard(context, result),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildTimeCard(context, result),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildLocalTimeCard(context, result),
-              ),
-              SizedBox(
-                width: cardWidth,
-                child: _buildObliquityCard(context, result),
-              ),
+              for (final section in sections)
+                SizedBox(width: cardWidth, child: section.toCard()),
             ],
           ),
         );
       },
     );
   }
-
-  Widget _buildCalendarCard(
-    BuildContext context,
-    DatesResult r,
-    Calendar calendar,
-  ) {
-    final t = r.revjulTime;
-    final timeStr =
-        '${t.h.toString().padLeft(2, '0')}:'
-        '${t.m.toString().padLeft(2, '0')}:'
-        '${t.s.toStringAsFixed(2).padLeft(5, '0')}';
-
-    return ResultCard(
-      title: 'Calendar',
-      // Names the calendar it was read on: under Auto the answer changes at the
-      // 1582 reform, so "revjul(JD UT)" alone left the reader to guess which of
-      // two civil dates this is.
-      subtitle: 'revjul(JD UT) — ${calendar.label}',
-      fields: r.revjulError != null
-          ? [
-              ResultField(
-                label: 'Error',
-                value: r.revjulError!,
-                rawValue: double.nan,
-              ),
-            ]
-          : [
-              ResultField(
-                label: 'Year',
-                value: r.revjulYear.toString(),
-                rawValue: r.revjulYear.toDouble(),
-              ),
-              ResultField(
-                label: 'Month',
-                value: _monthName(r.revjulMonth),
-                rawValue: r.revjulMonth.toDouble(),
-              ),
-              ResultField(
-                label: 'Day',
-                value: r.revjulDay.toString(),
-                rawValue: r.revjulDay.toDouble(),
-              ),
-              ResultField(
-                label: 'Time (UT)',
-                value: timeStr,
-                rawValue: r.revjulHour,
-              ),
-              ResultField(
-                label: 'Day of Week',
-                value: r.dayOfWeekName,
-                rawValue: double.nan,
-              ),
-            ],
-    );
-  }
-
-  Widget _buildJulianDayCard(BuildContext context, DatesResult r) {
-    return ResultCard(
-      title: 'Julian Day',
-      subtitle: 'JD UT and ET',
-      fields: [
-        ResultField(
-          label: 'JD UT',
-          value: r.jdUt.toStringAsFixed(8),
-          rawValue: r.jdUt,
-        ),
-        ResultField(
-          label: 'JD ET',
-          value: r.jdEt.toStringAsFixed(8),
-          rawValue: r.jdEt,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTimeCard(BuildContext context, DatesResult r) {
-    return ResultCard(
-      title: 'Time',
-      subtitle: 'Delta-T · Sidereal · Equation of Time',
-      fields: [
-        if (r.deltaTError != null)
-          ResultField(
-            label: 'Delta-T Error',
-            value: r.deltaTError!,
-            rawValue: double.nan,
-          )
-        else
-          ResultField(
-            label: 'Delta-T (s)',
-            value: r.deltaT.toStringAsFixed(3),
-            rawValue: r.deltaT,
-          ),
-        if (r.siderealTimeError != null)
-          ResultField(
-            label: 'GMST Error',
-            value: r.siderealTimeError!,
-            rawValue: double.nan,
-          )
-        else
-          ResultField(
-            label: 'Sidereal (h)',
-            value: _formatHours(r.siderealTime),
-            rawValue: r.siderealTime,
-          ),
-        if (r.equationOfTimeError != null)
-          ResultField(
-            label: 'EqT Error',
-            value: r.equationOfTimeError!,
-            rawValue: double.nan,
-          )
-        else
-          ResultField(
-            label: 'Eq. of Time (min)',
-            value: r.equationOfTimeMinutes.toStringAsFixed(4),
-            rawValue: r.equationOfTimeMinutes,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildLocalTimeCard(BuildContext context, DatesResult r) {
-    return ResultCard(
-      title: 'Local Time',
-      subtitle: 'LMT ↔ LAT (by longitude)',
-      fields: [
-        if (r.lmtToLatError != null)
-          ResultField(
-            label: 'LMT→LAT Error',
-            value: r.lmtToLatError!,
-            rawValue: double.nan,
-          )
-        else
-          ResultField(
-            label: 'LMT→LAT (JD)',
-            value: r.lmtToLat.toStringAsFixed(8),
-            rawValue: r.lmtToLat,
-          ),
-        if (r.latToLmtError != null)
-          ResultField(
-            label: 'LAT→LMT Error',
-            value: r.latToLmtError!,
-            rawValue: double.nan,
-          )
-        else
-          ResultField(
-            label: 'LAT→LMT (JD)',
-            value: r.latToLmt.toStringAsFixed(8),
-            rawValue: r.latToLmt,
-          ),
-      ],
-    );
-  }
-
-  Widget _buildObliquityCard(BuildContext context, DatesResult r) {
-    return ResultCard(
-      title: 'Obliquity & Nutation',
-      subtitle: 'SE_ECL_NUT (swetest -p o/n)',
-      fields: r.eclNutError != null
-          ? [
-              ResultField(
-                label: 'Error',
-                value: r.eclNutError!,
-                rawValue: double.nan,
-              ),
-            ]
-          : [
-              ResultField(
-                label: 'True Obliquity',
-                value: '${r.trueObliquity.toStringAsFixed(6)}°',
-                rawValue: r.trueObliquity,
-              ),
-              ResultField(
-                label: 'Mean Obliquity',
-                value: '${r.meanObliquity.toStringAsFixed(6)}°',
-                rawValue: r.meanObliquity,
-              ),
-              ResultField(
-                label: 'Nutation in Long.',
-                value: '${r.nutationLongitude.toStringAsFixed(6)}°',
-                rawValue: r.nutationLongitude,
-              ),
-              ResultField(
-                label: 'Nutation in Obliq.',
-                value: '${r.nutationObliquity.toStringAsFixed(6)}°',
-                rawValue: r.nutationObliquity,
-              ),
-            ],
-    );
-  }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-String _monthName(int month) {
-  const names = [
-    '',
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-  if (month < 1 || month > 12) return month.toString();
-  return '${names[month]} ($month)';
-}
-
-String _formatHours(double hours) {
-  final h = hours.truncate();
-  final m = ((hours - h) * 60).truncate();
-  final s = ((hours - h) * 3600 - m * 60);
-  return '${h.toString().padLeft(2, '0')}:'
-      '${m.toString().padLeft(2, '0')}:'
-      '${s.toStringAsFixed(2).padLeft(5, '0')}';
 }
