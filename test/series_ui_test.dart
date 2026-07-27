@@ -531,6 +531,20 @@ void main() {
       );
     });
 
+    test('a step edit made while off notifies no one', () {
+      // The gate returns a *canonical* empty list, so re-evaluating a
+      // switched-off series yields a value equal to the last one and Riverpod
+      // holds its listeners. A fresh `[]` would rebuild the tab instead.
+      var notifications = 0;
+      container.listen(stepsProvider, (_, _) => notifications++);
+      final first = container.read(stepsProvider);
+
+      notifier().setStepValue(3);
+
+      expect(identical(container.read(stepsProvider), first), isTrue);
+      expect(notifications, 0);
+    });
+
     test('enabled runs the compute once per row, at stepping Moments', () {
       notifier()
         ..setEnabled(true)

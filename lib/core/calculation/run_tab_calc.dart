@@ -236,6 +236,10 @@ List<(Moment, CalcOutcome<T>)> _seriesSteps<T>(
     ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
   );
   final settings = ref.read(seriesSettingsProvider(tabId));
-  if (!settings.enabled) return [];
+  // `const`, not `[]`: the empty list is canonicalised, so a provider that
+  // re-evaluates with the series still off yields a value `==` to its previous
+  // one and Riverpod notifies nobody. A fresh `[]` is never `==` to the last
+  // one, and every step edit made while the series is off would rebuild the tab.
+  if (!settings.enabled) return const [];
   return run(settings);
 }
