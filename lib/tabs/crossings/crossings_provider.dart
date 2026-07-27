@@ -3,6 +3,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_selection.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
@@ -33,9 +34,6 @@ final crossingTypeProvider = StateProvider<CrossingType>(
 
 /// Target longitude in degrees (0–360).
 final crossingLonProvider = StateProvider<double>((ref) => 0.0);
-
-/// Body used for heliocentric crossing.
-final crossingHelioBodyProvider = StateProvider<int>((ref) => seMars);
 
 /// Direction: 1 = forward, -1 = backward (helioCross only).
 final crossingDirProvider = StateProvider<int>((ref) => 1);
@@ -127,7 +125,9 @@ final _crossingCalcProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
   final view = ref.watch(clockViewProvider);
   final type = ref.watch(crossingTypeProvider);
   final lon = ref.watch(crossingLonProvider);
-  final helioBody = ref.watch(crossingHelioBodyProvider);
+  final helioBody = ref.watch(
+    singleBodyProvider(BodySelection.crossingsHelioBody),
+  );
   final dir = ref.watch(crossingDirProvider);
 
   return runTabCalc(

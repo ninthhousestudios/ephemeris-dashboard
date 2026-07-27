@@ -3,7 +3,11 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-23 (swe-dashboard/75: time-scale entry {UT1, TT, UTC} on
+Last updated: 2026-07-27 (swe-dashboard/85: Body Selection module in core —
+`BodySelection` registry + `BodyCatalog` replace the tab-provider imports that
+made core downstream of `lib/tabs/`. See "Body Selection" below).
+
+Earlier (swe-dashboard/75: time-scale entry {UT1, TT, UTC} on
 the civil time input. `TimeScale` enum on `ContextBarState` (persisted,
 advisory — never in a compute); `JdUtils.civilToJdUt`/`jdUtToCivil` own the
 scale-aware civil↔JD mapping, `SweUtils.utcToJd`/`jdUt1ToUtc` expose the
@@ -101,6 +105,43 @@ Richer result shapes among the search / multi-call tabs:
   Global `outputClockProvider` + derived `clockViewProvider` (bundles clock +
   Context longitude + utcOffset) live in `display_format.dart`; the `ClockSelector`
   dropdown sits in the context-bar OPTIONS grid. View-layer only, like Calendar.
+
+## Body Selection (lib/core/body_selection.dart, lib/core/body_catalog.dart)
+
+Which bodies each tab has selected, and the app's body vocabulary. Both live in
+core, and the direction of the dependency is the point (swe-dashboard/85).
+
+| File | Key symbols | Role |
+|------|-------------|------|
+| `body_selection.dart` | `BodySelection` (enum registry), `BodySelectionNotifier`, `bodySelectionProvider` (family), `singleBodyProvider` (family), `selectedAsteroidMpcProvider`, `selectedPlanetMoonIdsProvider` | Core **defines** every body selection; a tab consumes one by naming its enum value. |
+| `body_catalog.dart` | `BodyCatalog` (`classical`, `outers`, `lunarPoints`, `interpolatedPoints`, `centaursAndMinors`, `uranian`, `full`, `presets`, `namedAsteroids`, `namedComets`, `names`, `labelFor`), `BodyPreset` | The body vocabulary: which SE ids exist as pickable groups, and what to call them. |
+
+The engine config must declare which asteroid / planet-moon `.se1` files it will
+read — `swisseph_rs` fails engine creation on a missing declared file. That
+aggregation (`selectedAsteroidMpcProvider` / `selectedPlanetMoonIdsProvider`)
+used to fold over a hand-maintained list of *tab* providers imported by core,
+which both inverted the layering (core → tabs → core via run_tab_calc →
+runner, a 17-file SCC) and made "new body-selecting tab forgets to register" a
+silent broken-engine-config bug.
+
+Ownership is inverted, not just the import: the fold enumerates
+`BodySelection.values`, which the language guarantees is complete. A tab cannot
+own a selection core does not see, because there is nowhere else to declare one.
+
+- The key is a **(tab, role)** identity, not a tab id — several tabs hold two
+  selections (Planetocentric targets + center, Differential A + B).
+- The value is uniformly `List<int>` of SE body ids so the fold works; a
+  single-body role is a one-element list, read as a scalar through
+  `singleBodyProvider`.
+- **Outside the registry by design**: the Stars tab's `List<String>` names, the
+  Eclipses occultation *star*, and Heliacal targets — names, not body ids, and
+  they declare no Ephemeris Source files.
+- Body selections are **not persisted** (unlike `SeriesSettings`).
+- Chip widgets: `lib/widgets/body_chips.dart` — `BodyChip` / `BodyChoiceChip`
+  (single-body) and their `Wrap` / scrolling-`Row` forms. There is deliberately
+  no all-encompassing `BodyPicker`: the six picker surfaces differ in real ways
+  (presets, progressive disclosure, MPC entry, moon groups, comet lists), and
+  the chip is the only piece genuinely shared.
 
 ## Ephemeris subsystem (lib/core/ephemeris/)
 

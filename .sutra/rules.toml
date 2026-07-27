@@ -47,16 +47,17 @@ provenance = "yojana:swe-dashboard/4 §Implementation ②; reflect:L26"
 # The kernel must not know about tabs. The rule above guards tabs reaching DOWN
 # past the kernel; this guards the kernel reaching UP into tabs — the direction
 # that had no rule at all, and that swe-dashboard/37 found runner.dart taking.
-# Existing debt (body_selection.dart's 4 tab-provider imports, swe_utils.dart)
-# is real and predates the rule, so this lands advisory per the adopt
-# classification rather than blocking a repo that already violates it.
+# It landed advisory because body_selection.dart's tab-provider imports and
+# swe_utils.dart predated it. swe-dashboard/85 inverted that ownership — core
+# now DEFINES the body selections (BodySelection registry) instead of importing
+# the tabs that held them — so the stated trigger is met and it is blocking.
 
 [[constraint]]
 kind = "forbidden_dep"
 from = "lib/core/**"
 to = "lib/tabs/**"
 name = "core-must-not-import-tabs"
-severity = "advisory"  # FLIP TO BLOCKING when body_selection.dart no longer imports tab providers (3 detected violations as of 2026-07-22). Do not defer past that without recording why here — an advisory with no live trigger is what L26 is about.
+severity = "blocking"  # FLIPPED 2026-07-27 (swe-dashboard/85): the stated trigger fired — body_selection.dart no longer imports tab providers and the rule has 0 detected violations.
 provenance = "yojana:swe-dashboard/37; reflect:L26"
 
 # ═══════════════════════════════════════════════════════════════════

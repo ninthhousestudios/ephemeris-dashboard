@@ -3,6 +3,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_selection.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
@@ -42,63 +43,6 @@ class PlanetoCentricResult {
   final double speedDist;
   final int returnFlag;
 }
-
-/// Bodies available as center (observer).
-final centerBodies = [
-  seSun,
-  seMercury,
-  seVenus,
-  seEarth,
-  seMars,
-  seJupiter,
-  seSaturn,
-  seUranus,
-  seNeptune,
-  sePluto,
-];
-
-/// Default target bodies.
-final defaultTargetBodies = [
-  seSun,
-  seMoon,
-  seMercury,
-  seVenus,
-  seMars,
-  seJupiter,
-  seSaturn,
-  seUranus,
-  seNeptune,
-  sePluto,
-];
-
-/// Extra target bodies (progressive disclosure).
-/// Only real physical bodies — mathematical points (nodes, apogees) have no
-/// heliocentric position and cannot be used with calcPctr.
-final extraTargetBodies = [
-  seEarth,
-  seChiron,
-  sePholus,
-  seCeres,
-  sePallas,
-  seJuno,
-  seVesta,
-  seCupido,
-  seHades,
-  seZeus,
-  seKronos,
-  seApollon,
-  seAdmetos,
-  seVulkanus,
-  sePoseidon,
-];
-
-/// Selected center body (observer).
-final planetocentricCenterProvider = StateProvider<int>((ref) => seSun);
-
-/// Selected target bodies.
-final planetocentricBodiesProvider = StateProvider<List<int>>(
-  (ref) => [seMoon, seMercury, seVenus, seEarth, seMars, seJupiter, seSaturn],
-);
 
 /// Display format for this tab.
 final planetocentricFormatProvider = StateProvider<DisplayFormat>(
@@ -162,8 +106,12 @@ List<PlanetoCentricResult> Function(Ephemeris, Moment) _planetocentricCompute(
 ) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
-  final centerBody = ref.watch(planetocentricCenterProvider);
-  final bodies = ref.watch(planetocentricBodiesProvider);
+  final centerBody = ref.watch(
+    singleBodyProvider(BodySelection.planetocentricCenter),
+  );
+  final bodies = ref.watch(
+    bodySelectionProvider(BodySelection.planetocentricBodies),
+  );
 
   return (eph, moment) => computePlanetocentric(
     eph: eph,

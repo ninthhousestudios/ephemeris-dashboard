@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_catalog.dart';
+import '../../core/body_selection.dart';
+import '../../widgets/body_chips.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
@@ -20,6 +23,17 @@ class CrossingsTab extends ConsumerStatefulWidget {
 }
 
 class _CrossingsTabState extends ConsumerState<CrossingsTab> {
+  /// Bodies that can cross a heliocentric longitude. Sun/Moon are absent —
+  /// there is no heliocentric Sun, and `helioCrossUt` wants a planet.
+  static const _helioBodies = <int>[
+    seMercury,
+    seVenus,
+    seMars,
+    seJupiter,
+    seSaturn,
+    ...BodyCatalog.outers,
+  ];
+
   late final TextEditingController _lonController;
 
   @override
@@ -40,7 +54,6 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
   @override
   Widget build(BuildContext context) {
     final type = ref.watch(crossingTypeProvider);
-    final helioBody = ref.watch(crossingHelioBodyProvider);
     final dir = ref.watch(crossingDirProvider);
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
@@ -49,28 +62,6 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
 
     final showLon = type != CrossingType.moonNode;
     final showHelio = type == CrossingType.helioCross;
-
-    const helioBodies = [
-      seMercury,
-      seVenus,
-      seMars,
-      seJupiter,
-      seSaturn,
-      seUranus,
-      seNeptune,
-      sePluto,
-    ];
-
-    const bodyLabels = {
-      seMercury: 'Mercury',
-      seVenus: 'Venus',
-      seMars: 'Mars',
-      seJupiter: 'Jupiter',
-      seSaturn: 'Saturn',
-      seUranus: 'Uranus',
-      seNeptune: 'Neptune',
-      sePluto: 'Pluto',
-    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -162,18 +153,9 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                 children: [
                   Text('Body ', style: theme.textTheme.labelLarge),
                   const SizedBox(width: 4),
-                  ...helioBodies.map(
-                    (b) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: ChoiceChip(
-                        label: Text(bodyLabels[b] ?? 'Body $b'),
-                        selected: helioBody == b,
-                        onSelected: (_) =>
-                            ref.read(crossingHelioBodyProvider.notifier).state =
-                                b,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                    ),
+                  ...bodyChoiceChipRow(
+                    BodySelection.crossingsHelioBody,
+                    _helioBodies,
                   ),
                 ],
               ),

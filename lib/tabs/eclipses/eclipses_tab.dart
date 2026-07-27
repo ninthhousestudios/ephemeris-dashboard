@@ -4,6 +4,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_selection.dart';
+import '../../widgets/body_chips.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
@@ -250,22 +252,16 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
                 ),
                 const SizedBox(width: 12),
                 if (kind == OccultTarget.planet)
-                  ...() {
-                    final selected = ref.watch(occultPlanetProvider);
-                    return occultablePlanets.map(
-                      (body) => Padding(
-                        padding: const EdgeInsets.only(right: 4),
-                        child: ChoiceChip(
-                          label: Text(safeGetName(swe, body)),
-                          selected: selected == body,
-                          onSelected: (_) =>
-                              ref.read(occultPlanetProvider.notifier).state =
-                                  body,
-                          visualDensity: VisualDensity.compact,
-                        ),
+                  ...occultablePlanets.map(
+                    (body) => Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: BodyChoiceChip(
+                        selection: BodySelection.eclipsesOccultPlanet,
+                        body: body,
+                        label: safeGetName(swe, body),
                       ),
-                    );
-                  }()
+                    ),
+                  )
                 else
                   ...() {
                     final selected = ref.watch(occultStarProvider);

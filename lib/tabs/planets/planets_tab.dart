@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
+import '../../core/body_catalog.dart';
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/house_pos.dart';
 import '../../core/calculation/series_settings_provider.dart';
+import '../../widgets/body_chips.dart';
 import '../../widgets/body_display_controls.dart';
 import '../../widgets/horizontal_fields.dart';
 import '../../core/context_provider.dart';
@@ -31,23 +33,24 @@ class PlanetsTab extends ConsumerStatefulWidget {
 }
 
 class _PlanetsTabState extends ConsumerState<PlanetsTab> {
+  static const _selection = BodySelection.planetsBodies;
+
+  /// The bodies behind "More bodies": centaurs and minors, Earth, and the
+  /// interpolated lunar apsides.
+  static const _extraBodies = <int>[
+    ...BodyCatalog.centaursAndMinors,
+    seEarth,
+    ...BodyCatalog.interpolatedPoints,
+  ];
+
   bool _showExtraBodies = false;
 
-  void _toggleBody(int body) {
-    final current = ref.read(selectedBodiesProvider);
-    final updated = current.contains(body)
-        ? current.where((b) => b != body).toList()
-        : [...current, body];
-    ref.read(selectedBodiesProvider.notifier).state = updated;
-  }
-
   void _applyPreset(BodyPreset preset) {
-    ref.read(selectedBodiesProvider.notifier).state = List.of(preset.bodies);
+    ref.read(bodySelectionProvider(_selection).notifier).setAll(preset.bodies);
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedBodies = ref.watch(selectedBodiesProvider);
     final theme = Theme.of(context);
 
     return Column(
@@ -59,7 +62,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                ...bodyPresets.map(
+                ...BodyCatalog.presets.map(
                   (p) => Padding(
                     padding: const EdgeInsets.only(right: 4),
                     child: ActionChip(
@@ -73,17 +76,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                   height: 24,
                   child: VerticalDivider(width: 16, color: theme.dividerColor),
                 ),
-                ...defaultBodies.map((body) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: FilterChip(
-                      label: Text(_bodyLabel(body)),
-                      selected: selectedBodies.contains(body),
-                      onSelected: (_) => _toggleBody(body),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  );
-                }),
+                ...bodyChipRow(_selection, BodyCatalog.full),
               ],
             ),
           ),
@@ -119,18 +112,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
               if (_showExtraBodies) ...[
                 const SizedBox(height: 4),
                 // Chiron, Pholus, main asteroids, Earth, interp. apogee/perigee
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: extraBodies.map((body) {
-                    return FilterChip(
-                      label: Text(_bodyLabel(body)),
-                      selected: selectedBodies.contains(body),
-                      onSelected: (_) => _toggleBody(body),
-                      visualDensity: VisualDensity.compact,
-                    );
-                  }).toList(),
-                ),
+                const BodyChipWrap(selection: _selection, bodies: _extraBodies),
                 const SizedBox(height: 4),
                 // Uranian section
                 Text(
@@ -140,17 +122,9 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: uranianBodies.map((body) {
-                    return FilterChip(
-                      label: Text(_bodyLabel(body)),
-                      selected: selectedBodies.contains(body),
-                      onSelected: (_) => _toggleBody(body),
-                      visualDensity: VisualDensity.compact,
-                    );
-                  }).toList(),
+                const BodyChipWrap(
+                  selection: _selection,
+                  bodies: BodyCatalog.uranian,
                 ),
               ],
             ],
@@ -219,7 +193,9 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
         icon: const Icon(Icons.close, size: 16),
         tooltip: 'Remove ${results[i].bodyName}',
         visualDensity: VisualDensity.compact,
-        onPressed: () => _toggleBody(results[i].body),
+        onPressed: () => ref
+            .read(bodySelectionProvider(_selection).notifier)
+            .remove(results[i].body),
       ),
       cardBuilder: (r) => _buildCard(r, format),
     );
@@ -316,47 +292,6 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
             ],
     );
   }
-}
-
-/// Short label for a body constant.
-String _bodyLabel(int body) {
-  const names = {
-    seSun: 'Sun',
-    seMoon: 'Moon',
-    seMercury: 'Mercury',
-    seVenus: 'Venus',
-    seMars: 'Mars',
-    seJupiter: 'Jupiter',
-    seSaturn: 'Saturn',
-    seUranus: 'Uranus',
-    seNeptune: 'Neptune',
-    sePluto: 'Pluto',
-    seMeanNode: 'M.Node',
-    seTrueNode: 'T.Node',
-    seMeanApog: 'M.Lilith',
-    seOscuApog: 'O.Lilith',
-    seEarth: 'Earth',
-    seChiron: 'Chiron',
-    sePholus: 'Pholus',
-    seCeres: 'Ceres',
-    sePallas: 'Pallas',
-    seJuno: 'Juno',
-    seVesta: 'Vesta',
-    seIntpApog: 'I.Apogee',
-    seIntpPerg: 'I.Perigee',
-    seCupido: 'Cupido',
-    seHades: 'Hades',
-    seZeus: 'Zeus',
-    seKronos: 'Kronos',
-    seApollon: 'Apollon',
-    seAdmetos: 'Admetos',
-    seVulkanus: 'Vulkanus',
-    sePoseidon: 'Poseidon',
-  };
-  if (names.containsKey(body)) return names[body]!;
-  // Asteroid by MPC number?
-  if (body >= seAstOffset) return '#${body - seAstOffset}';
-  return 'Body $body';
 }
 
 class PlanetsFormatTrailing extends ConsumerWidget {

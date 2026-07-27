@@ -3,6 +3,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_selection.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
@@ -14,9 +15,6 @@ import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
-
-/// Body selection for nodes/apsides calculation.
-final nodesBodyProvider = StateProvider<int>((ref) => seMoon);
 
 /// Method for nodApsUt: a NodApsMethod bitflag (seNodBit*), passed untranslated
 /// through the Ephemeris seam. These are NOT dense indices — MEAN=1, OSCU=2,
@@ -101,7 +99,7 @@ NodesApsResult computeNodesApsides({
 NodesApsResult Function(Ephemeris, Moment) _nodesApsCompute(Ref ref) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
-  final body = ref.watch(nodesBodyProvider);
+  final body = ref.watch(singleBodyProvider(BodySelection.nodesApsidesBody));
   final method = ref.watch(nodesMethodProvider);
 
   return (eph, moment) => computeNodesApsides(

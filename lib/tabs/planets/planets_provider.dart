@@ -84,108 +84,6 @@ final planetsShowHousePosProvider = StateProvider<bool>((ref) => false);
 /// off to keep cards compact; the quantities are always present in series mode.
 final planetsShowHorizontalProvider = StateProvider<bool>((ref) => false);
 
-/// Body presets for quick selection.
-class BodyPreset {
-  const BodyPreset(this.label, this.bodies);
-  final String label;
-  final List<int> bodies;
-}
-
-// ── Default bodies (always visible) ──
-
-/// Classical 7 + outers + nodes + Lilith variants.
-final defaultBodies = [
-  seSun,
-  seMoon,
-  seMercury,
-  seVenus,
-  seMars,
-  seJupiter,
-  seSaturn,
-  seUranus,
-  seNeptune,
-  sePluto,
-  seMeanNode,
-  seTrueNode,
-  seMeanApog,
-  seOscuApog,
-];
-
-/// Presets for quick selection from the default set.
-final bodyPresets = [
-  BodyPreset('Classical', [
-    seSun,
-    seMoon,
-    seMercury,
-    seVenus,
-    seMars,
-    seJupiter,
-    seSaturn,
-  ]),
-  BodyPreset('Full', defaultBodies),
-  BodyPreset('Outers', [seUranus, seNeptune, sePluto]),
-  BodyPreset('Nodes', [seMeanNode, seTrueNode, seMeanApog, seOscuApog]),
-];
-
-// ── Extra bodies (progressive disclosure, second row) ──
-
-/// Chiron, Pholus, main-belt asteroids, Earth, interpolated apogee/perigee.
-final extraBodies = [
-  seChiron,
-  sePholus,
-  seCeres,
-  sePallas,
-  seJuno,
-  seVesta,
-  seEarth,
-  seIntpApog,
-  seIntpPerg,
-];
-
-/// Uranian / Hamburg School fictitious bodies.
-final uranianBodies = [
-  seCupido,
-  seHades,
-  seZeus,
-  seKronos,
-  seApollon,
-  seAdmetos,
-  seVulkanus,
-  sePoseidon,
-];
-
-// ── Asteroid access (third level) ──
-
-/// Offset for numbered asteroids: body ID = seAstOffset + MPC number.
-const int asteroidOffset = seAstOffset; // 10000
-
-/// Common named asteroids by MPC number.
-final namedAsteroids = <int, String>{
-  1: 'Ceres', // also seCeres (17), but MPC route works too
-  2: 'Pallas',
-  3: 'Juno',
-  4: 'Vesta',
-  5: 'Astraea',
-  6: 'Hebe',
-  7: 'Iris',
-  8: 'Flora',
-  9: 'Metis',
-  10: 'Hygiea',
-  16: 'Psyche',
-  433: 'Eros',
-  1221: 'Amor',
-  2060: 'Chiron', // also seChiron (15)
-  5145: 'Pholus', // also sePholus (16)
-  7066: 'Nessus',
-  136199: 'Eris',
-  136472: 'Makemake',
-  136108: 'Haumea',
-  225088: 'Gonggong',
-  50000: 'Quaoar',
-  90377: 'Sedna',
-  90482: 'Orcus',
-};
-
 /// Pure compute step: runs calcUt for each body, capturing per-body
 /// SweExceptions as an `errorMessage` instead of failing the whole batch.
 List<PlanetResult> computePlanets({
@@ -349,7 +247,7 @@ List<PlanetResult> Function(Ephemeris, Moment) _planetsCompute(Ref ref) {
   final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
-  final bodies = ref.watch(selectedBodiesProvider);
+  final bodies = ref.watch(bodySelectionProvider(BodySelection.planetsBodies));
 
   // House position is computed when the card toggle asks for it, or always in
   // series mode where it is a default quantity (swe-dashboard/58). The single

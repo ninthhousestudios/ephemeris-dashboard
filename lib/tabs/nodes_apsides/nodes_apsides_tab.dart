@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_catalog.dart';
+import '../../core/body_selection.dart';
+import '../../widgets/body_chips.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
@@ -13,37 +16,12 @@ import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../layout/tab_definitions.dart';
-import '../../tabs/other_bodies/other_bodies_provider.dart'
-    show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/result_card_grid.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'nodes_apsides_provider.dart';
-
-const _defaultBodies = <(int, String)>[
-  (seSun, 'Sun'),
-  (seMoon, 'Moon'),
-  (seMercury, 'Mercury'),
-  (seVenus, 'Venus'),
-  (seMars, 'Mars'),
-  (seJupiter, 'Jupiter'),
-  (seSaturn, 'Saturn'),
-  (seUranus, 'Uranus'),
-  (seNeptune, 'Neptune'),
-  (sePluto, 'Pluto'),
-];
-
-const _extraBodies = <(int, String)>[
-  (seEarth, 'Earth'),
-  (seChiron, 'Chiron'),
-  (sePholus, 'Pholus'),
-  (seCeres, 'Ceres'),
-  (sePallas, 'Pallas'),
-  (seJuno, 'Juno'),
-  (seVesta, 'Vesta'),
-];
 
 // Values are NodApsMethod bitflags (seNodBit*), passed untranslated through the
 // Ephemeris seam — MEAN=1, OSCU=2, OSCU_BAR=4, not dense 0/1/2 indices. The
@@ -63,6 +41,17 @@ class NodesApsidesTab extends ConsumerStatefulWidget {
 }
 
 class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
+  static const _selection = BodySelection.nodesApsidesBody;
+
+  /// Bodies with a meaningful node/apse. The lunar points are absent — the
+  /// nodes of a node are not a quantity.
+  static const _defaultBodies = <int>[
+    ...BodyCatalog.classical,
+    ...BodyCatalog.outers,
+  ];
+
+  static const _extraBodies = <int>[seEarth, ...BodyCatalog.centaursAndMinors];
+
   bool _showExtraBodies = false;
   final _asteroidController = TextEditingController();
 
@@ -73,7 +62,9 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
   }
 
   void _selectAsteroid(int mpcNumber) {
-    ref.read(nodesBodyProvider.notifier).state = seAstOffset + mpcNumber;
+    ref
+        .read(bodySelectionProvider(_selection).notifier)
+        .setSingle(seAstOffset + mpcNumber);
   }
 
   void _selectCustomAsteroid() {
@@ -87,7 +78,6 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final body = ref.watch(nodesBodyProvider);
     final method = ref.watch(nodesMethodProvider);
     final fmt = ref.watch(nodesFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
@@ -109,18 +99,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
               children: [
                 Text('Body ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._defaultBodies.map(
-                  (b) => Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: ChoiceChip(
-                      label: Text(b.$2),
-                      selected: body == b.$1,
-                      onSelected: (_) =>
-                          ref.read(nodesBodyProvider.notifier).state = b.$1,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                ),
+                ...bodyChoiceChipRow(_selection, _defaultBodies),
               ],
             ),
           ),
@@ -149,37 +128,20 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
               ),
               if (_showExtraBodies) ...[
                 const SizedBox(height: 4),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: _extraBodies
-                      .map(
-                        (b) => ChoiceChip(
-                          label: Text(b.$2),
-                          selected: body == b.$1,
-                          onSelected: (_) =>
-                              ref.read(nodesBodyProvider.notifier).state = b.$1,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      )
-                      .toList(),
+                const BodyChoiceChipWrap(
+                  selection: _selection,
+                  bodies: _extraBodies,
                 ),
                 if (!kIsWeb) ...[
                   const SizedBox(height: 8),
                   Text('Asteroids', style: labelStyle),
                   const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: otherBodiesNamedAsteroids.entries.map((e) {
-                      final bodyId = seAstOffset + e.key;
-                      return ChoiceChip(
-                        label: Text(e.value),
-                        selected: body == bodyId,
-                        onSelected: (_) => _selectAsteroid(e.key),
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }).toList(),
+                  BodyChoiceChipWrap(
+                    selection: _selection,
+                    bodies: [
+                      for (final mpc in BodyCatalog.namedAsteroids.keys)
+                        seAstOffset + mpc,
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Row(

@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_catalog.dart';
+import '../../core/body_selection.dart';
+import '../../widgets/body_chips.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
@@ -15,8 +18,6 @@ import '../../core/flag_provider.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/tab_definitions.dart';
-import '../../tabs/other_bodies/other_bodies_provider.dart'
-    show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/result_card_grid.dart';
@@ -32,6 +33,35 @@ class PlanetoCentricTab extends ConsumerStatefulWidget {
 }
 
 class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
+  static const _center = BodySelection.planetocentricCenter;
+  static const _targets = BodySelection.planetocentricBodies;
+
+  /// Bodies that can be the observer. The Moon is absent — `calcPctr` wants a
+  /// planetary center.
+  static const _centerBodies = <int>[
+    seSun,
+    seMercury,
+    seVenus,
+    seEarth,
+    seMars,
+    seJupiter,
+    seSaturn,
+    ...BodyCatalog.outers,
+  ];
+
+  static const _defaultTargets = <int>[
+    ...BodyCatalog.classical,
+    ...BodyCatalog.outers,
+  ];
+
+  /// Only real physical bodies — mathematical points (nodes, apogees) have no
+  /// heliocentric position and cannot be used with `calcPctr`.
+  static const _extraTargets = <int>[
+    seEarth,
+    ...BodyCatalog.centaursAndMinors,
+    ...BodyCatalog.uranian,
+  ];
+
   bool _showExtraBodies = false;
   final _asteroidController = TextEditingController();
 
@@ -42,14 +72,9 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
   }
 
   void _addAsteroid(int mpcNumber) {
-    final bodyId = seAstOffset + mpcNumber;
-    final current = ref.read(planetocentricBodiesProvider);
-    if (!current.contains(bodyId)) {
-      ref.read(planetocentricBodiesProvider.notifier).state = [
-        ...current,
-        bodyId,
-      ];
-    }
+    ref
+        .read(bodySelectionProvider(_targets).notifier)
+        .add(seAstOffset + mpcNumber);
   }
 
   void _addCustomAsteroid() {
@@ -61,18 +86,9 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     }
   }
 
-  void _toggleBody(int body) {
-    final current = ref.read(planetocentricBodiesProvider);
-    final updated = current.contains(body)
-        ? current.where((b) => b != body).toList()
-        : [...current, body];
-    ref.read(planetocentricBodiesProvider.notifier).state = updated;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final selectedBodies = ref.watch(planetocentricBodiesProvider);
-    final center = ref.watch(planetocentricCenterProvider);
+    final center = ref.watch(singleBodyProvider(_center));
     final swe = ref.read(sweProvider);
     final theme = Theme.of(context);
 
@@ -92,17 +108,15 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                ...centerBodies.map((body) {
+                ..._centerBodies.map((body) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 4),
                     child: ChoiceChip(
                       label: Text(_bodyLabel(swe, body)),
                       selected: center == body,
-                      onSelected: (_) =>
-                          ref
-                                  .read(planetocentricCenterProvider.notifier)
-                                  .state =
-                              body,
+                      onSelected: (_) => ref
+                          .read(bodySelectionProvider(_center).notifier)
+                          .setSingle(body),
                       visualDensity: VisualDensity.compact,
                     ),
                   );
@@ -125,17 +139,16 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                ...defaultTargetBodies.map((body) {
-                  return Padding(
+                ..._defaultTargets.map(
+                  (body) => Padding(
                     padding: const EdgeInsets.only(right: 4),
-                    child: FilterChip(
-                      label: Text(_bodyLabel(swe, body)),
-                      selected: selectedBodies.contains(body),
-                      onSelected: (_) => _toggleBody(body),
-                      visualDensity: VisualDensity.compact,
+                    child: BodyChip(
+                      selection: _targets,
+                      body: body,
+                      label: _bodyLabel(swe, body),
                     ),
-                  );
-                }),
+                  ),
+                ),
               ],
             ),
           ),
@@ -169,17 +182,12 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
               ),
               if (_showExtraBodies) ...[
                 const SizedBox(height: 4),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: extraTargetBodies.map((body) {
-                    return FilterChip(
-                      label: Text(_bodyLabel(swe, body)),
-                      selected: selectedBodies.contains(body),
-                      onSelected: (_) => _toggleBody(body),
-                      visualDensity: VisualDensity.compact,
-                    );
-                  }).toList(),
+                BodyChipWrap(
+                  selection: _targets,
+                  bodies: _extraTargets,
+                  labels: {
+                    for (final b in _extraTargets) b: _bodyLabel(swe, b),
+                  },
                 ),
                 if (!kIsWeb) ...[
                   const SizedBox(height: 8),
@@ -190,24 +198,12 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: otherBodiesNamedAsteroids.entries.map((e) {
-                      final bodyId = seAstOffset + e.key;
-                      return FilterChip(
-                        label: Text(e.value),
-                        selected: selectedBodies.contains(bodyId),
-                        onSelected: (_) {
-                          if (selectedBodies.contains(bodyId)) {
-                            _toggleBody(bodyId);
-                          } else {
-                            _addAsteroid(e.key);
-                          }
-                        },
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }).toList(),
+                  BodyChipWrap(
+                    selection: _targets,
+                    bodies: [
+                      for (final mpc in BodyCatalog.namedAsteroids.keys)
+                        seAstOffset + mpc,
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -256,17 +252,10 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: group.moons.map((m) {
-                        return FilterChip(
-                          label: Text(m.name),
-                          selected: selectedBodies.contains(m.bodyId),
-                          onSelected: (_) => _toggleBody(m.bodyId),
-                          visualDensity: VisualDensity.compact,
-                        );
-                      }).toList(),
+                    BodyChipWrap(
+                      selection: _targets,
+                      bodies: [for (final m in group.moons) m.bodyId],
+                      labels: {for (final m in group.moons) m.bodyId: m.name},
                     ),
                     const SizedBox(height: 6),
                   ],
@@ -328,7 +317,9 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
         icon: const Icon(Icons.close, size: 16),
         tooltip: 'Remove ${results[i].bodyName}',
         visualDensity: VisualDensity.compact,
-        onPressed: () => _toggleBody(results[i].body),
+        onPressed: () => ref
+            .read(bodySelectionProvider(_targets).notifier)
+            .remove(results[i].body),
       ),
       cardBuilder: (r) => _buildCard(r, format),
     );

@@ -9,6 +9,8 @@ Flutter cross-platform GUI for the Swiss Ephemeris via [swisseph_rs](https://pub
 This app supports browser-style zoom via `MediaQuery.textScalerOf`. All UI must remain functional across zoom levels. These rules are non-negotiable:
 
 ### Cards and Grids
+- Render body chips through `BodyChip`/`BodyChoiceChip` (`lib/widgets/body_chips.dart`),
+  bound to a `BodySelection` — do not hand-roll a `FilterChip` + toggle in a tab
 - Render result cards through `ResultCardGrid` (`lib/widgets/result_card_grid.dart`) — do not
   re-paste a `LayoutBuilder`/`Wrap`/`cardWidth` block into a tab (swe-dashboard/92)
 - Use `Wrap` + `SingleChildScrollView`, never `GridView` with fixed aspect ratios
@@ -85,6 +87,13 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
   ban would be unsound. See enforcement ledger row 17.
 - **Locked Flags are a pure function of the Context** — one source of truth, not a
   hand-maintained set.
+- **Core defines the body selections; tabs consume them** — every selection is a
+  `BodySelection` enum value in `lib/core/body_selection.dart`, and the
+  engine-config aggregation folds over `BodySelection.values`. A tab must not
+  declare a body-selection provider of its own: that is what made "new tab
+  forgets to register" a silent broken engine config, and it is why
+  `core-must-not-import-tabs` is blocking (swe-dashboard/85). Body lists and
+  chip labels come from `BodyCatalog`, not tab-local consts.
 - **swisseph_rs behind the Ephemeris seam** — reach the engine through the `Ephemeris`
   interface; `package:swisseph_rs` is confined to `lib/core/**` (forbidden in
   `lib/tabs/` and `lib/widgets/` — blocking; enforced by `.sutra/rules.toml`,

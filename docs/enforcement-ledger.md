@@ -20,7 +20,7 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 | # | Claim (quote / source) | Bucket | Mechanism | Status |
 |---|---|---|---|---|
 | 1 | "Engine routes through the Ephemeris seam" — CONTEXT §Ephemeris, PRD ①, ADR-0002 | a | `confined_external swisseph_rs allowed_in=lib/core/**` | live, **blocking** (cutover complete @ `/29`; documented `/32`) |
-| 2 | "Tabs use the kernel, not the runner" — PRD ② | a | `forbidden_dep lib/tabs/** → runner.dart` | live, **advisory** → blocking @ `/11` |
+| 2 | "Tabs use the kernel, not the runner" — PRD ② | a | `forbidden_dep lib/tabs/** → runner.dart` | live, **blocking** (flipped 2026-07-22 per reflect:L26; the seam is clean) |
 | 3 | "Tabs are independent" — PRD §Problem | a | `no_cycles lib/tabs` | live, **blocking** (clean today) |
 | 4 | "Context bar / shell cycle removed" — PRD ⑥ | a | `no_cycles lib/widgets/context_bar` | live, **blocking** (flipped @ `/81`: the app_shell ↔ context_bar ↔ file_in_use_indicator cycle is broken — the indicator's only reason to import app_shell was `selectedTabProvider`, now `lib/core/active_tab.dart`. Clean today.) |
 | 5 | "Calculation kernel stays acyclic" — PRD ② | a | `no_cycles lib/core/calculation` | live, **blocking** (bound @ `/7`) |
@@ -36,6 +36,7 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 | 15 | Kernel Result via fake Ephemeris — PRD §Testing | d | kernel tests | test @ `/7` |
 | 16 | Tab registry completeness — PRD §Testing | d | registry test | test @ `/16` |
 | 17 | "A series compute takes its Moment from the step, never the Context" — Time-Series PRD §Governed invariant | c | CLAUDE.md invariant + structural (computes are `(Ephemeris, Moment)` with no `ref`; `runTabCalcSeries` solely owns the Context-JD read and the step loop) | routed → CLAUDE.md (`/60`). A `forbidden_pattern` banning `jdUt`/`jdEt` under `lib/tabs/**` was **rejected as unsound** — those identifiers are legitimate there (compute params fed from `moment.ut`; Dates result fields `jdUt`/`jdEt`), so the ban would fire on ~100 valid sites. |
+| 18 | "The kernel must not know about tabs" — swe-dashboard/37 (rule existed in `.sutra/rules.toml` from `/37` but had no ledger row) | a | `forbidden_dep lib/core/** → lib/tabs/**` | live, **blocking** (flipped @ `/85`: core now DEFINES the body selections — the `BodySelection` registry — instead of importing the three tab providers that held them, which is what the 17-file SCC ran through. 0 violations.) |
 
 ## Maintenance
 

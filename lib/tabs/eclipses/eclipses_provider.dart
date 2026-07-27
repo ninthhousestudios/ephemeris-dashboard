@@ -3,6 +3,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_catalog.dart';
+import '../../core/body_selection.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/flag_masks.dart';
@@ -37,9 +39,7 @@ const occultablePlanets = <int>[
   seMars,
   seJupiter,
   seSaturn,
-  seUranus,
-  seNeptune,
-  sePluto,
+  ...BodyCatalog.outers,
 ];
 
 // ── Eclipse type filter (eclType param) ──────────────────────────────────────
@@ -83,8 +83,6 @@ final eclipseCountProvider = StateProvider<int>((ref) => 5);
 final occultTargetKindProvider = StateProvider<OccultTarget>(
   (ref) => OccultTarget.planet,
 );
-
-final occultPlanetProvider = StateProvider<int>((ref) => seVenus);
 
 final occultStarProvider = StateProvider<String>((ref) => 'Aldebaran');
 
@@ -199,7 +197,9 @@ final _eclipsesCalcProvider = Provider<CalcOutcome<List<EclipseEvent>>>((ref) {
   // Occultation target: resolved to a body id / star name / display label here,
   // in the provider, so the pure compute never touches SweUtils or the Context.
   final targetKind = ref.watch(occultTargetKindProvider);
-  final targetPlanet = ref.watch(occultPlanetProvider);
+  final targetPlanet = ref.watch(
+    singleBodyProvider(BodySelection.eclipsesOccultPlanet),
+  );
   final targetStar = ref.watch(occultStarProvider);
   final swe = ref.read(sweProvider);
   final isStarTarget = targetKind == OccultTarget.star;

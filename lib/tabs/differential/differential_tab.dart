@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_catalog.dart';
+import '../../core/body_selection.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
@@ -18,13 +20,6 @@ import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
-import '../../tabs/planets/planets_provider.dart'
-    show
-        defaultBodies,
-        extraBodies,
-        uranianBodies,
-        namedAsteroids,
-        asteroidOffset;
 import 'differential_provider.dart';
 
 class DifferentialTab extends ConsumerStatefulWidget {
@@ -35,6 +30,14 @@ class DifferentialTab extends ConsumerStatefulWidget {
 }
 
 class _DifferentialTabState extends ConsumerState<DifferentialTab> {
+  /// The bodies behind "Extra": centaurs and minors, Earth, and the
+  /// interpolated lunar apsides.
+  static const _extraBodies = <int>[
+    ...BodyCatalog.centaursAndMinors,
+    seEarth,
+    ...BodyCatalog.interpolatedPoints,
+  ];
+
   bool _showExtraBodies = false;
   bool _showAsteroids = false;
   bool _isCustomTime = false;
@@ -145,13 +148,18 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
 
   // ── Body selection ──
 
-  void _setBodyA(int body) => ref.read(diffBodyAProvider.notifier).state = body;
-  void _setBodyB(int body) => ref.read(diffBodyBProvider.notifier).state = body;
+  void _setBodyA(int body) => ref
+      .read(bodySelectionProvider(BodySelection.differentialBodyA).notifier)
+      .setSingle(body);
+
+  void _setBodyB(int body) => ref
+      .read(bodySelectionProvider(BodySelection.differentialBodyB).notifier)
+      .setSingle(body);
 
   void _addAsteroidA() {
     final n = int.tryParse(_asteroidCtrlA.text.trim());
     if (n != null && n > 0) {
-      _setBodyA(asteroidOffset + n);
+      _setBodyA(seAstOffset + n);
       _asteroidCtrlA.clear();
     }
   }
@@ -159,7 +167,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   void _addAsteroidB() {
     final n = int.tryParse(_asteroidCtrlB.text.trim());
     if (n != null && n > 0) {
-      _setBodyB(asteroidOffset + n);
+      _setBodyB(seAstOffset + n);
       _asteroidCtrlB.clear();
     }
   }
@@ -178,8 +186,12 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
       if (_jdCtrl.text != jdStr) _jdCtrl.text = jdStr;
     }
 
-    final bodyA = ref.watch(diffBodyAProvider);
-    final bodyB = ref.watch(diffBodyBProvider);
+    final bodyA = ref.watch(
+      singleBodyProvider(BodySelection.differentialBodyA),
+    );
+    final bodyB = ref.watch(
+      singleBodyProvider(BodySelection.differentialBodyB),
+    );
     final fmt = ref.watch(diffFormatProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
     final diffOutcome = ref.watch(diffResultProvider);
@@ -388,11 +400,11 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
           children: [
             Text('$label ', style: theme.textTheme.labelLarge),
             const SizedBox(width: 4),
-            ...defaultBodies.map(
+            ...BodyCatalog.full.map(
               (body) => Padding(
                 padding: const EdgeInsets.only(right: 4),
                 child: ChoiceChip(
-                  label: Text(_bodyLabel(body)),
+                  label: Text(BodyCatalog.labelFor(body)),
                   selected: selected == body,
                   onSelected: (_) => onSelect(body),
                   visualDensity: VisualDensity.compact,
@@ -420,7 +432,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         Wrap(
           spacing: 4,
           runSpacing: 4,
-          children: extraBodies
+          children: _extraBodies
               .map((body) => _dualSelectChip(body, bodyA, bodyB, theme))
               .toList(),
         ),
@@ -430,7 +442,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
         Wrap(
           spacing: 4,
           runSpacing: 4,
-          children: uranianBodies
+          children: BodyCatalog.uranian
               .map((body) => _dualSelectChip(body, bodyA, bodyB, theme))
               .toList(),
         ),
@@ -456,8 +468,8 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
           Wrap(
             spacing: 4,
             runSpacing: 4,
-            children: namedAsteroids.entries.map((e) {
-              final bodyId = asteroidOffset + e.key;
+            children: BodyCatalog.namedAsteroids.entries.map((e) {
+              final bodyId = seAstOffset + e.key;
               return _dualSelectChip(
                 bodyId,
                 bodyA,
@@ -537,7 +549,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   }) {
     final isA = body == bodyA;
     final isB = body == bodyB;
-    final chipLabel = label ?? _bodyLabel(body);
+    final chipLabel = label ?? BodyCatalog.labelFor(body);
 
     return GestureDetector(
       onLongPress: () => _setBodyB(body),
@@ -585,44 +597,4 @@ class _DiffResults extends ConsumerWidget {
       child: diffSections(result, fmt).first.toCard(),
     );
   }
-}
-
-/// Short label for a body constant.
-String _bodyLabel(int body) {
-  const names = {
-    seSun: 'Sun',
-    seMoon: 'Moon',
-    seMercury: 'Mercury',
-    seVenus: 'Venus',
-    seMars: 'Mars',
-    seJupiter: 'Jupiter',
-    seSaturn: 'Saturn',
-    seUranus: 'Uranus',
-    seNeptune: 'Neptune',
-    sePluto: 'Pluto',
-    seMeanNode: 'M.Node',
-    seTrueNode: 'T.Node',
-    seMeanApog: 'M.Lilith',
-    seOscuApog: 'O.Lilith',
-    seEarth: 'Earth',
-    seChiron: 'Chiron',
-    sePholus: 'Pholus',
-    seCeres: 'Ceres',
-    sePallas: 'Pallas',
-    seJuno: 'Juno',
-    seVesta: 'Vesta',
-    seIntpApog: 'I.Apogee',
-    seIntpPerg: 'I.Perigee',
-    seCupido: 'Cupido',
-    seHades: 'Hades',
-    seZeus: 'Zeus',
-    seKronos: 'Kronos',
-    seApollon: 'Apollon',
-    seAdmetos: 'Admetos',
-    seVulkanus: 'Vulkanus',
-    sePoseidon: 'Poseidon',
-  };
-  if (names.containsKey(body)) return names[body]!;
-  if (body >= seAstOffset) return '#${body - seAstOffset}';
-  return 'Body $body';
 }

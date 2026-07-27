@@ -4,6 +4,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
+import '../../core/body_catalog.dart';
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/flag_masks.dart';
@@ -27,40 +28,6 @@ import '../../layout/tab_definitions.dart';
 final _allMoonBodyIds = <int, String>{
   for (final g in planetaryMoonGroups)
     for (final m in g.moons) m.bodyId: m.name,
-};
-
-// ── Named asteroids (same seed as planets tab + extras) ──
-
-const otherBodiesNamedAsteroids = <int, String>{
-  1: 'Ceres',
-  2: 'Pallas',
-  3: 'Juno',
-  4: 'Vesta',
-  5: 'Astraea',
-  6: 'Hebe',
-  7: 'Iris',
-  8: 'Flora',
-  9: 'Metis',
-  10: 'Hygiea',
-  16: 'Psyche',
-  433: 'Eros',
-  1221: 'Amor',
-  2060: 'Chiron',
-  5145: 'Pholus',
-  7066: 'Nessus',
-  50000: 'Quaoar',
-  90377: 'Sedna',
-  90482: 'Orcus',
-  136108: 'Haumea',
-  136199: 'Eris',
-  136472: 'Makemake',
-  225088: 'Gonggong',
-};
-
-// ── Named comets (pseudo-MPC numbers, derived from catalog) ──
-
-final namedComets = <int, String>{
-  for (final (mpc, name) in cometSeed) mpc: name,
 };
 
 // ── Result type (shared with planets) ──
@@ -283,14 +250,7 @@ List<OtherBodyResult> computeOtherBodies({
 
 String otherBodyName(int body) {
   if (_allMoonBodyIds.containsKey(body)) return _allMoonBodyIds[body]!;
-  if (body >= seAstOffset) {
-    final mpc = body - seAstOffset;
-    if (namedComets.containsKey(mpc)) return namedComets[mpc]!;
-    if (otherBodiesNamedAsteroids.containsKey(mpc)) {
-      return otherBodiesNamedAsteroids[mpc]!;
-    }
-    return '#$mpc';
-  }
+  if (body >= seAstOffset) return BodyCatalog.labelFor(body);
   return 'Body $body';
 }
 
@@ -300,7 +260,7 @@ List<OtherBodyResult> Function(Ephemeris, Moment) _otherBodiesCompute(Ref ref) {
   final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
-  final bodies = ref.watch(otherBodiesSelectionProvider);
+  final bodies = ref.watch(bodySelectionProvider(BodySelection.otherBodies));
 
   // House position: computed on card-toggle, or always in series mode where it
   // is a default quantity (swe-dashboard/58); one app-wide house system.

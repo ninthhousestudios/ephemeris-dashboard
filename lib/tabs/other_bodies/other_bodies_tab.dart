@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
 
+import '../../core/body_catalog.dart';
 import '../../core/body_selection.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/house_pos.dart';
@@ -16,6 +17,7 @@ import '../../core/ephe/catalog.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../layout/tab_definitions.dart';
+import '../../widgets/body_chips.dart';
 import '../../widgets/body_display_controls.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/horizontal_fields.dart';
@@ -33,6 +35,8 @@ class OtherBodiesTab extends ConsumerStatefulWidget {
 }
 
 class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
+  static const _selection = BodySelection.otherBodies;
+
   final _asteroidController = TextEditingController();
   final _cometController = TextEditingController();
 
@@ -43,32 +47,14 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     super.dispose();
   }
 
-  void _toggleBody(int body) {
-    final current = ref.read(otherBodiesSelectionProvider);
-    final updated = current.contains(body)
-        ? current.where((b) => b != body).toList()
-        : [...current, body];
-    ref.read(otherBodiesSelectionProvider.notifier).state = updated;
-  }
-
   void _addAsteroid(int mpcNumber) {
-    final bodyId = seAstOffset + mpcNumber;
-    final current = ref.read(otherBodiesSelectionProvider);
-    if (!current.contains(bodyId)) {
-      ref.read(otherBodiesSelectionProvider.notifier).state = [
-        ...current,
-        bodyId,
-      ];
-    }
-  }
-
-  void _addComet(int pseudoMpc) {
-    _addAsteroid(pseudoMpc);
+    ref
+        .read(bodySelectionProvider(_selection).notifier)
+        .add(seAstOffset + mpcNumber);
   }
 
   @override
   Widget build(BuildContext context) {
-    final selected = ref.watch(otherBodiesSelectionProvider);
     final theme = Theme.of(context);
 
     return Column(
@@ -91,13 +77,13 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
             children: [
               _sectionHeader('Planetary Moons', theme),
               const SizedBox(height: 4),
-              _buildMoonSection(selected, theme),
+              _buildMoonSection(theme),
               _sectionHeader('Asteroids', theme),
               const SizedBox(height: 4),
-              _buildAsteroidSection(selected, theme),
+              _buildAsteroidSection(theme),
               _sectionHeader('Comets', theme),
               const SizedBox(height: 4),
-              _buildCometSection(selected, theme),
+              _buildCometSection(theme),
             ],
           ),
         ),
@@ -135,7 +121,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     );
   }
 
-  Widget _buildMoonSection(List<int> selected, ThemeData theme) {
+  Widget _buildMoonSection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -147,17 +133,10 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
             ),
           ),
           const SizedBox(height: 2),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: group.moons.map((m) {
-              return FilterChip(
-                label: Text(m.name),
-                selected: selected.contains(m.bodyId),
-                onSelected: (_) => _toggleBody(m.bodyId),
-                visualDensity: VisualDensity.compact,
-              );
-            }).toList(),
+          BodyChipWrap(
+            selection: _selection,
+            bodies: [for (final m in group.moons) m.bodyId],
+            labels: {for (final m in group.moons) m.bodyId: m.name},
           ),
           const SizedBox(height: 6),
         ],
@@ -165,28 +144,16 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     );
   }
 
-  Widget _buildAsteroidSection(List<int> selected, ThemeData theme) {
+  Widget _buildAsteroidSection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: otherBodiesNamedAsteroids.entries.map((e) {
-            final bodyId = seAstOffset + e.key;
-            return FilterChip(
-              label: Text(e.value),
-              selected: selected.contains(bodyId),
-              onSelected: (_) {
-                if (selected.contains(bodyId)) {
-                  _toggleBody(bodyId);
-                } else {
-                  _addAsteroid(e.key);
-                }
-              },
-              visualDensity: VisualDensity.compact,
-            );
-          }).toList(),
+        BodyChipWrap(
+          selection: _selection,
+          bodies: [
+            for (final mpc in BodyCatalog.namedAsteroids.keys)
+              seAstOffset + mpc,
+          ],
         ),
         const SizedBox(height: 4),
         Row(
@@ -222,28 +189,15 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     );
   }
 
-  Widget _buildCometSection(List<int> selected, ThemeData theme) {
+  Widget _buildCometSection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          spacing: 4,
-          runSpacing: 4,
-          children: namedComets.entries.map((e) {
-            final bodyId = seAstOffset + e.key;
-            return FilterChip(
-              label: Text(e.value),
-              selected: selected.contains(bodyId),
-              onSelected: (_) {
-                if (selected.contains(bodyId)) {
-                  _toggleBody(bodyId);
-                } else {
-                  _addComet(e.key);
-                }
-              },
-              visualDensity: VisualDensity.compact,
-            );
-          }).toList(),
+        BodyChipWrap(
+          selection: _selection,
+          bodies: [
+            for (final mpc in BodyCatalog.namedComets.keys) seAstOffset + mpc,
+          ],
         ),
         const SizedBox(height: 4),
         Row(
@@ -292,7 +246,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
     final text = _cometController.text.trim();
     final num = int.tryParse(text);
     if (num != null && num > 0) {
-      _addComet(num);
+      _addAsteroid(num);
       _cometController.clear();
     }
   }
@@ -333,7 +287,9 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
         icon: const Icon(Icons.close, size: 16),
         tooltip: 'Remove ${results[i].bodyName}',
         visualDensity: VisualDensity.compact,
-        onPressed: () => _toggleBody(results[i].body),
+        onPressed: () => ref
+            .read(bodySelectionProvider(_selection).notifier)
+            .remove(results[i].body),
       ),
       cardBuilder: (r) => _buildCard(r, format),
     );

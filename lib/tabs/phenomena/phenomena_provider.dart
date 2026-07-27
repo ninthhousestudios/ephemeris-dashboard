@@ -3,6 +3,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_selection.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
@@ -16,11 +17,6 @@ import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/result_section.dart';
-
-/// Selected bodies for phenomena calculation.
-final phenomenaBodiesProvider = StateProvider<List<int>>(
-  (ref) => [seSun, seMoon, seMercury, seVenus, seMars, seJupiter, seSaturn],
-);
 
 /// Display format for Phenomena tab.
 final phenomenaFormatProvider = StateProvider<DisplayFormat>(
@@ -87,7 +83,9 @@ List<PhenomenaResult> computePhenomena({
 List<PhenomenaResult> Function(Ephemeris, Moment) _phenomenaCompute(Ref ref) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
-  final bodies = ref.watch(phenomenaBodiesProvider);
+  final bodies = ref.watch(
+    bodySelectionProvider(BodySelection.phenomenaBodies),
+  );
 
   return (eph, moment) => computePhenomena(
     eph: eph,

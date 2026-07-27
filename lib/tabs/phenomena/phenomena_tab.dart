@@ -5,6 +5,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_catalog.dart';
+import '../../core/body_selection.dart';
+import '../../widgets/body_chips.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
@@ -12,47 +15,12 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../layout/tab_definitions.dart';
-import '../../tabs/other_bodies/other_bodies_provider.dart'
-    show otherBodiesNamedAsteroids, namedComets;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card_grid.dart';
 import '../../widgets/result_section.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'phenomena_provider.dart';
-
-const _standardBodies = [
-  (seSun, 'Sun'),
-  (seMoon, 'Moon'),
-  (seMercury, 'Mercury'),
-  (seVenus, 'Venus'),
-  (seMars, 'Mars'),
-  (seJupiter, 'Jupiter'),
-  (seSaturn, 'Saturn'),
-];
-
-const _outerBodies = [
-  (seUranus, 'Uranus'),
-  (seNeptune, 'Neptune'),
-  (sePluto, 'Pluto'),
-  (seChiron, 'Chiron'),
-  (sePholus, 'Pholus'),
-  (seCeres, 'Ceres'),
-  (sePallas, 'Pallas'),
-  (seJuno, 'Juno'),
-  (seVesta, 'Vesta'),
-];
-
-const _uranianBodies = [
-  (seCupido, 'Cupido'),
-  (seHades, 'Hades'),
-  (seZeus, 'Zeus'),
-  (seKronos, 'Kronos'),
-  (seApollon, 'Apollon'),
-  (seAdmetos, 'Admetos'),
-  (seVulkanus, 'Vulkanus'),
-  (sePoseidon, 'Poseidon'),
-];
 
 class PhenomenaTab extends ConsumerStatefulWidget {
   const PhenomenaTab({super.key});
@@ -62,6 +30,14 @@ class PhenomenaTab extends ConsumerStatefulWidget {
 }
 
 class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
+  static const _selection = BodySelection.phenomenaBodies;
+
+  /// Outer planets plus the centaurs and minors — the second-row chips.
+  static const _outerBodies = <int>[
+    ...BodyCatalog.outers,
+    ...BodyCatalog.centaursAndMinors,
+  ];
+
   bool _showExtra = false;
   final _asteroidController = TextEditingController();
   final _cometController = TextEditingController();
@@ -73,20 +49,10 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
     super.dispose();
   }
 
-  void _toggleBody(int body) {
-    final current = ref.read(phenomenaBodiesProvider);
-    final updated = current.contains(body)
-        ? current.where((b) => b != body).toList()
-        : [...current, body];
-    ref.read(phenomenaBodiesProvider.notifier).state = updated;
-  }
-
   void _addAsteroid(int mpcNumber) {
-    final bodyId = seAstOffset + mpcNumber;
-    final current = ref.read(phenomenaBodiesProvider);
-    if (!current.contains(bodyId)) {
-      ref.read(phenomenaBodiesProvider.notifier).state = [...current, bodyId];
-    }
+    ref
+        .read(bodySelectionProvider(_selection).notifier)
+        .add(seAstOffset + mpcNumber);
   }
 
   void _addCustomAsteroid() {
@@ -124,7 +90,6 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedBodies = ref.watch(phenomenaBodiesProvider);
     final fmt = ref.watch(phenomenaFormatProvider);
     final theme = Theme.of(context);
     final labelStyle = theme.textTheme.labelSmall?.copyWith(
@@ -143,17 +108,7 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
               children: [
                 Text('Bodies ', style: theme.textTheme.labelLarge),
                 const SizedBox(width: 4),
-                ..._standardBodies.map(
-                  (b) => Padding(
-                    padding: const EdgeInsets.only(right: 4),
-                    child: FilterChip(
-                      label: Text(b.$2),
-                      selected: selectedBodies.contains(b.$1),
-                      onSelected: (_) => _toggleBody(b.$1),
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                ),
+                ...bodyChipRow(_selection, BodyCatalog.classical),
               ],
             ),
           ),
@@ -182,61 +137,26 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
               if (_showExtra) ...[
                 const SizedBox(height: 4),
                 // Outer planets + minor planets
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: _outerBodies
-                      .map(
-                        (b) => FilterChip(
-                          label: Text(b.$2),
-                          selected: selectedBodies.contains(b.$1),
-                          onSelected: (_) => _toggleBody(b.$1),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      )
-                      .toList(),
-                ),
+                const BodyChipWrap(selection: _selection, bodies: _outerBodies),
                 const SizedBox(height: 8),
                 // Uranian hypothetical points
                 Text('Uranian', style: labelStyle),
                 const SizedBox(height: 4),
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: _uranianBodies
-                      .map(
-                        (b) => FilterChip(
-                          label: Text(b.$2),
-                          selected: selectedBodies.contains(b.$1),
-                          onSelected: (_) => _toggleBody(b.$1),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      )
-                      .toList(),
+                const BodyChipWrap(
+                  selection: _selection,
+                  bodies: BodyCatalog.uranian,
                 ),
                 if (!kIsWeb) ...[
                   const SizedBox(height: 8),
                   // Asteroids
                   Text('Asteroids', style: labelStyle),
                   const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: otherBodiesNamedAsteroids.entries.map((e) {
-                      final bodyId = seAstOffset + e.key;
-                      return FilterChip(
-                        label: Text(e.value),
-                        selected: selectedBodies.contains(bodyId),
-                        onSelected: (_) {
-                          if (selectedBodies.contains(bodyId)) {
-                            _toggleBody(bodyId);
-                          } else {
-                            _addAsteroid(e.key);
-                          }
-                        },
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }).toList(),
+                  BodyChipWrap(
+                    selection: _selection,
+                    bodies: [
+                      for (final mpc in BodyCatalog.namedAsteroids.keys)
+                        seAstOffset + mpc,
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -273,24 +193,12 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
                   // Comets
                   Text('Comets', style: labelStyle),
                   const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: namedComets.entries.map((e) {
-                      final bodyId = seAstOffset + e.key;
-                      return FilterChip(
-                        label: Text(e.value),
-                        selected: selectedBodies.contains(bodyId),
-                        onSelected: (_) {
-                          if (selectedBodies.contains(bodyId)) {
-                            _toggleBody(bodyId);
-                          } else {
-                            _addAsteroid(e.key);
-                          }
-                        },
-                        visualDensity: VisualDensity.compact,
-                      );
-                    }).toList(),
+                  BodyChipWrap(
+                    selection: _selection,
+                    bodies: [
+                      for (final mpc in BodyCatalog.namedComets.keys)
+                        seAstOffset + mpc,
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -410,12 +318,9 @@ class _ResultsView extends ConsumerWidget {
         icon: const Icon(Icons.close, size: 16),
         tooltip: 'Remove ${results[i].bodyName}',
         visualDensity: VisualDensity.compact,
-        onPressed: () {
-          final current = ref.read(phenomenaBodiesProvider);
-          ref.read(phenomenaBodiesProvider.notifier).state = current
-              .where((b) => b != results[i].body)
-              .toList();
-        },
+        onPressed: () => ref
+            .read(bodySelectionProvider(BodySelection.phenomenaBodies).notifier)
+            .remove(results[i].body),
       ),
       cardBuilder: (section) => section.toCard(),
     );

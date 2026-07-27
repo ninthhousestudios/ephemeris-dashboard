@@ -3,6 +3,7 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/swe_constants.dart';
+import '../../core/body_selection.dart';
 
 import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
@@ -16,12 +17,6 @@ import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/result_section.dart';
-
-/// Body A selection.
-final diffBodyAProvider = StateProvider<int>((ref) => seSun);
-
-/// Body B selection.
-final diffBodyBProvider = StateProvider<int>((ref) => seMoon);
 
 /// Display format for this tab.
 final diffFormatProvider = StateProvider<DisplayFormat>(
@@ -102,8 +97,8 @@ DiffResult Function(Ephemeris, Moment) _diffCompute(
 }) {
   final flags = ref.watch(flagBarProvider);
   final swe = ref.read(sweProvider);
-  final bodyA = ref.watch(diffBodyAProvider);
-  final bodyB = ref.watch(diffBodyBProvider);
+  final bodyA = ref.watch(singleBodyProvider(BodySelection.differentialBodyA));
+  final bodyB = ref.watch(singleBodyProvider(BodySelection.differentialBodyB));
 
   return (eph, moment) => computeDifferential(
     eph: eph,
