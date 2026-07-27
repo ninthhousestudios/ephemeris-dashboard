@@ -14,9 +14,9 @@ import '../core/calculation/series_table.dart';
 /// staying in step:
 ///
 /// - [SeriesLayout.horizontal] — one row per Moment, one column per
-///   (row identifier, quantity).
-/// - [SeriesLayout.vertical] — one row per (Moment, row identifier), one
-///   column per quantity, via [toVerticalTable].
+///   (row identifier, quantity). Time down the y-axis.
+/// - [SeriesLayout.vertical] — the transpose: one row per (row identifier,
+///   quantity), one column per Moment. Time across the x-axis.
 ///
 /// Tab-agnostic — it takes a built table and a way to label a Moment, and has
 /// no idea what the quantities mean.
@@ -104,35 +104,44 @@ class SeriesGrid extends StatelessWidget {
     ];
   }
 
-  /// One row per (Moment, row identifier), quantities across.
+  /// The transpose: one row per (row identifier, quantity), the steps across.
   ///
-  /// The Moment repeats down its own group of rows rather than spanning them:
-  /// `Table` has no row spanning, and a blank-until-it-changes column would
-  /// break the moment a row is read out of order or copied.
+  /// Time runs along the x-axis, so a quantity is read left-to-right the way a
+  /// series is thought about, and the (body, quantity) pair that is one thing
+  /// stays one label instead of being split over two axes.
   List<TableRow> _verticalRows(ThemeData theme) {
-    final vertical = toVerticalTable(table);
-    final hasErrors = vertical.hasErrors;
-    // 'Name' is what `ExportService` calls this column, and the vertical
-    // export is exactly these rows — the heading should not disagree.
-    final showNames = vertical.hasIdentifiers;
+    final steps = transposedStepLabels(table, momentLabel);
+    final hasErrors = table.hasErrors;
 
     return [
       TableRow(
         children: [
-          _headerCell(theme, momentColumnTitle),
-          if (showNames) _headerCell(theme, 'Name'),
-          for (final label in vertical.labels) _headerCell(theme, label),
-          if (hasErrors) _headerCell(theme, 'Error'),
+          // The corner cell names what the row labels are, and the step
+          // headings take over the Moment column's job.
+          _headerCell(theme, 'Name'),
+          for (final label in steps) _headerCell(theme, label),
         ],
       ),
-      for (final row in vertical.rows)
+      for (final column in table.columns)
         TableRow(
           children: [
-            _cell(theme, momentLabel(row.moment), isMoment: true),
-            if (showNames) _cell(theme, row.header, isMoment: true),
-            for (final label in vertical.labels)
-              _cell(theme, row.isError ? '—' : (row.values[label] ?? '')),
-            if (hasErrors) _cell(theme, row.error ?? '', isError: true),
+            _cell(theme, column.title, isMoment: true),
+            for (final row in table.rows)
+              _cell(
+                theme,
+                // A failed step is a dashed column, not a shifted one.
+                row.isError ? '—' : (row.values[column] ?? ''),
+              ),
+          ],
+        ),
+      // Errors are per step, so in this shape they are a row along the bottom
+      // rather than a column down the side.
+      if (hasErrors)
+        TableRow(
+          children: [
+            _headerCell(theme, 'Error'),
+            for (final row in table.rows)
+              _cell(theme, row.error ?? '', isError: true),
           ],
         ),
     ];

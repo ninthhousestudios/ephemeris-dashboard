@@ -40,31 +40,39 @@ List<ExportRow> seriesToExportRows(
   };
 }
 
-/// One row per (step, row identifier), quantities as columns.
+/// The transpose: one row per (row identifier, quantity), the steps across.
 ///
-/// The re-shaping itself is [toVerticalTable], shared with `SeriesGrid` so the
-/// file and the screen cannot render different vertical tables; this only
-/// prefixes the leading Moment fields and pads the errored steps.
+/// The Moment is a column here rather than a field, so the JD that leads every
+/// row of the horizontal shape becomes a row of its own — dropping it would
+/// make this the one layout that exports no full-precision time.
 List<ExportRow> _vertical(SeriesTable table, String Function(Moment) label) {
-  final vertical = toVerticalTable(table);
-  final rows = <ExportRow>[];
-  for (final row in vertical.rows) {
-    final leading = _leading(row.moment, label);
-    if (row.error case final message?) {
-      rows.add(_errorRow('', leading, vertical.labels, message));
-      continue;
-    }
-    rows.add(
+  final steps = transposedStepLabels(table, label);
+  final indexed = table.rows.indexed;
+
+  return [
+    ExportRow(
+      header: 'JD',
+      fields: [
+        for (final (i, row) in indexed)
+          (steps[i], row.moment.ut.toStringAsFixed(8)),
+      ],
+    ),
+    for (final column in table.columns)
       ExportRow(
-        header: row.header,
+        header: column.title,
         fields: [
-          ...leading,
-          for (final entry in row.values.entries) (entry.key, entry.value),
+          for (final (i, row) in indexed)
+            // A failed step is a blank column, not a shifted one — the same
+            // call the horizontal shape makes for a missing value.
+            (steps[i], row.isError ? '' : (row.values[column] ?? '')),
         ],
       ),
-    );
-  }
-  return rows;
+    if (table.hasErrors)
+      ExportRow(
+        header: 'Error',
+        fields: [for (final (i, row) in indexed) (steps[i], row.error ?? '')],
+      ),
+  ];
 }
 
 /// One row per step, every (row identifier, quantity) flattened across.

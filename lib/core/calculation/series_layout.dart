@@ -1,17 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-/// The two shapes swetest emits for a series.
+/// Which axis the steps of a series run along, on screen and in the export.
 ///
-/// Its own file, with no dependencies: [SeriesSettings] persists the choice
-/// and `series_export.dart` acts on it, and the settings type has no business
-/// pulling in the export stack (and `package:file_saver` behind it) to name a
-/// layout.
+/// The two are transposes of each other, not two different tables: the same
+/// built `SeriesTable` read along either axis.
+///
+/// Its own file, with no dependencies: [SeriesSettings] persists the choice,
+/// and `series_export.dart` and `SeriesGrid` act on it. The settings type has
+/// no business pulling in the export stack (and `package:file_saver` behind
+/// it) to name a layout.
 enum SeriesLayout {
-  /// One row per (step, row identifier) — swetest's default.
+  /// Steps across the x-axis, one row per (row identifier, quantity).
   vertical('Vertical (row per body)'),
 
-  /// One row per step, every quantity flattened across — swetest's `-hor`.
+  /// Steps down the y-axis, one row per step — swetest's `-hor`.
   horizontal('Horizontal (row per step)');
 
   const SeriesLayout(this.label);

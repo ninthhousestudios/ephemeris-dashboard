@@ -136,30 +136,46 @@ void main() {
 
     String label(Moment m) => 'day ${m.ut.toStringAsFixed(0)}';
 
-    test('vertical is one row per (step, body), JD and date leading', () {
+    test('vertical is the transpose: a row per quantity, the steps across', () {
       final rows = seriesToExportRows(
         table,
         SeriesLayout.vertical,
         momentLabel: label,
       );
 
-      expect(rows.map((r) => r.header), ['Sun', 'Moon', '']);
-      expect(rows[0].fields, [
-        ('JD', '2451545.00000000'),
-        ('Date', 'day 2451545'),
-        ('Longitude', '10'),
-        ('Latitude', '0'),
+      // The (body, quantity) pair stays one label; the steps are the columns.
+      expect(rows.map((r) => r.header), [
+        'JD',
+        'Sun Longitude',
+        'Sun Latitude',
+        'Moon Longitude',
+        'Moon Latitude',
+        'Error',
       ]);
-      expect(rows[1].fields.last, ('Latitude', '5'));
-      // The errored step is one row carrying the message, not one per body,
-      // padded to the quantity schema so the message stays the last column.
-      expect(rows[2].fields, [
-        ('JD', '2451546.00000000'),
-        ('Date', 'day 2451546'),
-        ('Longitude', ''),
-        ('Latitude', ''),
-        ('Error', 'out of range'),
+      expect(rows[1].fields, [
+        ('day 2451545', '10'),
+        // The failed step is a blank cell in every quantity's row.
+        ('day 2451546', ''),
       ]);
+      // The Moment is a column here, so full-precision time is its own row
+      // rather than a field leading each one.
+      expect(rows[0].fields.first, ('day 2451545', '2451545.00000000'));
+      // And the error is a row along the bottom, one cell per step.
+      expect(rows.last.fields, [
+        ('day 2451545', ''),
+        ('day 2451546', 'out of range'),
+      ]);
+    });
+
+    test('two steps that format alike still get a column each', () {
+      final rows = seriesToExportRows(
+        table,
+        SeriesLayout.vertical,
+        // A step finer than the label's resolution: both Moments read alike.
+        momentLabel: (_) => 'noon',
+      );
+
+      expect(rows[1].fields.map((f) => f.$1), ['noon', 'noon (2)']);
     });
 
     test('horizontal is one row per step in grid column order', () {
@@ -209,13 +225,19 @@ void main() {
       );
       expect(horizontal[0].fields.last, ('Chiron Longitude', ''));
 
-      // Vertically the same hole is an absent row, not an empty one.
+      // Transposed, the same hole is an empty cell in Chiron's row — the step
+      // it is missing from is a column, and columns do not move.
       final vertical = seriesToExportRows(
         sparse,
         SeriesLayout.vertical,
         momentLabel: label,
       );
-      expect(vertical.map((r) => r.header), ['Sun', 'Sun', 'Chiron']);
+      expect(vertical.map((r) => r.header), [
+        'JD',
+        'Sun Longitude',
+        'Chiron Longitude',
+      ]);
+      expect(vertical.last.fields, [('day 1', ''), ('day 2', '99')]);
     });
 
     test('an errored first step does not reorder the exported columns', () {
@@ -239,6 +261,8 @@ void main() {
         ).split('\n').first,
         'Name\tJD\tDate\tSun Longitude\tSun Latitude\tError',
       );
+      // Transposed there is nothing to reorder: every row carries every step,
+      // so the columns are the steps in series order whatever failed.
       expect(
         ExportService.toTsv(
           seriesToExportRows(
@@ -247,7 +271,7 @@ void main() {
             momentLabel: label,
           ),
         ).split('\n').first,
-        'Name\tJD\tDate\tLongitude\tLatitude\tError',
+        'Name\tday 1\tday 2',
       );
     });
 
@@ -263,10 +287,12 @@ void main() {
 
       for (final layout in SeriesLayout.values) {
         final rows = seriesToExportRows(hidden, layout, momentLabel: label);
-        expect(
-          rows.single.fields.map((f) => f.$1),
-          isNot(contains(anyOf('Latitude', 'Sun Latitude'))),
-        );
+        // The quantity names a row in one layout and a column in the other,
+        // so a hidden one must be absent from both.
+        expect([
+          ...rows.map((r) => r.header),
+          ...rows.expand((r) => r.fields).map((f) => f.$1),
+        ], isNot(contains(anyOf('Latitude', 'Sun Latitude'))));
       }
     });
 
@@ -305,9 +331,10 @@ void main() {
 
       expect(
         ExportService.toTsv(vertical).split('\n').first,
-        'Name\tJD\tDate\tLongitude\tLatitude\tError',
+        'Name\tday 2451545\tday 2451546',
       );
-      expect(ExportService.toTsv(vertical).split('\n').length, 4);
+      // Header + JD, four quantities, Error.
+      expect(ExportService.toTsv(vertical).split('\n').length, 7);
       expect(
         ExportService.toCsv(horizontal).split('\n').first,
         'Name,JD,Date,Sun Longitude,Sun Latitude,Moon Longitude,Moon Latitude,'
@@ -316,7 +343,7 @@ void main() {
       expect(ExportService.toJson(horizontal), contains('"Sun Longitude"'));
       expect(
         ExportService.toColonSeparated(vertical),
-        startsWith('Sun\nJD: 2451545.00000000\n'),
+        startsWith('JD\nday 2451545: 2451545.00000000\n'),
       );
     });
   });
@@ -785,27 +812,30 @@ void main() {
         size: const Size(1400, 900),
       );
 
-      // Vertical is the default: a Name column, one row per body, and the
-      // quantity headings bare because they are shared down the column.
+      // Vertical is the default and is the transpose: the (body, quantity)
+      // pair is a row label, and the steps are the columns.
       expect(find.text('Name'), findsOneWidget);
-      expect(find.text('Sun'), findsOneWidget);
-      expect(find.text('Moon'), findsOneWidget);
-      expect(find.text('Sun Longitude'), findsNothing);
+      expect(find.text('Sun Longitude'), findsOneWidget);
+      expect(find.text('Moon Latitude'), findsOneWidget);
+      // One step, so one step column and no Moment column heading.
+      expect(find.text('Date/Time (UT1)'), findsNothing);
 
       container
           .read(seriesSettingsProvider('planets').notifier)
           .setLayout(SeriesLayout.horizontal);
       await tester.pump();
 
-      // Horizontal folds both bodies into the one step row: no Name column,
-      // and the body name moves into the headings.
+      // Horizontal puts the same pairs back along the top, with the Moment
+      // leading each row.
       expect(find.text('Name'), findsNothing);
+      expect(find.text('Date/Time (UT1)'), findsOneWidget);
       expect(find.text('Sun Longitude'), findsOneWidget);
       expect(find.text('Moon Latitude'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('a vertical grid renders an errored step once', (tester) async {
+    testWidgets('a transposed grid puts the steps across and errors along the '
+        'bottom', (tester) async {
       final table = buildSeriesTable([
         _ok(1.0, [
           _row('Sun', [('Longitude', '10')]),
@@ -825,12 +855,20 @@ void main() {
         size: const Size(1400, 900),
       );
 
-      // Two body rows for the good step, one row for the failed one — an
-      // error is a property of the step, not of each body in it.
-      expect(find.text('Longitude'), findsOneWidget);
-      expect(find.text('1.0'), findsNWidgets(2));
+      // Steps are the column headings; the Moment column title has no place.
+      expect(find.text('1.0'), findsOneWidget);
       expect(find.text('2.0'), findsOneWidget);
-      expect(find.text('—'), findsOneWidget);
+      expect(find.text('UT'), findsNothing);
+
+      // A row per (body, quantity), values in the step's column.
+      expect(find.text('Sun Longitude'), findsOneWidget);
+      expect(find.text('Moon Longitude'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+
+      // The failed step is a dashed column — one cell per quantity row — and
+      // its message sits in the Error row along the bottom.
+      expect(find.text('—'), findsNWidgets(2));
+      expect(find.text('Error'), findsOneWidget);
       expect(find.text('out of range'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -893,13 +931,14 @@ void main() {
         size: const Size(1400, 900),
       );
 
-      // Default layout is vertical: the body is the row identifier.
+      // Default layout is vertical: the one step is the only column, and
+      // 'Sun Longitude' names a row.
       await tester.tap(find.byIcon(Icons.file_download));
       await tester.pumpAndSettle();
-      expect(copied, startsWith('Name\tJD\tDate\tLongitude\nSun\t'));
+      expect(copied, contains('\nSun Longitude\t10'));
 
-      // Selecting horizontal re-projects the same table: the Moment is the
-      // row identifier and the column carries the body name.
+      // Selecting horizontal transposes it: the Moment is the row identifier
+      // and the column carries the body name.
       await tester.tap(find.byIcon(Icons.arrow_drop_down));
       await tester.pumpAndSettle();
       await tester.tap(find.text(SeriesLayout.horizontal.label));
