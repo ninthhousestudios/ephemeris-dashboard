@@ -13,7 +13,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
-import '../../core/swe_service.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 
 // ── Eclipse search mode ──────────────────────────────────────────────────────

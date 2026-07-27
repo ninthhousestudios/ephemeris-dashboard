@@ -10,7 +10,7 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import '../../core/jd_utils.dart';
 import '../../core/output_clock.dart';
-import '../../core/swe_service.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';

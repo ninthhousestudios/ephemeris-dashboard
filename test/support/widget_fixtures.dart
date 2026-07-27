@@ -12,6 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:swe_dashboard/core/ephe/bootstrap.dart';
 import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
 import 'package:swe_dashboard/core/display_format.dart';
 import 'package:swe_dashboard/core/persistence.dart';
@@ -143,6 +144,15 @@ const fakeHeliacalResults = [
 
 // ── Provider overrides ──
 
+/// Startup bootstrap for widget tests: nothing staged, which is what a test
+/// process that never ran `bootstrapEpheSource` actually has. Tests needing
+/// the Swiss Ephemeris to look available pass their own override after this
+/// one. It is not optional — `epheBootstrapProvider` throws when unset, so a
+/// scope that forgets it fails loudly rather than quietly reporting no files.
+final epheBootstrapOverride = epheBootstrapProvider.overrideWithValue(
+  const EpheBootstrap.none(),
+);
+
 final planetsResultsOverride = planetsResultsProvider.overrideWith(
   (ref) => CalcOk(fakePlanetResults),
 );
@@ -268,7 +278,11 @@ Future<void> pumpAppWidget(
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [sharedPrefsProvider.overrideWithValue(prefs), ...overrides],
+      overrides: [
+        sharedPrefsProvider.overrideWithValue(prefs),
+        epheBootstrapOverride,
+        ...overrides,
+      ],
       child: MaterialApp(
         theme: isLight ? AppThemes.light : AppThemes.dark,
         // `MaterialApp` lerps theme changes over `kThemeAnimationDuration`.

@@ -112,18 +112,46 @@ Richer result shapes among the search / multi-call tabs:
 | `runner.dart` | `EphemerisRunner`, `ephemerisRunnerProvider`, `appliedGlobalsProvider` | Owns the RustEph singleton (exposed as `eph`). `apply(globals)` diffs AppliedGlobals, calls `reconfigure` if changed. |
 | `applied_globals.dart` | `AppliedGlobals` | Equatable value object: ephePath, sidMode, topo, jplFile. `toEphemerisConfig()` builds `rs.EphemerisConfig`. `withSidMode()` for per-mode overrides. |
 
-## Conditional-import split (native/web)
+## Ephemeris Source bootstrap (`lib/core/ephe/`)
+
+Startup staging — where the `.se1` files come from — is its own module. It is
+the app's only conditional-import split, and it is *only* about staging: engine
+dispatch needs no split (ADR-0002).
 
 ```
-swe_service.dart          ← public API: sweProvider, initSweEphePath
-  imports swe_service_io.dart      (native: dart:io, resolves ephe path)
-       if (js_interop) swe_service_stub.dart  (web: WASM init + MEMFS)
+bootstrap.dart      ← EpheBootstrap (value), epheBootstrapProvider, bootstrapEpheSource()
+  imports staging_io.dart          (native: dart:io, probe execution + asset extraction)
+       if (js_interop) staging_web.dart   (web: WASM init + MEMFS load)
+probes.dart         ← EpheProbe taxonomy + nativeEpheProbes(PlatformFacts) — pure, no I/O
 ```
 
-`sweProvider` returns `SweUtils` (utility calls backed by the runner's
-`rs.Ephemeris`). `initSweEphePath()` resolves or extracts ephemeris data files
-at startup — on web it loads the WASM module and stages `.se1` files into MEMFS;
-on native it locates the bundle or dev-mode package path.
+| File | Key symbols | Role |
+|------|-------------|------|
+| `probes.dart` | `EpheProbe` (sealed: `DirectoryProbe`, `PackageConfigProbe`, `AssetExtractionProbe`), `PlatformFacts`, `nativeEpheProbes`, `epheAssetVersion` | The *ordering policy*: which platform looks where, in what sequence. Pure function of `PlatformFacts`, so every platform's plan is asserted from one test process (`test/ephe/probes_test.dart`). |
+| `staging_io.dart` | `stageEpheSource`, `isValidEpheDir`, `currentPlatformFacts` | Executes the plan. First probe yielding a dir with a `.se1` wins; then seeds `<appSupport>/ephe`. |
+| `staging_web.dart` | `stageEpheSource` | Loads WASM, pushes bundled assets into MEMFS at `/ephe`. No managed dir. |
+| `bootstrap.dart` | `EpheBootstrap`, `epheBootstrapProvider`, `bootstrapEpheSource` | The result as a value: `bundledPath`, `managedPath`, `webFilenames`, `hasEpheFiles`. |
+
+`main()` awaits `bootstrapEpheSource()` once and installs the result via
+`epheBootstrapProvider.overrideWithValue` (the `sharedPrefsProvider` pattern).
+The provider throws when unset, so a scope that forgets the override fails
+loudly instead of silently reporting "no ephemeris files". Widget tests get it
+from `epheBootstrapOverride` in `test/support/widget_fixtures.dart`.
+
+`stageEpheSource` is the single name that must exist on both sides of the
+conditional import, and its return type is checked at the call site — a
+drifting stub is a compile error, not a runtime surprise.
+
+Consumers read the value, never a global: `resolvedEphePathProvider` and
+`ephemerisScanProvider` (`ephe/`), `contextBarProvider` (injects `hasEpheFiles`
+into `ContextBarNotifier`), `libraryInfoProvider` (config tab), and the
+Ephemeris Manager screen.
+
+## SweUtils
+
+`swe_utils_provider.dart` holds `sweProvider`, which returns `SweUtils`
+(utility calls backed by the runner's `rs.Ephemeris`). Nothing else — Source
+staging lives in `ephe/` above.
 
 ## Tab calling patterns
 

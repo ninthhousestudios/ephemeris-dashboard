@@ -3,7 +3,8 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/swe_service.dart';
+import '../../core/ephe/bootstrap.dart';
+import '../../core/swe_utils_provider.dart';
 
 // ── Library info model ───────────────────────────────────────────────────────
 
@@ -46,7 +47,8 @@ final libraryInfoProvider = Provider<LibraryInfo>((ref) {
 
   return LibraryInfo(
     version: version,
-    ephePath: bundledEphePath ?? 'none (Moshier mode)',
+    ephePath:
+        ref.watch(epheBootstrapProvider).bundledPath ?? 'none (Moshier mode)',
     bodies: bodies,
   );
 });

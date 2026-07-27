@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import '../context_state.dart';
-import '../swe_service.dart';
+import 'bootstrap.dart';
 import 'catalog.dart';
 import 'dir_provider.dart';
 import 'filename_parser.dart';
@@ -23,9 +23,14 @@ class EphemerisScan {
 /// Scan [dir] for Swiss Ephemeris + JPL files and return the resulting
 /// [EphemerisScan]. Files smaller than 16 KB are flagged corrupt; the rest
 /// trust filename-derived metadata.
-Future<EphemerisScan> scanEphemerisDirectory(String dir) async {
+/// On web there is no directory to walk, so the caller passes the filenames
+/// that startup loaded into MEMFS ([EpheBootstrap.webFilenames]).
+Future<EphemerisScan> scanEphemerisDirectory(
+  String dir, {
+  List<String> webFilenames = const [],
+}) async {
   if (kIsWeb) {
-    return _scanWebMemfs(dir);
+    return _scanWebMemfs(dir, webFilenames);
   }
   final directory = Directory(dir);
   if (!directory.existsSync()) {
@@ -44,9 +49,9 @@ Future<EphemerisScan> scanEphemerisDirectory(String dir) async {
   return EphemerisScan(entries, DateTime.now(), dir);
 }
 
-EphemerisScan _scanWebMemfs(String dir) {
+EphemerisScan _scanWebMemfs(String dir, List<String> webFilenames) {
   final entries = <EpheFile>[];
-  for (final name in webEpheFilenames) {
+  for (final name in webFilenames) {
     final parsed = parseEpheFilename(name, 0);
     if (parsed == null) continue;
     entries.add(parsed.copyWith(status: EpheFileStatus.installed));
@@ -89,7 +94,7 @@ void _scanOneDir(
       continue;
     }
 
-    if (!_looksLikeEpheFile(name)) continue;
+    if (!isEpheArtifact(name)) continue;
 
     final parsed = parseEpheFilename(name, size);
     if (parsed == null) continue;
@@ -152,18 +157,15 @@ EpheFile _enrichJplFromCatalog(EpheFile parsed) {
   );
 }
 
-bool _looksLikeEpheFile(String name) {
-  return name.endsWith('.se1') ||
-      name.endsWith('.eph') ||
-      name == 'sefstars.txt';
-}
-
 final ephemerisScanProvider = FutureProvider<EphemerisScan>((ref) async {
   final path = ref.watch(resolvedEphePathProvider);
   if (path == null) {
     return EphemerisScan(const [], DateTime.now(), '');
   }
-  return scanEphemerisDirectory(path);
+  return scanEphemerisDirectory(
+    path,
+    webFilenames: ref.watch(epheBootstrapProvider).webFilenames,
+  );
 });
 
 Set<EpheSource> availableEpheSources(EphemerisScan scan) {

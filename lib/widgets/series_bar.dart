@@ -12,7 +12,7 @@ import '../core/calculation/series_spec.dart';
 import '../core/context_provider.dart';
 import '../core/display_format.dart';
 import '../core/jd_utils.dart';
-import '../core/swe_service.dart';
+import '../core/swe_utils_provider.dart';
 
 /// Series-mode controls for one tab: the mode toggle, and — once on — the
 /// start Moment, step size and row count.

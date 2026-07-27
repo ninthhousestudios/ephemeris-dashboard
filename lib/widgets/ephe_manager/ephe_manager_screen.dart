@@ -16,7 +16,7 @@ import '../../core/ephe/scanner.dart';
 import '../../core/ephe/types.dart';
 import '../../core/ephe/validation.dart';
 import '../../core/persistence.dart';
-import '../../core/swe_service.dart';
+import '../../core/ephe/bootstrap.dart';
 import 'file_row.dart';
 import 'license_notice.dart';
 
@@ -605,7 +605,7 @@ class _EphemerisManagerScreenState
   }
 
   bool _isBundledFile(String filename) {
-    final bundled = bundledEphePath;
+    final bundled = ref.read(epheBootstrapProvider).bundledPath;
     if (bundled == null) return false;
     return File('$bundled/$filename').existsSync();
   }

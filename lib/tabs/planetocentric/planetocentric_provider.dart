@@ -13,7 +13,7 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
-import '../../core/swe_service.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 
 class PlanetoCentricResult {

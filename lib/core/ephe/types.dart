@@ -3,6 +3,14 @@
 
 const Object _sentinel = Object();
 
+/// Whether [name] is a file this app treats as ephemeris data — Swiss
+/// Ephemeris chunks, JPL binaries, or the fixed-star catalogue.
+///
+/// Shared by the directory scanner and the managed-directory seeder so the
+/// two cannot drift on what counts as an ephemeris file.
+bool isEpheArtifact(String name) =>
+    name.endsWith('.se1') || name.endsWith('.eph') || name == 'sefstars.txt';
+
 /// Types for the ephemeris file manager.
 ///
 /// BCE year convention: we use the astronomical proleptic Gregorian

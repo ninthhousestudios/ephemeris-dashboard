@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/context_provider.dart';
-import '../../core/swe_service.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'math_provider.dart';

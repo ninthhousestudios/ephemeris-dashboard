@@ -9,7 +9,7 @@ import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
-import '../../core/swe_service.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../core/time_scale.dart';
 
 class ContextDateField extends ConsumerStatefulWidget {

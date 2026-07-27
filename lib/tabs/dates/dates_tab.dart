@@ -12,7 +12,7 @@ import '../../core/calendar.dart';
 import '../../core/display_format.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
-import '../../core/swe_service.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../core/time_scale.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';

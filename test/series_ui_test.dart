@@ -21,6 +21,8 @@ import 'package:swe_dashboard/widgets/series_bar.dart';
 import 'package:swe_dashboard/widgets/series_grid.dart';
 import 'package:swe_dashboard/widgets/series_view.dart';
 
+import 'support/widget_fixtures.dart';
+
 Moment _moment(double ut) => Moment(ut: ut, deltaT: 0);
 
 SeriesStep _ok(double ut, List<ExportRow> rows) =>
@@ -370,7 +372,10 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       container = ProviderContainer(
-        overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
       );
       addTearDown(container.dispose);
     });
@@ -425,7 +430,10 @@ void main() {
       // A fresh container over the same prefs sees the same settings.
       final prefs = await SharedPreferences.getInstance();
       final reopened = ProviderContainer(
-        overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
       );
       addTearDown(reopened.dispose);
       expect(
@@ -444,7 +452,10 @@ void main() {
 
       final prefs = await SharedPreferences.getInstance();
       final reopened = ProviderContainer(
-        overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
       );
       addTearDown(reopened.dispose);
       expect(
@@ -484,7 +495,10 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
-        overrides: [sharedPrefsProvider.overrideWithValue(prefs)],
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
       );
       addTearDown(container.dispose);
 

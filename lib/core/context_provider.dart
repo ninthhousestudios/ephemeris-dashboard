@@ -7,7 +7,8 @@ import 'calendar.dart';
 import 'context_state.dart';
 import 'jd_utils.dart';
 import 'persistence.dart';
-import 'swe_service.dart';
+import 'ephe/bootstrap.dart';
+import 'swe_utils_provider.dart';
 import 'swe_utils.dart';
 import 'time_scale.dart';
 import 'chart_io.dart';
@@ -17,21 +18,29 @@ final contextBarProvider =
     StateNotifierProvider<ContextBarNotifier, ContextBarState>((ref) {
       final swe = ref.watch(sweProvider);
       final persistence = ref.watch(persistenceProvider);
-      return ContextBarNotifier(swe, persistence);
+      return ContextBarNotifier(
+        swe,
+        persistence,
+        ref.watch(epheBootstrapProvider).hasEpheFiles,
+      );
     });
 
 /// Manages context bar state with bidirectional JD ↔ DateTime sync.
 class ContextBarNotifier extends StateNotifier<ContextBarState> {
-  ContextBarNotifier(SweUtils swe, this._persistence)
+  ContextBarNotifier(SweUtils swe, this._persistence, this._hasEpheFiles)
     : _jdUtils = JdUtils(swe),
-      super(_initialState(swe)) {
+      super(_initialState(swe, _hasEpheFiles)) {
     restoreFromPersistence();
   }
 
   final JdUtils _jdUtils;
   final PersistenceService _persistence;
 
-  static ContextBarState _initialState(SweUtils swe) {
+  /// Whether startup staged any `.se1` files. When false the Ephemeris
+  /// Source is pinned to Moshier no matter what is persisted or selected.
+  final bool _hasEpheFiles;
+
+  static ContextBarState _initialState(SweUtils swe, bool hasEpheFiles) {
     final now = DateTime.now().toUtc();
     final jdUtils = JdUtils(swe);
     final jd = jdUtils.dateTimeToJd(now);
@@ -63,7 +72,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
       userAyanValue: overrides['userAyanValue'] as double?,
       userAyanT0IsUt: overrides['userAyanT0IsUt'] as bool?,
       projection: overrides['projection'] as SiderealProjection?,
-      epheSource: hasEpheFiles
+      epheSource: _hasEpheFiles
           ? overrides['epheSource'] as EpheSource?
           : EpheSource.moshier,
       utcOffset: overrides['utcOffset'] as double?,
@@ -212,7 +221,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
 
   void setEpheSource(EpheSource source) {
     // Force Moshier when no ephemeris files are available (e.g. web).
-    final effective = hasEpheFiles ? source : EpheSource.moshier;
+    final effective = _hasEpheFiles ? source : EpheSource.moshier;
     state = state.copyWith(epheSource: effective);
     _save();
   }

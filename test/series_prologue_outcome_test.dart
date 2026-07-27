@@ -26,6 +26,8 @@ import 'package:swe_dashboard/core/ephemeris/ephemeris.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 
+import 'support/widget_fixtures.dart';
+
 /// A runner whose `apply` refuses the config — the shape of a bad ephemeris
 /// path, an unsupported sidereal mode or a missing JPL file.
 class _RefusingRunner extends EphemerisRunner {
@@ -45,6 +47,7 @@ void main() {
     container = ProviderContainer(
       overrides: [
         sharedPrefsProvider.overrideWithValue(prefs),
+        epheBootstrapOverride,
         ephemerisRunnerProvider.overrideWith((ref) {
           final runner = _RefusingRunner();
           ref.onDispose(runner.close);

@@ -64,6 +64,7 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         sharedPrefsProvider.overrideWithValue(prefs),
+        epheBootstrapOverride,
         ...tabOverrides,
         planetsSeriesProvider.overrideWith((ref) => _fakeSeries),
       ],

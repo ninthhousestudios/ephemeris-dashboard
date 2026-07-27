@@ -25,7 +25,6 @@ import 'package:swe_dashboard/core/context_provider.dart';
 import 'package:swe_dashboard/core/context_state.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/persistence.dart';
-import 'package:swe_dashboard/core/swe_service.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
 import 'package:swe_dashboard/core/time_scale.dart';
 
@@ -100,20 +99,18 @@ void main() {
 
     // The notifier restores in its constructor, starting from its own
     // defaults — i.e. exactly the fresh-launch path.
+    // hasEpheFiles: true — the Ephemeris Source is only round-trippable when
+    // .se1 files were staged, and passing it explicitly means this assertion
+    // no longer depends on whether the test process happens to have any.
     final notifier = ContextBarNotifier(
       SweUtils(EphemerisRunner()),
       persistence,
+      true,
     );
     addTearDown(notifier.dispose);
     final restored = notifier.state;
 
     for (final entry in _persistedFields.entries) {
-      // Without bundled .se1 files the restore deliberately forces Moshier,
-      // so this one field is only round-trippable when they are present.
-      if (entry.key == 'epheSource' && !hasEpheFiles) {
-        expect(restored.epheSource, EpheSource.moshier);
-        continue;
-      }
       expect(
         entry.value(restored),
         entry.value(_custom),

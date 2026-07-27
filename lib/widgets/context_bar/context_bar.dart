@@ -11,7 +11,7 @@ import '../../core/chart_io.dart';
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
-import '../../core/swe_service.dart';
+import '../../core/swe_utils_provider.dart';
 import '../../layout/responsive_layout.dart';
 import '../chart_file_dialog.dart';
 import 'ayanamsa_selector.dart';

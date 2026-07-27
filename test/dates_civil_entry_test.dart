@@ -19,7 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/calendar.dart';
 import 'package:swe_dashboard/core/context_provider.dart';
 import 'package:swe_dashboard/core/jd_utils.dart';
-import 'package:swe_dashboard/core/swe_service.dart';
+import 'package:swe_dashboard/core/swe_utils_provider.dart';
 import 'package:swe_dashboard/tabs/dates/dates_provider.dart';
 import 'package:swe_dashboard/tabs/dates/dates_tab.dart';
 
