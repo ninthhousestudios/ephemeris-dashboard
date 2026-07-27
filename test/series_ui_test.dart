@@ -123,6 +123,48 @@ void main() {
       expect(table.isEmpty, isTrue);
       expect(table.hasErrors, isFalse);
     });
+
+    test('a step-level error is renamed clear of a per-body Error field', () {
+      // Planets, stars, other_bodies and rise_set all emit a per-body `Error`
+      // field. Where that field's heading is the bare word `Error`, a
+      // step-level error column of the same name is a second, unrelated column
+      // wearing an identical label — indistinguishable on screen, and folded
+      // into one by `ExportService`, which keys its schema on the label.
+      //
+      // The shapes collide on different names, so each judges its own: the
+      // wide shapes head the field `Chiron Error` and do not collide, while
+      // the long shape keys on the bare label and does.
+      final identified = buildSeriesTable([
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+          _row('Chiron', [('Error', 'no ephemeris')]),
+        ]),
+        _err(2.0, 'out of range'),
+      ]);
+      expect(identified.errorHeading, 'Error');
+      expect(toLongTable(identified).errorHeading, 'Step Error');
+
+      // A tab whose rows carry no identifier shows the bare label in every
+      // shape, so every shape collides.
+      final anonymous = buildSeriesTable([
+        _ok(1.0, [
+          _row('', [('Error', 'bad input')]),
+        ]),
+        _err(2.0, 'out of range'),
+      ]);
+      expect(anonymous.errorHeading, 'Step Error');
+      expect(toLongTable(anonymous).errorHeading, 'Step Error');
+
+      // With no per-body error to collide with, the plain name stands.
+      final clean = buildSeriesTable([
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+        ]),
+        _err(2.0, 'out of range'),
+      ]);
+      expect(clean.errorHeading, 'Error');
+      expect(toLongTable(clean).errorHeading, 'Error');
+    });
   });
 
   group('seriesToExportRows', () {
@@ -216,6 +258,36 @@ void main() {
       );
 
       expect(rows[1].fields.map((f) => f.$1), ['noon', 'noon (2)']);
+    });
+
+    test('every shape exports one error column per kind of error', () {
+      final mixed = buildSeriesTable([
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+          _row('Chiron', [('Error', 'no ephemeris')]),
+        ]),
+        _err(2.0, 'out of range'),
+      ]);
+
+      for (final layout in SeriesLayout.values) {
+        final rows = seriesToExportRows(mixed, layout, momentLabel: label);
+        // Both messages survive, under headings that tell them apart — the
+        // point being that neither is folded into the other's column.
+        final text = ExportService.toTsv(rows);
+        expect(text, contains('no ephemeris'), reason: '$layout');
+        expect(text, contains('out of range'), reason: '$layout');
+
+        // And no row carries the same field label twice, which is what made
+        // `ExportService` collapse the two.
+        for (final row in rows) {
+          final names = row.fields.map((f) => f.$1).toList();
+          expect(
+            names,
+            names.toSet().toList(),
+            reason: '$layout ${row.header}',
+          );
+        }
+      }
     });
 
     test('horizontal is one row per step in grid column order', () {
@@ -537,13 +609,66 @@ void main() {
     });
 
     test('a layout name from another build falls back, it does not throw', () {
-      SharedPreferences.setMockInitialValues({
-        'series_planets_export_layout': 'diagonal',
-      });
       expect(SeriesLayout.byName('diagonal'), SeriesLayout.horizontal);
       expect(SeriesLayout.byName(null), SeriesLayout.horizontal);
       expect(SeriesLayout.byName('vertical'), SeriesLayout.vertical);
       expect(SeriesLayout.byName('horizontal'), SeriesLayout.horizontal);
+    });
+
+    test('a layout stored under the old key keeps the shape it named', () async {
+      // `export_layout` predates the layout reaching the screen, and under it
+      // `vertical` meant swetest's row per body — today's `long`. Read by name
+      // it would come back as the transpose, a shape the user never chose.
+      SharedPreferences.setMockInitialValues({
+        'series_planets_export_layout': 'vertical',
+        'series_houses_export_layout': 'horizontal',
+        'series_stars_export_layout': 'diagonal',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final migrated = ProviderContainer(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
+      );
+      addTearDown(migrated.dispose);
+
+      expect(
+        migrated.read(seriesSettingsProvider('planets')).layout,
+        SeriesLayout.long,
+      );
+      // Horizontal named the same shape under both keys.
+      expect(
+        migrated.read(seriesSettingsProvider('houses')).layout,
+        SeriesLayout.horizontal,
+      );
+      // And a name from neither vocabulary still falls back rather than throws.
+      expect(
+        migrated.read(seriesSettingsProvider('stars')).layout,
+        const SeriesSettings().layout,
+      );
+    });
+
+    test('the current key wins over the one it replaced', () async {
+      SharedPreferences.setMockInitialValues({
+        'series_planets_layout': 'vertical',
+        'series_planets_export_layout': 'horizontal',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final both = ProviderContainer(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
+      );
+      addTearDown(both.dispose);
+
+      // A stale `export_layout` left behind by the migration must not outvote
+      // a choice made since — nothing deletes the old key.
+      expect(
+        both.read(seriesSettingsProvider('planets')).layout,
+        SeriesLayout.vertical,
+      );
     });
   });
 

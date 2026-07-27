@@ -43,4 +43,21 @@ enum SeriesLayout {
     }
     return fallback;
   }
+
+  /// Resolves a name written under the superseded key `export_layout`, where
+  /// the layouts were named for the export alone and `vertical` meant what is
+  /// now [long] — swetest's row per body — rather than the transpose.
+  ///
+  /// The spelling survived the rename but the shape it names did not, so a
+  /// stored `vertical` read through [byName] would resolve onto the new case
+  /// of the same name and hand back a layout the user never chose. This is why
+  /// the persisted key changed with the vocabulary rather than being kept.
+  static SeriesLayout legacyByName(
+    String? name, {
+    required SeriesLayout fallback,
+  }) => switch (name) {
+    'vertical' => long,
+    'horizontal' => horizontal,
+    _ => fallback,
+  };
 }

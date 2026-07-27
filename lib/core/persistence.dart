@@ -113,7 +113,29 @@ class PersistenceService {
         _seriesKey(tabId, 'hidden_labels'),
         s.hiddenLabels.toList(),
       )
-      ..setString(_seriesKey(tabId, 'export_layout'), s.layout.name);
+      ..setString(_seriesKey(tabId, 'layout'), s.layout.name);
+  }
+
+  /// The layout, from the current key or migrated once from the one it
+  /// replaced.
+  ///
+  /// `export_layout` was written when the choice reached only the file, and
+  /// under it `vertical` named swetest's row-per-body shape — now [
+  /// SeriesLayout.long]. Reading that value by name would resolve it onto
+  /// today's `vertical`, the transpose, and silently change the shape under a
+  /// user who never touched the setting. So the key changed with the
+  /// vocabulary: a value under the new key is current, and one under only the
+  /// old key is translated. The stale key is left where it is — the next save
+  /// writes the new one, and nothing reads the old one again.
+  SeriesLayout _seriesLayout(String tabId, SeriesLayout fallback) {
+    final current = _prefs.getString(_seriesKey(tabId, 'layout'));
+    if (current != null) {
+      return SeriesLayout.byName(current, fallback: fallback);
+    }
+    return SeriesLayout.legacyByName(
+      _prefs.getString(_seriesKey(tabId, 'export_layout')),
+      fallback: fallback,
+    );
   }
 
   /// Loaded field by field against the defaults, so a tab that has never been
@@ -141,10 +163,7 @@ class PersistenceService {
       hiddenLabels:
           _prefs.getStringList(_seriesKey(tabId, 'hidden_labels'))?.toSet() ??
           defaults.hiddenLabels,
-      layout: SeriesLayout.byName(
-        _prefs.getString(_seriesKey(tabId, 'export_layout')),
-        fallback: defaults.layout,
-      ),
+      layout: _seriesLayout(tabId, defaults.layout),
     );
   }
 

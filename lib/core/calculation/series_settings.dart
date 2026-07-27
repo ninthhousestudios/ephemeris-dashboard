@@ -43,8 +43,11 @@ class SeriesSettings {
   /// who works in horizontal wants it on the next tab too — the same reason
   /// the hidden quantities are stored.
   ///
-  /// Persisted under the key `export_layout`, from when it only reached the
-  /// file; the key stays as it is so an existing choice survives the rename.
+  /// Persisted under `layout`, which replaced `export_layout` from when the
+  /// choice only reached the file. The key had to change with it: `vertical`
+  /// named a different shape under the old one, so keeping the key would have
+  /// kept the spelling and quietly swapped the meaning. `PersistenceService`
+  /// translates a value found under only the old key.
   final SeriesLayout layout;
 
   bool showsLabel(String label) => !hiddenLabels.contains(label);
