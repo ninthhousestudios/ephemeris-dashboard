@@ -37,14 +37,10 @@ class FlagBarNotifier extends StateNotifier<FlagBarState> {
 
   void _save() => _persistence.saveFlagBar(state);
 
-  /// Restore persisted coord group and toggles.
+  /// Restore the persisted fields — [flagBarPrefFields], the same list the
+  /// save folds over.
   void restoreFromPersistence() {
-    final overrides = _persistence.loadFlagBar();
-    if (overrides.isEmpty) return;
-    state = state.copyWith(
-      coordValue: overrides['coordValue'] as int?,
-      toggles: overrides['toggles'] as Set<int>?,
-    );
+    state = _persistence.restoreFlagBar(state);
   }
 
   /// Set the mutually exclusive coordinate group.

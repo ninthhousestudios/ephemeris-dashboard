@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
-/// Context Bar persistence round trip (swe-dashboard/80, A1).
+/// Context Bar persistence round trip (swe-dashboard/80 A1, swe-dashboard/86).
 ///
-/// `saveContextBar` / `loadContextBar` / `restoreFromPersistence` are three
-/// lists of field names kept in lockstep by hand, so a field dropped from any
-/// one of them is silent: the setting simply forgets itself on restart. That
-/// is how `projection`, `userAyanT0IsUt` (saved and loaded, never applied) and
-/// `jplFilename` (never saved) got lost.
+/// Save and restore fold over one list — `contextBarPrefFields`, beside the
+/// state class. Before that they were three hand-synced lists of field names,
+/// and a field dropped from any one of them was silent: the setting simply
+/// forgot itself on restart. That is how `projection`, `userAyanT0IsUt` (saved
+/// and loaded, never applied) and `jplFilename` (never saved) got lost.
 ///
-/// The table below is the pin. Every persisted `ContextBarState` field belongs
-/// in it — **add a field to the state, add a row here.** Each row is checked
-/// twice: the custom value must differ from the default (or the round trip
-/// would prove nothing), and it must survive save → restore.
+/// One list makes the two directions agree by construction, so these tests no
+/// longer name fields one by one. They iterate `contextBarPrefFields` itself:
+/// every row, present and future, is checked to carry a value from [_custom]
+/// through the store and back. What a new field still needs is an off-default
+/// value in [_custom] — omit it and the round trip for that row proves nothing,
+/// which is exactly what the first test fails on.
 ///
-/// The Moment (`jdUt`) is deliberately not persisted — the app
-/// always starts at "now" — so it is absent from the table.
+/// The Moment (`jdUt`) is deliberately not persisted — the app always starts at
+/// "now" — so it is absent from the pref list and pinned equal in both states
+/// here.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -27,28 +30,6 @@ import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
 import 'package:swe_dashboard/core/time_scale.dart';
-
-/// Every persisted field, by name, as an accessor.
-final _persistedFields = <String, Object? Function(ContextBarState)>{
-  'utcOffset': (s) => s.utcOffset,
-  'calendar': (s) => s.calendar,
-  'timeScale': (s) => s.timeScale,
-  'latitude': (s) => s.latitude,
-  'longitude': (s) => s.longitude,
-  'altitude': (s) => s.altitude,
-  'cityLabel': (s) => s.cityLabel,
-  'origin': (s) => s.origin,
-  'zodiacRef': (s) => s.zodiacRef,
-  'eqRef': (s) => s.eqRef,
-  'ayanamsa': (s) => s.ayanamsa,
-  'lastSiderealAyanamsa': (s) => s.lastSiderealAyanamsa,
-  'userAyanT0': (s) => s.userAyanT0,
-  'userAyanValue': (s) => s.userAyanValue,
-  'userAyanT0IsUt': (s) => s.userAyanT0IsUt,
-  'projection': (s) => s.projection,
-  'epheSource': (s) => s.epheSource,
-  'jplFilename': (s) => s.jplFilename,
-};
 
 /// All defaults, with the Moment pinned so the comparison is about the rest.
 const _defaults = ContextBarState(utcOffset: 0.0, jdUt: 2451545.0);
@@ -76,25 +57,49 @@ const _custom = ContextBarState(
   jplFilename: 'de440.eph',
 );
 
+/// A fresh store holding [s], plus the raw prefs the fields read through.
+Future<(PersistenceService, SharedPreferences)> _storeHolding(
+  ContextBarState s,
+) async {
+  SharedPreferences.setMockInitialValues({});
+  final prefs = await SharedPreferences.getInstance();
+  return (PersistenceService(prefs)..saveContextBar(s), prefs);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('the custom state is off-default in every persisted field', () {
-    for (final entry in _persistedFields.entries) {
-      expect(
-        entry.value(_custom),
-        isNot(entry.value(_defaults)),
-        reason:
-            '${entry.key} must be non-default for the round trip to test it',
-      );
-    }
+  test(
+    'every pref field carries an off-default value through the store',
+    () async {
+      final (_, prefs) = await _storeHolding(_custom);
+
+      // Restoring a single field onto the defaults changes the state exactly
+      // when that field both stored something and stored something non-default —
+      // the two halves of a meaningful round trip, per field, with no list of
+      // field names to keep in sync with anything.
+      for (final field in contextBarPrefFields) {
+        expect(
+          field.restore(prefs, _defaults),
+          isNot(_defaults),
+          reason:
+              '${field.key} restored to the default — give it an off-default '
+              'value in _custom, or it is not actually being round-tripped',
+        );
+      }
+    },
+  );
+
+  test('the whole state survives save → restore', () async {
+    final (store, _) = await _storeHolding(_custom);
+    // This is the one that pins the pref list to the state class: a field
+    // added to ContextBarState and to _custom but given no pref row comes back
+    // as its default here, and the whole-state comparison fails.
+    expect(store.restoreContextBar(_defaults), _custom);
   });
 
-  test('every persisted field survives save → restore', () async {
-    SharedPreferences.setMockInitialValues({});
-    final persistence = PersistenceService(
-      await SharedPreferences.getInstance(),
-    )..saveContextBar(_custom);
+  test('the notifier restores on construction', () async {
+    final (store, _) = await _storeHolding(_custom);
 
     // The notifier restores in its constructor, starting from its own
     // defaults — i.e. exactly the fresh-launch path.
@@ -103,31 +108,24 @@ void main() {
     // no longer depends on whether the test process happens to have any.
     final notifier = ContextBarNotifier(
       SweUtils(EphemerisRunner()),
-      persistence,
+      store,
       true,
     );
     addTearDown(notifier.dispose);
-    final restored = notifier.state;
 
-    for (final entry in _persistedFields.entries) {
-      expect(
-        entry.value(restored),
-        entry.value(_custom),
-        reason: '${entry.key} did not survive the round trip',
-      );
-    }
+    // jdUt is not persisted: the notifier starts at "now", so compare the rest.
+    expect(notifier.state.copyWith(jdUt: _custom.jdUt), _custom);
   });
 
   test(
     'a cleared JPL filename does not resurrect the previous choice',
     () async {
-      SharedPreferences.setMockInitialValues({});
-      final persistence =
-          PersistenceService(await SharedPreferences.getInstance())
-            ..saveContextBar(_custom)
-            ..saveContextBar(_custom.copyWith(jplFilename: null));
+      final (store, _) = await _storeHolding(_custom);
+      store.saveContextBar(_custom.copyWith(jplFilename: null));
 
-      expect(persistence.loadContextBar().containsKey('jplFilename'), isFalse);
+      // Restored onto the defaults — the fresh-launch path, where nothing but
+      // the store could supply a filename.
+      expect(store.restoreContextBar(_defaults).jplFilename, isNull);
     },
   );
 }

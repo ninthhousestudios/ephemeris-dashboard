@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'calendar.dart';
+import 'pref_field.dart';
 import 'time_scale.dart';
 
 /// Immutable state for the global context bar.
@@ -163,6 +164,131 @@ class ContextBarState {
     jplFilename,
   );
 }
+
+typedef _CtxPref<T extends Object> = TypedPrefField<ContextBarState, T>;
+
+/// Every persisted [ContextBarState] field, stated once. Saving and restoring
+/// both fold over this list, so persisting a new field is one row here beside
+/// the field itself — not four hand-synchronised edits keyed by strings, which
+/// is how `projection`, `userAyanT0IsUt` and `jplFilename` each got silently
+/// dropped (swe-dashboard/80 A1, swe-dashboard/86).
+///
+/// The Moment ([ContextBarState.jdUt]) is deliberately absent: the JD is
+/// canonical and the app always restarts at "now". That rule is visible here
+/// as an absence from a single list.
+final contextBarPrefFields = <PrefField<ContextBarState>>[
+  _CtxPref<double>(
+    key: 'ctx_utc_offset',
+    getter: (s) => s.utcOffset,
+    setter: (s, v) => s.copyWith(utcOffset: v),
+    codec: doublePref,
+  ),
+  _CtxPref<Calendar>(
+    key: 'ctx_calendar',
+    getter: (s) => s.calendar,
+    setter: (s, v) => s.copyWith(calendar: v),
+    codec: const EnumPrefCodec(Calendar.values),
+  ),
+  _CtxPref<TimeScale>(
+    key: 'ctx_time_scale',
+    getter: (s) => s.timeScale,
+    setter: (s, v) => s.copyWith(timeScale: v),
+    codec: const EnumPrefCodec(TimeScale.values),
+  ),
+  _CtxPref<double>(
+    key: 'ctx_latitude',
+    getter: (s) => s.latitude,
+    setter: (s, v) => s.copyWith(latitude: v),
+    codec: doublePref,
+  ),
+  _CtxPref<double>(
+    key: 'ctx_longitude',
+    getter: (s) => s.longitude,
+    setter: (s, v) => s.copyWith(longitude: v),
+    codec: doublePref,
+  ),
+  _CtxPref<double>(
+    key: 'ctx_altitude',
+    getter: (s) => s.altitude,
+    setter: (s, v) => s.copyWith(altitude: v),
+    codec: doublePref,
+  ),
+  _CtxPref<String>(
+    key: 'ctx_city_label',
+    getter: (s) => s.cityLabel,
+    setter: (s, v) => s.copyWith(cityLabel: v),
+    codec: stringPref,
+  ),
+  _CtxPref<Origin>(
+    key: 'ctx_origin',
+    getter: (s) => s.origin,
+    setter: (s, v) => s.copyWith(origin: v),
+    codec: const EnumPrefCodec(Origin.values),
+  ),
+  _CtxPref<ZodiacRef>(
+    key: 'ctx_zodiac_ref',
+    getter: (s) => s.zodiacRef,
+    setter: (s, v) => s.copyWith(zodiacRef: v),
+    codec: const EnumPrefCodec(ZodiacRef.values),
+  ),
+  _CtxPref<EqRef>(
+    key: 'ctx_eq_ref',
+    getter: (s) => s.eqRef,
+    setter: (s, v) => s.copyWith(eqRef: v),
+    codec: const EnumPrefCodec(EqRef.values),
+  ),
+  _CtxPref<int>(
+    key: 'ctx_ayanamsa',
+    getter: (s) => s.ayanamsa,
+    setter: (s, v) => s.copyWith(ayanamsa: v),
+    codec: intPref,
+  ),
+  _CtxPref<int>(
+    key: 'ctx_last_sidereal_ayanamsa',
+    getter: (s) => s.lastSiderealAyanamsa,
+    setter: (s, v) => s.copyWith(lastSiderealAyanamsa: v),
+    codec: intPref,
+  ),
+  _CtxPref<double>(
+    key: 'ctx_user_ayan_t0',
+    getter: (s) => s.userAyanT0,
+    setter: (s, v) => s.copyWith(userAyanT0: v),
+    codec: doublePref,
+  ),
+  _CtxPref<double>(
+    key: 'ctx_user_ayan_value',
+    getter: (s) => s.userAyanValue,
+    setter: (s, v) => s.copyWith(userAyanValue: v),
+    codec: doublePref,
+  ),
+  _CtxPref<bool>(
+    key: 'ctx_user_ayan_t0_is_ut',
+    getter: (s) => s.userAyanT0IsUt,
+    setter: (s, v) => s.copyWith(userAyanT0IsUt: v),
+    codec: boolPref,
+  ),
+  _CtxPref<SiderealProjection>(
+    key: 'ctx_sidereal_projection',
+    getter: (s) => s.projection,
+    setter: (s, v) => s.copyWith(projection: v),
+    codec: const EnumPrefCodec(SiderealProjection.values),
+  ),
+  _CtxPref<EpheSource>(
+    key: 'ctx_ephe_source',
+    getter: (s) => s.epheSource,
+    setter: (s, v) => s.copyWith(epheSource: v),
+    codec: const EnumPrefCodec(EpheSource.values),
+  ),
+  // Nullable, and the only field where that matters: no JPL file chosen has
+  // to erase the key, not leave the previous choice behind for the next
+  // restore to pick up. `getter` returning null is what does that.
+  _CtxPref<String>(
+    key: 'ctx_jpl_filename',
+    getter: (s) => s.jplFilename,
+    setter: (s, v) => s.copyWith(jplFilename: v),
+    codec: stringPref,
+  ),
+];
 
 /// Sidereal projection plane (SE_SIDBIT_* modifiers ORed into sid_mode).
 ///

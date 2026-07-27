@@ -227,13 +227,14 @@ Tabs access the engine two ways:
 
 | File | Key types |
 |------|-----------|
-| `context_state.dart` | `ContextBarState` — immutable: jdUt, calendar, timeScale, lat, lon, alt, zodiacRef, origin, epheSource |
+| `context_state.dart` | `ContextBarState` — immutable: jdUt, calendar, timeScale, lat, lon, alt, zodiacRef, origin, epheSource. Also `contextBarPrefFields` — the declarative list of persisted fields, collocated with the state class; save and restore both fold over it (swe-dashboard/86). |
 | `time_scale.dart` | `TimeScale` (ut1/tt/utc) — pure enum: which time scale the civil date/time is entered/displayed on (swetest `-ut`/`-t`/`-utc`). View-layer only, like `Calendar`; the Moment stays a UT1 JD. Threaded into `JdUtils.civilToJdUt`/`jdUtToCivil` (the scale-aware civil↔JD mapping), Context-owned via `ContextBarState.timeScale`. |
 | `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState. Individual setters: setDateTime, setJd, setCalendar, setTimeScale, setUtcOffset, setLatitude, setLongitude, setAltitude, setCityLabel, setOrigin, etc. `setDateTime`/`setJd` read/render civil fields on the current calendar; `setCalendar` re-renders the displayed date from the (canonical) jdUt. The date/time fields commit through `setJd` (having mapped scale-civil → UT1 via `JdUtils.civilToJdUt`). |
 | `date_time_input.dart` | Shared helpers: fmtDate, fmtTime, fmtOffset, fmtCoord, parseDateFields, parseTimeFields, labeledField, dateTimeIconButton, showPreciseTimePicker, showInvalidEntry (the revert-and-report snackbar every context-bar entry field uses) |
 | `calc_context.dart` | `EffectiveContext` — merges context + flags into iflag, jdUt, lat, lon, alt |
 | `flag_definitions.dart` | `FlagDef`, `FlagGroup` — flag metadata, locked/toggle classification |
-| `flag_state.dart` | `FlagBarState` — selected flags |
+| `flag_state.dart` | `FlagBarState` — selected flags; `flagBarPrefFields` (persisted fields, minus the derived `lockedFlags`) |
+| `pref_field.dart` | `PrefField<S>` / `TypedPrefField<S, T>` / `PrefCodec<T>` — one persisted field as getter + copyWith-setter + codec + key. `PersistenceService` folds over a state owner's list in both directions, so a field is persisted by adding one row beside it rather than by keeping a writer, a reader and an applier in lockstep (swe-dashboard/86). |
 | `flag_provider.dart` | `FlagBarNotifier` — auto-links locked flags from context via ref.listen |
 | `active_tab.dart` | `activeTabProvider` (`StateProvider<AppTab>`) — the single source of truth for which tab is on screen, seeded from persistence; `activeTabIdProvider` is a derived `Provider<String>` over its `.name`. Lives in core, not `app_shell.dart`, because non-shell widgets set it (the file-in-use indicator jumps to Charts) and reaching it through the shell is what made app_shell → context_bar → file_in_use_indicator a cycle (swe-dashboard/81). |
 

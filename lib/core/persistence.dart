@@ -8,10 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'calculation/series_layout.dart';
 import 'calculation/series_settings.dart';
 import 'calculation/series_spec.dart';
-import 'calendar.dart';
 import 'context_state.dart';
-import 'time_scale.dart';
 import 'flag_state.dart';
+import 'pref_field.dart';
 import '../layout/tab_definitions.dart';
 
 /// Provider for the SharedPreferences instance, initialized in main().
@@ -23,149 +22,33 @@ class PersistenceService {
   PersistenceService(this._prefs);
   final SharedPreferences _prefs;
 
+  /// Write every field of [fields] for [state].
+  void _saveAll<S>(List<PrefField<S>> fields, S state) {
+    for (final field in fields) {
+      field.save(_prefs, state);
+    }
+  }
+
+  /// Fold the stored values back onto [state]. A field with nothing usable
+  /// stored leaves the state alone, so [state]'s own values are the defaults.
+  S _restoreAll<S>(List<PrefField<S>> fields, S state) =>
+      fields.fold(state, (s, field) => field.restore(_prefs, s));
+
   // ── Context Bar ──
 
-  void saveContextBar(ContextBarState s) {
-    _prefs
-      ..setDouble('ctx_latitude', s.latitude)
-      ..setDouble('ctx_longitude', s.longitude)
-      ..setDouble('ctx_altitude', s.altitude)
-      ..setString('ctx_city_label', s.cityLabel)
-      ..setString('ctx_origin', s.origin.name)
-      ..setString('ctx_zodiac_ref', s.zodiacRef.name)
-      ..setString('ctx_eq_ref', s.eqRef.name)
-      ..setInt('ctx_ayanamsa', s.ayanamsa)
-      ..setInt('ctx_last_sidereal_ayanamsa', s.lastSiderealAyanamsa)
-      ..setDouble('ctx_user_ayan_t0', s.userAyanT0)
-      ..setDouble('ctx_user_ayan_value', s.userAyanValue)
-      ..setBool('ctx_user_ayan_t0_is_ut', s.userAyanT0IsUt)
-      ..setString('ctx_sidereal_projection', s.projection.name)
-      ..setString('ctx_ephe_source', s.epheSource.name);
-    // Null (no JPL file chosen) has to erase the key, not leave the previous
-    // choice behind for the next restore to pick up.
-    final jplFilename = s.jplFilename;
-    if (jplFilename == null) {
-      _prefs.remove('ctx_jpl_filename');
-    } else {
-      _prefs.setString('ctx_jpl_filename', jplFilename);
-    }
-    _prefs
-      ..setDouble('ctx_utc_offset', s.utcOffset)
-      ..setString('ctx_calendar', s.calendar.name)
-      ..setString('ctx_time_scale', s.timeScale.name);
-  }
+  /// dateTime/jdUt are NOT persisted — always start at "now". See
+  /// [contextBarPrefFields] for the field list both directions fold over.
+  void saveContextBar(ContextBarState s) => _saveAll(contextBarPrefFields, s);
 
-  /// Returns a map of overrides to apply to the initial ContextBarState.
-  /// dateTime/jdUt are NOT persisted — always start at "now".
-  Map<String, dynamic> loadContextBar() {
-    final map = <String, dynamic>{};
-    if (_prefs.containsKey('ctx_latitude')) {
-      map['latitude'] = _prefs.getDouble('ctx_latitude');
-    }
-    if (_prefs.containsKey('ctx_longitude')) {
-      map['longitude'] = _prefs.getDouble('ctx_longitude');
-    }
-    if (_prefs.containsKey('ctx_altitude')) {
-      map['altitude'] = _prefs.getDouble('ctx_altitude');
-    }
-    if (_prefs.containsKey('ctx_city_label')) {
-      map['cityLabel'] = _prefs.getString('ctx_city_label');
-    }
-    if (_prefs.containsKey('ctx_origin')) {
-      final name = _prefs.getString('ctx_origin');
-      map['origin'] = Origin.values.firstWhere(
-        (e) => e.name == name,
-        orElse: () => Origin.geocentric,
-      );
-    }
-    if (_prefs.containsKey('ctx_zodiac_ref')) {
-      final name = _prefs.getString('ctx_zodiac_ref');
-      map['zodiacRef'] = ZodiacRef.values.firstWhere(
-        (e) => e.name == name,
-        orElse: () => ZodiacRef.tropical,
-      );
-    }
-    if (_prefs.containsKey('ctx_eq_ref')) {
-      final name = _prefs.getString('ctx_eq_ref');
-      map['eqRef'] = EqRef.values.firstWhere(
-        (e) => e.name == name,
-        orElse: () => EqRef.trueEquinoxOfDate,
-      );
-    }
-    if (_prefs.containsKey('ctx_ayanamsa')) {
-      map['ayanamsa'] = _prefs.getInt('ctx_ayanamsa');
-    }
-    if (_prefs.containsKey('ctx_last_sidereal_ayanamsa')) {
-      map['lastSiderealAyanamsa'] = _prefs.getInt('ctx_last_sidereal_ayanamsa');
-    }
-    if (_prefs.containsKey('ctx_user_ayan_t0')) {
-      map['userAyanT0'] = _prefs.getDouble('ctx_user_ayan_t0');
-    }
-    if (_prefs.containsKey('ctx_user_ayan_value')) {
-      map['userAyanValue'] = _prefs.getDouble('ctx_user_ayan_value');
-    }
-    if (_prefs.containsKey('ctx_user_ayan_t0_is_ut')) {
-      map['userAyanT0IsUt'] = _prefs.getBool('ctx_user_ayan_t0_is_ut');
-    }
-    if (_prefs.containsKey('ctx_sidereal_projection')) {
-      final name = _prefs.getString('ctx_sidereal_projection');
-      map['projection'] = SiderealProjection.values.firstWhere(
-        (e) => e.name == name,
-        orElse: () => SiderealProjection.standard,
-      );
-    }
-    if (_prefs.containsKey('ctx_ephe_source')) {
-      final name = _prefs.getString('ctx_ephe_source');
-      map['epheSource'] = EpheSource.values.firstWhere(
-        (e) => e.name == name,
-        orElse: () => EpheSource.swissEph,
-      );
-    }
-    if (_prefs.containsKey('ctx_jpl_filename')) {
-      map['jplFilename'] = _prefs.getString('ctx_jpl_filename');
-    }
-    if (_prefs.containsKey('ctx_utc_offset')) {
-      map['utcOffset'] = _prefs.getDouble('ctx_utc_offset');
-    }
-    if (_prefs.containsKey('ctx_calendar')) {
-      final name = _prefs.getString('ctx_calendar');
-      map['calendar'] = Calendar.values.firstWhere(
-        (e) => e.name == name,
-        orElse: () => Calendar.auto,
-      );
-    }
-    if (_prefs.containsKey('ctx_time_scale')) {
-      final name = _prefs.getString('ctx_time_scale');
-      map['timeScale'] = TimeScale.values.firstWhere(
-        (e) => e.name == name,
-        orElse: () => TimeScale.ut1,
-      );
-    }
-    return map;
-  }
+  ContextBarState restoreContextBar(ContextBarState s) =>
+      _restoreAll(contextBarPrefFields, s);
 
   // ── Flag Bar ──
 
-  void saveFlagBar(FlagBarState s) {
-    _prefs
-      ..setInt('flag_coord_value', s.coordValue)
-      ..setStringList(
-        'flag_toggles',
-        s.toggles.map((e) => e.toString()).toList(),
-      );
-  }
+  void saveFlagBar(FlagBarState s) => _saveAll(flagBarPrefFields, s);
 
-  Map<String, dynamic> loadFlagBar() {
-    final map = <String, dynamic>{};
-    if (_prefs.containsKey('flag_coord_value')) {
-      map['coordValue'] = _prefs.getInt('flag_coord_value');
-    }
-    if (_prefs.containsKey('flag_toggles')) {
-      final list = _prefs.getStringList('flag_toggles') ?? [];
-      map['toggles'] = list.map((s) => int.tryParse(s) ?? 0).toSet();
-    }
-    return map;
-  }
+  FlagBarState restoreFlagBar(FlagBarState s) =>
+      _restoreAll(flagBarPrefFields, s);
 
   // ── Theme ──
 

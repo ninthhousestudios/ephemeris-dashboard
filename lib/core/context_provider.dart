@@ -55,34 +55,15 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   }
 
   /// Apply persisted values after construction (called from provider factory).
+  ///
+  /// Which fields those are is [contextBarPrefFields]' business, not this
+  /// method's — the restore folds over the same list the save writes.
   void restoreFromPersistence() {
-    final overrides = _persistence.loadContextBar();
-    if (overrides.isEmpty) return;
-    state = state.copyWith(
-      latitude: overrides['latitude'] as double?,
-      longitude: overrides['longitude'] as double?,
-      altitude: overrides['altitude'] as double?,
-      cityLabel: overrides['cityLabel'] as String?,
-      origin: overrides['origin'] as Origin?,
-      zodiacRef: overrides['zodiacRef'] as ZodiacRef?,
-      eqRef: overrides['eqRef'] as EqRef?,
-      ayanamsa: overrides['ayanamsa'] as int?,
-      lastSiderealAyanamsa: overrides['lastSiderealAyanamsa'] as int?,
-      userAyanT0: overrides['userAyanT0'] as double?,
-      userAyanValue: overrides['userAyanValue'] as double?,
-      userAyanT0IsUt: overrides['userAyanT0IsUt'] as bool?,
-      projection: overrides['projection'] as SiderealProjection?,
-      epheSource: _hasEpheFiles
-          ? overrides['epheSource'] as EpheSource?
-          : EpheSource.moshier,
-      utcOffset: overrides['utcOffset'] as double?,
-      calendar: overrides['calendar'] as Calendar?,
-      timeScale: overrides['timeScale'] as TimeScale?,
-    );
-    // Nullable field, so it cannot ride along in the copyWith above: passing
-    // null there is "keep", not "clear". Only apply it when it was stored.
-    if (overrides.containsKey('jplFilename')) {
-      state = state.copyWith(jplFilename: overrides['jplFilename'] as String?);
+    state = _persistence.restoreContextBar(state);
+    // The one field the store does not get the last word on: with no .se1
+    // files staged, a persisted Swiss Ephemeris choice is unusable.
+    if (!_hasEpheFiles) {
+      state = state.copyWith(epheSource: EpheSource.moshier);
     }
   }
 

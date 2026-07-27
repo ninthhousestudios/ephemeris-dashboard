@@ -4,6 +4,7 @@
 import 'swe_constants.dart';
 
 import 'context_state.dart';
+import 'pref_field.dart';
 
 /// Immutable state for the flag bar.
 ///
@@ -113,3 +114,26 @@ class FlagBarState {
     return locked;
   }
 }
+
+typedef _FlagPref<T extends Object> = TypedPrefField<FlagBarState, T>;
+
+/// Every persisted [FlagBarState] field, stated once — same contract as
+/// [contextBarPrefFields].
+///
+/// [FlagBarState.lockedFlags] is deliberately absent: the Locked Flags are a
+/// pure function of the Context, so persisting them would create a second
+/// source of truth that could disagree with the restored Context.
+final flagBarPrefFields = <PrefField<FlagBarState>>[
+  _FlagPref<int>(
+    key: 'flag_coord_value',
+    getter: (s) => s.coordValue,
+    setter: (s, v) => s.copyWith(coordValue: v),
+    codec: intPref,
+  ),
+  _FlagPref<Set<int>>(
+    key: 'flag_toggles',
+    getter: (s) => s.toggles,
+    setter: (s, v) => s.copyWith(toggles: v),
+    codec: intSetPref,
+  ),
+];
