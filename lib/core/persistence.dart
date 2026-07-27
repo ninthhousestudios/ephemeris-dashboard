@@ -34,6 +34,15 @@ class PersistenceService {
   S _restoreAll<S>(List<PrefField<S>> fields, S state) =>
       fields.fold(state, (s, field) => field.restore(_prefs, s));
 
+  /// Store one standalone value — state that lives in its own provider rather
+  /// than as a field of a persisted state class (the user-defined ayanamsha
+  /// list). The codec keeps the encoding beside the type it encodes.
+  void saveValue<T extends Object>(PrefCodec<T> codec, String key, T value) =>
+      codec.write(_prefs, key, value);
+
+  T? loadValue<T extends Object>(PrefCodec<T> codec, String key) =>
+      codec.read(_prefs, key);
+
   // ── Context Bar ──
 
   /// dateTime/jdUt are NOT persisted — always start at "now". See

@@ -179,20 +179,40 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     _save();
   }
 
-  /// Set user-defined ayanamsa parameters (SE_SIDM_USER, 255).
-  /// [t0IsUt] toggles SE_SIDBIT_USER_UT (swetest `jdisut`).
-  void setUserAyanamsa({
-    required double t0,
-    required double value,
-    bool t0IsUt = false,
-  }) {
+  /// Select a user-defined ayanamsha (SE_SIDM_USER, 255) by id. Its parameters
+  /// (t0, value, `jdisut`) live in the entry itself, in `userAyanamsasProvider`
+  /// — this only records which entry the chart uses.
+  void selectUserAyanamsa(int id) {
     state = state.copyWith(
-      userAyanT0: t0,
-      userAyanValue: value,
-      userAyanT0IsUt: t0IsUt,
+      ayanamsa: ayanamsaUserId,
+      lastSiderealAyanamsa: ayanamsaUserId,
+      userAyanId: id,
     );
     _save();
   }
+
+  /// Keep the selection from dangling when the user-defined list changes.
+  ///
+  /// Called after every edit to `userAyanamsasProvider` with the surviving
+  /// entry ids. Deleting the selected entry falls back to another user-defined
+  /// one if there is one, and otherwise off user-defined entirely — leaving 255
+  /// selected with no entry behind it would give the dropdown nothing to show
+  /// and the engine no parameters to configure from. Ids rather than entries
+  /// because that is all this needs, and it keeps the Context from importing
+  /// the list that already imports it.
+  void reconcileUserAyanamsa(List<int> entryIds) {
+    if (state.ayanamsa != ayanamsaUserId) return;
+    if (entryIds.contains(state.userAyanId)) return;
+    if (entryIds.isNotEmpty) {
+      selectUserAyanamsa(entryIds.first);
+    } else {
+      setAyanamsa(_fallbackAyanamsa);
+    }
+  }
+
+  /// Where a Context lands when its user-defined ayanamsha disappears: Lahiri,
+  /// the app's default sidereal choice.
+  static const int _fallbackAyanamsa = 1;
 
   /// Set the sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE).
   void setSiderealProjection(SiderealProjection projection) {

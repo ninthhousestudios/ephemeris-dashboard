@@ -3,9 +3,11 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'ayanamsa_catalog.dart';
 import 'context_provider.dart';
 import 'context_state.dart';
 import 'flag_provider.dart';
+import 'user_ayanamsa.dart';
 
 /// Merged view of global context bar + flag bar state,
 /// ready for a calculation call.
@@ -40,6 +42,11 @@ class EffectiveContext {
   final ZodiacRef zodiacRef;
   final EqRef eqRef;
   final int ayanamsa; // -1 = tropical/none; 255 = user-defined
+
+  // The selected user-defined ayanamsha's parameters, resolved out of
+  // `userAyanamsasProvider` by the Context's `userAyanId`. Flattened here so a
+  // compute still sees a plain set of engine parameters, with the entry list
+  // itself confined to the projection below.
   final double userAyanT0;
   final double userAyanValue;
   final bool userAyanT0IsUt;
@@ -91,6 +98,11 @@ class EffectiveContext {
 final effectiveContextProvider = Provider<EffectiveContext>((ref) {
   final ctx = ref.watch(contextBarProvider);
   final flags = ref.watch(flagBarProvider);
+  // Only the selected entry can change a calculation, but the list is watched
+  // whole: an edit to it is exactly what has to recompute the chart.
+  final user = ctx.ayanamsa == ayanamsaUserId
+      ? resolveUserAyanamsa(ref.watch(userAyanamsasProvider), ctx.userAyanId)
+      : null;
 
   return EffectiveContext(
     jdUt: ctx.jdUt,
@@ -102,9 +114,9 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
     zodiacRef: ctx.zodiacRef,
     eqRef: ctx.eqRef,
     ayanamsa: ctx.ayanamsa,
-    userAyanT0: ctx.userAyanT0,
-    userAyanValue: ctx.userAyanValue,
-    userAyanT0IsUt: ctx.userAyanT0IsUt,
+    userAyanT0: user?.t0 ?? 0.0,
+    userAyanValue: user?.value ?? 0.0,
+    userAyanT0IsUt: user?.t0IsUt ?? false,
     projection: ctx.projection,
     epheSource: ctx.epheSource,
     jplFilename: ctx.jplFilename,

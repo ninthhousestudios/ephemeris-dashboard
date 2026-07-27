@@ -73,11 +73,19 @@ that keeps `lib/tabs/` off `runner.dart` (rule `tabs-use-kernel-not-runner`);
 the series variant added for the multi-user-defined feature carries the same
 hook through the step loop.
 
-`ayanamsa` also owns a list of user-defined ayanamshas
-(`userAyanamsasProvider` → `UserAyanamsaNotifier`, entries keyed by a stable
-int id): the tab lets the user add/edit/remove arbitrarily many SE_SIDM_USER
-comparisons, separate from the single context-bar user-defined ayanamsha that
-drives the other tabs.
+User-defined ayanamshas live in **core**, not in the tab
+(`lib/core/user_ayanamsa.dart`: `userAyanamsasProvider` → `UserAyanamsaNotifier`,
+entries keyed by a stable int id, each with an optional name). One list serves
+both surfaces (swe-dashboard/96): the Ayanamsa tab adds/edits/removes entries
+inline and compares them all, while the context bar's Ayanamsa dropdown lists
+them as selectable modes and its "Add user-defined…" dialog appends to the same
+list. The Context stores only the *choice* (`ContextBarState.userAyanId`);
+`effectiveContextProvider` resolves it against the list into the t0 / value /
+`jdisut` an `AppliedGlobals` needs, so editing an entry moves every chart using
+it. Removing the selected entry goes back through
+`ContextBarNotifier.reconcileUserAyanamsa`, which re-points or clears the
+selection so it can never dangle. The list persists under its own key
+(`userAyanamsasPrefKey`, JSON) via `PersistenceService.saveValue/loadValue`.
 
 **Deliberate non-kernel tabs:** `math` is a JUSTIFIED EXCEPTION — a stateless
 calculator over user-typed inputs; pure math (`degnorm`/`splitDeg`/…)
@@ -231,7 +239,8 @@ Tabs access the engine two ways:
 | `time_scale.dart` | `TimeScale` (ut1/tt/utc) — pure enum: which time scale the civil date/time is entered/displayed on (swetest `-ut`/`-t`/`-utc`). View-layer only, like `Calendar`; the Moment stays a UT1 JD. Threaded into `JdUtils.civilToJdUt`/`jdUtToCivil` (the scale-aware civil↔JD mapping), Context-owned via `ContextBarState.timeScale`. |
 | `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState. Individual setters: setDateTime, setJd, setCalendar, setTimeScale, setUtcOffset, setLatitude, setLongitude, setAltitude, setCityLabel, setOrigin, etc. `setDateTime`/`setJd` read/render civil fields on the current calendar; `setCalendar` re-renders the displayed date from the (canonical) jdUt. The date/time fields commit through `setJd` (having mapped scale-civil → UT1 via `JdUtils.civilToJdUt`). |
 | `date_time_input.dart` | Shared helpers: fmtDate, fmtTime, fmtOffset, fmtCoord, parseDateFields, parseTimeFields, labeledField, dateTimeIconButton, showPreciseTimePicker, showInvalidEntry (the revert-and-report snackbar every context-bar entry field uses) |
-| `calc_context.dart` | `EffectiveContext` — merges context + flags into iflag, jdUt, lat, lon, alt |
+| `calc_context.dart` | `EffectiveContext` — merges context + flags into iflag, jdUt, lat, lon, alt, and resolves `userAyanId` against `userAyanamsasProvider` into the SE_SIDM_USER params (t0, value, `jdisut`) |
+| `user_ayanamsa.dart` | `UserAyanamsa` (id, optional name, t0, value, t0IsUt), `UserAyanamsaNotifier`/`userAyanamsasProvider`, `userAyanamsaLabel` (name or "User-defined N"), `resolveUserAyanamsa`, `UserAyanamsaListPrefCodec`. In core because the Ayanamsa tab and the context bar share one list (swe-dashboard/96). |
 | `flag_definitions.dart` | `FlagDef`, `FlagGroup` — flag metadata, locked/toggle classification |
 | `flag_state.dart` | `FlagBarState` — selected flags; `flagBarPrefFields` (persisted fields, minus the derived `lockedFlags`) |
 | `pref_field.dart` | `PrefField<S>` / `TypedPrefField<S, T>` / `PrefCodec<T>` — one persisted field as getter + copyWith-setter + codec + key. `PersistenceService` folds over a state owner's list in both directions, so a field is persisted by adding one row beside it rather than by keeping a writer, a reader and an applier in lockstep (swe-dashboard/86). |
@@ -258,8 +267,8 @@ controller, focus node, and sync/commit logic.
 | `origin_selector.dart` | `OriginSelector` — geocentric/topocentric/helio dropdown |
 | `zodiac_ref_selector.dart` | `ZodiacRefSelector` — tropical/sidereal dropdown |
 | `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
-| `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown; user-defined opens `showUserAyanamsaDialog` |
-| `user_ayanamsa_dialog.dart` | `showUserAyanamsaDialog` — SE_SIDM_USER params (t0, value, `jdisut`) for the context-bar user-defined ayanamsha (the Ayanamsa tab edits its own list inline, not via this dialog) |
+| `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown: the built-in catalog, then every entry of `userAyanamsasProvider` by name, then "Add user-defined…" (opens `showUserAyanamsaDialog`) |
+| `user_ayanamsa_dialog.dart` | `showUserAyanamsaDialog` — defines a *new* user-defined ayanamsha (optional name + t0, value, `jdisut`), appends it to the shared list and selects it; says so, pointing at the Ayanamsa tab for later edits |
 | `projection_selector.dart` | `ProjectionSelector` — sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE), disabled when tropical |
 | `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |

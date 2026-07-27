@@ -18,6 +18,7 @@ import 'package:swe_dashboard/core/display_format.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/core/swe_constants.dart';
 import 'package:swe_dashboard/layout/app_shell.dart';
+import 'package:swe_dashboard/core/user_ayanamsa.dart';
 import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_provider.dart';
 import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_tab.dart';
 import 'package:swe_dashboard/tabs/coordinates/coordinates_tab.dart';
@@ -195,6 +196,25 @@ final List<WidgetCase> allWidgetCases = [
     overrides: [
       ...tabOverrides,
       ayanamsaCompareModeProvider.overrideWith((ref) => false),
+    ],
+  ),
+  // The inline user-defined editors only render when the list is non-empty, so
+  // an empty one left the row the mobile label clipping lived on (name, t0 and
+  // value boxes side by side) out of the sweep entirely — swe-dashboard/96.
+  (
+    name: 'ayanamsa_tab_user_defined',
+    widget: const AyanamsaTab(),
+    overrides: [
+      ...tabOverrides,
+      ayanamsaCompareModeProvider.overrideWith((ref) => false),
+      userAyanamsasProvider.overrideWith(
+        (ref) => UserAyanamsaNotifier(
+          initial: const [
+            UserAyanamsa(id: 0, t0: 2451545.0, value: 23.85),
+            UserAyanamsa(id: 1, name: 'Named entry', t0IsUt: true),
+          ],
+        ),
+      ),
     ],
   ),
   (

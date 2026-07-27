@@ -51,9 +51,9 @@ const _custom = ContextBarState(
   eqRef: EqRef.meanEquinoxJ2000,
   ayanamsa: 255,
   lastSiderealAyanamsa: 3,
-  userAyanT0: 2415020.0,
-  userAyanValue: 22.5,
-  userAyanT0IsUt: true,
+  // Only the *choice* of user-defined ayanamsha lives in the Context; its
+  // parameters are persisted with the list itself (see user_ayanamsa_test).
+  userAyanId: 7,
   projection: SiderealProjection.solarSystemPlane,
   epheSource: EpheSource.jpl,
   jplFilename: 'de440.eph',

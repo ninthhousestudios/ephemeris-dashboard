@@ -5,19 +5,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/context_provider.dart';
+import '../../core/user_ayanamsa.dart';
 
-/// Prompt for SE_SIDM_USER (255) parameters: reference Julian day, the
-/// ayanamsha value at that day, and the `jdisut` sub-option (t0 is UT rather
-/// than TT). Projection (`eclt0` / `ssyplane`) is set separately via the
-/// context bar's Projection selector, which applies to any ayanamsha.
+/// Define a new user-defined ayanamsha (SE_SIDM_USER, 255) from the context
+/// bar: an optional name, a reference Julian day, the ayanamsha value at that
+/// day, and the `jdisut` sub-option (t0 is UT rather than TT). Projection
+/// (`eclt0` / `ssyplane`) is set separately via the context bar's Projection
+/// selector, which applies to any ayanamsha.
 ///
-/// Writes to the context provider and returns true on OK, false on cancel.
-/// Shared by the context-bar ayanamsa dropdown and the Ayanamsa tab chip.
+/// The entry goes into the same list the Ayanamsa tab edits, and on OK the
+/// Context selects it. Returns true on OK, false on cancel.
 Future<bool> showUserAyanamsaDialog(BuildContext context, WidgetRef ref) async {
-  final state = ref.read(contextBarProvider);
-  final t0Ctrl = TextEditingController(text: state.userAyanT0.toString());
-  final valCtrl = TextEditingController(text: state.userAyanValue.toString());
-  var t0IsUt = state.userAyanT0IsUt;
+  final nameCtrl = TextEditingController();
+  final t0Ctrl = TextEditingController(
+    text: const UserAyanamsa(id: 0).t0.toString(),
+  );
+  final valCtrl = TextEditingController(text: '0.0');
+  var t0IsUt = false;
 
   final result = await showDialog<bool>(
     context: context,
@@ -33,6 +37,14 @@ Future<bool> showUserAyanamsaDialog(BuildContext context, WidgetRef ref) async {
               'Julian day and the ayanamsa value at that day.',
             ),
             const SizedBox(height: 12),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Name (optional)',
+                helperText: 'Left blank, it is numbered "User-defined N"',
+              ),
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: t0Ctrl,
               keyboardType: const TextInputType.numberWithOptions(
@@ -67,6 +79,15 @@ Future<bool> showUserAyanamsaDialog(BuildContext context, WidgetRef ref) async {
                 'Interpret t0 as Universal Time rather than Terrestrial Time',
               ),
             ),
+            const SizedBox(height: 8),
+            Text(
+              'This ayanamsha can be renamed, edited or deleted on the '
+              'Ayanamsa tab, where it is also compared against the built-in '
+              'modes.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -82,9 +103,16 @@ Future<bool> showUserAyanamsaDialog(BuildContext context, WidgetRef ref) async {
                 Navigator.of(ctx).pop(false);
                 return;
               }
-              ref
-                  .read(contextBarProvider.notifier)
-                  .setUserAyanamsa(t0: t0, value: val, t0IsUt: t0IsUt);
+              final name = nameCtrl.text.trim();
+              final id = ref
+                  .read(userAyanamsasProvider.notifier)
+                  .add(
+                    name: name.isEmpty ? null : name,
+                    t0: t0,
+                    value: val,
+                    t0IsUt: t0IsUt,
+                  );
+              ref.read(contextBarProvider.notifier).selectUserAyanamsa(id);
               Navigator.of(ctx).pop(true);
             },
             child: const Text('OK'),

@@ -9,6 +9,7 @@ import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
+import '../../core/user_ayanamsa.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -172,11 +173,20 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(
+                            'These are the same user-defined ayanamshas the '
+                            'context bar offers — one defined there is editable '
+                            'here, and one defined here is selectable there.',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
                           for (var i = 0; i < users.length; i++)
                             _UserAyanamsaEditor(
                               key: ValueKey(users[i].id),
                               entry: users[i],
-                              label: 'User-defined ${i + 1}',
+                              fallbackName: 'User-defined ${i + 1}',
                             ),
                         ],
                       ),
@@ -293,19 +303,27 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
   }
 }
 
-/// Inline editor for one user-defined ayanamsha: reference JD, value at t0, the
-/// `jdisut` (t0-is-UT) checkbox, and a remove button. Edits flow straight to
-/// [userAyanamsasProvider], so the compared value updates live. Horizontally
-/// scrollable so the row never overflows at high zoom.
+/// Inline editor for one user-defined ayanamsha: optional name, reference JD,
+/// value at t0, the `jdisut` (t0-is-UT) checkbox, and a remove button. Edits
+/// flow straight to [userAyanamsasProvider], so both the compared value here
+/// and any chart selecting this entry update live. Horizontally scrollable so
+/// the row never overflows at high zoom.
+///
+/// Labels sit *beside* their boxes rather than inside them as `labelText`: a
+/// floating label is laid out against the field's own width, so on a narrow
+/// phone it was the label that got clipped, not the field (swe-dashboard/96).
 class _UserAyanamsaEditor extends ConsumerStatefulWidget {
   const _UserAyanamsaEditor({
     super.key,
     required this.entry,
-    required this.label,
+    required this.fallbackName,
   });
 
   final UserAyanamsa entry;
-  final String label;
+
+  /// Shown as the name field's placeholder, and used for the remove tooltip,
+  /// when the entry has no name of its own.
+  final String fallbackName;
 
   @override
   ConsumerState<_UserAyanamsaEditor> createState() =>
@@ -313,6 +331,9 @@ class _UserAyanamsaEditor extends ConsumerStatefulWidget {
 }
 
 class _UserAyanamsaEditorState extends ConsumerState<_UserAyanamsaEditor> {
+  late final TextEditingController _name = TextEditingController(
+    text: widget.entry.name ?? '',
+  );
   late final TextEditingController _t0 = TextEditingController(
     text: widget.entry.t0.toString(),
   );
@@ -322,16 +343,21 @@ class _UserAyanamsaEditorState extends ConsumerState<_UserAyanamsaEditor> {
 
   @override
   void dispose() {
+    _name.dispose();
     _t0.dispose();
     _val.dispose();
     super.dispose();
   }
 
   void _commit() {
+    final name = _name.text.trim();
     ref
         .read(userAyanamsasProvider.notifier)
         .update(
           widget.entry.id,
+          // Blank means "no name": the entry falls back to its numbered label
+          // rather than showing an empty one.
+          name: name.isEmpty ? null : name,
           t0: double.tryParse(_t0.text),
           value: double.tryParse(_val.text),
         );
@@ -344,22 +370,36 @@ class _UserAyanamsaEditorState extends ConsumerState<_UserAyanamsaEditor> {
     final fieldWidth = (150 * scale).floorToDouble();
     final notifier = ref.read(userAyanamsasProvider.notifier);
 
-    Widget field(TextEditingController c, String label) => SizedBox(
-      width: fieldWidth,
-      child: TextField(
-        controller: c,
-        keyboardType: const TextInputType.numberWithOptions(
-          decimal: true,
-          signed: true,
+    Widget field(
+      TextEditingController c,
+      String label, {
+      String? hint,
+      bool numeric = true,
+    }) => Row(
+      children: [
+        Text('$label:', style: theme.textTheme.labelSmall),
+        const SizedBox(width: 4),
+        SizedBox(
+          width: fieldWidth,
+          child: TextField(
+            controller: c,
+            keyboardType: numeric
+                ? const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  )
+                : TextInputType.text,
+            onChanged: (_) => _commit(),
+            style: theme.textTheme.bodySmall,
+            decoration: InputDecoration(
+              isDense: true,
+              hintText: hint,
+              hintStyle: theme.textTheme.bodySmall,
+              border: const OutlineInputBorder(),
+            ),
+          ),
         ),
-        onChanged: (_) => _commit(),
-        style: theme.textTheme.bodySmall,
-        decoration: InputDecoration(
-          isDense: true,
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-      ),
+      ],
     );
 
     return Padding(
@@ -368,7 +408,7 @@ class _UserAyanamsaEditorState extends ConsumerState<_UserAyanamsaEditor> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            Text(widget.label, style: theme.textTheme.labelSmall),
+            field(_name, 'Name', hint: widget.fallbackName, numeric: false),
             const SizedBox(width: 8),
             field(_t0, 't0 (JD)'),
             const SizedBox(width: 8),
@@ -383,7 +423,7 @@ class _UserAyanamsaEditorState extends ConsumerState<_UserAyanamsaEditor> {
             Text('t0 UT', style: theme.textTheme.labelSmall),
             IconButton(
               icon: const Icon(Icons.close, size: 16),
-              tooltip: 'Remove ${widget.label}',
+              tooltip: 'Remove ${widget.entry.name ?? widget.fallbackName}',
               visualDensity: VisualDensity.compact,
               onPressed: () => notifier.removeById(widget.entry.id),
             ),

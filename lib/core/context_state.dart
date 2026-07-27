@@ -28,9 +28,7 @@ class ContextBarState {
         -1, // -1 = none; 0+ = SE_SIDM_* constant (only meaningful when sidereal)
     this.lastSiderealAyanamsa =
         0, // remembered choice when switching back to sidereal
-    this.userAyanT0 = 0.0,
-    this.userAyanValue = 0.0,
-    this.userAyanT0IsUt = false,
+    this.userAyanId,
     this.projection = SiderealProjection.standard,
     this.epheSource = EpheSource.moshier,
     this.jplFilename,
@@ -62,10 +60,11 @@ class ContextBarState {
   final int ayanamsa; // SE_SIDM_* constant (when sidereal); 255 = user-defined
   final int
   lastSiderealAyanamsa; // stashed sidereal choice (survives tropical toggle)
-  final double userAyanT0; // reference JD for SE_SIDM_USER
-  final double userAyanValue; // ayanamsa value at t0, degrees
-  final bool
-  userAyanT0IsUt; // SE_SIDBIT_USER_UT: t0 is UT rather than TT (user-defined only)
+  /// Which user-defined ayanamsha is selected when [ayanamsa] is 255 — an id
+  /// into `userAyanamsasProvider`, which owns the parameters themselves (t0,
+  /// value, jdisut). The Context stores the choice, not a second copy of the
+  /// numbers, so editing an entry on the Ayanamsa tab moves the chart too.
+  final int? userAyanId;
   final SiderealProjection projection; // SE_SIDBIT_* projection plane modifier
   final EpheSource epheSource;
   final String?
@@ -85,9 +84,7 @@ class ContextBarState {
     EqRef? eqRef,
     int? ayanamsa,
     int? lastSiderealAyanamsa,
-    double? userAyanT0,
-    double? userAyanValue,
-    bool? userAyanT0IsUt,
+    int? userAyanId,
     SiderealProjection? projection,
     EpheSource? epheSource,
     Object? jplFilename = _sentinel,
@@ -106,9 +103,7 @@ class ContextBarState {
       eqRef: eqRef ?? this.eqRef,
       ayanamsa: ayanamsa ?? this.ayanamsa,
       lastSiderealAyanamsa: lastSiderealAyanamsa ?? this.lastSiderealAyanamsa,
-      userAyanT0: userAyanT0 ?? this.userAyanT0,
-      userAyanValue: userAyanValue ?? this.userAyanValue,
-      userAyanT0IsUt: userAyanT0IsUt ?? this.userAyanT0IsUt,
+      userAyanId: userAyanId ?? this.userAyanId,
       projection: projection ?? this.projection,
       epheSource: epheSource ?? this.epheSource,
       jplFilename: identical(jplFilename, _sentinel)
@@ -134,9 +129,7 @@ class ContextBarState {
           eqRef == other.eqRef &&
           ayanamsa == other.ayanamsa &&
           lastSiderealAyanamsa == other.lastSiderealAyanamsa &&
-          userAyanT0 == other.userAyanT0 &&
-          userAyanValue == other.userAyanValue &&
-          userAyanT0IsUt == other.userAyanT0IsUt &&
+          userAyanId == other.userAyanId &&
           projection == other.projection &&
           epheSource == other.epheSource &&
           jplFilename == other.jplFilename;
@@ -156,9 +149,7 @@ class ContextBarState {
     eqRef,
     ayanamsa,
     lastSiderealAyanamsa,
-    userAyanT0,
-    userAyanValue,
-    userAyanT0IsUt,
+    userAyanId,
     projection,
     epheSource,
     jplFilename,
@@ -249,23 +240,14 @@ final contextBarPrefFields = <PrefField<ContextBarState>>[
     setter: (s, v) => s.copyWith(lastSiderealAyanamsa: v),
     codec: intPref,
   ),
-  _CtxPref<double>(
-    key: 'ctx_user_ayan_t0',
-    getter: (s) => s.userAyanT0,
-    setter: (s, v) => s.copyWith(userAyanT0: v),
-    codec: doublePref,
-  ),
-  _CtxPref<double>(
-    key: 'ctx_user_ayan_value',
-    getter: (s) => s.userAyanValue,
-    setter: (s, v) => s.copyWith(userAyanValue: v),
-    codec: doublePref,
-  ),
-  _CtxPref<bool>(
-    key: 'ctx_user_ayan_t0_is_ut',
-    getter: (s) => s.userAyanT0IsUt,
-    setter: (s, v) => s.copyWith(userAyanT0IsUt: v),
-    codec: boolPref,
+  // The selected user-defined ayanamsha, by id. Its parameters are persisted
+  // with the list itself (`userAyanamsasPrefKey`), not here — the Context has
+  // held only the choice since the tab and the bar were unified.
+  _CtxPref<int>(
+    key: 'ctx_user_ayan_id',
+    getter: (s) => s.userAyanId,
+    setter: (s, v) => s.copyWith(userAyanId: v),
+    codec: intPref,
   ),
   _CtxPref<SiderealProjection>(
     key: 'ctx_sidereal_projection',
