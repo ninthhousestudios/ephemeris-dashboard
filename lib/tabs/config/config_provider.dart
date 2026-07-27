@@ -47,8 +47,21 @@ final libraryInfoProvider = Provider<LibraryInfo>((ref) {
 
   return LibraryInfo(
     version: version,
-    ephePath:
-        ref.watch(epheBootstrapProvider).bundledPath ?? 'none (Moshier mode)',
+    ephePath: _describeEphePath(ref.watch(epheBootstrapProvider)),
     bodies: bodies,
   );
 });
+
+/// Describe where the Ephemeris Source came from, keeping "this build ships
+/// no ephemeris files" distinct from "staging broke" — reporting both as
+/// `none (Moshier mode)` is what made a packaging regression invisible
+/// (swe-dashboard/90).
+String _describeEphePath(EpheBootstrap bootstrap) {
+  final failures = bootstrap.failures.join('; ');
+  return switch (bootstrap.bundledPath) {
+    final path? when bootstrap.stagingFailed => '$path (staging: $failures)',
+    final path? => path,
+    _ when bootstrap.stagingFailed => 'Moshier — staging failed: $failures',
+    _ => 'none (Moshier mode)',
+  };
+}

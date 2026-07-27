@@ -4,6 +4,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show debugPrint, visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 
@@ -14,12 +15,18 @@ import 'types.dart';
 
 /// Native half of the staging seam. See `bootstrap.dart`.
 Future<EpheBootstrap> stageEpheSource() async {
-  final bundled = await _runProbes(nativeEpheProbes(currentPlatformFacts()));
+  final (bundled, failures) = await runProbePlan(
+    nativeEpheProbes(currentPlatformFacts()),
+  );
   final managed = await _resolveManagedDir(bundled);
+  for (final failure in failures) {
+    debugPrint('[ephe] staging failure — $failure');
+  }
   return EpheBootstrap(
     bundledPath: bundled,
     managedPath: managed,
     webFilenames: const [],
+    failures: failures,
   );
 }
 
@@ -34,29 +41,77 @@ PlatformFacts currentPlatformFacts() => (
   cwd: Directory.current.path,
 );
 
+/// What executing one probe produced: a candidate directory, nothing, or a
+/// failure. `path == null && failure == null` is a plain miss.
+typedef _ProbeResult = ({String? path, StagingFailure? failure});
+
 /// Walk the plan and take the first probe that yields a directory holding at
-/// least one `.se1` file. Returns null when every probe comes up empty —
-/// the Moshier case.
-Future<String?> _runProbes(List<EpheProbe> probes) async {
+/// least one `.se1` file.
+///
+/// Returns the winning path (null when every probe missed — the Moshier
+/// case) alongside the failures collected on the way. Staging never aborts
+/// startup: Moshier is a real ephemeris, so a broken probe leaves a usable
+/// app. It must not leave a *quiet* one, hence the second return value.
+///
+/// Public so tests can drive a plan against real temp directories — the
+/// miss-vs-failure classification is the part worth testing, and asserting it
+/// through [stageEpheSource] would mean asserting against the host platform.
+@visibleForTesting
+Future<(String?, List<StagingFailure>)> runProbePlan(
+  List<EpheProbe> probes,
+) async {
+  final failures = <StagingFailure>[];
   for (final probe in probes) {
-    final String? path;
-    try {
-      path = await _execute(probe);
-    } catch (_) {
-      // A probe that blows up (unreadable dir, malformed package config,
-      // asset extraction denied) is a probe that did not find anything.
+    final (:path, :failure) = await _execute(probe);
+    if (failure != null) {
+      failures.add(failure);
       continue;
     }
-    if (path != null && isValidEpheDir(path)) return path;
+    if (path != null && isValidEpheDir(path)) return (path, failures);
   }
-  return null;
+  return (null, failures);
 }
 
-Future<String?> _execute(EpheProbe probe) async => switch (probe) {
-  DirectoryProbe(:final path) => path,
-  PackageConfigProbe() => _swissephRsEpheDir(),
-  AssetExtractionProbe() => await _extractBundledAssets(),
-};
+/// Execute one probe, classifying its own errors.
+///
+/// Each probe decides what counts as a miss: only the probe knows whether an
+/// exception means "not here" or "broken". A blanket catch out here cannot
+/// tell those apart, which is how a packaging regression used to read as a
+/// Moshier-only build (swe-dashboard/90).
+Future<_ProbeResult> _execute(EpheProbe probe) async {
+  switch (probe) {
+    case DirectoryProbe(:final path):
+      // Pure lookup. `isValidEpheDir` swallows its own I/O errors, so a
+      // directory that cannot be read is genuinely a miss.
+      return (path: path, failure: null);
+
+    case PackageConfigProbe():
+      try {
+        return (path: _swissephRsEpheDir(), failure: null);
+      } catch (e) {
+        // `_swissephRsEpheDir` returns null when there is no package config,
+        // so reaching here means one exists and could not be read. That is a
+        // broken dev checkout, not a release build with no ephemeris.
+        return (
+          path: null,
+          failure: StagingFailure(probe.name, 'unreadable package config: $e'),
+        );
+      }
+
+    case AssetExtractionProbe():
+      try {
+        return (path: await _extractBundledAssets(), failure: null);
+      } catch (e) {
+        // Extraction is the *only* staging strategy on mobile and macOS, so
+        // a failure here is the reason the app has no ephemeris files. It
+        // must never read as "this build ships none".
+        return (
+          path: null,
+          failure: StagingFailure(probe.name, 'asset extraction failed: $e'),
+        );
+      }
+  }
+}
 
 /// A directory counts as an ephemeris directory when it holds at least one
 /// `.se1` file. Exposed so probe execution can be exercised against temp

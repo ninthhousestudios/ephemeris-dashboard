@@ -130,7 +130,21 @@ probes.dart         ← EpheProbe taxonomy + nativeEpheProbes(PlatformFacts) —
 | `probes.dart` | `EpheProbe` (sealed: `DirectoryProbe`, `PackageConfigProbe`, `AssetExtractionProbe`), `PlatformFacts`, `nativeEpheProbes`, `epheAssetVersion` | The *ordering policy*: which platform looks where, in what sequence. Pure function of `PlatformFacts`, so every platform's plan is asserted from one test process (`test/ephe/probes_test.dart`). |
 | `staging_io.dart` | `stageEpheSource`, `isValidEpheDir`, `currentPlatformFacts` | Executes the plan. First probe yielding a dir with a `.se1` wins; then seeds `<appSupport>/ephe`. |
 | `staging_web.dart` | `stageEpheSource` | Loads WASM, pushes bundled assets into MEMFS at `/ephe`. No managed dir. |
-| `bootstrap.dart` | `EpheBootstrap`, `epheBootstrapProvider`, `bootstrapEpheSource` | The result as a value: `bundledPath`, `managedPath`, `webFilenames`, `hasEpheFiles`. |
+| `bootstrap.dart` | `EpheBootstrap`, `StagingFailure`, `epheBootstrapProvider`, `bootstrapEpheSource` | The result as a value: `bundledPath`, `managedPath`, `webFilenames`, `hasEpheFiles`, `failures`/`stagingFailed`. |
+
+A **miss** and a **failure** are different things, and the value keeps them
+apart (swe-dashboard/90). A miss is how staging normally narrows down — most
+probes miss on any platform, and a build that legitimately ships no `.se1`
+files misses every one. A failure means something broke: a corrupt package
+config, an asset that would not extract. Each probe classifies its own errors
+in `_execute`, because only the probe knows which is which; a blanket catch
+one level up cannot tell them apart, and reporting both as "no ephemeris
+files" is what made a packaging regression invisible.
+
+Staging never aborts startup — Moshier is a real ephemeris, so a broken probe
+leaves a usable app. Failures are collected, logged via `debugPrint`, carried
+on `EpheBootstrap.failures`, and shown in the Config tab's library info.
+`hasEpheFiles == false` does not imply healthy; check `stagingFailed`.
 
 `main()` awaits `bootstrapEpheSource()` once and installs the result via
 `epheBootstrapProvider.overrideWithValue` (the `sharedPrefsProvider` pattern).

@@ -12,6 +12,11 @@ import 'bootstrap.dart';
 /// There is no filesystem, so "staging" means loading the WASM module and
 /// pushing the bundled `.se1`/`sefstars.txt` bytes into Emscripten's MEMFS
 /// at `/ephe`. No managed directory exists on web.
+/// Web has no probe plan and so no miss-vs-failure distinction to draw: there
+/// is exactly one way to stage, and if `initializeWasm` throws there is no
+/// engine at all, which is fatal rather than degraded. `failures` is therefore
+/// always empty here — an empty asset list is a build that legitimately ships
+/// none, not a break.
 Future<EpheBootstrap> stageEpheSource() async {
   await initializeWasm('swisseph_ffi.js');
 
