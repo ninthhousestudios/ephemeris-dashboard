@@ -162,10 +162,16 @@ DatesResult computeDates(
     revjulError = e.toString();
   }
 
-  int dayOfWeekIndex = 0;
+  // -1, not 0: on failure the field must read as unknown, not as Monday. This
+  // is the one calendar field with no error string of its own, so the sentinel
+  // is what carries "unavailable" to the display (dayOfWeekName renders '?').
+  int dayOfWeekIndex = -1;
   try {
     dayOfWeekIndex = swe.dayOfWeek(jdUt);
-  } catch (_) {}
+  } catch (_) {
+    // Sentinel already set; a failed weekday is shown as '?' rather than
+    // collapsing the whole Calendar section into an error row.
+  }
 
   double deltaT = 0;
   String? deltaTError;

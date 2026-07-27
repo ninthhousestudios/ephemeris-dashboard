@@ -341,7 +341,12 @@ EclipseEvent _findSolarEclipse({
       final w = swe.solEclipseWhere(g.maxEclipse, epheflag);
       cLat = w.geolat;
       cLon = w.geolon;
-    } catch (_) {}
+    } catch (_) {
+      // A central location is an extra, not part of the eclipse: it isn't
+      // defined for every event (no central line for a partial). Nullable by
+      // design — the Central Lat/Lon rows are omitted while the eclipse's own
+      // times, which did compute, still display.
+    }
 
     return EclipseEvent(
       index: index,
@@ -473,7 +478,10 @@ EclipseEvent _findOccultation({
       );
       cLat = w.geolat;
       cLon = w.geolon;
-    } catch (_) {}
+    } catch (_) {
+      // As above: the position of maximum occultation is an extra, not defined
+      // for every event. Omitting the rows beats failing the whole occultation.
+    }
 
     return EclipseEvent(
       index: index,

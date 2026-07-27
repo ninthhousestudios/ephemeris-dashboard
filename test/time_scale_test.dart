@@ -92,7 +92,10 @@ void main() {
     setUp(() {
       try {
         jd = JdUtils(SweUtils(EphemerisRunner()));
-      } catch (_) {}
+      } catch (_) {
+        // Platform-availability guard: leaving `jd` null is the signal each
+        // test below reads to markTestSkipped('SwissEph unavailable').
+      }
     });
 
     for (final scale in TimeScale.values) {

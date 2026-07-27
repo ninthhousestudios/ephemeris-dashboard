@@ -259,7 +259,10 @@ StarResult? computeStar({
       // honour a sidereal/XYZ config, and its ARMC is of date.
       final trop = eph.fixstar2Ut(searchForMag, jdUt, frameOfDateFlag(iflag));
       housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
-    } catch (_) {}
+    } catch (_) {
+      // This star would not place — NaN renders `—` in a column the other
+      // stars still fill.
+    }
   }
 
   return StarResult(
@@ -307,7 +310,10 @@ List<StarResult> computeStars({
   if (doHorizontal) {
     try {
       gmstHours = eph.sidTime(jdUt);
-    } catch (_) {}
+    } catch (_) {
+      // Null GMST is a documented input to horizontalCoordsOf: az/alt still
+      // compute, only the meridian distance goes NaN (shown as `—`).
+    }
   }
 
   // House position inputs (ARMC + obliquity) computed once per Moment, reused
@@ -323,7 +329,10 @@ List<StarResult> computeStars({
         hsys: hsys,
         iflag: iflag,
       );
-    } catch (_) {}
+    } catch (_) {
+      // No frame, no House column at all: `houseRequested` reads hpInputs, so
+      // the column is dropped rather than shown as wrong.
+    }
   }
 
   return searchTerms.map((term) {

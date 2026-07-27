@@ -108,7 +108,10 @@ List<PlanetResult> computePlanets({
   if (doHorizontal) {
     try {
       gmstHours = eph.sidTime(moment.ut);
-    } catch (_) {}
+    } catch (_) {
+      // Null GMST is a documented input to horizontalCoordsOf: az/alt still
+      // compute, only the meridian distance goes NaN (shown as `—`).
+    }
   }
 
   // House position is a geocentric-observer quantity — only meaningful for the
@@ -126,7 +129,10 @@ List<PlanetResult> computePlanets({
         hsys: hsys,
         iflag: iflag,
       );
-    } catch (_) {}
+    } catch (_) {
+      // No frame, no House column at all: `houseRequested` below reads
+      // hpInputs, so the column is dropped rather than shown as wrong.
+    }
   }
   // House position is "requested" once the frame is in hand, even for bodies
   // that then fail to place — so the column stays stable (`—`) instead of
@@ -153,13 +159,19 @@ List<PlanetResult> computePlanets({
         );
         ra = eq.longitude;
         dec = eq.latitude;
-      } catch (_) {}
+      } catch (_) {
+        // equatorial calc failed — leave NaN, which the RA/Dec fields render
+        // as `—`. The body's own ecliptic row is still valid.
+      }
 
       double? dmin;
       try {
         final od = eph.orbitMaxMinTrueDistance(moment.et, body, iflag);
         dmin = od.minDist;
-      } catch (_) {}
+      } catch (_) {
+        // Orbital extrema are undefined for many bodies (nodes, apsides,
+        // fictitious points): a genuinely optional field, left null.
+      }
 
       var horizontal = HorizontalCoords.nan;
       if (doHorizontal) {
@@ -200,7 +212,10 @@ List<PlanetResult> computePlanets({
           // is of date, so `r` can't be reused.
           final trop = eph.calcUt(moment.ut, body, frameOfDateFlag(iflag));
           housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
-        } catch (_) {}
+        } catch (_) {
+          // This body would not place — NaN renders `—` in a column the other
+          // bodies still fill, which is exactly what happened.
+        }
       }
 
       return PlanetResult(

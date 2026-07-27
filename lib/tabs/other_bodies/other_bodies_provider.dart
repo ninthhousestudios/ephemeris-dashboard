@@ -117,7 +117,10 @@ List<OtherBodyResult> computeOtherBodies({
   if (doHorizontal) {
     try {
       gmstHours = eph.sidTime(moment.ut);
-    } catch (_) {}
+    } catch (_) {
+      // Null GMST is a documented input to horizontalCoordsOf: az/alt still
+      // compute, only the meridian distance goes NaN (shown as `—`).
+    }
   }
   // The main `r` is already the frame-of-date tropical ecliptic lon/lat the
   // horizontal transform needs when the Context sets none of the frame bits;
@@ -139,7 +142,10 @@ List<OtherBodyResult> computeOtherBodies({
         hsys: hsys,
         iflag: iflag,
       );
-    } catch (_) {}
+    } catch (_) {
+      // No frame, no House column at all: `houseRequested` below reads
+      // hpInputs, so the column is dropped rather than shown as wrong.
+    }
   }
   // Requested once the frame is in hand — bodies that then fail to place show
   // `—` rather than dropping the House column from the series picker.
@@ -210,7 +216,10 @@ List<OtherBodyResult> computeOtherBodies({
           // be reused.
           final trop = eph.calcUt(moment.ut, body, frameOfDateFlag(iflag));
           housePos = housePosOf(eph, hpInputs, trop.longitude, trop.latitude);
-        } catch (_) {}
+        } catch (_) {
+          // This body would not place — NaN renders `—` in a column the other
+          // bodies still fill.
+        }
       }
 
       return OtherBodyResult(

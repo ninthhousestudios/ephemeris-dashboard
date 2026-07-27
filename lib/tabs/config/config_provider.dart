@@ -31,18 +31,24 @@ final libraryInfoProvider = Provider<LibraryInfo>((ref) {
 
   final version = swe.version();
 
-  // Enumerate known bodies and their names.
+  // Enumerate known bodies and their names. Both loops probe an ID *range*, so
+  // a failure means "this build has no such body" — the absence of the row is
+  // the answer, and reporting it as an error would be noise.
   final bodies = <(int, String)>[];
   for (var i = 0; i <= 22; i++) {
     try {
       bodies.add((i, swe.getPlanetName(i)));
-    } catch (_) {}
+    } catch (_) {
+      // ID not present in this build — omit the row.
+    }
   }
   // Uranian fictitious bodies (40–48)
   for (var i = 40; i <= 48; i++) {
     try {
       bodies.add((i, swe.getPlanetName(i)));
-    } catch (_) {}
+    } catch (_) {
+      // ID not present in this build — omit the row.
+    }
   }
 
   return LibraryInfo(
