@@ -133,9 +133,9 @@ void main() {
       await settle(container);
       final notifier = container.read(
         bodySelectionProvider(BodySelection.otherBodies).notifier,
-      );
-      notifier.add(erosBody);
+      )..add(erosBody);
       expect(container.read(selectedAsteroidMpcProvider), [erosMpc]);
+
       notifier.remove(erosBody);
       expect(container.read(selectedAsteroidMpcProvider), isEmpty);
     });
@@ -193,10 +193,7 @@ void main() {
     test('setSingle replaces rather than appends', () {
       final container = containerWith(const []);
       const selection = BodySelection.differentialBodyA;
-      final notifier = container.read(
-        bodySelectionProvider(selection).notifier,
-      );
-      notifier
+      container.read(bodySelectionProvider(selection).notifier)
         ..setSingle(seMars)
         ..setSingle(seVenus);
       expect(container.read(bodySelectionProvider(selection)), [seVenus]);
