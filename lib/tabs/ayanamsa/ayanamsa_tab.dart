@@ -12,6 +12,7 @@ import '../../core/export_service.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/result_card_grid.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'ayanamsa_provider.dart';
@@ -232,53 +233,26 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
       return _buildCompareTable(results);
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: results.map((r) {
-              return SizedBox(
-                width: cardWidth,
-                child: Stack(
-                  children: [
-                    ResultCard(
-                      title: r.name,
-                      subtitle: 'SE_SIDM_${r.sidMode}',
-                      fields: [
-                        ResultField(
-                          label: 'Value',
-                          value: formatAngle(r.value, format),
-                          rawValue: r.value,
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: IconButton(
-                        icon: const Icon(Icons.close, size: 16),
-                        tooltip: 'Remove ${r.name}',
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => _removeResult(r),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
+    return ResultCardGrid<AyanamsaCalcResult>.items(
+      items: results,
+      emptyMessage: 'No results',
+      cardOverlay: (i) => IconButton(
+        icon: const Icon(Icons.close, size: 16),
+        tooltip: 'Remove ${results[i].name}',
+        visualDensity: VisualDensity.compact,
+        onPressed: () => _removeResult(results[i]),
+      ),
+      cardBuilder: (r) => ResultCard(
+        title: r.name,
+        subtitle: 'SE_SIDM_${r.sidMode}',
+        fields: [
+          ResultField(
+            label: 'Value',
+            value: formatAngle(r.value, format),
+            rawValue: r.value,
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 

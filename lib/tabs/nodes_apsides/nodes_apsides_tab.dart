@@ -17,6 +17,7 @@ import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids;
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/result_card_grid.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'nodes_apsides_provider.dart';
@@ -389,181 +390,149 @@ class _NodesResults extends ConsumerWidget {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+    final cards = <Widget>[
+      ResultCard(
+        title: '${result.bodyName} — Ascending Node',
+        flagHex:
+            '0x${result.ascending.returnFlag.toRadixString(16).toUpperCase()}',
+        fields: posFields(result.ascending),
+      ),
+      ResultCard(
+        title: '${result.bodyName} — Descending Node',
+        flagHex:
+            '0x${result.descending.returnFlag.toRadixString(16).toUpperCase()}',
+        fields: posFields(result.descending),
+      ),
+      ResultCard(
+        title: '${result.bodyName} — Perihelion',
+        flagHex:
+            '0x${result.perihelion.returnFlag.toRadixString(16).toUpperCase()}',
+        fields: posFields(result.perihelion),
+      ),
+      ResultCard(
+        title: '${result.bodyName} — Aphelion',
+        flagHex:
+            '0x${result.aphelion.returnFlag.toRadixString(16).toUpperCase()}',
+        fields: posFields(result.aphelion),
+      ),
+    ];
 
-        final cards = <Widget>[
-          SizedBox(
-            width: cardWidth,
-            child: ResultCard(
-              title: '${result.bodyName} — Ascending Node',
-              flagHex:
-                  '0x${result.ascending.returnFlag.toRadixString(16).toUpperCase()}',
-              fields: posFields(result.ascending),
+    final el = result.orbitalElements;
+    if (el != null) {
+      cards.add(
+        ResultCard(
+          title: '${result.bodyName} — Orbital Elements',
+          fields: [
+            ResultField(
+              label: 'Semi-major Axis (AU)',
+              value: raw(el.semimajorAxis),
+              rawValue: el.semimajorAxis,
             ),
-          ),
-          SizedBox(
-            width: cardWidth,
-            child: ResultCard(
-              title: '${result.bodyName} — Descending Node',
-              flagHex:
-                  '0x${result.descending.returnFlag.toRadixString(16).toUpperCase()}',
-              fields: posFields(result.descending),
+            ResultField(
+              label: 'Eccentricity',
+              value: raw(el.eccentricity),
+              rawValue: el.eccentricity,
             ),
-          ),
-          SizedBox(
-            width: cardWidth,
-            child: ResultCard(
-              title: '${result.bodyName} — Perihelion',
-              flagHex:
-                  '0x${result.perihelion.returnFlag.toRadixString(16).toUpperCase()}',
-              fields: posFields(result.perihelion),
+            ResultField(
+              label: 'Inclination',
+              value: deg(el.inclination),
+              rawValue: el.inclination,
             ),
-          ),
-          SizedBox(
-            width: cardWidth,
-            child: ResultCard(
-              title: '${result.bodyName} — Aphelion',
-              flagHex:
-                  '0x${result.aphelion.returnFlag.toRadixString(16).toUpperCase()}',
-              fields: posFields(result.aphelion),
+            ResultField(
+              label: 'Ascending Node',
+              value: deg(el.ascendingNode),
+              rawValue: el.ascendingNode,
             ),
-          ),
-        ];
+            ResultField(
+              label: 'Arg. Periapsis',
+              value: deg(el.argPeriapsis),
+              rawValue: el.argPeriapsis,
+            ),
+            ResultField(
+              label: 'Lon. Periapsis',
+              value: deg(el.lonPeriapsis),
+              rawValue: el.lonPeriapsis,
+            ),
+            ResultField(
+              label: 'Mean Anomaly (epoch)',
+              value: deg(el.meanAnomalyEpoch),
+              rawValue: el.meanAnomalyEpoch,
+            ),
+            ResultField(
+              label: 'True Anomaly (epoch)',
+              value: deg(el.trueAnomalyEpoch),
+              rawValue: el.trueAnomalyEpoch,
+            ),
+            ResultField(
+              label: 'Eccentric Anomaly',
+              value: deg(el.eccentricAnomalyEpoch),
+              rawValue: el.eccentricAnomalyEpoch,
+            ),
+            ResultField(
+              label: 'Mean Longitude (epoch)',
+              value: deg(el.meanLongitudeEpoch),
+              rawValue: el.meanLongitudeEpoch,
+            ),
+            ResultField(
+              label: 'Mean Daily Motion',
+              value: deg(el.meanDailyMotion),
+              rawValue: el.meanDailyMotion,
+            ),
+            ResultField(
+              label: 'Perihelion Dist (AU)',
+              value: raw(el.perihelionDistance),
+              rawValue: el.perihelionDistance,
+            ),
+            ResultField(
+              label: 'Aphelion Dist (AU)',
+              value: raw(el.aphelionDistance),
+              rawValue: el.aphelionDistance,
+            ),
+            ResultField(
+              label: 'Sidereal Period (yr)',
+              value: raw(el.siderealPeriodYears),
+              rawValue: el.siderealPeriodYears,
+            ),
+            ResultField(
+              label: 'Tropical Period (yr)',
+              value: raw(el.tropicalPeriodYears),
+              rawValue: el.tropicalPeriodYears,
+            ),
+            ResultField(
+              label: 'Synodic Period (days)',
+              value: raw(el.synodicPeriodDays),
+              rawValue: el.synodicPeriodDays,
+            ),
+            ResultField(
+              label: 'Perihelion Passage (JD)',
+              value: raw(el.perihelionPassage),
+              rawValue: el.perihelionPassage,
+            ),
+          ],
+        ),
+      );
+    }
 
-        final el = result.orbitalElements;
-        if (el != null) {
-          cards.add(
-            SizedBox(
-              width: cardWidth,
-              child: ResultCard(
-                title: '${result.bodyName} — Orbital Elements',
-                fields: [
-                  ResultField(
-                    label: 'Semi-major Axis (AU)',
-                    value: raw(el.semimajorAxis),
-                    rawValue: el.semimajorAxis,
-                  ),
-                  ResultField(
-                    label: 'Eccentricity',
-                    value: raw(el.eccentricity),
-                    rawValue: el.eccentricity,
-                  ),
-                  ResultField(
-                    label: 'Inclination',
-                    value: deg(el.inclination),
-                    rawValue: el.inclination,
-                  ),
-                  ResultField(
-                    label: 'Ascending Node',
-                    value: deg(el.ascendingNode),
-                    rawValue: el.ascendingNode,
-                  ),
-                  ResultField(
-                    label: 'Arg. Periapsis',
-                    value: deg(el.argPeriapsis),
-                    rawValue: el.argPeriapsis,
-                  ),
-                  ResultField(
-                    label: 'Lon. Periapsis',
-                    value: deg(el.lonPeriapsis),
-                    rawValue: el.lonPeriapsis,
-                  ),
-                  ResultField(
-                    label: 'Mean Anomaly (epoch)',
-                    value: deg(el.meanAnomalyEpoch),
-                    rawValue: el.meanAnomalyEpoch,
-                  ),
-                  ResultField(
-                    label: 'True Anomaly (epoch)',
-                    value: deg(el.trueAnomalyEpoch),
-                    rawValue: el.trueAnomalyEpoch,
-                  ),
-                  ResultField(
-                    label: 'Eccentric Anomaly',
-                    value: deg(el.eccentricAnomalyEpoch),
-                    rawValue: el.eccentricAnomalyEpoch,
-                  ),
-                  ResultField(
-                    label: 'Mean Longitude (epoch)',
-                    value: deg(el.meanLongitudeEpoch),
-                    rawValue: el.meanLongitudeEpoch,
-                  ),
-                  ResultField(
-                    label: 'Mean Daily Motion',
-                    value: deg(el.meanDailyMotion),
-                    rawValue: el.meanDailyMotion,
-                  ),
-                  ResultField(
-                    label: 'Perihelion Dist (AU)',
-                    value: raw(el.perihelionDistance),
-                    rawValue: el.perihelionDistance,
-                  ),
-                  ResultField(
-                    label: 'Aphelion Dist (AU)',
-                    value: raw(el.aphelionDistance),
-                    rawValue: el.aphelionDistance,
-                  ),
-                  ResultField(
-                    label: 'Sidereal Period (yr)',
-                    value: raw(el.siderealPeriodYears),
-                    rawValue: el.siderealPeriodYears,
-                  ),
-                  ResultField(
-                    label: 'Tropical Period (yr)',
-                    value: raw(el.tropicalPeriodYears),
-                    rawValue: el.tropicalPeriodYears,
-                  ),
-                  ResultField(
-                    label: 'Synodic Period (days)',
-                    value: raw(el.synodicPeriodDays),
-                    rawValue: el.synodicPeriodDays,
-                  ),
-                  ResultField(
-                    label: 'Perihelion Passage (JD)',
-                    value: raw(el.perihelionPassage),
-                    rawValue: el.perihelionPassage,
-                  ),
-                ],
-              ),
+    if (result.maxDist != null && result.minDist != null) {
+      cards.add(
+        ResultCard(
+          title: '${result.bodyName} — Distance Extremes',
+          fields: [
+            ResultField(
+              label: 'Max True Distance (AU)',
+              value: raw(result.maxDist!),
+              rawValue: result.maxDist!,
             ),
-          );
-        }
-
-        if (result.maxDist != null && result.minDist != null) {
-          cards.add(
-            SizedBox(
-              width: cardWidth,
-              child: ResultCard(
-                title: '${result.bodyName} — Distance Extremes',
-                fields: [
-                  ResultField(
-                    label: 'Max True Distance (AU)',
-                    value: raw(result.maxDist!),
-                    rawValue: result.maxDist!,
-                  ),
-                  ResultField(
-                    label: 'Min True Distance (AU)',
-                    value: raw(result.minDist!),
-                    rawValue: result.minDist!,
-                  ),
-                ],
-              ),
+            ResultField(
+              label: 'Min True Distance (AU)',
+              value: raw(result.minDist!),
+              rawValue: result.minDist!,
             ),
-          );
-        }
+          ],
+        ),
+      );
+    }
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(spacing: 4, runSpacing: 4, children: cards),
-        );
-      },
-    );
+    return ResultCardGrid.cards(cards);
   }
 }

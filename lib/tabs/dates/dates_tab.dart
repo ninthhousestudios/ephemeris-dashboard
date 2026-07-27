@@ -15,6 +15,8 @@ import '../../core/swe_utils_provider.dart';
 import '../../core/time_scale.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
+import '../../widgets/result_card_grid.dart';
+import '../../widgets/result_section.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'dates_provider.dart';
@@ -330,25 +332,12 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   }
 
   Widget _buildResultCards(DatesResult result, Calendar calendar) {
-    // One label/value source for cards and export alike — see datesSections.
-    final sections = datesSections(result, calendar);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 600 ? 2 : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final section in sections)
-                SizedBox(width: cardWidth, child: section.toCard()),
-            ],
-          ),
-        );
-      },
+    return ResultCardGrid<ResultSection>.items(
+      // One label/value source for cards and export alike — see datesSections.
+      items: datesSections(result, calendar),
+      // Two columns at most: the date cards are wide.
+      maxColumns: 2,
+      cardBuilder: (section) => section.toCard(),
     );
   }
 }

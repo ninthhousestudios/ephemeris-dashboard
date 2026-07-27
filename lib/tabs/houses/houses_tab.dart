@@ -13,6 +13,7 @@ import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/house_system_dropdown.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/result_card_grid.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'houses_provider.dart';
@@ -91,82 +92,57 @@ class _HousesTabState extends ConsumerState<HousesTab> {
   }
 
   Widget _buildResultCards(HousesCalcResult result, DisplayFormat format) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-        final cuspCount = (result.hsys == 0x47 ? 36 : 12).clamp(
-          0,
-          result.cusps.length - 1,
-        );
+    final cuspCount = (result.hsys == 0x47 ? 36 : 12).clamp(
+      0,
+      result.cusps.length - 1,
+    );
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Wrap(
-                spacing: 4,
-                runSpacing: 4,
-                children: [
-                  for (int i = 1; i <= cuspCount; i++)
-                    SizedBox(
-                      width: cardWidth,
-                      child: ResultCard(
-                        title: 'Cusp $i',
-                        subtitle: result.hsysName,
-                        flagHex: null,
-                        fields: [
-                          ResultField(
-                            label: 'Longitude',
-                            value: formatAngle(result.cusps[i], format),
-                            rawValue: result.cusps[i],
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              ResultCard(
-                title: 'Angles',
-                subtitle: result.hsysName,
-                fields: [
-                  ResultField(
-                    label: 'Asc',
-                    value: formatAngle(result.asc, format),
-                    rawValue: result.asc,
-                  ),
-                  ResultField(
-                    label: 'MC',
-                    value: formatAngle(result.mc, format),
-                    rawValue: result.mc,
-                  ),
-                  ResultField(
-                    label: 'ARMC',
-                    value: formatAngle(result.armc, format),
-                    rawValue: result.armc,
-                  ),
-                  ResultField(
-                    label: 'Vertex',
-                    value: formatAngle(result.vertex, format),
-                    rawValue: result.vertex,
-                  ),
-                  ResultField(
-                    label: 'Eq Asc',
-                    value: formatAngle(result.equatorialAsc, format),
-                    rawValue: result.equatorialAsc,
-                  ),
-                ],
-              ),
-            ],
+    return ResultCardGrid<int>.items(
+      items: [for (int i = 1; i <= cuspCount; i++) i],
+      cardBuilder: (i) => ResultCard(
+        title: 'Cusp $i',
+        subtitle: result.hsysName,
+        flagHex: null,
+        fields: [
+          ResultField(
+            label: 'Longitude',
+            value: formatAngle(result.cusps[i], format),
+            rawValue: result.cusps[i],
           ),
-        );
-      },
+        ],
+      ),
+      // Full width below the cusps: the angles are one card, not a grid cell.
+      footer: ResultCard(
+        title: 'Angles',
+        subtitle: result.hsysName,
+        fields: [
+          ResultField(
+            label: 'Asc',
+            value: formatAngle(result.asc, format),
+            rawValue: result.asc,
+          ),
+          ResultField(
+            label: 'MC',
+            value: formatAngle(result.mc, format),
+            rawValue: result.mc,
+          ),
+          ResultField(
+            label: 'ARMC',
+            value: formatAngle(result.armc, format),
+            rawValue: result.armc,
+          ),
+          ResultField(
+            label: 'Vertex',
+            value: formatAngle(result.vertex, format),
+            rawValue: result.vertex,
+          ),
+          ResultField(
+            label: 'Eq Asc',
+            value: formatAngle(result.equatorialAsc, format),
+            rawValue: result.equatorialAsc,
+          ),
+        ],
+      ),
     );
   }
 }

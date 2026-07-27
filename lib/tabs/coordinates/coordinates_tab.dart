@@ -11,6 +11,7 @@ import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/result_card_grid.dart';
 import 'coordinates_provider.dart';
 
 /// Labelled numeric field, shared by all three cards on this tab.
@@ -111,31 +112,8 @@ class CoordinatesTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildCardsGrid() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              SizedBox(width: cardWidth, child: const _AzAltCard()),
-              SizedBox(width: cardWidth, child: const _CoTransCard()),
-              SizedBox(width: cardWidth, child: const _RefracCard()),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  Widget _buildCardsGrid() =>
+      ResultCardGrid.cards(const [_AzAltCard(), _CoTransCard(), _RefracCard()]);
 }
 
 // ── Az/Alt card (with direction toggle) ─────────────────────────────────────

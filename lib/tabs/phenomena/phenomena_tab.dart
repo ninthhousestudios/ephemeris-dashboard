@@ -15,6 +15,8 @@ import '../../layout/tab_definitions.dart';
 import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids, namedComets;
 import '../../widgets/export_button.dart';
+import '../../widgets/result_card_grid.dart';
+import '../../widgets/result_section.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'phenomena_provider.dart';
@@ -394,68 +396,28 @@ class _ResultsView extends ConsumerWidget {
     final format = ref.watch(phenomenaFormatProvider);
     final outcome = ref.watch(phenomenaResultsProvider);
 
-    return switch (outcome) {
-      CalcError(:final message) => Center(
-        child: Text('Calculation error: $message'),
-      ),
-      CalcOk(value: final results) =>
-        results.isEmpty
-            ? const Center(child: Text('No bodies selected'))
-            : LayoutBuilder(
-                builder: (context, constraints) {
-                  final cols = constraints.maxWidth > 1200
-                      ? 3
-                      : constraints.maxWidth > 600
-                      ? 2
-                      : 1;
-                  final cardWidth =
-                      (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-                  // One label/value source for cards and export alike — see
-                  // phenomenaSections. Zipped 1:1 with results (same order,
-                  // same length) so the close button can still key off body id.
-                  final sections = phenomenaSections(results, format);
-
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(8),
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        for (var i = 0; i < results.length; i++)
-                          SizedBox(
-                            width: cardWidth,
-                            child: Stack(
-                              children: [
-                                sections[i].toCard(),
-                                Positioned(
-                                  top: 4,
-                                  right: 4,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.close, size: 16),
-                                    tooltip: 'Remove ${results[i].bodyName}',
-                                    visualDensity: VisualDensity.compact,
-                                    onPressed: () {
-                                      final current = ref.read(
-                                        phenomenaBodiesProvider,
-                                      );
-                                      ref
-                                          .read(
-                                            phenomenaBodiesProvider.notifier,
-                                          )
-                                          .state = current
-                                          .where((b) => b != results[i].body)
-                                          .toList();
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+    final results = switch (outcome) {
+      CalcOk(:final value) => value,
+      CalcError() => const <PhenomenaResult>[],
     };
+    // One label/value source for cards and export alike — see
+    // phenomenaSections. Zipped 1:1 with results (same order, same length) so
+    // the close button can still key off body id.
+    return ResultCardGrid<ResultSection>.outcome(
+      outcome: outcome.map((rows) => phenomenaSections(rows, format)),
+      emptyMessage: 'No bodies selected',
+      cardOverlay: (i) => IconButton(
+        icon: const Icon(Icons.close, size: 16),
+        tooltip: 'Remove ${results[i].bodyName}',
+        visualDensity: VisualDensity.compact,
+        onPressed: () {
+          final current = ref.read(phenomenaBodiesProvider);
+          ref.read(phenomenaBodiesProvider.notifier).state = current
+              .where((b) => b != results[i].body)
+              .toList();
+        },
+      ),
+      cardBuilder: (section) => section.toCard(),
+    );
   }
 }

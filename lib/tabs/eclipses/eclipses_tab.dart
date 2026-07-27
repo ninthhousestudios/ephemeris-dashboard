@@ -10,6 +10,8 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/display_format.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../widgets/export_button.dart';
+import '../../widgets/result_card_grid.dart';
+import '../../widgets/result_section.dart';
 import '../../widgets/star_search_field.dart';
 import 'eclipses_provider.dart';
 
@@ -301,43 +303,14 @@ class _EclipsesTabState extends ConsumerState<EclipsesTab> {
   }
 
   Widget _buildResults(CalcOutcome<List<EclipseEvent>> outcome) {
-    final List<EclipseEvent> events;
-    switch (outcome) {
-      case CalcError(:final message):
-        return Center(child: Text('Calculation error: $message'));
-      case CalcOk(value: final v):
-        events = v;
-    }
-    if (events.isEmpty) {
-      return const Center(child: Text('No eclipses found'));
-    }
-
     final swe = ref.read(sweProvider);
     final view = ref.watch(clockViewProvider);
-    // One label/value source for cards and export alike — see eclipseSections.
-    final sections = eclipseSections(events, swe, view);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1000
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final section in sections)
-                SizedBox(width: cardWidth, child: section.toCard()),
-            ],
-          ),
-        );
-      },
+    return ResultCardGrid<ResultSection>.outcome(
+      // One label/value source for cards and export alike — see eclipseSections.
+      outcome: outcome.map((events) => eclipseSections(events, swe, view)),
+      emptyMessage: 'No eclipses found',
+      cardBuilder: (section) => section.toCard(),
     );
   }
 }

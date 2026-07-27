@@ -14,6 +14,7 @@ import '../../core/output_clock.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../widgets/export_button.dart';
+import '../../widgets/result_card_grid.dart';
 import '../../widgets/star_search_field.dart';
 import 'heliacal_provider.dart';
 
@@ -496,7 +497,7 @@ class _ResultsView extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final cols = constraints.maxWidth > 900 ? 2 : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+        final cardWidth = resultCardWidth(constraints.maxWidth, cols);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(8),

@@ -11,6 +11,7 @@ import '../../core/display_format.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
+import '../../widgets/result_card_grid.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
@@ -446,8 +447,7 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
                 : constraints.maxWidth > 600
                 ? 2
                 : 1;
-            final cardWidth =
-                (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
+            final cardWidth = resultCardWidth(constraints.maxWidth, cols);
 
             return SingleChildScrollView(
               padding: const EdgeInsets.all(8),

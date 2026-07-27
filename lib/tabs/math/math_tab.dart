@@ -8,6 +8,7 @@ import '../../core/context_provider.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
+import '../../widgets/result_card_grid.dart';
 import 'math_provider.dart';
 
 class MathTab extends ConsumerStatefulWidget {
@@ -52,40 +53,18 @@ class _MathTabState extends ConsumerState<MathTab> {
   }
 
   Widget _buildMathGrid() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cols = constraints.maxWidth > 1200
-            ? 3
-            : constraints.maxWidth > 600
-            ? 2
-            : 1;
-        final cardWidth = (constraints.maxWidth - 16 - (cols - 1) * 4) / cols;
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(8),
-          child: Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: MathOp.values
-                .map(
-                  (op) => SizedBox(
-                    width: cardWidth,
-                    child: _MathOpCard(
-                      op: op,
-                      onResult: (fields) {
-                        setState(() {
-                          if (fields != null) {
-                            _allResults[op] = fields;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        );
-      },
+    return ResultCardGrid<MathOp>.items(
+      items: MathOp.values,
+      cardBuilder: (op) => _MathOpCard(
+        op: op,
+        onResult: (fields) {
+          setState(() {
+            if (fields != null) {
+              _allResults[op] = fields;
+            }
+          });
+        },
+      ),
     );
   }
 }
