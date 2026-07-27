@@ -281,6 +281,15 @@ List<ResultSection> heliacalSections(
 
   String fmt(double jd) => _fmtHeliacalJd(swe, jd, view);
 
+  // The Julian Day card shows the same instants as the card above it, so it
+  // moves onto the Context's Scale with them — a JD sitting on UT1 beside a
+  // date-time rendered in TT is two answers to one question. The label names
+  // the scale rather than leaving the number to be read as whatever the bar
+  // happens to say; see `jdScaleLabel` for why UTC reads as UT1.
+  final jdUtils = JdUtils(swe);
+  final jdLabel = jdScaleLabel(view.scale);
+  double onScale(double jd) => jdUtils.jdOnScale(jd, view.scale);
+
   return [
     ResultSection(
       title: '${r.objectName} — $eventLabel',
@@ -308,19 +317,19 @@ List<ResultSection> heliacalSections(
       subtitle: eventLabel,
       fields: [
         ResultField(
-          label: 'Start Visible (JD)',
-          value: r.startVisibleJd.toStringAsFixed(6),
-          rawValue: r.startVisibleJd,
+          label: 'Start Visible (JD $jdLabel)',
+          value: onScale(r.startVisibleJd).toStringAsFixed(6),
+          rawValue: onScale(r.startVisibleJd),
         ),
         ResultField(
-          label: 'Best Visible (JD)',
-          value: r.bestVisibleJd.toStringAsFixed(6),
-          rawValue: r.bestVisibleJd,
+          label: 'Best Visible (JD $jdLabel)',
+          value: onScale(r.bestVisibleJd).toStringAsFixed(6),
+          rawValue: onScale(r.bestVisibleJd),
         ),
         ResultField(
-          label: 'End Visible (JD)',
-          value: r.endVisibleJd.toStringAsFixed(6),
-          rawValue: r.endVisibleJd,
+          label: 'End Visible (JD $jdLabel)',
+          value: onScale(r.endVisibleJd).toStringAsFixed(6),
+          rawValue: onScale(r.endVisibleJd),
         ),
       ],
     ),

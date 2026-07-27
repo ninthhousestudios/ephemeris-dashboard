@@ -85,6 +85,93 @@ void main() {
     });
   });
 
+  group('a Julian Day shown as a number carries the scale too', () {
+    JdUtils? jd;
+
+    setUp(() {
+      try {
+        jd = JdUtils(SweUtils(EphemerisRunner()));
+      } catch (_) {
+        // Platform-availability guard, as above.
+      }
+    });
+
+    // ΔT at J2000, read off the swetest references rather than restated: civil
+    // TT noon sits one ΔT step *below* the UT1 Moment, so the same Moment
+    // numbered on TT sits one step above it.
+    const deltaT = _ut1Jd - _ttJd;
+
+    test('UT1 leaves the Moment as it is', () {
+      if (jd == null) return markTestSkipped('SwissEph unavailable');
+      expect(jd!.jdOnScale(_ut1Jd, TimeScale.ut1), _ut1Jd);
+    });
+
+    test('TT is one ΔT step up from the UT1 Moment', () {
+      if (jd == null) return markTestSkipped('SwissEph unavailable');
+      expect(
+        jd!.jdOnScale(_ut1Jd, TimeScale.tt),
+        closeTo(_ut1Jd + deltaT, 1e-9),
+      );
+    });
+
+    test('UTC has no Julian Day of its own, and says so', () {
+      if (jd == null) return markTestSkipped('SwissEph unavailable');
+      // JD is a continuous count of days and leap seconds are what such a
+      // count cannot express, so the number stays UT1 — within a second of
+      // UTC by construction — and the label names UT1 rather than the scale
+      // that was asked for.
+      expect(jd!.jdOnScale(_ut1Jd, TimeScale.utc), _ut1Jd);
+      expect(jdScaleLabel(TimeScale.utc), 'UT1');
+    });
+
+    test('the label names the scale the number is on', () {
+      expect(jdScaleLabel(TimeScale.ut1), 'UT1');
+      expect(jdScaleLabel(TimeScale.tt), 'TT');
+    });
+
+    test('the shift agrees with the civil render of the same Moment', () {
+      if (jd == null) return markTestSkipped('SwissEph unavailable');
+      // The point of routing both through JdUtils: a JD card beside a
+      // date-time card must not be two answers to one question. Numbering the
+      // Moment on TT and reading its civil fields as UT1 is the same instant
+      // as reading the Moment's fields on TT.
+      //
+      // UTC is excluded because it is the one scale where the two *cannot*
+      // agree: its civil render carries the leap seconds that its JD, being a
+      // continuous count, does not. That is the divergence `jdScaleLabel`
+      // exists to declare — the card says UT1 rather than pretending.
+      for (final scale in [TimeScale.ut1, TimeScale.tt]) {
+        final viaNumber = jd!.civilFieldsOn(
+          jd!.jdOnScale(_ut1Jd, scale),
+          Calendar.gregorian,
+        );
+        final viaCivil = jd!.localCivilOf(
+          _ut1Jd,
+          calendar: Calendar.gregorian,
+          scale: scale,
+          offsetHours: 0,
+        );
+        expect(
+          [
+            viaNumber.year,
+            viaNumber.month,
+            viaNumber.day,
+            viaNumber.hour,
+            viaNumber.minute,
+          ],
+          [
+            viaCivil.year,
+            viaCivil.month,
+            viaCivil.day,
+            viaCivil.hour,
+            viaCivil.minute,
+          ],
+          reason: '$scale',
+        );
+      }
+    });
+  });
+
   group('display is symmetric with the input scale', () {
     JdUtils? jd;
     final noon = DateTime.utc(2000, 1, 1, 12, 0, 0);

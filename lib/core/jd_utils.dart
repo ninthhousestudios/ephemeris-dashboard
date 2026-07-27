@@ -223,6 +223,23 @@ class JdUtils {
     }
   }
 
+  /// The Moment [jdUt] as a Julian Day *number* on [scale], for a card that
+  /// shows the JD itself rather than a civil rendering of it.
+  ///
+  /// The same shift [localCivilOf] applies before formatting, stopping short of
+  /// the civil conversion — so a JD shown beside a date-time agrees with it
+  /// instead of quietly staying on UT1 while the date moved.
+  ///
+  /// [TimeScale.utc] has no Julian Day numbering of its own: JD is a count of
+  /// days, and UTC's leap seconds are exactly what a continuous count cannot
+  /// express. It therefore returns the UT1 number, which is what the two scales
+  /// share to within a second by construction. [jdScaleLabel] names that, so
+  /// the card says UT1 rather than implying a scale the number is not on.
+  double jdOnScale(double jdUt, TimeScale scale) => switch (scale) {
+    TimeScale.ut1 || TimeScale.utc => jdUt,
+    TimeScale.tt => jdUt + _swe.deltat(jdUt),
+  };
+
   /// Map local civil fields (read on [scale]/[calendar], shifted by
   /// [offsetHours]) back to the canonical UT1 Julian Day.
   ///
@@ -274,6 +291,14 @@ class JdUtils {
 }
 
 String _p2(int n) => n.toString().padLeft(2, '0');
+
+/// The scale a Julian Day from [JdUtils.jdOnScale] is actually numbered on.
+///
+/// [TimeScale.utc] reads as `UT1`, because that is the number it returns — see
+/// [JdUtils.jdOnScale] for why UTC has no Julian Day of its own. Naming the
+/// scale the value is on beats naming the one that was asked for.
+String jdScaleLabel(TimeScale scale) =>
+    (scale == TimeScale.utc ? TimeScale.ut1 : scale).label;
 
 /// Formats the canonical UT1 Julian Day [jd] as a civil date-time string.
 ///
