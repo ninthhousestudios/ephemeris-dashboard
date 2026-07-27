@@ -359,8 +359,6 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
 
   Widget _buildSeries() {
     final format = ref.watch(diffFormatProvider);
-    final clockView = ref.watch(clockViewProvider);
-    final swe = ref.read(sweProvider);
     final steps = ref.watch(diffSeriesProvider);
 
     List<ExportRow> rows(DiffResult result) => diffToExportRows(result, format);
@@ -370,13 +368,6 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
       steps: [
         for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
       ],
-      momentLabel: (m) => formatJdDateTime(
-        swe,
-        m.ut,
-        showLabel: false,
-        view: clockView,
-        fallbackDigits: 4,
-      ),
     );
   }
 

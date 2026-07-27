@@ -8,7 +8,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/flag_masks.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -389,18 +388,10 @@ final riseSetSeriesTargetProvider = Provider<RiseSetTarget?>((ref) {
 /// Rise/set series: one row per stepped day for the single series target.
 final riseSetSeriesProvider =
     Provider<List<(Moment, CalcOutcome<RiseSetResult>)>>((ref) {
-      ref.watch(
-        seriesSettingsProvider(
-          AppTab.riseSet.name,
-        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-      );
-      final settings = ref.read(seriesSettingsProvider(AppTab.riseSet.name));
-      if (!settings.enabled) return const [];
-
-      return runTabCalcSeries(
+      return seriesSteps(
         ref,
-        compute: _riseSetSeriesCompute(ref),
-        settings: settings,
+        AppTab.riseSet.name,
+        compute: () => _riseSetSeriesCompute(ref),
       );
     });
 

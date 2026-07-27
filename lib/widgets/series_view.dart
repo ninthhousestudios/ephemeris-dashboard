@@ -9,6 +9,9 @@ import '../core/calculation/series_export.dart';
 import '../core/calculation/series_settings_provider.dart';
 import '../core/calculation/series_table.dart';
 import '../core/context_provider.dart';
+import '../core/display_format.dart';
+import '../core/jd_utils.dart';
+import '../core/swe_utils_provider.dart';
 import 'export_button.dart';
 import 'quantity_picker.dart';
 import 'series_grid.dart';
@@ -23,7 +26,6 @@ class SeriesView extends ConsumerWidget {
     super.key,
     required this.tabId,
     required this.steps,
-    required this.momentLabel,
     this.momentColumnTitle,
     this.filenameStem,
   });
@@ -32,7 +34,6 @@ class SeriesView extends ConsumerWidget {
   final String tabId;
 
   final List<SeriesStep> steps;
-  final String Function(Moment) momentLabel;
 
   /// Header for the sticky Moment column. Defaults to the Moment expressed on
   /// the Context's time Scale, e.g. `Date/Time (UT1)` / `(TT)` / `(UTC)`, so it
@@ -50,6 +51,21 @@ class SeriesView extends ConsumerWidget {
 
     final scale = ref.watch(contextBarProvider.select((s) => s.timeScale));
     final columnTitle = momentColumnTitle ?? 'Date/Time (${scale.label})';
+
+    // How a step's Moment reads is one app-wide policy, not a tab's choice:
+    // the selected clock and the engine behind the formatter are providers,
+    // so the view resolves them itself rather than taking a lambda from each
+    // of eleven tabs. A step whose UT could not be computed is a NaN Moment;
+    // formatting falls back to the raw Julian Day rather than throwing.
+    final clockView = ref.watch(clockViewProvider);
+    final swe = ref.read(sweProvider);
+    String momentLabel(Moment m) => formatJdDateTime(
+      swe,
+      m.ut,
+      showLabel: false,
+      view: clockView,
+      fallbackDigits: 4,
+    );
 
     return Column(
       // Shrink-wraps. The app shell scrolls the whole page (`AppShell.body` is

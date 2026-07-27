@@ -11,8 +11,6 @@ import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
-import '../../core/jd_utils.dart';
-import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids, namedComets;
@@ -109,8 +107,6 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
 
   Widget _buildSeries() {
     final format = ref.watch(phenomenaFormatProvider);
-    final clockView = ref.watch(clockViewProvider);
-    final swe = ref.read(sweProvider);
     final steps = ref.watch(phenomenaSeriesProvider);
 
     List<ExportRow> rows(List<PhenomenaResult> results) =>
@@ -121,13 +117,6 @@ class _PhenomenaTabState extends ConsumerState<PhenomenaTab> {
       steps: [
         for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
       ],
-      momentLabel: (m) => formatJdDateTime(
-        swe,
-        m.ut,
-        showLabel: false,
-        view: clockView,
-        fallbackDigits: 4,
-      ),
     );
   }
 

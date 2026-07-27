@@ -349,20 +349,10 @@ final otherBodiesResultsProvider = Provider<CalcOutcome<List<OtherBodyResult>>>(
 
 final otherBodiesSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<OtherBodyResult>>)>>((ref) {
-      ref.watch(
-        seriesSettingsProvider(
-          AppTab.otherBodies.name,
-        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-      );
-      final settings = ref.read(
-        seriesSettingsProvider(AppTab.otherBodies.name),
-      );
-      if (!settings.enabled) return const [];
-
-      return runTabCalcSeries(
+      return seriesSteps(
         ref,
-        compute: _otherBodiesCompute(ref),
-        settings: settings,
+        AppTab.otherBodies.name,
+        compute: () => _otherBodiesCompute(ref),
       );
     });
 

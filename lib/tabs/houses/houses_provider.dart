@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
@@ -94,17 +93,10 @@ final housesResultProvider = Provider<CalcOutcome<HousesCalcResult>>((ref) {
 
 final housesSeriesProvider =
     Provider<List<(Moment, CalcOutcome<HousesCalcResult>)>>((ref) {
-      ref.watch(
-        seriesSettingsProvider(
-          AppTab.houses.name,
-        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-      );
-      final settings = ref.read(seriesSettingsProvider(AppTab.houses.name));
-      if (!settings.enabled) return const [];
-      return runTabCalcSeries(
+      return seriesSteps(
         ref,
-        compute: _housesCompute(ref),
-        settings: settings,
+        AppTab.houses.name,
+        compute: () => _housesCompute(ref),
       );
     });
 

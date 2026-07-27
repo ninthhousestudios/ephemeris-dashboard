@@ -419,18 +419,10 @@ final starResultProvider = Provider<CalcOutcome<List<StarResult>>>((ref) {
 
 final starsSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<StarResult>>)>>((ref) {
-      ref.watch(
-        seriesSettingsProvider(
-          AppTab.stars.name,
-        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-      );
-      final settings = ref.read(seriesSettingsProvider(AppTab.stars.name));
-      if (!settings.enabled) return const [];
-
-      return runTabCalcSeries(
+      return seriesSteps(
         ref,
-        compute: _starsCompute(ref),
-        settings: settings,
+        AppTab.stars.name,
+        compute: () => _starsCompute(ref),
       );
     });
 

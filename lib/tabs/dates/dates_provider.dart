@@ -8,7 +8,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/obliquity.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/calculation/series_settings_provider.dart';
 import '../../core/calendar.dart';
 import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
@@ -276,14 +275,7 @@ final datesResultProvider = Provider<CalcOutcome<DatesResult>>((ref) {
 final datesSeriesProvider = Provider<List<(Moment, CalcOutcome<DatesResult>)>>((
   ref,
 ) {
-  ref.watch(
-    seriesSettingsProvider(
-      AppTab.dates.name,
-    ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-  );
-  final settings = ref.read(seriesSettingsProvider(AppTab.dates.name));
-  if (!settings.enabled) return const [];
-  return runTabCalcSeries(ref, compute: _datesCompute(ref), settings: settings);
+  return seriesSteps(ref, AppTab.dates.name, compute: () => _datesCompute(ref));
 });
 
 // ── Card sections (the single label/value source) ─────────────────────────────

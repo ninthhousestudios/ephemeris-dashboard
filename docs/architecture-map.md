@@ -47,7 +47,7 @@ appliedGlobalsProvider (AppliedGlobals)
 | `series_table.dart` | `SeriesStep`, `SeriesColumn`, `SeriesTableRow`, `SeriesTable`, `buildSeriesTable`, `seriesFieldLabels` | Folds `List<(Moment, CalcOutcome<List<ExportRow>>)>` into a grid. Column identity is the pair `(ExportRow.header, field label)`; the column set is the union across steps in first-appearance order, so an errored step or a body that drops out leaves a hole in its row instead of shifting columns. `hiddenLabels` filters by field label (the quantity picker is per-quantity, not per-body). Pure — no widgets, no engine. |
 | `series_settings.dart` | `SeriesSettings` | Per-tab series-mode state: `enabled`, step value/unit, row count, and the *hidden* label set (stored as hidden so all-on is the default and a quantity added later appears switched on). No start Moment — the Context owns it. |
 | `series_settings_provider.dart` | `SeriesSettingsNotifier`, `seriesSettingsProvider` (family, keyed by `TabDescriptor.id`) | Owns and persists one tab's settings. The step-value rules live here, not in the widget: `setStepValue` refuses a value the unit rejects, `setStepUnit` snaps via `StepUnit.snapStepValue` and returns what it took. Keyed by a plain String so `lib/core` stays free of `lib/layout`. |
-| `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcWithOverrides<T>`, `runTabCalcSeries<T>`, `computeSeries<T>` | Free function (not a provider factory): apply globals → execute compute lambda → envelope in `CalcOutcome`. Synchronous. The compute lambda takes `(Ephemeris, Moment)`; the pointwise Moment is built from `effectiveContextProvider.jdUt`, so tabs no longer read the Context JD themselves. Per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. `runTabCalcSeries` takes `SeriesSettings` (the shape) and builds the start Moment from the Context itself, so a tab cannot supply a start; it applies `AppliedGlobals` **once, outside the step loop** (they are Context-derived, not Moment-derived) and returns `List<(Moment, CalcOutcome<T>)>` — one outcome per step, so a failing step does not kill the series. `computeSeries` is the Riverpod-free loop, for tests. |
+| `run_tab_calc.dart` | `runTabCalc<T>`, `runTabCalcWithOverrides<T>`, `runTabCalcSeries<T>`, `seriesSteps<T>`, `seriesStepsWithOverrides<T>`, `computeSeries<T>` | Free function (not a provider factory): apply globals → execute compute lambda → envelope in `CalcOutcome`. Synchronous. The compute lambda takes `(Ephemeris, Moment)`; the pointwise Moment is built from `effectiveContextProvider.jdUt`, so tabs no longer read the Context JD themselves. Per-item errors (e.g. one bad body in a list) are caught inside the lambda, `runTabCalc` only catches catastrophic `SweException`. `runTabCalcSeries` takes `SeriesSettings` (the shape) and builds the start Moment from the Context itself, so a tab cannot supply a start; it applies `AppliedGlobals` **once, outside the step loop** (they are Context-derived, not Moment-derived) and returns `List<(Moment, CalcOutcome<T>)>` — one outcome per step, so a failing step does not kill the series. `computeSeries` is the Riverpod-free loop, for tests. `seriesSteps` is the whole of a tab's series provider: it reads the tab's `seriesSettingsProvider`, watching only the four fields that shape the series (a hidden-label or export-layout edit must not recompute), gates on `enabled`, and delegates to `runTabCalcSeries`. Its `compute` is a *factory* (`() => _xCompute(ref)`), so a disabled series subscribes to nothing but its settings. |
 
 **Migrated to the kernel:** `planets`, `differential`, `phenomena`,
 `planetocentric`, `nodes_apsides`, `stars`, `crossings`, `coordinates`,
@@ -239,7 +239,7 @@ two-axis scroll and intrinsic column widths in the grid.
 | `horizontal_fields.dart` | `horizontalResultFields(HorizontalCoords, DisplayFormat)` — the horizontal-frame `ResultField`s for a single-Moment card, gated by each tab's card toggle. Widget-side twin of the kernel's `horizontalExportRows`. |
 | `result_section.dart` | `ResultSection(title, subtitle, flagHex, fields)` + `sectionsToExportRows` — a card's worth of a Result, and its projection into `ExportRow`s. A tab builds its sections once and uses them for *both* encodings (cards and CSV/series columns/quantity chips), so a label or formatter has one home. Adopted by the five tabs that had bespoke unshared field lists and had drifted (swe-dashboard/91: `datesSections`, `eclipseSections`, `diffSections`, `phenomenaSections`, `heliacalSections`); the other tabs already shared a label source of their own (`coordLabels()`, `coordResultToFields`, math's card→export map). |
 | `series_grid.dart` | `SeriesGrid` — renders a `SeriesTable`. Moment column + one column per quantity; an `Error` column appears only when some step failed, and errored rows show `—` in the quantity cells. Sticky Moment column deliberately deferred. |
-| `series_view.dart` | `SeriesView(tabId, steps, momentLabel)` — picker over grid, wired to `seriesSettingsProvider`. The one widget a tab drops in. Shrink-wraps (`MainAxisSize.min`, no flex child): `AppShell.body` is a `SingleChildScrollView`, so tab content is laid out under unbounded height and an `Expanded` here throws. |
+| `series_view.dart` | `SeriesView(tabId, steps)` — picker over grid, wired to `seriesSettingsProvider`. Renders each step's Moment itself (`formatJdDateTime` over `clockViewProvider`/`sweProvider`): one app-wide policy, not eleven identical tab lambdas. The one widget a tab drops in. Shrink-wraps (`MainAxisSize.min`, no flex child): `AppShell.body` is a `SingleChildScrollView`, so tab content is laid out under unbounded height and an `Expanded` here throws. |
 
 ### Wiring a tab into series mode
 
@@ -247,23 +247,29 @@ The Planets tab is the worked example (swe-dashboard/51); Other Bodies and
 Stars were rolled out in swe-dashboard/53; Phenomena, Nodes/Apsides,
 Planetocentric, and Differential in swe-dashboard/54; Houses, Ayanamsa, and
 Dates in swe-dashboard/55 — all eligible tabs now have series mode. Ayanamsa's
-lifted compute captures `runner`/`globals` from ref for per-mode `reconfigure`,
-using `runTabCalc` instead of `runTabCalcWithOverrides`. Dates ignores the
-override JD in series mode (the Context Moment is the series start). Four
-pieces, all of them small:
+lifted compute varies the engine config per mode, so it takes the
+`WithOverrides` pair (`_ayanamsaCompute` gets `baseGlobals` and `reconfigure`).
+Dates ignores the override JD in series mode (the Context Moment is the series
+start). Since swe-dashboard/84 the wiring is three lines in three places:
 
 1. **Lift the compute binding** out of the single-Moment provider into a
    `_xCompute(ref)` returning `T Function(Ephemeris, Moment)`, so both modes
    run the identical calculation.
-2. **Add `xSeriesProvider`** — `ref.watch(seriesSettingsProvider(AppTab.x.name))`,
-   return `const []` when not enabled (recompute is synchronous; a series behind
-   a switched-off toggle would tax every Context change), else
-   `runTabCalcSeries(ref, compute: _xCompute(ref), settings: settings)`. It
+2. **Add `xSeriesProvider`** — one call to `seriesSteps(ref, AppTab.x.name,
+   compute: () => _xCompute(ref))` (or `seriesStepsWithOverrides`), which is
+   the kernel's, in `run_tab_calc.dart`. It owns the settings watch/read split,
+   the enabled gate (recompute is synchronous; a series behind a switched-off
+   toggle would tax every Context change) and the run. `compute` is a factory
+   so a disabled series subscribes to nothing but its settings. The provider
    yields the tab's **typed** result per step, not `ExportRow`s.
-3. **Drop in `SeriesBar(tabId: AppTab.x.name)`** above the results divider.
-4. **Branch the results body** on `seriesSettingsProvider(...).select((s) => s.enabled)`,
-   projecting each step through the tab's existing `xToExportRows` with
-   `CalcOutcome.map` and handing the result to `SeriesView`.
+3. **Drop in `SeriesBar(tabId: AppTab.x.name)`** above the results divider, and
+   **branch the results body** on
+   `seriesSettingsProvider(...).select((s) => s.enabled)`, projecting each step
+   through the tab's existing `xToExportRows` with `CalcOutcome.map` and handing
+   the result to `SeriesView`. That `map` fold is the only per-tab line left:
+   `SeriesView` takes `(tabId, steps)` and resolves everything else — including
+   the Moment column's label, which is one app-wide policy over `clockView` and
+   `sweProvider`, not a tab's choice.
 
 ## Test files (ephemeris related)
 

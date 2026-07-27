@@ -9,7 +9,6 @@ import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/context_provider.dart';
 import '../../core/calendar.dart';
-import '../../core/display_format.dart';
 import '../../core/date_time_input.dart';
 import '../../core/jd_utils.dart';
 import '../../core/swe_utils_provider.dart';
@@ -303,8 +302,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
   }
 
   Widget _buildSeries() {
-    final clockView = ref.watch(clockViewProvider);
-    final swe = ref.read(sweProvider);
     final steps = ref.watch(datesSeriesProvider);
     // Watched for the same reason the Calendar card watches it: the civil
     // fields a step exports are read on the Context Calendar.
@@ -316,13 +313,6 @@ class _DatesTabState extends ConsumerState<DatesTab> {
         for (final (moment, outcome) in steps)
           (moment, outcome.map((r) => datesToExportRows(r, calendar))),
       ],
-      momentLabel: (m) => formatJdDateTime(
-        swe,
-        m.ut,
-        showLabel: false,
-        view: clockView,
-        fallbackDigits: 4,
-      ),
     );
   }
 

@@ -12,6 +12,7 @@ import '../ephemeris/runner.dart';
 import 'calc_outcome.dart';
 import 'moment.dart';
 import 'series_settings.dart';
+import 'series_settings_provider.dart';
 import 'series_spec.dart';
 
 CalcOutcome<T> _runTabCalc<T>(
@@ -169,3 +170,72 @@ List<(Moment, CalcOutcome<T>)> computeSeries<T>(
 
 /// Stand-in for a step whose UT could not be computed.
 final _unbuiltMoment = Moment(ut: double.nan, deltaT: 0);
+
+/// A tab's per-step calculation: the pure `(Ephemeris, Moment)` compute.
+typedef StepCompute<T> = T Function(Ephemeris eph, Moment moment);
+
+/// [StepCompute] with the per-step engine reconfiguration hook — see
+/// [runTabCalcSeriesWithOverrides].
+typedef StepComputeWithOverrides<T> =
+    T Function(
+      Ephemeris eph,
+      Moment moment,
+      AppliedGlobals baseGlobals,
+      void Function(AppliedGlobals) reconfigure,
+    );
+
+/// The whole of a tab's series provider: the settings for [tabId], the
+/// series-mode gate, and the run.
+///
+/// [compute] is a *factory* rather than the compute itself so that a tab whose
+/// series is switched off subscribes to nothing but its series settings. The
+/// factories (`_planetsCompute` and friends) watch the tab's own selections,
+/// and evaluating one eagerly would make every unrelated selection change
+/// re-run a provider that is only going to return no steps.
+List<(Moment, CalcOutcome<T>)> seriesSteps<T>(
+  Ref ref,
+  String tabId, {
+  required StepCompute<T> Function() compute,
+}) => _seriesSteps(
+  ref,
+  tabId,
+  (settings) => runTabCalcSeries(ref, compute: compute(), settings: settings),
+);
+
+/// [seriesSteps] for a tab that varies the engine configuration per step —
+/// see [runTabCalcSeriesWithOverrides].
+List<(Moment, CalcOutcome<T>)> seriesStepsWithOverrides<T>(
+  Ref ref,
+  String tabId, {
+  required StepComputeWithOverrides<T> Function() compute,
+}) => _seriesSteps(
+  ref,
+  tabId,
+  (settings) => runTabCalcSeriesWithOverrides(
+    ref,
+    compute: compute(),
+    settings: settings,
+  ),
+);
+
+/// Shared gate of the two series-provider entry points.
+///
+/// The watch/read split is the subtle part, and the reason this lives in one
+/// place: only the four fields that *shape* the series are watched, while the
+/// settings are then read whole. Hiding a quantity or switching the export
+/// layout writes to the same [SeriesSettings] object, and watching it whole
+/// would recompute the entire series for a display-only edit.
+List<(Moment, CalcOutcome<T>)> _seriesSteps<T>(
+  Ref ref,
+  String tabId,
+  List<(Moment, CalcOutcome<T>)> Function(SeriesSettings settings) run,
+) {
+  ref.watch(
+    seriesSettingsProvider(
+      tabId,
+    ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
+  );
+  final settings = ref.read(seriesSettingsProvider(tabId));
+  if (!settings.enabled) return [];
+  return run(settings);
+}

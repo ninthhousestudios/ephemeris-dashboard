@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:swe_dashboard/core/calculation/calc_outcome.dart';
 import 'package:swe_dashboard/core/calculation/moment.dart';
+import 'package:swe_dashboard/core/calculation/run_tab_calc.dart';
 import 'package:swe_dashboard/core/calculation/series_export.dart';
 import 'package:swe_dashboard/core/calculation/series_settings.dart';
 import 'package:swe_dashboard/core/calculation/series_settings_provider.dart';
@@ -478,6 +479,110 @@ void main() {
     });
   });
 
+  // The gate every tab's series provider is now one line of: which settings
+  // fields drive a recompute, and what a disabled series subscribes to.
+  group('seriesSteps', () {
+    late ProviderContainer container;
+    late Provider<List<(Moment, CalcOutcome<double>)>> stepsProvider;
+    late int factoryCalls;
+    late int computeCalls;
+
+    setUp(() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      factoryCalls = 0;
+      computeCalls = 0;
+      stepsProvider = Provider<List<(Moment, CalcOutcome<double>)>>(
+        (ref) => seriesSteps(
+          ref,
+          'planets',
+          compute: () {
+            factoryCalls++;
+            return (eph, moment) {
+              computeCalls++;
+              return moment.ut;
+            };
+          },
+        ),
+      );
+      container = ProviderContainer(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
+      );
+      addTearDown(container.dispose);
+      // Held alive: an unlistened Provider is disposed between reads, and then
+      // every read recomputes, which is the thing under test here.
+      container.listen(stepsProvider, (_, _) {});
+    });
+
+    SeriesSettingsNotifier notifier() =>
+        container.read(seriesSettingsProvider('planets').notifier);
+
+    test('series mode off runs no compute, and builds none', () {
+      expect(container.read(stepsProvider), isEmpty);
+      expect(
+        factoryCalls,
+        0,
+        reason:
+            'a disabled series must not even build the compute, which is what '
+            'subscribes to the tab selections',
+      );
+    });
+
+    test('enabled runs the compute once per row, at stepping Moments', () {
+      notifier()
+        ..setEnabled(true)
+        ..setRowCount(3);
+
+      final steps = container.read(stepsProvider);
+
+      expect(steps, hasLength(3));
+      expect(computeCalls, 3);
+      final uts = steps.map((s) => (s.$2 as CalcOk<double>).value).toList();
+      expect(uts[1] - uts[0], closeTo(1.0, 1e-9));
+      expect(uts[2] - uts[1], closeTo(1.0, 1e-9));
+    });
+
+    test('a display-only settings edit does not recompute the series', () {
+      notifier()
+        ..setEnabled(true)
+        ..setRowCount(2);
+      final first = container.read(stepsProvider);
+      final callsAfterFirst = factoryCalls;
+
+      notifier()
+        ..setLabelVisible('Longitude', false)
+        ..setExportLayout(SeriesLayout.horizontal);
+
+      expect(identical(container.read(stepsProvider), first), isTrue);
+      expect(factoryCalls, callsAfterFirst);
+      expect(computeCalls, 2);
+    });
+
+    test('an edit to the shape of the series does recompute it', () {
+      notifier()
+        ..setEnabled(true)
+        ..setRowCount(2);
+      container.read(stepsProvider);
+
+      notifier().setRowCount(4);
+      expect(container.read(stepsProvider), hasLength(4));
+
+      notifier().setStepUnit(StepUnit.months);
+      final monthly = container.read(stepsProvider);
+      expect(
+        (monthly[1].$2 as CalcOk<double>).value -
+            (monthly[0].$2 as CalcOk<double>).value,
+        greaterThan(27.0),
+      );
+
+      notifier().setEnabled(false);
+      expect(container.read(stepsProvider), isEmpty);
+    });
+  });
+
   group('widgets', () {
     Future<ProviderContainer> pump(
       WidgetTester tester,
@@ -626,11 +731,7 @@ void main() {
 
       await pump(
         tester,
-        SeriesView(
-          tabId: 'planets',
-          steps: steps,
-          momentLabel: (m) => m.ut.toStringAsFixed(1),
-        ),
+        SeriesView(tabId: 'planets', steps: steps),
         size: const Size(1400, 900),
       );
 
@@ -656,11 +757,7 @@ void main() {
 
       await pump(
         tester,
-        SeriesView(
-          tabId: 'planets',
-          steps: steps,
-          momentLabel: (m) => m.ut.toStringAsFixed(1),
-        ),
+        SeriesView(tabId: 'planets', steps: steps),
         size: const Size(1400, 900),
       );
 
@@ -705,11 +802,7 @@ void main() {
 
       final container = await pump(
         tester,
-        SeriesView(
-          tabId: 'planets',
-          steps: steps,
-          momentLabel: (m) => m.ut.toStringAsFixed(1),
-        ),
+        SeriesView(tabId: 'planets', steps: steps),
         size: const Size(1400, 900),
       );
 
@@ -726,7 +819,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Copy as TSV'));
       await tester.pumpAndSettle();
-      expect(copied, startsWith('Name\tJD\tDate\tSun Longitude\n1.0\t'));
+      expect(copied, startsWith('Name\tJD\tDate\tSun Longitude\n'));
 
       // The choice went to the settings, not to widget state.
       expect(
@@ -746,11 +839,7 @@ void main() {
 
       final container = await pump(
         tester,
-        SeriesView(
-          tabId: 'planets',
-          steps: steps,
-          momentLabel: (m) => m.ut.toStringAsFixed(1),
-        ),
+        SeriesView(tabId: 'planets', steps: steps),
         size: const Size(1400, 900),
       );
       container

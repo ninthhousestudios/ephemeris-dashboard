@@ -9,8 +9,6 @@ import '../../core/calculation/series_settings_provider.dart';
 import '../../core/export_service.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
-import '../../core/jd_utils.dart';
-import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/house_system_dropdown.dart';
@@ -67,8 +65,6 @@ class _HousesTabState extends ConsumerState<HousesTab> {
 
   Widget _buildSeries() {
     final format = ref.watch(housesFormatProvider);
-    final clockView = ref.watch(clockViewProvider);
-    final swe = ref.read(sweProvider);
     final steps = ref.watch(housesSeriesProvider);
 
     List<ExportRow> rows(HousesCalcResult result) =>
@@ -79,13 +75,6 @@ class _HousesTabState extends ConsumerState<HousesTab> {
       steps: [
         for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
       ],
-      momentLabel: (m) => formatJdDateTime(
-        swe,
-        m.ut,
-        showLabel: false,
-        view: clockView,
-        fallbackDigits: 4,
-      ),
     );
   }
 

@@ -7,7 +7,6 @@ import '../../core/ayanamsa_catalog.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/applied_globals.dart';
 import '../../core/ephemeris/ephemeris.dart';
@@ -180,17 +179,10 @@ final ayanamsaResultsProvider = Provider<CalcOutcome<List<AyanamsaCalcResult>>>(
 
 final ayanamsaSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<AyanamsaCalcResult>>)>>((ref) {
-      ref.watch(
-        seriesSettingsProvider(
-          AppTab.ayanamsa.name,
-        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-      );
-      final settings = ref.read(seriesSettingsProvider(AppTab.ayanamsa.name));
-      if (!settings.enabled) return const [];
-      return runTabCalcSeriesWithOverrides(
+      return seriesStepsWithOverrides(
         ref,
-        compute: _ayanamsaCompute(ref),
-        settings: settings,
+        AppTab.ayanamsa.name,
+        compute: () => _ayanamsaCompute(ref),
       );
     });
 

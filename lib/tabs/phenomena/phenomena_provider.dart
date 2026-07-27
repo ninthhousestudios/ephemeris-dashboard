@@ -8,7 +8,6 @@ import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -113,18 +112,10 @@ final phenomenaResultsProvider = Provider<CalcOutcome<List<PhenomenaResult>>>((
 
 final phenomenaSeriesProvider =
     Provider<List<(Moment, CalcOutcome<List<PhenomenaResult>>)>>((ref) {
-      ref.watch(
-        seriesSettingsProvider(
-          AppTab.phenomena.name,
-        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-      );
-      final settings = ref.read(seriesSettingsProvider(AppTab.phenomena.name));
-      if (!settings.enabled) return const [];
-
-      return runTabCalcSeries(
+      return seriesSteps(
         ref,
-        compute: _phenomenaCompute(ref),
-        settings: settings,
+        AppTab.phenomena.name,
+        compute: () => _phenomenaCompute(ref),
       );
     });
 

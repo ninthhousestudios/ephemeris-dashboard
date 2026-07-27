@@ -12,8 +12,6 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
-import '../../core/jd_utils.dart';
-import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../tabs/other_bodies/other_bodies_provider.dart'
     show otherBodiesNamedAsteroids;
@@ -290,8 +288,6 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
   Widget _buildSeries() {
     final format = ref.watch(nodesFormatProvider);
     final flags = ref.watch(flagBarProvider);
-    final clockView = ref.watch(clockViewProvider);
-    final swe = ref.read(sweProvider);
     final steps = ref.watch(nodesApsSeriesProvider);
 
     List<ExportRow> rows(NodesApsResult result) => nodesApsToExportRows(
@@ -306,13 +302,6 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
       steps: [
         for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
       ],
-      momentLabel: (m) => formatJdDateTime(
-        swe,
-        m.ut,
-        showLabel: false,
-        view: clockView,
-        fallbackDigits: 4,
-      ),
     );
   }
 }

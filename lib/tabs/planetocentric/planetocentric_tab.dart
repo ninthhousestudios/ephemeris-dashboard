@@ -12,7 +12,6 @@ import '../../core/display_format.dart';
 import '../../core/ephe/catalog.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
-import '../../core/jd_utils.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/tab_definitions.dart';
@@ -294,8 +293,6 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
   Widget _buildSeries() {
     final format = ref.watch(planetocentricFormatProvider);
     final flags = ref.watch(flagBarProvider);
-    final clockView = ref.watch(clockViewProvider);
-    final swe = ref.read(sweProvider);
     final steps = ref.watch(planetocentricSeriesProvider);
 
     List<ExportRow> rows(List<PlanetoCentricResult> results) =>
@@ -311,13 +308,6 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
       steps: [
         for (final (moment, outcome) in steps) (moment, outcome.map(rows)),
       ],
-      momentLabel: (m) => formatJdDateTime(
-        swe,
-        m.ut,
-        showLabel: false,
-        view: clockView,
-        fallbackDigits: 4,
-      ),
     );
   }
 

@@ -8,7 +8,6 @@ import '../../core/body_utils.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/moment.dart';
 import '../../core/calculation/run_tab_calc.dart';
-import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
@@ -126,20 +125,10 @@ final nodesApsResultsProvider = Provider<CalcOutcome<NodesApsResult>>((ref) {
 
 final nodesApsSeriesProvider =
     Provider<List<(Moment, CalcOutcome<NodesApsResult>)>>((ref) {
-      ref.watch(
-        seriesSettingsProvider(
-          AppTab.nodesApsides.name,
-        ).select((s) => (s.enabled, s.stepValue, s.stepUnit, s.rowCount)),
-      );
-      final settings = ref.read(
-        seriesSettingsProvider(AppTab.nodesApsides.name),
-      );
-      if (!settings.enabled) return const [];
-
-      return runTabCalcSeries(
+      return seriesSteps(
         ref,
-        compute: _nodesApsCompute(ref),
-        settings: settings,
+        AppTab.nodesApsides.name,
+        compute: () => _nodesApsCompute(ref),
       );
     });
 
