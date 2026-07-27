@@ -51,8 +51,9 @@ class _StarSearchFieldState extends ConsumerState<StarSearchField> {
 
   @override
   void dispose() {
-    _controller.removeListener(_onSearchChanged);
-    _controller.dispose();
+    _controller
+      ..removeListener(_onSearchChanged)
+      ..dispose();
     _focusNode.dispose();
     _scrollController.dispose();
     super.dispose();

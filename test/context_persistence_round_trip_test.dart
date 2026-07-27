@@ -94,8 +94,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final persistence = PersistenceService(
       await SharedPreferences.getInstance(),
-    );
-    persistence.saveContextBar(_custom);
+    )..saveContextBar(_custom);
 
     // The notifier restores in its constructor, starting from its own
     // defaults — i.e. exactly the fresh-launch path.
@@ -123,11 +122,10 @@ void main() {
     'a cleared JPL filename does not resurrect the previous choice',
     () async {
       SharedPreferences.setMockInitialValues({});
-      final persistence = PersistenceService(
-        await SharedPreferences.getInstance(),
-      );
-      persistence.saveContextBar(_custom);
-      persistence.saveContextBar(_custom.copyWith(jplFilename: null));
+      final persistence =
+          PersistenceService(await SharedPreferences.getInstance())
+            ..saveContextBar(_custom)
+            ..saveContextBar(_custom.copyWith(jplFilename: null));
 
       expect(persistence.loadContextBar().containsKey('jplFilename'), isFalse);
     },

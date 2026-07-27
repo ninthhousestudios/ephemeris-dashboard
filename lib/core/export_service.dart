@@ -30,8 +30,7 @@ class ExportService {
   static String toTsv(List<ExportRow> rows) {
     if (rows.isEmpty) return '';
     final labels = _allLabels(rows);
-    final buf = StringBuffer();
-    buf.writeln(['Name', ...labels].join('\t'));
+    final buf = StringBuffer()..writeln(['Name', ...labels].join('\t'));
     for (final row in rows) {
       final valuesByLabel = _fieldMap(row);
       buf.writeln(
@@ -68,8 +67,8 @@ class ExportService {
   static String toCsv(List<ExportRow> rows) {
     if (rows.isEmpty) return '';
     final labels = _allLabels(rows);
-    final buf = StringBuffer();
-    buf.writeln(['Name', ...labels].map(_csvEscape).join(','));
+    final buf = StringBuffer()
+      ..writeln(['Name', ...labels].map(_csvEscape).join(','));
     for (final row in rows) {
       final valuesByLabel = _fieldMap(row);
       buf.writeln(

@@ -177,8 +177,9 @@ Future<(int, int, int)?> showPreciseTimePicker({
         void updateCtrl(TextEditingController ctrl, int value) {
           final text = value.toString().padLeft(2, '0');
           if (ctrl.text != text) {
-            ctrl.text = text;
-            ctrl.selection = TextSelection.collapsed(offset: text.length);
+            ctrl
+              ..text = text
+              ..selection = TextSelection.collapsed(offset: text.length);
           }
         }
 

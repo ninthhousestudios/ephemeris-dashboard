@@ -117,8 +117,9 @@ class EphemerisDownloader {
     }
 
     run().then((_) => controller.close()).catchError((Object e, StackTrace st) {
-      controller.addError(e, st);
-      controller.close();
+      controller
+        ..addError(e, st)
+        ..close();
     });
 
     return controller.stream;

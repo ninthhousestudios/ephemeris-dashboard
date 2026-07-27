@@ -800,24 +800,24 @@ class _EphemerisManagerScreenState
       });
       // User-initiated cancel — don't blast a scary "failed" snackbar.
       if (cancel.isCancelled) return;
-      final messenger = ScaffoldMessenger.of(context);
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 6),
-          showCloseIcon: true,
-          content: Text(
-            'Download failed (${f.filename}): ${_shortError(e.message)}',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 6),
+            showCloseIcon: true,
+            content: Text(
+              'Download failed (${f.filename}): ${_shortError(e.message)}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _runDownload(f),
+            ),
           ),
-          action: SnackBarAction(
-            label: 'Retry',
-            onPressed: () => _runDownload(f),
-          ),
-        ),
-      );
+        );
     }
   }
 

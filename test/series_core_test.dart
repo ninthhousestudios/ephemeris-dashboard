@@ -61,8 +61,9 @@ void main() {
       final m = Moment.fromUt(j2000, fake);
       expect(calls, 0);
 
-      m.et;
-      m.et;
+      m
+        ..et
+        ..et;
       expect(calls, 1, reason: 'ET is derived once and cached');
     });
   });

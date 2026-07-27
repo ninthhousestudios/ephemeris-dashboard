@@ -519,23 +519,24 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
     if (error != null) {
       fields.add(ResultField(label: 'Error', value: error));
     } else {
-      fields.add(
-        ResultField(
-          label: 'JD',
-          value: jd != null ? jd.toStringAsFixed(8) : '—',
-          rawValue: jd,
-        ),
-      );
-      fields.add(
-        ResultField(
-          label: 'Date/Time',
-          value: formatRiseSetEventTime(
-            ref.read(sweProvider),
-            jd,
-            ref.watch(clockViewProvider),
+      fields
+        ..add(
+          ResultField(
+            label: 'JD',
+            value: jd != null ? jd.toStringAsFixed(8) : '—',
+            rawValue: jd,
           ),
-        ),
-      );
+        )
+        ..add(
+          ResultField(
+            label: 'Date/Time',
+            value: formatRiseSetEventTime(
+              ref.read(sweProvider),
+              jd,
+              ref.watch(clockViewProvider),
+            ),
+          ),
+        );
     }
 
     return SizedBox(

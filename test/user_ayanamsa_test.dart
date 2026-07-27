@@ -7,9 +7,9 @@ import 'package:swe_dashboard/tabs/ayanamsa/ayanamsa_provider.dart';
 void main() {
   group('UserAyanamsaNotifier — arbitrary editable entries', () {
     test('add appends entries with distinct, stable ids', () {
-      final n = UserAyanamsaNotifier();
-      n.add();
-      n.add();
+      final n = UserAyanamsaNotifier()
+        ..add()
+        ..add();
       expect(n.state.length, 2);
       expect(n.state[0].id, isNot(n.state[1].id));
       // Default seed is J2000 so a fresh entry is swetest-comparable, not 0.
@@ -17,9 +17,9 @@ void main() {
     });
 
     test('update mutates only the matching entry, by id', () {
-      final n = UserAyanamsaNotifier();
-      n.add();
-      n.add();
+      final n = UserAyanamsaNotifier()
+        ..add()
+        ..add();
       final firstId = n.state[0].id;
       final secondId = n.state[1].id;
 
@@ -36,30 +36,30 @@ void main() {
     });
 
     test('partial update leaves unspecified fields intact', () {
-      final n = UserAyanamsaNotifier();
-      n.add();
+      final n = UserAyanamsaNotifier()..add();
       final id = n.state[0].id;
-      n.update(id, t0IsUt: true);
-      n.update(id, value: 24.1); // must not reset t0IsUt
+      n
+        ..update(id, t0IsUt: true)
+        ..update(id, value: 24.1); // must not reset t0IsUt
       expect(n.state[0].t0IsUt, isTrue);
       expect(n.state[0].value, 24.1);
     });
 
     test('removeById drops one entry and keeps the rest', () {
-      final n = UserAyanamsaNotifier();
-      n.add();
-      n.add();
+      final n = UserAyanamsaNotifier()
+        ..add()
+        ..add();
       final keep = n.state[1].id;
       n.removeById(n.state[0].id);
       expect(n.state.map((u) => u.id), [keep]);
     });
 
     test('ids are not reused after removal', () {
-      final n = UserAyanamsaNotifier();
-      n.add();
+      final n = UserAyanamsaNotifier()..add();
       final firstId = n.state[0].id;
-      n.removeById(firstId);
-      n.add();
+      n
+        ..removeById(firstId)
+        ..add();
       expect(n.state.single.id, isNot(firstId));
     });
   });

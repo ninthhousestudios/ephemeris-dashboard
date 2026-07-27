@@ -26,20 +26,21 @@ class PersistenceService {
   // ── Context Bar ──
 
   void saveContextBar(ContextBarState s) {
-    _prefs.setDouble('ctx_latitude', s.latitude);
-    _prefs.setDouble('ctx_longitude', s.longitude);
-    _prefs.setDouble('ctx_altitude', s.altitude);
-    _prefs.setString('ctx_city_label', s.cityLabel);
-    _prefs.setString('ctx_origin', s.origin.name);
-    _prefs.setString('ctx_zodiac_ref', s.zodiacRef.name);
-    _prefs.setString('ctx_eq_ref', s.eqRef.name);
-    _prefs.setInt('ctx_ayanamsa', s.ayanamsa);
-    _prefs.setInt('ctx_last_sidereal_ayanamsa', s.lastSiderealAyanamsa);
-    _prefs.setDouble('ctx_user_ayan_t0', s.userAyanT0);
-    _prefs.setDouble('ctx_user_ayan_value', s.userAyanValue);
-    _prefs.setBool('ctx_user_ayan_t0_is_ut', s.userAyanT0IsUt);
-    _prefs.setString('ctx_sidereal_projection', s.projection.name);
-    _prefs.setString('ctx_ephe_source', s.epheSource.name);
+    _prefs
+      ..setDouble('ctx_latitude', s.latitude)
+      ..setDouble('ctx_longitude', s.longitude)
+      ..setDouble('ctx_altitude', s.altitude)
+      ..setString('ctx_city_label', s.cityLabel)
+      ..setString('ctx_origin', s.origin.name)
+      ..setString('ctx_zodiac_ref', s.zodiacRef.name)
+      ..setString('ctx_eq_ref', s.eqRef.name)
+      ..setInt('ctx_ayanamsa', s.ayanamsa)
+      ..setInt('ctx_last_sidereal_ayanamsa', s.lastSiderealAyanamsa)
+      ..setDouble('ctx_user_ayan_t0', s.userAyanT0)
+      ..setDouble('ctx_user_ayan_value', s.userAyanValue)
+      ..setBool('ctx_user_ayan_t0_is_ut', s.userAyanT0IsUt)
+      ..setString('ctx_sidereal_projection', s.projection.name)
+      ..setString('ctx_ephe_source', s.epheSource.name);
     // Null (no JPL file chosen) has to erase the key, not leave the previous
     // choice behind for the next restore to pick up.
     final jplFilename = s.jplFilename;
@@ -48,9 +49,10 @@ class PersistenceService {
     } else {
       _prefs.setString('ctx_jpl_filename', jplFilename);
     }
-    _prefs.setDouble('ctx_utc_offset', s.utcOffset);
-    _prefs.setString('ctx_calendar', s.calendar.name);
-    _prefs.setString('ctx_time_scale', s.timeScale.name);
+    _prefs
+      ..setDouble('ctx_utc_offset', s.utcOffset)
+      ..setString('ctx_calendar', s.calendar.name)
+      ..setString('ctx_time_scale', s.timeScale.name);
   }
 
   /// Returns a map of overrides to apply to the initial ContextBarState.
@@ -145,11 +147,12 @@ class PersistenceService {
   // ── Flag Bar ──
 
   void saveFlagBar(FlagBarState s) {
-    _prefs.setInt('flag_coord_value', s.coordValue);
-    _prefs.setStringList(
-      'flag_toggles',
-      s.toggles.map((e) => e.toString()).toList(),
-    );
+    _prefs
+      ..setInt('flag_coord_value', s.coordValue)
+      ..setStringList(
+        'flag_toggles',
+        s.toggles.map((e) => e.toString()).toList(),
+      );
   }
 
   Map<String, dynamic> loadFlagBar() {
@@ -209,15 +212,16 @@ class PersistenceService {
   String _seriesKey(String tabId, String field) => 'series_${tabId}_$field';
 
   void saveSeriesSettings(String tabId, SeriesSettings s) {
-    _prefs.setBool(_seriesKey(tabId, 'enabled'), s.enabled);
-    _prefs.setDouble(_seriesKey(tabId, 'step_value'), s.stepValue);
-    _prefs.setString(_seriesKey(tabId, 'step_unit'), s.stepUnit.name);
-    _prefs.setInt(_seriesKey(tabId, 'row_count'), s.rowCount);
-    _prefs.setStringList(
-      _seriesKey(tabId, 'hidden_labels'),
-      s.hiddenLabels.toList(),
-    );
-    _prefs.setString(_seriesKey(tabId, 'export_layout'), s.exportLayout.name);
+    _prefs
+      ..setBool(_seriesKey(tabId, 'enabled'), s.enabled)
+      ..setDouble(_seriesKey(tabId, 'step_value'), s.stepValue)
+      ..setString(_seriesKey(tabId, 'step_unit'), s.stepUnit.name)
+      ..setInt(_seriesKey(tabId, 'row_count'), s.rowCount)
+      ..setStringList(
+        _seriesKey(tabId, 'hidden_labels'),
+        s.hiddenLabels.toList(),
+      )
+      ..setString(_seriesKey(tabId, 'export_layout'), s.exportLayout.name);
   }
 
   /// Loaded field by field against the defaults, so a tab that has never been

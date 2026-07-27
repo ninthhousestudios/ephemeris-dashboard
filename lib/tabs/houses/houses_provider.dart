@@ -102,9 +102,8 @@ final housesSeriesProvider =
 
 /// Convert house results to export rows.
 List<ExportRow> housesToExportRows(HousesCalcResult result, DisplayFormat fmt) {
-  final rows = <ExportRow>[];
-  // Angles card first
-  rows.add(
+  final rows = <ExportRow>[
+    // Angles card first
     ExportRow(
       header: 'Angles (${result.hsysName})',
       fields: [
@@ -115,7 +114,7 @@ List<ExportRow> housesToExportRows(HousesCalcResult result, DisplayFormat fmt) {
         ('Eq Asc', formatAngle(result.equatorialAsc, fmt)),
       ],
     ),
-  );
+  ];
   // Cusp cards
   for (int i = 1; i < result.cusps.length; i++) {
     if (result.cusps[i] == 0.0 && i > 12) continue; // skip unused slots

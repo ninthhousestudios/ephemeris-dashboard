@@ -13,10 +13,9 @@ final flagBarProvider = StateNotifierProvider<FlagBarNotifier, FlagBarState>((
   ref,
 ) {
   final persistence = ref.watch(persistenceProvider);
-  final notifier = FlagBarNotifier(persistence);
-
-  // Restore persisted flag state.
-  notifier.restoreFromPersistence();
+  final notifier = FlagBarNotifier(persistence)
+    // Restore persisted flag state.
+    ..restoreFromPersistence();
 
   // Auto-link: update locked flags when context bar changes.
   // Use ref.listen (not ref.watch inside notifier) to avoid infinite loops.

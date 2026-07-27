@@ -77,8 +77,9 @@ class EphemerisDirectoryNotifier
 
   void useCustom(String path) {
     state = state.copyWith(useManaged: false, customPath: path);
-    _prefs.setBool(_kUseManagedKey, false);
-    _prefs.setString(_kCustomPathKey, path);
+    _prefs
+      ..setBool(_kUseManagedKey, false)
+      ..setString(_kCustomPathKey, path);
   }
 }
 
