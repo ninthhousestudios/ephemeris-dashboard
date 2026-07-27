@@ -13,6 +13,7 @@ Buckets:
 - **(b) deferred** — commented `# TRIGGER:` block in `.sutra/rules.toml`, binds at a named slice
 - **(c) CLAUDE.md** — behavioral/process invariant, not graph-expressible
 - **(d) test** — pinned by the test suite, pointed at its implementing slice
+- **(e) analyzer** — `analysis_options.yaml`, checked by `flutter analyze`
 
 Staging: constraints current debt violates are **advisory now**, flipping to
 **blocking** at the named slice.
@@ -38,9 +39,14 @@ Staging: constraints current debt violates are **advisory now**, flipping to
 | 17 | "A series compute takes its Moment from the step, never the Context" — Time-Series PRD §Governed invariant | c | CLAUDE.md invariant + structural (computes are `(Ephemeris, Moment)` with no `ref`; `runTabCalcSeries` solely owns the Context-JD read and the step loop) | routed → CLAUDE.md (`/60`). A `forbidden_pattern` banning `jdUt`/`jdEt` under `lib/tabs/**` was **rejected as unsound** — those identifiers are legitimate there (compute params fed from `moment.ut`; Dates result fields `jdUt`/`jdEt`), so the ban would fire on ~100 valid sites. |
 | 18 | "The kernel must not know about tabs" — swe-dashboard/37 (rule existed in `.sutra/rules.toml` from `/37` but had no ledger row) | a | `forbidden_dep lib/core/** → lib/tabs/**` | live, **blocking** (flipped @ `/85`: core now DEFINES the body selections — the `BodySelection` registry — instead of importing the three tab providers that held them, which is what the 17-file SCC ran through. 0 violations.) |
 
+| 19 | "flutter analyze is clean" — recurring acceptance criterion on refactor tasks | e | `analysis_options.yaml` (house Dart baseline) | live, **blocking as of `/93`**. Was ticked done on tasks for a long time while false: 184 diagnostics at `bac2b50~1`. Cleared @ `/93` — 65 via `dart fix`, 48 `cascade_invocations` by hand, and `avoid_catches_without_on_clauses` switched off with rationale in `analysis_options.yaml` (all 68 sites were deliberate error boundaries per ADR-0001; narrowing them would have traded graceful degradation for crashes). **`flutter analyze` now exits 0 with zero diagnostics, so the criterion is checkable and any new diagnostic is a regression.** Rejected alternative: a "no NEW diagnostics vs. base" gate — machinery to maintain a debt that could be deleted, and it leaves the exit code permanently red. |
+
 ## Maintenance
 
 - New track PRDs **append** rows here; never regenerate.
+- Row 19 is the one mechanism a task can silently violate by *claiming* it.
+  Do not tick "analyze clean" on a task without running `flutter analyze` and
+  reading the output — that is how it stayed false through many tasks.
 - A flip-to-blocking event checks its row's status off (advisory → blocking).
 - Convention triage is deferred to **R1 (`/11`)** via vidhi-sutra-tend — FCA has
   settled data once the foundation lands.
