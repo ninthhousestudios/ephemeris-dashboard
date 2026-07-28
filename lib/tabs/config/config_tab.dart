@@ -207,7 +207,7 @@ class ConfigTab extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _infoRow(theme, 'Engine (Rust)', '0.1.8'),
                   const SizedBox(height: 4),
-                  _infoRow(theme, 'Dart Package', '0.2.9'),
+                  _infoRow(theme, 'Dart Package', '0.3.0'),
                 ],
               ),
             ),
