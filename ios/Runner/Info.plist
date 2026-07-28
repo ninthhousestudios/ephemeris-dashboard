@@ -51,6 +51,10 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app does not access your photos. This permission is required by a system component.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ephemeris Dashboard may use the camera when the system file picker offers the option to capture a document for import.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Ephemeris Dashboard may use your location to provide location-specific astronomical calculations while you use the app.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

@@ -1,0 +1,33 @@
+name: swisseph_rs_oracle
+description: >-
+  Agreement-class oracle harness: cross-checks swisseph_rs against the C
+  Swiss Ephemeris (package:swisseph). Never published; not part of the
+  swisseph_rs package.
+publish_to: none
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  swisseph_rs:
+    path: ../
+  # The C Swiss Ephemeris, used as the numerical reference oracle.
+  swisseph: ^0.5.2
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6
+
+# swisseph 0.5.2 pins hooks ^1.0.2; swisseph_rs is on hooks ^2.0.2, so the two
+# cannot co-resolve (swisseph-rs-dart/50). swisseph's build hook is
+# source-compatible with hooks v2 once code_assets and native_toolchain_c are
+# lifted to their hooks-v2 releases, so the conflict is overridden here rather
+# than by holding swisseph_rs back on hooks v1. This is also why the harness
+# lives in its own package: dependency_overrides apply only to the root
+# package, and putting them in swisseph_rs/pubspec.yaml would both leak into
+# the published package and be ignored by its consumers.
+# Retire these three once swisseph publishes a release accepting hooks ^2.
+dependency_overrides:
+  hooks: ^2.0.2
+  code_assets: ^1.2.0
+  native_toolchain_c: ^0.19.0

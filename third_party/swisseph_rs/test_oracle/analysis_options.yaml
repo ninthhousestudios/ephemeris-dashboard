@@ -1,0 +1,2 @@
+# Inherits the house Dart baseline from the parent package.
+include: ../analysis_options.yaml

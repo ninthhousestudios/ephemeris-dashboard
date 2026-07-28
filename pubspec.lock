@@ -505,10 +505,9 @@ packages:
   swisseph_rs:
     dependency: "direct main"
     description:
-      name: swisseph_rs
-      sha256: c352fe4974b59ec543e0fb6f76300cdff078c801f921f012b457eb1f64e7d6cb
-      url: "https://pub.dev"
-    source: hosted
+      path: "third_party/swisseph_rs"
+      relative: true
+    source: path
     version: "0.3.0"
   term_glyph:
     dependency: transitive
@@ -671,5 +670,5 @@ packages:
     source: hosted
     version: "3.1.3"
 sdks:
-  dart: ">=3.12.0 <4.0.0"
+  dart: ">=3.11.1 <4.0.0"
   flutter: ">=3.38.4"

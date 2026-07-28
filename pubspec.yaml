@@ -1,7 +1,7 @@
 name: swe_dashboard
 description: Swiss Ephemeris Dashboard — complete GUI for every Swiss Ephemeris calculation.
 publish_to: 'none'
-version: 2.0.0
+version: 2.0.0+3
 
 environment:
   sdk: ^3.11.1
@@ -36,5 +36,7 @@ flutter:
     - assets/ephe/
 
 dependency_overrides:
+  swisseph_rs:
+    path: third_party/swisseph_rs
   hooks: ^2.0.2
   code_assets: ^1.2.0

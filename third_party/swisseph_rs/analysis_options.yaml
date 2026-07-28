@@ -1,0 +1,49 @@
+# House Dart analyzer baseline (canonical: vidhi/vidhi-dart/analysis_options.yaml)
+include: package:lints/recommended.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    todo: ignore
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    # Web-conditional sources analyzed only under a web toolchain
+    - lib/src/bindings/bindings_web.dart
+    - lib/src/ffi_types_web.dart
+    - lib/src/lifecycle_web.dart
+    - lib/src/loader_web.dart
+    - lib/src/wasm_state.dart
+    - lib/src/marshal/config_pack_web.dart
+
+linter:
+  rules:
+    # Strict typing (coding_discipline: no dynamic)
+    - avoid_dynamic_calls
+    # Async hygiene: a Future silently dropped is a fire-and-forget bug
+    - unawaited_futures
+    # Errors: throw only Error/Exception, log properly.
+    # (avoid_catches_without_on_clauses dropped from the house baseline
+    # @ swe-dashboard/93 — Dart has no checked exceptions, so it demands a
+    # guessed type in the one position where "anything" is the right answer.
+    # This package's stress test is a clean example: it counts any throw as an
+    # expected error, and there is no type to name.)
+    - only_throw_errors
+    - avoid_print
+    # const discipline (coding_discipline: Enforce Const Constructors)
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    # Immutability at the variable level
+    - prefer_final_locals
+    - prefer_final_in_for_each
+    # Cascade & collection operators (coding_discipline)
+    - cascade_invocations
+    - prefer_spread_collections
+    - prefer_if_elements_to_conditional_expressions
+    # Explicit contracts
+    - always_declare_return_types
