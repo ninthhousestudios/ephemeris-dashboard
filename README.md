@@ -1,6 +1,6 @@
 # Ephemeris Dashboard
 
-A cross-platform GUI for the [Swiss Ephemeris](https://www.astro.com/swisseph/swephinfo_e.htm), built with Flutter and [swisseph.dart](https://pub.dev/packages/swisseph).
+A cross-platform GUI for the [Swiss Ephemeris](https://www.astro.com/swisseph/swephinfo_e.htm), built with Flutter and [swisseph_rs.dart](https://pub.dev/packages/swisseph_rs).
 
 Every calculation the Swiss Ephemeris library can do, exposed through a tabbed interface with full control over input parameters and output formats. Pure astronomical values — no astrological interpretation.
 
@@ -29,60 +29,36 @@ Every calculation the Swiss Ephemeris library can do, exposed through a tabbed i
 ### Linux
 
 ```bash
-unzip eph-dashboard-linux.zip
+unzip v2-ephemeris-dashboard-linux.zip
 cd ephemeris-dashboard/
 ./ephemeris_dashboard
 ```
 
 ### macOS
 
-Download `eph-dashboard-macos.dmg` from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases), open the DMG, and drag **Ephemeris Dashboard** to your Applications folder. The app is signed and notarized — no Gatekeeper warnings.
+Download `EphemerisDashboard-v2.dmg` from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases), open the DMG, and drag **Ephemeris Dashboard** to your Applications folder. The app is signed and notarized — no Gatekeeper warnings.
 
 ### Windows
 
-Download `eph-dashboard-windows.zip` from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases), unzip, and double-click `ephemeris_dashboard.exe`.
+Download `v2-ephehemeris-dashboard-windows.zip` from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases), unzip, and double-click `ephemeris_dashboard.exe`.
 
 ### Android
 
-Download from [Google Play](https://play.google.com/store/apps/details?id=studio.ninthhouse.ephemeris_dashboard) (coming soon) or grab the APK from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases) and sideload it.
+Download from [Google Play](https://play.google.com/store/apps/details?id=studio.ninthhouse.ephemeris_dashboard) or grab the APK from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases) and sideload it.
 
 ### iOS
 
-Coming soon to the [App Store](https://apps.apple.com). In the meantime, you can [build from source](#building-from-source) with Xcode.
+Download from the [App Store](https://apps.apple.com/us/app/ephemeris-dashboard/id6761415123). You can also [build from source](#building-from-source) with Xcode.
 
 ### Web
 
-Try it at [ninthhouse.studio/swe-dashboard](https://ninthhouse.studio/swe-dashboard/) or download the static files from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases) and host on any web server. Edit `<base href="/">` in `index.html` if hosting at a subpath.
+Try it at [ninthhouse.studio/ephemeris-dashboard](https://ninthhouse.studio/ephemeris-dashboard/) or download the static files from [GitHub Releases](https://github.com/ninthhousestudios/swe-dashboard/releases) and host on any web server. Edit `<base href="/">` in `index.html` if hosting at a subpath.
 
-## Building from Source
-
-Requires Flutter SDK 3.11+ and a C compiler (for the native Swiss Ephemeris library, built automatically via Dart's native asset system).
-
-```bash
-# Linux
-sudo pacman -S clang   # Arch
-sudo apt install clang  # Debian/Ubuntu
-
-# macOS — Xcode command line tools (usually already installed)
-xcode-select --install
-
-# Windows — Visual Studio Build Tools with C++ workload
-```
-
-```bash
-git clone <repo-url>
-cd swe_dashboard
-flutter pub get
-flutter run -d linux   # or macos, windows, chrome
-```
-
-The Swiss Ephemeris C library compiles automatically on first build via the native asset hook in the `swisseph` package.
 
 ## Usage
 
 1. Set your date, time, location, and options in the **context bar** at the top.
 2. Configure calculation flags in the **flag bar** (coordinate system, speed, aberration, etc.).
-3. Switch to a tab and press **Calculate**.
 4. Results appear as cards. Toggle between DMS, decimal, or raw format.
 5. Copy individual cards or export the full tab as CSV/JSON.
 
