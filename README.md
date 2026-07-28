@@ -74,15 +74,6 @@ The Swiss Ephemeris supports three ephemeris modes:
 
 The app ships with Swiss Ephemeris data files on native platforms. On web, it uses Moshier mode automatically. If .se1 files are not found on a native platform, the ephemeris selector shows a warning and falls back to Moshier.
 
-## Tests
-
-```bash
-flutter test test/goldens/                     # run golden image tests
-flutter test test/goldens/ --update-goldens    # regenerate baselines
-```
-
-54 golden images across 3 screen sizes (mobile, tablet, desktop) x 2 themes (light, dark).
-
 ## License
 
 [AGPL-3.0](LICENSE) — required by the Swiss Ephemeris license terms.
