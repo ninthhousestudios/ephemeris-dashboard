@@ -2,7 +2,8 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:swisseph_rs/swisseph_rs.dart' show initializeWasm, loadEpheFile;
+import 'package:swisseph_rs/swisseph_rs.dart'
+    show initializeWasm, loadEpheFile, wasmAssetPath;
 
 import '../ephe_assets.dart';
 import 'bootstrap.dart';
@@ -18,7 +19,7 @@ import 'bootstrap.dart';
 /// always empty here — an empty asset list is a build that legitimately ships
 /// none, not a break.
 Future<EpheBootstrap> stageEpheSource() async {
-  await initializeWasm('swisseph_ffi.js');
+  await initializeWasm(wasmAssetPath);
 
   final names = await listEpheAssets();
   if (names.isEmpty) return const EpheBootstrap.none();
