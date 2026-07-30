@@ -31,9 +31,6 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-
-  # Swiss Ephemeris C library — compiled natively for iOS.
-  pod 'swisseph_native', :path => File.join('..', 'swisseph_native')
 end
 
 post_install do |installer|

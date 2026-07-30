@@ -1,4 +1,0 @@
-override_platforms:
-  chrome:
-    settings:
-      executable: /usr/bin/chromium

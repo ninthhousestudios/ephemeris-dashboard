@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
-  swisseph_rs: ^0.3.0
+  swisseph_rs: ^0.3.2
   charts_dart:
     git:
       url: https://github.com/ninthhousestudios/charts_dart.git
@@ -36,7 +36,5 @@ flutter:
     - assets/ephe/
 
 dependency_overrides:
-  swisseph_rs:
-    path: third_party/swisseph_rs
   hooks: ^2.0.2
   code_assets: ^1.2.0
