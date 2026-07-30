@@ -2,26 +2,21 @@ PODS:
   - file_saver (0.0.1):
     - FlutterMacOS
   - FlutterMacOS (1.0.0)
-  - swisseph_native (0.0.1)
 
 DEPENDENCIES:
   - file_saver (from `Flutter/ephemeral/.symlinks/plugins/file_saver/macos`)
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - swisseph_native (from `../swisseph_native`)
 
 EXTERNAL SOURCES:
   file_saver:
     :path: Flutter/ephemeral/.symlinks/plugins/file_saver/macos
   FlutterMacOS:
     :path: Flutter/ephemeral
-  swisseph_native:
-    :path: "../swisseph_native"
 
 SPEC CHECKSUMS:
   file_saver: 44e6fbf666677faf097302460e214e977fdd977b
   FlutterMacOS: d0db08ddef1a9af05a5ec4b724367152bb0500b1
-  swisseph_native: 17715a9cde979f0d63d467a16c1e3fcad050b816
 
-PODFILE CHECKSUM: f0e0be391e5ba147b87fb55d7ae575f5c1677680
+PODFILE CHECKSUM: 538bdb314f1ffae545b205964698bff784ec808b
 
 COCOAPODS: 1.16.2

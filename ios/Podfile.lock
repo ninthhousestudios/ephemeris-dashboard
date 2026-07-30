@@ -2,26 +2,21 @@ PODS:
   - file_saver (0.0.1):
     - Flutter
   - Flutter (1.0.0)
-  - swisseph_native (0.0.1)
 
 DEPENDENCIES:
   - file_saver (from `.symlinks/plugins/file_saver/ios`)
   - Flutter (from `Flutter`)
-  - swisseph_native (from `../swisseph_native`)
 
 EXTERNAL SOURCES:
   file_saver:
     :path: ".symlinks/plugins/file_saver/ios"
   Flutter:
     :path: Flutter
-  swisseph_native:
-    :path: "../swisseph_native"
 
 SPEC CHECKSUMS:
   file_saver: 503e386464dbe118f630e17b4c2e1190fa0cf808
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  swisseph_native: 17715a9cde979f0d63d467a16c1e3fcad050b816
 
-PODFILE CHECKSUM: d564103777efe1b9e8742c5e8210de230cbf984c
+PODFILE CHECKSUM: d2243213672c3c48aae53c36642ba411a6be7309
 
 COCOAPODS: 1.16.2
