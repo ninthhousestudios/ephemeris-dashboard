@@ -20,7 +20,7 @@ void main() async {
     ProviderScope(
       overrides: [
         sharedPrefsProvider.overrideWithValue(prefs),
-        epheBootstrapProvider.overrideWithValue(ephe),
+        epheSeedProvider.overrideWithValue(ephe),
       ],
       child: const SweDashboardApp(),
     ),

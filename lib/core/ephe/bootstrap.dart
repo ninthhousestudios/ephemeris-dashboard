@@ -89,18 +89,47 @@ class EpheBootstrap {
   bool get stagingFailed => failures.isNotEmpty;
 }
 
-/// The startup bootstrap result. Overridden in `main()` with the value from
-/// [bootstrapEpheSource]; there is no default, so a scope that forgets the
-/// override fails loudly instead of silently reporting "no ephemeris files".
-final epheBootstrapProvider = Provider<EpheBootstrap>((ref) {
-  throw UnimplementedError('epheBootstrapProvider must be overridden');
+/// The mandatory startup result — everything staging could resolve *before*
+/// `runApp`. Overridden in `main()` with the value from [bootstrapEpheSource];
+/// there is no default, so a scope that forgets the override fails loudly
+/// instead of silently reporting "no ephemeris files".
+///
+/// On native this is the final answer (a resolved directory). On web it is
+/// only "WASM is up, nothing loaded yet" — the 36 MB of `.se1` files then
+/// stream in via [progressiveEpheLoad], with [EpheBootstrapNotifier] folding
+/// each batch into [epheBootstrapProvider]'s state. Consumers watch the
+/// notifier, not this seed, so they see coverage grow.
+final epheSeedProvider = Provider<EpheBootstrap>((ref) {
+  throw UnimplementedError('epheSeedProvider must be overridden');
 });
+
+/// The live bootstrap state consumers watch. Starts at the [epheSeedProvider]
+/// value and, on web, advances as [progressiveEpheLoad] streams files into
+/// MEMFS — so the reactive graph recomputes available sources and coverage as
+/// the ephemeris data arrives instead of blocking the first frame on all of it.
+final epheBootstrapProvider =
+    NotifierProvider<EpheBootstrapNotifier, EpheBootstrap>(
+      EpheBootstrapNotifier.new,
+    );
+
+class EpheBootstrapNotifier extends Notifier<EpheBootstrap> {
+  @override
+  EpheBootstrap build() {
+    // Native yields an empty stream (staging already returned the final
+    // state); web yields the growing coverage as files land in MEMFS.
+    final sub = staging.progressiveEpheLoad().listen((next) => state = next);
+    ref.onDispose(sub.cancel);
+    return ref.watch(epheSeedProvider);
+  }
+}
 
 /// Resolve or stage the ephemeris data files (`.se1` + `sefstars.txt`) into a
 /// directory the engine can read, and seed the writable managed directory
 /// from it. Call once from `main()` before `runApp`.
 ///
-/// - **Web:** loads the WASM module and stages bundled files into MEMFS.
+/// - **Web:** loads the WASM module only (mandatory before the engine can be
+///   constructed); the `.se1` files stream in afterward via [progressiveEpheLoad]
+///   so the first frame does not wait on them.
 /// - **Native:** walks the platform's probe plan (see `probes.dart`), then
 ///   seeds `<appSupport>/ephe` from whatever it found.
 ///

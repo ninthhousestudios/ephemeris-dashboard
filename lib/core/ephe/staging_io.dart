@@ -30,6 +30,14 @@ Future<EpheBootstrap> stageEpheSource() async {
   );
 }
 
+/// Native half of the progressive-load seam. See `staging_web.dart`.
+///
+/// Native staging resolves a real directory the engine reads in place, so
+/// there is nothing to stream in after the fact: [stageEpheSource] already
+/// returned the final state. The empty stream keeps the bootstrap notifier's
+/// subscription uniform across platforms.
+Stream<EpheBootstrap> progressiveEpheLoad() => const Stream.empty();
+
 /// The real platform, read once. Everything downstream takes these as data.
 PlatformFacts currentPlatformFacts() => (
   isMacOS: Platform.isMacOS,

@@ -148,9 +148,13 @@ const fakeHeliacalResults = [
 /// Startup bootstrap for widget tests: nothing staged, which is what a test
 /// process that never ran `bootstrapEpheSource` actually has. Tests needing
 /// the Swiss Ephemeris to look available pass their own override after this
-/// one. It is not optional — `epheBootstrapProvider` throws when unset, so a
+/// one. It is not optional — `epheSeedProvider` throws when unset, so a
 /// scope that forgets it fails loudly rather than quietly reporting no files.
-final epheBootstrapOverride = epheBootstrapProvider.overrideWithValue(
+///
+/// Overrides the *seed*, not `epheBootstrapProvider`: the latter is now a
+/// notifier that folds in progressive load events. On the VM the progressive
+/// stream is empty, so the live state stays exactly this seed.
+final epheBootstrapOverride = epheSeedProvider.overrideWithValue(
   const EpheBootstrap.none(),
 );
 
