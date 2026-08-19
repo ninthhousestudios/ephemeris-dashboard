@@ -113,6 +113,19 @@ Richer result shapes among the search / multi-call tabs:
   Global `outputClockProvider` + derived `clockViewProvider` (bundles clock +
   Context longitude + utcOffset) live in `display_format.dart`; the `ClockSelector`
   dropdown sits in the context-bar OPTIONS grid. View-layer only, like Calendar.
+- `sign_names.dart` | `SignScheme` (none/zodiac/aditya/trueSidereal/userDefined),
+  `UserSignSet` (12 names) + `UserSignSetNotifier`/`userSignSetsProvider` (mirrors
+  `userAyanamsasProvider`), `SignNameSelection` + `signNameSelectionProvider`
+  (persisted; reconciles to Zodiac when its user set is removed), and the pure
+  `inSignField(lon, coordValue, scheme, set, fmt)` → `(label, value)?` — the one
+  primitive each ecliptic-longitude card/export splices in after its Longitude
+  field. `effectiveSchemeFor(sel, ctx)` reconciles the selection against the
+  Context (Aditya⇒tropical, True Sidereal⇒sidereal+True-Sidereal-ayanamsha, else
+  Zodiac); `resolvedSignNamesProvider` bundles the reconciled scheme + resolved
+  set for tabs to watch. `SignNameSelector` dropdown sits in the context-bar
+  OPTIONS grid (True Sidereal greyed until its Context unlocks it; rendering of
+  that mode is deferred to swe-dashboard/102). Pure display concern; `lon mod 30`
+  math, no engine calls. View-layer only, like Clock/Calendar (swe-dashboard/100).
 
 ## Body Selection (lib/core/body_selection.dart, lib/core/body_catalog.dart)
 
@@ -269,6 +282,8 @@ controller, focus node, and sync/commit logic.
 | `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
 | `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown: the built-in catalog, then every entry of `userAyanamsasProvider` by name, then "Add user-defined…" (opens `showUserAyanamsaDialog`) |
 | `user_ayanamsa_dialog.dart` | `showUserAyanamsaDialog` — defines a *new* user-defined ayanamsha (optional name + t0, value, `jdisut`), appends it to the shared list and selects it; says so, pointing at the Ayanamsa tab for later edits |
+| `sign_name_selector.dart` | `SignNameSelector` — sign-name dropdown (None/Zodiac/Aditya, then each `userSignSetsProvider` set, then "Add sign-name set…"), drives `signNameSelectionProvider`. True Sidereal greyed with an unlock tooltip until the Context is sidereal + True Sidereal ayanamsha (swe-dashboard/100) |
+| `user_sign_set_dialog.dart` | `showUserSignSetDialog` — defines a *new* 12-name sign set (optional name + 12 fields prefilled with the zodiac), appends it to the shared list and selects it (mirrors `showUserAyanamsaDialog`) |
 | `projection_selector.dart` | `ProjectionSelector` — sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE), disabled when tropical |
 | `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |

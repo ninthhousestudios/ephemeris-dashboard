@@ -28,6 +28,7 @@ import 'jpl_file_selector.dart';
 import 'file_in_use_indicator.dart';
 import 'origin_selector.dart';
 import 'projection_selector.dart';
+import 'sign_name_selector.dart';
 import 'time_scale_selector.dart';
 import 'zodiac_ref_selector.dart';
 
@@ -310,6 +311,14 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               Expanded(child: TimeScaleSelector()),
             ],
           ),
+          const SizedBox(height: 4),
+          const Row(
+            children: [
+              Expanded(child: SignNameSelector()),
+              SizedBox(width: 8),
+              Expanded(child: SizedBox()),
+            ],
+          ),
         ],
       ),
     );
@@ -461,6 +470,16 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         Expanded(child: ClockSelector()),
                         SizedBox(width: _colGap),
                         Expanded(child: TimeScaleSelector()),
+                      ],
+                    ),
+                    const SizedBox(height: _rowGap),
+                    const Row(
+                      children: [
+                        Expanded(child: SignNameSelector()),
+                        SizedBox(width: _colGap),
+                        Expanded(child: SizedBox()),
+                        SizedBox(width: _colGap),
+                        Expanded(child: SizedBox()),
                       ],
                     ),
                   ],
