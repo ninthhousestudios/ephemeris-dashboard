@@ -8,39 +8,66 @@ import '../../core/ayanamsa_catalog.dart';
 import '../../core/context_provider.dart';
 import '../../core/context_state.dart';
 import '../../core/sign_names.dart';
+import '../../core/true_sidereal.dart';
+import 'true_sidereal_set_dialog.dart';
 import 'user_sign_set_dialog.dart';
 
 /// One row of the Sign Names dropdown: a built-in [SignScheme], one of the
-/// user-defined sign sets, the action that defines a new one, or the action
-/// that opens the manage surface for the existing ones.
+/// user-defined 12-name sets (or the actions to add/manage them), or one of the
+/// True Sidereal sets (or the action to manage them).
 @immutable
 class _SchemeChoice {
   const _SchemeChoice.scheme(this.scheme)
     : userSetId = null,
+      trueSetId = null,
       isAdd = false,
-      isManage = false;
+      isManage = false,
+      isManageTrue = false;
 
   const _SchemeChoice.user(this.userSetId)
     : scheme = SignScheme.userDefined,
+      trueSetId = null,
       isAdd = false,
-      isManage = false;
+      isManage = false,
+      isManageTrue = false;
 
   const _SchemeChoice.add()
     : scheme = SignScheme.userDefined,
       userSetId = null,
+      trueSetId = null,
       isAdd = true,
-      isManage = false;
+      isManage = false,
+      isManageTrue = false;
 
   const _SchemeChoice.manage()
     : scheme = SignScheme.userDefined,
       userSetId = null,
+      trueSetId = null,
       isAdd = false,
-      isManage = true;
+      isManage = true,
+      isManageTrue = false;
+
+  const _SchemeChoice.trueSidereal(this.trueSetId)
+    : scheme = SignScheme.trueSidereal,
+      userSetId = null,
+      isAdd = false,
+      isManage = false,
+      isManageTrue = false;
+
+  const _SchemeChoice.manageTrue()
+    : scheme = SignScheme.trueSidereal,
+      userSetId = null,
+      trueSetId = null,
+      isAdd = false,
+      isManage = false,
+      isManageTrue = true;
 
   final SignScheme scheme;
   final int? userSetId;
+  final int? trueSetId;
   final bool isAdd;
   final bool isManage;
+  final bool isManageTrue;
 
   @override
   bool operator ==(Object other) =>
@@ -48,17 +75,20 @@ class _SchemeChoice {
       other is _SchemeChoice &&
           scheme == other.scheme &&
           userSetId == other.userSetId &&
+          trueSetId == other.trueSetId &&
           isAdd == other.isAdd &&
-          isManage == other.isManage;
+          isManage == other.isManage &&
+          isManageTrue == other.isManageTrue;
 
   @override
-  int get hashCode => Object.hash(scheme, userSetId, isAdd, isManage);
+  int get hashCode =>
+      Object.hash(scheme, userSetId, trueSetId, isAdd, isManage, isManageTrue);
 }
 
 /// Sign-name mode selector: a pure display concern, sibling to the Clock and
-/// Calendar selectors. None / Zodiac / Aditya, then every user-defined set,
-/// then "Add sign-name set…". True Sidereal appears greyed until a True
-/// Sidereal Context unlocks it (rendering lands in swe-dashboard/102).
+/// Calendar selectors. None / Zodiac / Aditya, the True Sidereal sets (greyed
+/// until a True Sidereal Context unlocks them), then the user-defined 12-name
+/// sets and their add/manage actions.
 class SignNameSelector extends ConsumerWidget {
   const SignNameSelector({super.key});
 
@@ -70,12 +100,22 @@ class SignNameSelector extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sel = ref.watch(signNameSelectionProvider);
     final sets = ref.watch(userSignSetsProvider);
+    final trueSets = ref.watch(userTrueSiderealSetsProvider);
+    final activeTrue = ref.watch(activeTrueSiderealSetProvider);
     final zodiac = ref.watch(contextBarProvider.select((s) => s.zodiacRef));
     final ayanamsa = ref.watch(contextBarProvider.select((s) => s.ayanamsa));
     // Aditya is a tropical relabelling; True Sidereal needs its own ayanamsha.
     final canAditya = zodiac == ZodiacRef.tropical;
     final canTrueSidereal =
         zodiac == ZodiacRef.sidereal && ayanamsa == ayanamsaTrueSiderealId;
+
+    // A boundary star that would not resolve at the chart date: surface it here
+    // (the mode's own control) rather than repeating it on every card. Only
+    // meaningful while True Sidereal is the chosen mode and unlocked.
+    final binningError =
+        (sel.scheme == SignScheme.trueSidereal && canTrueSidereal)
+        ? ref.watch(trueSiderealBinningProvider).error
+        : null;
 
     final labels = <int, String>{
       for (var i = 0; i < sets.length; i++)
@@ -88,13 +128,19 @@ class SignNameSelector extends ConsumerWidget {
     final selectedUser = sel.scheme == SignScheme.userDefined
         ? resolveUserSignSet(sets, sel.userSetId)
         : null;
-    final value = selectedUser != null
-        ? _SchemeChoice.user(selectedUser.id)
-        : _SchemeChoice.scheme(
-            sel.scheme == SignScheme.userDefined
-                ? SignScheme.zodiac
-                : sel.scheme,
-          );
+    final _SchemeChoice value;
+    if (selectedUser != null) {
+      value = _SchemeChoice.user(selectedUser.id);
+    } else if (sel.scheme == SignScheme.trueSidereal && activeTrue != null) {
+      value = _SchemeChoice.trueSidereal(activeTrue.id);
+    } else {
+      value = _SchemeChoice.scheme(
+        sel.scheme == SignScheme.userDefined ||
+                sel.scheme == SignScheme.trueSidereal
+            ? SignScheme.zodiac
+            : sel.scheme,
+      );
+    }
 
     final theme = Theme.of(context);
 
@@ -108,12 +154,18 @@ class SignNameSelector extends ConsumerWidget {
         enabled: canAditya,
         disabledTooltip: _adityaTooltip,
       ),
+      for (var i = 0; i < trueSets.length; i++)
+        _item(
+          theme,
+          _SchemeChoice.trueSidereal(trueSets[i].id),
+          'True Sidereal · ${trueSiderealSetLabel(trueSets[i], i)}',
+          enabled: canTrueSidereal,
+          disabledTooltip: _trueSiderealTooltip,
+        ),
       _item(
         theme,
-        const _SchemeChoice.scheme(SignScheme.trueSidereal),
-        'True Sidereal',
-        enabled: canTrueSidereal,
-        disabledTooltip: _trueSiderealTooltip,
+        const _SchemeChoice.manageTrue(),
+        'Manage True Sidereal sets…',
       ),
       for (final s in sets)
         _item(theme, _SchemeChoice.user(s.id), labels[s.id] ?? 'Sign set'),
@@ -123,7 +175,7 @@ class SignNameSelector extends ConsumerWidget {
         _item(theme, const _SchemeChoice.manage(), 'Manage sign-name sets…'),
     ];
 
-    return Row(
+    final row = Row(
       children: [
         Text(
           'Signs ',
@@ -158,15 +210,50 @@ class SignNameSelector extends ConsumerWidget {
                     await showUserSignSetDialog(context, ref, initialTab: 1);
                     return;
                   }
+                  if (c.isManageTrue) {
+                    // True Sidereal sets have their own dialog (boundary stars +
+                    // 13 constellation names). Open it on Manage.
+                    await showTrueSiderealSetDialog(
+                      context,
+                      ref,
+                      initialTab: 1,
+                    );
+                    return;
+                  }
                   final notifier = ref.read(signNameSelectionProvider.notifier);
                   final userId = c.userSetId;
+                  final trueId = c.trueSetId;
                   if (userId != null) {
                     notifier.selectUserSet(userId);
+                  } else if (trueId != null) {
+                    // The set-id selection lives in its own provider; the scheme
+                    // selection just records that True Sidereal is chosen.
+                    ref
+                        .read(activeTrueSiderealSetIdProvider.notifier)
+                        .select(trueId);
+                    notifier.selectScheme(SignScheme.trueSidereal);
                   } else {
                     notifier.selectScheme(c.scheme);
                   }
                 },
               ),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    if (binningError == null) return row;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        row,
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            binningError,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.error,
             ),
           ),
         ),

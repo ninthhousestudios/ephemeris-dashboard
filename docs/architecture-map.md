@@ -117,15 +117,34 @@ Richer result shapes among the search / multi-call tabs:
   `UserSignSet` (12 names) + `UserSignSetNotifier`/`userSignSetsProvider` (mirrors
   `userAyanamsasProvider`), `SignNameSelection` + `signNameSelectionProvider`
   (persisted; reconciles to Zodiac when its user set is removed), and the pure
-  `inSignField(lon, coordValue, scheme, set, fmt)` → `(label, value)?` — the one
-  primitive each ecliptic-longitude card/export splices in after its Longitude
-  field. `effectiveSchemeFor(sel, ctx)` reconciles the selection against the
-  Context (Aditya⇒tropical, True Sidereal⇒sidereal+True-Sidereal-ayanamsha, else
-  Zodiac); `resolvedSignNamesProvider` bundles the reconciled scheme + resolved
-  set for tabs to watch. `SignNameSelector` dropdown sits in the context-bar
-  OPTIONS grid (True Sidereal greyed until its Context unlocks it; rendering of
-  that mode is deferred to swe-dashboard/102). Pure display concern; `lon mod 30`
-  math, no engine calls. View-layer only, like Clock/Calendar (swe-dashboard/100).
+  `signPlacement(lon, scheme, set, binning)` → `(name, inSign)?` behind
+  `signNameFor`, `inSignLongitudeFor` and
+  `inSignField(lon, coordValue, scheme, set, fmt, binning)` → `(label, value)?` —
+  the one primitive each ecliptic-longitude card/export splices in after its
+  Longitude field. `effectiveSchemeFor(sel, ctx)` reconciles the selection
+  against the Context (Aditya⇒tropical, True Sidereal⇒sidereal+True-Sidereal-
+  ayanamsha, else Zodiac); `resolvedSignNamesProvider` bundles the reconciled
+  scheme + resolved user set + True Sidereal `binning` for tabs to watch.
+  `SignNameSelector` dropdown sits in the context-bar OPTIONS grid. Pure
+  `lon mod 30` display for the equal-sign schemes, no engine calls
+  (swe-dashboard/100).
+- `true_sidereal.dart` (swe-dashboard/102) | the 13-constellation *unequal*
+  True Sidereal zodiac — Chimenti's Midpoint Method, ported from Arrow's
+  `calc/lib/src/zodiac`. `TrueSiderealSet` = optional name + 13
+  `TrueSiderealConstellation` (editable name + first/last boundary-star search
+  terms); `userTrueSiderealSetsProvider` (persisted list, seeded with the
+  `defaultTrueSiderealSet()` Chimenti 26-star default) + `TrueSiderealSetNotifier`
+  and `activeTrueSiderealSetIdProvider` (which set is active) mirror the
+  user-ayanamsa shape. `TrueSiderealBinning.build(set, starLongitudes)` is the
+  pure midpoint math (wrap-safe, rotated so `boundaries[0]` is Aries' start; a
+  missing/NaN star throws `MissingBoundaryStarException`); `placementAt(lon)` →
+  `(name, degrees from the unequal start)`. Unlike the equal schemes this one
+  needs the engine: `trueSiderealBinningProvider` reads the ~26 boundary stars
+  via `fixstar2Ut` at the **Context Moment** in the active sidereal frame (gated
+  on Zodiac: Sidereal + Ayanamsa: True Sidereal), returning
+  `(binning, error)` — the error (a boundary star that would not resolve) is
+  surfaced by `SignNameSelector`, not repeated per card. Series steps reuse the
+  Context-Moment binning (sub-degree precession drift over ordinary spans).
 
 ## Body Selection (lib/core/body_selection.dart, lib/core/body_catalog.dart)
 
@@ -282,8 +301,9 @@ controller, focus node, and sync/commit logic.
 | `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
 | `ayanamsa_selector.dart` | `AyanamsaSelector` — sidereal ayanamsa dropdown: the built-in catalog, then every entry of `userAyanamsasProvider` by name, then "Add user-defined…" (opens `showUserAyanamsaDialog`) |
 | `user_ayanamsa_dialog.dart` | `showUserAyanamsaDialog` — defines a *new* user-defined ayanamsha (optional name + t0, value, `jdisut`), appends it to the shared list and selects it; says so, pointing at the Ayanamsa tab for later edits |
-| `sign_name_selector.dart` | `SignNameSelector` — sign-name dropdown (None/Zodiac/Aditya, then each `userSignSetsProvider` set, then "Add sign-name set…"), drives `signNameSelectionProvider`. True Sidereal greyed with an unlock tooltip until the Context is sidereal + True Sidereal ayanamsha (swe-dashboard/100) |
+| `sign_name_selector.dart` | `SignNameSelector` — sign-name dropdown (None/Zodiac/Aditya, then each `userTrueSiderealSetsProvider` set as "True Sidereal · <label>" + "Manage True Sidereal sets…", then each `userSignSetsProvider` set + "Add/Manage sign-name set…"), drives `signNameSelectionProvider` + `activeTrueSiderealSetIdProvider`. True Sidereal rows greyed with an unlock tooltip until the Context is sidereal + True Sidereal ayanamsha; surfaces the `trueSiderealBinningProvider` error inline (swe-dashboard/100, /102) |
 | `user_sign_set_dialog.dart` | `showUserSignSetDialog` — defines a *new* 12-name sign set (optional name + 12 fields prefilled with the zodiac), appends it to the shared list and selects it (mirrors `showUserAyanamsaDialog`) |
+| `true_sidereal_set_dialog.dart` | `showTrueSiderealSetDialog` — New/Manage tabs for `TrueSiderealSet`s: 13 constellations, each an editable name + two edge stars picked via `StarSearchField`, prefilled with the Chimenti default; New adds+activates, Manage renames/re-picks (live), marks active, or deletes (swe-dashboard/102) |
 | `projection_selector.dart` | `ProjectionSelector` — sidereal projection plane (SE_SIDBIT_ECL_T0 / SSY_PLANE), disabled when tropical |
 | `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
