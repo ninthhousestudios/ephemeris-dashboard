@@ -11,23 +11,36 @@ import '../../core/sign_names.dart';
 import 'user_sign_set_dialog.dart';
 
 /// One row of the Sign Names dropdown: a built-in [SignScheme], one of the
-/// user-defined sign sets, or the action that defines a new one.
+/// user-defined sign sets, the action that defines a new one, or the action
+/// that opens the manage surface for the existing ones.
 @immutable
 class _SchemeChoice {
-  const _SchemeChoice.scheme(this.scheme) : userSetId = null, isAdd = false;
+  const _SchemeChoice.scheme(this.scheme)
+    : userSetId = null,
+      isAdd = false,
+      isManage = false;
 
   const _SchemeChoice.user(this.userSetId)
     : scheme = SignScheme.userDefined,
-      isAdd = false;
+      isAdd = false,
+      isManage = false;
 
   const _SchemeChoice.add()
     : scheme = SignScheme.userDefined,
       userSetId = null,
-      isAdd = true;
+      isAdd = true,
+      isManage = false;
+
+  const _SchemeChoice.manage()
+    : scheme = SignScheme.userDefined,
+      userSetId = null,
+      isAdd = false,
+      isManage = true;
 
   final SignScheme scheme;
   final int? userSetId;
   final bool isAdd;
+  final bool isManage;
 
   @override
   bool operator ==(Object other) =>
@@ -35,10 +48,11 @@ class _SchemeChoice {
       other is _SchemeChoice &&
           scheme == other.scheme &&
           userSetId == other.userSetId &&
-          isAdd == other.isAdd;
+          isAdd == other.isAdd &&
+          isManage == other.isManage;
 
   @override
-  int get hashCode => Object.hash(scheme, userSetId, isAdd);
+  int get hashCode => Object.hash(scheme, userSetId, isAdd, isManage);
 }
 
 /// Sign-name mode selector: a pure display concern, sibling to the Clock and
@@ -104,6 +118,9 @@ class SignNameSelector extends ConsumerWidget {
       for (final s in sets)
         _item(theme, _SchemeChoice.user(s.id), labels[s.id] ?? 'Sign set'),
       _item(theme, const _SchemeChoice.add(), 'Add sign-name set…'),
+      // Manage (rename/edit/delete) only makes sense once a set exists.
+      if (sets.isNotEmpty)
+        _item(theme, const _SchemeChoice.manage(), 'Manage sign-name sets…'),
     ];
 
     return Row(
@@ -133,6 +150,12 @@ class SignNameSelector extends ConsumerWidget {
                   if (c.isAdd) {
                     // The dialog adds the set and selects it.
                     await showUserSignSetDialog(context, ref);
+                    return;
+                  }
+                  if (c.isManage) {
+                    // Same dialog, opened on the Manage tab; edits/deletes
+                    // apply live and the selection is left as-is.
+                    await showUserSignSetDialog(context, ref, initialTab: 1);
                     return;
                   }
                   final notifier = ref.read(signNameSelectionProvider.notifier);
