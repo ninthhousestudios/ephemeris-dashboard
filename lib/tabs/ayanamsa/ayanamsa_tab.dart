@@ -18,6 +18,10 @@ import '../../widgets/series_bar.dart';
 import '../../widgets/series_view.dart';
 import 'ayanamsa_provider.dart';
 
+/// The engine mode token shown for a result. Presets carry a negative
+/// pseudo-id but run under SE_SIDM_USER, so they read as `USER`, not the id.
+String _sidModeLabel(int sidMode) => sidMode < 0 ? 'USER' : '$sidMode';
+
 class AyanamsaTab extends ConsumerStatefulWidget {
   const AyanamsaTab({super.key});
 
@@ -254,7 +258,7 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
       ),
       cardBuilder: (r) => ResultCard(
         title: r.name,
-        subtitle: 'SE_SIDM_${r.sidMode}',
+        subtitle: 'SE_SIDM_${_sidModeLabel(r.sidMode)}',
         fields: [
           ResultField(
             label: 'Value',
@@ -285,7 +289,12 @@ class _AyanamsaTabState extends ConsumerState<AyanamsaTab> {
         rows: results.map((r) {
           return DataRow(
             cells: [
-              DataCell(Text('${r.sidMode}', style: theme.textTheme.bodySmall)),
+              DataCell(
+                Text(
+                  _sidModeLabel(r.sidMode),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
               DataCell(Text(r.name, style: theme.textTheme.bodySmall)),
               DataCell(
                 SelectableText(

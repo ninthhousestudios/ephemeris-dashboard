@@ -94,6 +94,7 @@ class AyanamsaSelector extends ConsumerWidget {
       const _AyanamsaChoice.builtin(ayanamsaTropicalId),
       for (final e in ayanamsaCatalog)
         if (e.id != ayanamsaUserId) _AyanamsaChoice.builtin(e.id),
+      for (final p in ayanamsaPresets) _AyanamsaChoice.builtin(p.id),
       for (final e in entries) _AyanamsaChoice.user(e.id),
       if (isDangling) const _AyanamsaChoice.missing(),
       const _AyanamsaChoice.add(),

@@ -39,12 +39,16 @@ class AyanamsaCalcResult {
 }
 
 /// Built-in ayanamsa modes shown on this tab (User-defined excluded — it is an
-/// add action, not a toggle). Canonical catalog from ayanamsa_catalog.dart.
+/// add action, not a toggle). Canonical catalog from ayanamsa_catalog.dart,
+/// plus the SE_SIDM_USER presets (True Sidereal), keyed by their pseudo-ids.
 Map<int, String> ayanamsaModesFor() {
   final map = <int, String>{};
   for (final e in ayanamsaCatalog) {
     if (e.id == ayanamsaUserId) continue;
     map[e.id] = e.name;
+  }
+  for (final p in ayanamsaPresets) {
+    map[p.id] = p.name;
   }
   return map;
 }
@@ -78,8 +82,20 @@ _AyanamsaCompute _ayanamsaCompute(Ref ref) {
   return (eph, moment, baseGlobals, reconfigure) {
     final results = <AyanamsaCalcResult>[];
     for (final sidMode in builtins) {
+      // A preset (True Sidereal) is SE_SIDM_USER with fixed parameters; its
+      // pseudo-id is kept as the result's `sidMode` so it stays the selection's
+      // identity (removal toggles on it), while the engine runs mode 255.
+      final preset = ayanamsaPresetById(sidMode);
       try {
-        reconfigure(baseGlobals.withSidMode(sidMode));
+        reconfigure(
+          preset != null
+              ? baseGlobals.withSidMode(
+                  ayanamsaUserId,
+                  t0: preset.t0,
+                  ayanT0: preset.value,
+                )
+              : baseGlobals.withSidMode(sidMode),
+        );
         results.add(
           AyanamsaCalcResult(
             sidMode: sidMode,

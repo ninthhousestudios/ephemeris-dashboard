@@ -81,9 +81,58 @@ const List<AyanamsaEntry> ayanamsaCatalog = [
   AyanamsaEntry(ayanamsaUserId, 'User-defined'),
 ];
 
+/// A built-in ayanamsha that computes under SE_SIDM_USER with fixed reference
+/// parameters, rather than one of the engine's numbered modes.
+///
+/// Presented as a first-class option in the context bar and the Ayanamsa tab,
+/// beside the numbered [ayanamsaCatalog], but not user-editable and not part of
+/// the user-defined list. Its [id] is a negative pseudo-id (like
+/// [ayanamsaTropicalId]) — never an SE_SIDM_* constant — so it can live in the
+/// Context's `ayanamsa` field and be told apart from a real mode. It is
+/// resolved to [ayanamsaUserId] with [t0]/[value] before it reaches the engine
+/// (in `EffectiveContext` for charts, and the Ayanamsa tab's own compute).
+class AyanamsaPreset {
+  const AyanamsaPreset({
+    required this.id,
+    required this.name,
+    required this.t0,
+    required this.value,
+  });
+  final int id;
+  final String name;
+  final double t0; // reference Julian Day (TT)
+  final double value; // ayanamsha at t0, degrees
+}
+
+/// Pseudo-id for the True Sidereal preset. See [ayanamsaPresets].
+const int ayanamsaTrueSiderealId = -2;
+
+/// Built-in SE_SIDM_USER presets. True Sidereal is `swe_set_sid_mode(
+/// SE_SIDM_USER, 2451545, 31.2816)` — the ayanamsha that aligns the zodiac with
+/// the true constellation boundaries at J2000, under Swiss Ephemeris' default
+/// Vondrák 2011 long-term precession.
+const List<AyanamsaPreset> ayanamsaPresets = [
+  AyanamsaPreset(
+    id: ayanamsaTrueSiderealId,
+    name: 'True Sidereal (Vondrák 2011)',
+    t0: 2451545.0, // J2000
+    value: 31.2816,
+  ),
+];
+
+/// The preset with this pseudo-[id], or null when [id] is a real mode / tropical.
+AyanamsaPreset? ayanamsaPresetById(int id) {
+  for (final p in ayanamsaPresets) {
+    if (p.id == id) return p;
+  }
+  return null;
+}
+
 String ayanamsaName(int id) {
   for (final e in ayanamsaCatalog) {
     if (e.id == id) return e.name;
   }
+  final preset = ayanamsaPresetById(id);
+  if (preset != null) return preset.name;
   return 'Mode $id';
 }

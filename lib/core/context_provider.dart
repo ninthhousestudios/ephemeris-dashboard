@@ -170,7 +170,7 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
       );
     } else if (zodiacRef == ZodiacRef.tropical &&
         state.zodiacRef == ZodiacRef.sidereal) {
-      final stash = state.ayanamsa >= 0 ? state.ayanamsa : 0;
+      final stash = state.ayanamsa != ayanamsaTropicalId ? state.ayanamsa : 0;
       state = state.copyWith(
         zodiacRef: zodiacRef,
         lastSiderealAyanamsa: stash,
@@ -190,7 +190,9 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   void setAyanamsa(int sidMode) {
     state = state.copyWith(
       ayanamsa: sidMode,
-      lastSiderealAyanamsa: sidMode >= 0 ? sidMode : state.lastSiderealAyanamsa,
+      lastSiderealAyanamsa: sidMode != ayanamsaTropicalId
+          ? sidMode
+          : state.lastSiderealAyanamsa,
     );
     _save();
   }

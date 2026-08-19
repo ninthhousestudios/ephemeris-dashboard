@@ -103,13 +103,18 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
   final user = ctx.ayanamsa == ayanamsaUserId
       ? resolveUserAyanamsa(ref.watch(userAyanamsasProvider), ctx.userAyanId)
       : null;
+  // A built-in SE_SIDM_USER preset (e.g. True Sidereal): its pseudo-id carries
+  // no engine mode, so it too resolves to 255 with the preset's fixed t0/value.
+  final preset = ayanamsaPresetById(ctx.ayanamsa);
   // 255 with nothing behind it is not a frame the engine can compute: it would
   // configure SE_SIDM_USER from a zeroed t0/value and return a zodiac nobody
   // chose, looking like a real result. `contextBarProvider` reconciles the
   // selection off user-defined the moment the entry goes away, so this is the
   // same landing spot, held here too because a derived value must not depend
   // on that having happened first.
-  final ayanamsa = user == null && ctx.ayanamsa == ayanamsaUserId
+  final ayanamsa = preset != null
+      ? ayanamsaUserId
+      : user == null && ctx.ayanamsa == ayanamsaUserId
       ? ayanamsaDefaultSiderealId
       : ctx.ayanamsa;
 
@@ -123,8 +128,8 @@ final effectiveContextProvider = Provider<EffectiveContext>((ref) {
     zodiacRef: ctx.zodiacRef,
     eqRef: ctx.eqRef,
     ayanamsa: ayanamsa,
-    userAyanT0: user?.t0 ?? 0.0,
-    userAyanValue: user?.value ?? 0.0,
+    userAyanT0: preset?.t0 ?? user?.t0 ?? 0.0,
+    userAyanValue: preset?.value ?? user?.value ?? 0.0,
     userAyanT0IsUt: user?.t0IsUt ?? false,
     projection: ctx.projection,
     epheSource: ctx.epheSource,

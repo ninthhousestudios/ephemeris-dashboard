@@ -1,12 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:swe_dashboard/core/ayanamsa_catalog.dart';
 import 'package:swe_dashboard/core/calc_context.dart';
+import 'package:swe_dashboard/core/context_provider.dart';
 import 'package:swe_dashboard/core/context_state.dart';
 import 'package:swe_dashboard/core/ephemeris/applied_globals.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
+import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/core/swe_constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'support/widget_fixtures.dart';
 
 EffectiveContext _ctx({
   required int ayanamsa,
@@ -94,6 +101,57 @@ void main() {
         null,
       );
       expect(g.sidMode, isNull);
+    });
+  });
+
+  group('True Sidereal preset resolves to SE_SIDM_USER', () {
+    Future<ProviderContainer> container() async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final c = ProviderContainer(
+        overrides: [
+          sharedPrefsProvider.overrideWithValue(prefs),
+          epheBootstrapOverride,
+        ],
+      );
+      addTearDown(c.dispose);
+      return c;
+    }
+
+    test(
+      'the effective context flattens the preset into 255 + fixed params',
+      () async {
+        final c = await container();
+        c.read(contextBarProvider.notifier)
+          ..setZodiacRef(ZodiacRef.sidereal)
+          ..setAyanamsa(ayanamsaTrueSiderealId);
+
+        final ectx = c.read(effectiveContextProvider);
+        expect(ectx.ayanamsa, ayanamsaUserId);
+        expect(ectx.userAyanT0, 2451545.0);
+        expect(ectx.userAyanValue, 31.2816);
+        expect(ectx.userAyanT0IsUt, isFalse);
+
+        // And it reaches the engine as SE_SIDM_USER with no jdisut bit.
+        final g = AppliedGlobals.fromContext(ectx, null);
+        expect(g.sidMode! & 0xFF, 255);
+        expect(g.sidMode! & 1024, 0);
+        expect(g.userAyanT0, 2451545.0);
+        expect(g.userAyanValue, 31.2816);
+      },
+    );
+
+    test('the preset survives a tropical round-trip', () async {
+      final c = await container();
+      final notifier = c.read(contextBarProvider.notifier)
+        ..setZodiacRef(ZodiacRef.sidereal)
+        ..setAyanamsa(ayanamsaTrueSiderealId);
+
+      notifier.setZodiacRef(ZodiacRef.tropical);
+      expect(c.read(contextBarProvider).ayanamsa, ayanamsaTropicalId);
+
+      notifier.setZodiacRef(ZodiacRef.sidereal);
+      expect(c.read(contextBarProvider).ayanamsa, ayanamsaTrueSiderealId);
     });
   });
 
