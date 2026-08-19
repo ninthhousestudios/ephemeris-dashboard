@@ -87,9 +87,9 @@ void main() {
     test('renders the in-sign tuple for an ecliptic longitude', () {
       final f = inSignField(45, 0, zodiac, null, DisplayFormat.decimal);
       expect(f, isNotNull);
-      expect(f!.$1, 'Longitude Sign');
-      expect(f.$2, startsWith('Taurus '));
-      expect(f.$2, contains('15.000000'));
+      expect(f!.$1, 'In-Sign Longitude');
+      expect(f.$2, startsWith('15.000000'));
+      expect(f.$2, endsWith('Taurus'));
     });
 
     test('excludes equatorial and cartesian coordinates', () {

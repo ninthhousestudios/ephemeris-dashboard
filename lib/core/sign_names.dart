@@ -236,7 +236,7 @@ String? signNameFor(double lon, SignScheme scheme, UserSignSet? set) {
   }
 }
 
-/// The `(label, formatted value)` for the Longitude Sign line, or null when
+/// The `(label, formatted value)` for the In-Sign Longitude line, or null when
 /// it should not render: the scheme is off, the coordinate is not ecliptic
 /// (equatorial RA/Dec or cartesian XYZ), or [lon] is non-finite.
 ///
@@ -257,7 +257,10 @@ String? signNameFor(double lon, SignScheme scheme, UserSignSet? set) {
   if (!lon.isFinite) return null;
   final name = signNameFor(lon, scheme, set);
   if (name == null) return null;
-  return ('Longitude Sign', '$name ${formatAngle(inSignLongitude(lon), fmt)}');
+  return (
+    'In-Sign Longitude',
+    '${formatAngle(inSignLongitude(lon), fmt)} $name',
+  );
 }
 
 /// The scheme that actually renders under [ctx], reconciling a selection the
