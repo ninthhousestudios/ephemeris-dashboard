@@ -348,6 +348,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                         ref.read(diffFormatProvider),
                         scheme: signs.scheme,
                         signSet: signs.set,
+                        binning: signs.binning,
                       ),
                       CalcError() => [],
                     };
@@ -383,6 +384,7 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
       format,
       scheme: signs.scheme,
       signSet: signs.set,
+      binning: signs.binning,
     );
 
     return SeriesView(
@@ -614,6 +616,7 @@ class _DiffResults extends ConsumerWidget {
         fmt,
         scheme: signs.scheme,
         signSet: signs.set,
+        binning: signs.binning,
       ).first.toCard(),
     );
   }

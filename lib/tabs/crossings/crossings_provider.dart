@@ -17,6 +17,7 @@ import '../../core/output_clock.dart';
 import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
+import '../../core/true_sidereal.dart';
 
 enum CrossingType {
   sunCross('Sun crosses longitude'),
@@ -176,13 +177,14 @@ List<ExportRow> crossingToExportRows(
   CrossingResult result, {
   SignScheme scheme = SignScheme.none,
   UserSignSet? signSet,
+  TrueSiderealBinning? binning,
 }) {
   final lon = result.crossingLongitude;
   // No display-format selector on this tab: longitude is fixed decimal degrees,
   // and the in-sign line matches ([DisplayFormat.decimal]).
   final signField = lon == null
       ? null
-      : inSignField(lon, 0, scheme, signSet, DisplayFormat.decimal);
+      : inSignField(lon, 0, scheme, signSet, DisplayFormat.decimal, binning);
   return [
     ExportRow(
       header: result.description,

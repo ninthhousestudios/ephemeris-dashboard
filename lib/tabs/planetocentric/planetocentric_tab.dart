@@ -295,6 +295,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
           coordValue: flags.coordValue,
           scheme: signs.scheme,
           signSet: signs.set,
+          binning: signs.binning,
         );
 
     return SeriesView(
@@ -340,6 +341,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
       signs.scheme,
       signs.set,
       format,
+      signs.binning,
     );
 
     return ResultCard(
@@ -358,7 +360,11 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
           ResultField(
             label: signField.$1,
             value: signField.$2,
-            rawValue: inSignLongitude(r.longitude),
+            rawValue: inSignLongitudeFor(
+              r.longitude,
+              signs.scheme,
+              signs.binning,
+            ),
           ),
         ResultField(
           label: lbl.c2,
@@ -460,6 +466,7 @@ class PlanetoCentricFormatTrailing extends ConsumerWidget {
               coordValue: f.coordValue,
               scheme: signs.scheme,
               signSet: signs.set,
+              binning: signs.binning,
             );
           },
           filenameStem: 'swe_planetocentric_${jd.toStringAsFixed(4)}',

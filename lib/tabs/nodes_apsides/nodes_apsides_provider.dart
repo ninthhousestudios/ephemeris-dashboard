@@ -18,6 +18,7 @@ import '../../core/sign_names.dart';
 import '../../core/swe_utils.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/time_scale.dart';
+import '../../core/true_sidereal.dart';
 import '../../layout/tab_definitions.dart';
 
 /// Method for nodApsUt: a NodApsMethod bitflag (seNodBit*), passed untranslated
@@ -161,6 +162,7 @@ List<ExportRow> nodesApsToExportRows(
   int coordValue = 0,
   SignScheme scheme = SignScheme.none,
   UserSignSet? signSet,
+  TrueSiderealBinning? binning,
 }) {
   final lbl = coordLabels(coordValue);
   String deg(double v) => formatAngle(v, fmt);
@@ -168,7 +170,7 @@ List<ExportRow> nodesApsToExportRows(
 
   List<(String, String)> posFields(CalcResult pos) => [
     (lbl.c1, isXyz ? formatAu(pos.longitude, fmt) : deg(pos.longitude)),
-    ?inSignField(pos.longitude, coordValue, scheme, signSet, fmt),
+    ?inSignField(pos.longitude, coordValue, scheme, signSet, fmt, binning),
     (lbl.c2, isXyz ? formatAu(pos.latitude, fmt) : deg(pos.latitude)),
     (
       isXyz ? lbl.c3 : 'Distance (AU)',

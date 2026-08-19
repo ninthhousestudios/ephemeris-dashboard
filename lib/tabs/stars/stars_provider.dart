@@ -25,6 +25,7 @@ import '../../core/flag_provider.dart';
 import '../../core/house_systems.dart';
 import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
+import '../../core/true_sidereal.dart';
 import '../../layout/tab_definitions.dart';
 
 /// Common star names for quick-select chips.
@@ -444,6 +445,7 @@ List<ExportRow> starToExportRows(
   int coordValue = 0,
   SignScheme scheme = SignScheme.none,
   UserSignSet? signSet,
+  TrueSiderealBinning? binning,
 }) {
   final lbl = coordLabels(coordValue);
   return results.map((result) {
@@ -460,7 +462,14 @@ List<ExportRow> starToExportRows(
                     ? formatAu(result.longitude, fmt)
                     : formatAngle(result.longitude, fmt),
               ),
-              ?inSignField(result.longitude, coordValue, scheme, signSet, fmt),
+              ?inSignField(
+                result.longitude,
+                coordValue,
+                scheme,
+                signSet,
+                fmt,
+                binning,
+              ),
               (
                 lbl.c2,
                 isXyz

@@ -172,6 +172,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
       coordValue: flags.coordValue,
       scheme: signs.scheme,
       signSet: signs.set,
+      binning: signs.binning,
     );
 
     return SeriesView(
@@ -217,6 +218,7 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
       signs.scheme,
       signs.set,
       format,
+      signs.binning,
     );
 
     return ResultCard(
@@ -237,7 +239,11 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                 ResultField(
                   label: signField.$1,
                   value: signField.$2,
-                  rawValue: inSignLongitude(r.longitude),
+                  rawValue: inSignLongitudeFor(
+                    r.longitude,
+                    signs.scheme,
+                    signs.binning,
+                  ),
                 ),
               ResultField(
                 label: lbl.c2,
@@ -358,6 +364,7 @@ class PlanetsFormatTrailing extends ConsumerWidget {
               coordValue: f.coordValue,
               scheme: signs.scheme,
               signSet: signs.set,
+              binning: signs.binning,
             );
           },
           filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',

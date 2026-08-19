@@ -230,6 +230,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                         coordValue: f.coordValue,
                         scheme: signs.scheme,
                         signSet: signs.set,
+                        binning: signs.binning,
                       ),
                       CalcError() => [],
                     };
@@ -273,6 +274,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
       coordValue: flags.coordValue,
       scheme: signs.scheme,
       signSet: signs.set,
+      binning: signs.binning,
     );
 
     return SeriesView(
@@ -326,12 +328,17 @@ class _NodesResults extends ConsumerWidget {
             signs.scheme,
             signs.set,
             fmt,
+            signs.binning,
           )
           case final sf?)
         ResultField(
           label: sf.$1,
           value: sf.$2,
-          rawValue: inSignLongitude(pos.longitude),
+          rawValue: inSignLongitudeFor(
+            pos.longitude,
+            signs.scheme,
+            signs.binning,
+          ),
         ),
       ResultField(
         label: lbl.c2,

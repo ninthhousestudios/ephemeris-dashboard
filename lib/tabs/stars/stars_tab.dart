@@ -112,6 +112,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                           coordValue: f.coordValue,
                           scheme: signs.scheme,
                           signSet: signs.set,
+                          binning: signs.binning,
                         );
                       },
                       filenameStem: 'swe_stars',
@@ -175,6 +176,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
       coordValue: flags.coordValue,
       scheme: signs.scheme,
       signSet: signs.set,
+      binning: signs.binning,
     );
 
     return SeriesView(
@@ -218,6 +220,7 @@ class _StarsTabState extends ConsumerState<StarsTab> {
       signs.scheme,
       signs.set,
       fmt,
+      signs.binning,
     );
 
     return ResultCard(
@@ -238,7 +241,11 @@ class _StarsTabState extends ConsumerState<StarsTab> {
                 ResultField(
                   label: signField.$1,
                   value: signField.$2,
-                  rawValue: inSignLongitude(r.longitude),
+                  rawValue: inSignLongitudeFor(
+                    r.longitude,
+                    signs.scheme,
+                    signs.binning,
+                  ),
                 ),
               ResultField(
                 label: lbl.c2,

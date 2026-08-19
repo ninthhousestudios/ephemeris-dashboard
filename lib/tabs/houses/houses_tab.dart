@@ -75,6 +75,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
       format,
       scheme: signs.scheme,
       signSet: signs.set,
+      binning: signs.binning,
     );
 
     return SeriesView(
@@ -106,13 +107,20 @@ class _HousesTabState extends ConsumerState<HousesTab> {
     // House cusps and the angles are all bare ecliptic longitudes (no
     // equatorial/XYZ mode here), so the sign gate is always the ecliptic path.
     ResultField? signRow(double lon) {
-      final sf = inSignField(lon, 0, signs.scheme, signs.set, format);
+      final sf = inSignField(
+        lon,
+        0,
+        signs.scheme,
+        signs.set,
+        format,
+        signs.binning,
+      );
       return sf == null
           ? null
           : ResultField(
               label: sf.$1,
               value: sf.$2,
-              rawValue: inSignLongitude(lon),
+              rawValue: inSignLongitudeFor(lon, signs.scheme, signs.binning),
             );
     }
 
@@ -212,6 +220,7 @@ class HousesFormatTrailing extends ConsumerWidget {
               format,
               scheme: signs.scheme,
               signSet: signs.set,
+              binning: signs.binning,
             ),
             CalcError() => [],
           },

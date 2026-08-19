@@ -13,6 +13,7 @@ import '../../core/export_service.dart';
 import '../../core/house_systems.dart';
 import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
+import '../../core/true_sidereal.dart';
 import '../../layout/tab_definitions.dart';
 
 // House-system state (HouseSystemDef, houseSystems, selectedHouseSystemProvider)
@@ -107,12 +108,13 @@ List<ExportRow> housesToExportRows(
   DisplayFormat fmt, {
   SignScheme scheme = SignScheme.none,
   UserSignSet? signSet,
+  TrueSiderealBinning? binning,
 }) {
   // Cusps and the angles are bare ecliptic longitudes (no equatorial/XYZ mode),
   // so the sign gate is always the ecliptic path. ARMC is Right Ascension of
   // the MC — a sidereal-time measure — so it is intentionally left unsigned.
   (String, String)? signCell(double lon) =>
-      inSignField(lon, 0, scheme, signSet, fmt);
+      inSignField(lon, 0, scheme, signSet, fmt, binning);
   final rows = <ExportRow>[
     // Angles card first
     ExportRow(

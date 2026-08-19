@@ -266,6 +266,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
           coordValue: flags.coordValue,
           scheme: signs.scheme,
           signSet: signs.set,
+          binning: signs.binning,
         );
 
     return SeriesView(
@@ -311,6 +312,7 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
       signs.scheme,
       signs.set,
       format,
+      signs.binning,
     );
 
     return ResultCard(
@@ -331,7 +333,11 @@ class _OtherBodiesTabState extends ConsumerState<OtherBodiesTab> {
                 ResultField(
                   label: signField.$1,
                   value: signField.$2,
-                  rawValue: inSignLongitude(r.longitude),
+                  rawValue: inSignLongitudeFor(
+                    r.longitude,
+                    signs.scheme,
+                    signs.binning,
+                  ),
                 ),
               ResultField(
                 label: lbl.c2,
@@ -452,6 +458,7 @@ class OtherBodiesFormatTrailing extends ConsumerWidget {
               coordValue: f.coordValue,
               scheme: signs.scheme,
               signSet: signs.set,
+              binning: signs.binning,
             );
           },
           filenameStem: 'swe_other_bodies_${jd.toStringAsFixed(4)}',

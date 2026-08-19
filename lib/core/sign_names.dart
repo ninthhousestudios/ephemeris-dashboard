@@ -13,6 +13,7 @@ import 'display_format.dart';
 import 'persistence.dart';
 import 'pref_field.dart';
 import 'swe_constants.dart';
+import 'true_sidereal.dart';
 
 /// How the 12 equal 30° signs are named when a longitude is rendered.
 ///
@@ -216,24 +217,65 @@ int signIndex(double lon) => (_norm360(lon) ~/ 30) % 12;
 /// The longitude within its sign, in `[0, 30)`.
 double inSignLongitude(double lon) => _norm360(lon) % 30;
 
-/// The sign name for [lon] under [scheme], or null when the scheme renders no
-/// name ([SignScheme.none], and [SignScheme.trueSidereal] whose rendering is
-/// deferred to swe-dashboard/102). A [SignScheme.userDefined] with a missing or
-/// malformed [set] falls back to the zodiac name so a line still renders.
-String? signNameFor(double lon, SignScheme scheme, UserSignSet? set) {
+/// The named-sign placement of [lon]: the sign/constellation name and the
+/// longitude within it. Null when the scheme renders no name ([SignScheme.none])
+/// or when a [SignScheme.trueSidereal] selection has no [binning] available (out
+/// of the True Sidereal frame, or a boundary star failed to resolve).
+///
+/// The single primitive behind [signNameFor], [inSignLongitudeFor] and
+/// [inSignField], so the rendered name, its in-sign degrees and their raw value
+/// can never disagree. For the equal-sign schemes the in-sign value is
+/// `lon mod 30`; for True Sidereal it is the degrees from the constellation's
+/// (unequal) start boundary.
+({String name, double inSign})? signPlacement(
+  double lon,
+  SignScheme scheme,
+  UserSignSet? set,
+  TrueSiderealBinning? binning,
+) {
   final i = signIndex(lon);
   switch (scheme) {
     case SignScheme.none:
-    case SignScheme.trueSidereal:
       return null;
     case SignScheme.zodiac:
-      return zodiacNames[i];
+      return (name: zodiacNames[i], inSign: inSignLongitude(lon));
     case SignScheme.aditya:
-      return adityaNames[i];
+      return (name: adityaNames[i], inSign: inSignLongitude(lon));
     case SignScheme.userDefined:
       final names = set?.names;
-      return (names != null && names.length == 12) ? names[i] : zodiacNames[i];
+      final name = (names != null && names.length == 12)
+          ? names[i]
+          : zodiacNames[i];
+      return (name: name, inSign: inSignLongitude(lon));
+    case SignScheme.trueSidereal:
+      if (binning == null || !lon.isFinite) return null;
+      final p = binning.placementAt(lon);
+      return (name: p.name, inSign: p.inSign);
   }
+}
+
+/// The sign name for [lon] under [scheme], or null when no name renders — see
+/// [signPlacement].
+String? signNameFor(
+  double lon,
+  SignScheme scheme,
+  UserSignSet? set,
+  TrueSiderealBinning? binning,
+) => signPlacement(lon, scheme, set, binning)?.name;
+
+/// The in-sign longitude to store as a field's raw value: `lon mod 30` for the
+/// equal-sign schemes, or the degrees into the (unequal) constellation for True
+/// Sidereal. Falls back to `lon mod 30` when no True Sidereal binning is
+/// available, matching what [inSignField] renders.
+double inSignLongitudeFor(
+  double lon,
+  SignScheme scheme,
+  TrueSiderealBinning? binning,
+) {
+  if (scheme == SignScheme.trueSidereal && binning != null && lon.isFinite) {
+    return binning.placementAt(lon).inSign;
+  }
+  return inSignLongitude(lon);
 }
 
 /// The `(label, formatted value)` for the In-Sign Longitude line, or null when
@@ -250,17 +292,15 @@ String? signNameFor(double lon, SignScheme scheme, UserSignSet? set) {
   SignScheme scheme,
   UserSignSet? set,
   DisplayFormat fmt,
+  TrueSiderealBinning? binning,
 ) {
   if ((coordValue & seFlgEquatorial) != 0 || (coordValue & seFlgXyz) != 0) {
     return null;
   }
   if (!lon.isFinite) return null;
-  final name = signNameFor(lon, scheme, set);
-  if (name == null) return null;
-  return (
-    'In-Sign Longitude',
-    '${formatAngle(inSignLongitude(lon), fmt)} $name',
-  );
+  final p = signPlacement(lon, scheme, set, binning);
+  if (p == null) return null;
+  return ('In-Sign Longitude', '${formatAngle(p.inSign, fmt)} ${p.name}');
 }
 
 /// The scheme that actually renders under [ctx], reconciling a selection the
@@ -269,8 +309,8 @@ String? signNameFor(double lon, SignScheme scheme, UserSignSet? set) {
 ///
 ///   * [SignScheme.aditya] needs a tropical zodiac.
 ///   * [SignScheme.trueSidereal] needs a sidereal zodiac on the True Sidereal
-///     ayanamsha ([ayanamsaTrueSiderealId]); it is otherwise unreachable, and
-///     even when reachable its rendering lands in swe-dashboard/102.
+///     ayanamsha ([ayanamsaTrueSiderealId]); it is otherwise unreachable. Its
+///     runtime binning comes from [trueSiderealBinningProvider].
 SignScheme effectiveSchemeFor(SignNameSelection sel, ContextBarState ctx) {
   switch (sel.scheme) {
     case SignScheme.none:
@@ -289,11 +329,19 @@ SignScheme effectiveSchemeFor(SignNameSelection sel, ContextBarState ctx) {
   }
 }
 
-/// The scheme + resolved user set to render with for the current Context.
-typedef ResolvedSignNames = ({SignScheme scheme, UserSignSet? set});
+/// The scheme + resolved user set + True Sidereal binning to render with for
+/// the current Context.
+typedef ResolvedSignNames = ({
+  SignScheme scheme,
+  UserSignSet? set,
+  TrueSiderealBinning? binning,
+});
 
 /// The one thing tabs watch: the effective [SignScheme] (reconciled against the
-/// Context) and, for [SignScheme.userDefined], the resolved [UserSignSet].
+/// Context), the resolved [UserSignSet] for [SignScheme.userDefined], and the
+/// runtime [TrueSiderealBinning] for [SignScheme.trueSidereal] (null when a
+/// boundary star failed — cards then render no in-sign line and the selector
+/// surfaces the error).
 final resolvedSignNamesProvider = Provider<ResolvedSignNames>((ref) {
   final sel = ref.watch(signNameSelectionProvider);
   final ctx = ref.watch(contextBarProvider);
@@ -301,7 +349,10 @@ final resolvedSignNamesProvider = Provider<ResolvedSignNames>((ref) {
   final set = scheme == SignScheme.userDefined
       ? resolveUserSignSet(ref.watch(userSignSetsProvider), sel.userSetId)
       : null;
-  return (scheme: scheme, set: set);
+  final binning = scheme == SignScheme.trueSidereal
+      ? ref.watch(trueSiderealBinningProvider).binning
+      : null;
+  return (scheme: scheme, set: set, binning: binning);
 });
 
 // ── Persistence ───────────────────────────────────────────────────────

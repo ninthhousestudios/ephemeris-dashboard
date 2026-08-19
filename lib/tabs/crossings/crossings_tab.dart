@@ -181,6 +181,7 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                         result,
                         scheme: signs.scheme,
                         signSet: signs.set,
+                        binning: signs.binning,
                       ),
                       CalcError() => [],
                     },
@@ -226,7 +227,14 @@ class _ResultView extends ConsumerWidget {
     final lon = result.crossingLongitude;
     final signField = lon == null
         ? null
-        : inSignField(lon, 0, signs.scheme, signs.set, DisplayFormat.decimal);
+        : inSignField(
+            lon,
+            0,
+            signs.scheme,
+            signs.set,
+            DisplayFormat.decimal,
+            signs.binning,
+          );
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
@@ -254,7 +262,7 @@ class _ResultView extends ConsumerWidget {
             ResultField(
               label: signField.$1,
               value: signField.$2,
-              rawValue: inSignLongitude(lon),
+              rawValue: inSignLongitudeFor(lon, signs.scheme, signs.binning),
             ),
         ],
       ),

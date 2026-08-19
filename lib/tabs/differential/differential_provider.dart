@@ -15,6 +15,7 @@ import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
+import '../../core/true_sidereal.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/result_card.dart';
 import '../../widgets/result_section.dart';
@@ -142,19 +143,20 @@ List<ResultSection> diffSections(
   DisplayFormat fmt, {
   SignScheme scheme = SignScheme.none,
   UserSignSet? signSet,
+  TrueSiderealBinning? binning,
 }) {
   // The two body longitudes and their midpoint are ecliptic positions and get
   // sign names; the difference/complement are separations (arcs between the
   // bodies), not positions, so they are deliberately left unsigned. Always the
   // ecliptic path — this tab has no equatorial/XYZ mode.
   ResultField? signRow(double lon) {
-    final sf = inSignField(lon, 0, scheme, signSet, fmt);
+    final sf = inSignField(lon, 0, scheme, signSet, fmt, binning);
     return sf == null
         ? null
         : ResultField(
             label: sf.$1,
             value: sf.$2,
-            rawValue: inSignLongitude(lon),
+            rawValue: inSignLongitudeFor(lon, scheme, binning),
           );
   }
 
@@ -205,6 +207,7 @@ List<ExportRow> diffToExportRows(
   DisplayFormat fmt, {
   SignScheme scheme = SignScheme.none,
   UserSignSet? signSet,
+  TrueSiderealBinning? binning,
 }) => sectionsToExportRows(
-  diffSections(result, fmt, scheme: scheme, signSet: signSet),
+  diffSections(result, fmt, scheme: scheme, signSet: signSet, binning: binning),
 );

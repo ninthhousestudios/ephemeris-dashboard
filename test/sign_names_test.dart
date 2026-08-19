@@ -55,29 +55,30 @@ void main() {
 
   group('scheme tables', () {
     test('zodiac names index by floor(lon / 30)', () {
-      expect(signNameFor(0, SignScheme.zodiac, null), 'Aries');
-      expect(signNameFor(120, SignScheme.zodiac, null), 'Leo');
-      expect(signNameFor(359, SignScheme.zodiac, null), 'Pisces');
+      expect(signNameFor(0, SignScheme.zodiac, null, null), 'Aries');
+      expect(signNameFor(120, SignScheme.zodiac, null, null), 'Leo');
+      expect(signNameFor(359, SignScheme.zodiac, null, null), 'Pisces');
     });
 
     test('aditya relabels the same signs, Dhata at 330–360', () {
-      expect(signNameFor(0, SignScheme.aditya, null), 'Aryama');
-      expect(signNameFor(330, SignScheme.aditya, null), 'Dhata');
-      expect(signNameFor(359.9, SignScheme.aditya, null), 'Dhata');
+      expect(signNameFor(0, SignScheme.aditya, null, null), 'Aryama');
+      expect(signNameFor(330, SignScheme.aditya, null, null), 'Dhata');
+      expect(signNameFor(359.9, SignScheme.aditya, null, null), 'Dhata');
       expect(adityaNames.length, 12);
     });
 
-    test('none and trueSidereal produce no name (rendering deferred /102)', () {
-      expect(signNameFor(120, SignScheme.none, null), isNull);
-      expect(signNameFor(120, SignScheme.trueSidereal, null), isNull);
+    test('none produces no name; trueSidereal without a binning does too', () {
+      expect(signNameFor(120, SignScheme.none, null, null), isNull);
+      // True Sidereal needs a runtime binning; without one, no name renders.
+      expect(signNameFor(120, SignScheme.trueSidereal, null, null), isNull);
     });
 
     test('userDefined uses its set, falling back to zodiac when malformed', () {
       final set = UserSignSet(id: 0, names: List.generate(12, (i) => 'S$i'));
-      expect(signNameFor(0, SignScheme.userDefined, set), 'S0');
-      expect(signNameFor(45, SignScheme.userDefined, set), 'S1');
+      expect(signNameFor(0, SignScheme.userDefined, set, null), 'S0');
+      expect(signNameFor(45, SignScheme.userDefined, set, null), 'S1');
       // Missing set: still renders a name rather than blank.
-      expect(signNameFor(45, SignScheme.userDefined, null), 'Taurus');
+      expect(signNameFor(45, SignScheme.userDefined, null, null), 'Taurus');
     });
   });
 
@@ -85,7 +86,7 @@ void main() {
     const zodiac = SignScheme.zodiac;
 
     test('renders the in-sign tuple for an ecliptic longitude', () {
-      final f = inSignField(45, 0, zodiac, null, DisplayFormat.decimal);
+      final f = inSignField(45, 0, zodiac, null, DisplayFormat.decimal, null);
       expect(f, isNotNull);
       expect(f!.$1, 'In-Sign Longitude');
       expect(f.$2, startsWith('15.000000'));
@@ -94,26 +95,33 @@ void main() {
 
     test('excludes equatorial and cartesian coordinates', () {
       expect(
-        inSignField(45, seFlgEquatorial, zodiac, null, DisplayFormat.dms),
+        inSignField(45, seFlgEquatorial, zodiac, null, DisplayFormat.dms, null),
         isNull,
       );
       expect(
-        inSignField(45, seFlgXyz, zodiac, null, DisplayFormat.dms),
+        inSignField(45, seFlgXyz, zodiac, null, DisplayFormat.dms, null),
         isNull,
       );
     });
 
-    test('null for scheme none, deferred trueSidereal, and non-finite lon', () {
+    test('null for scheme none, binning-less trueSidereal, non-finite lon', () {
       expect(
-        inSignField(45, 0, SignScheme.none, null, DisplayFormat.dms),
+        inSignField(45, 0, SignScheme.none, null, DisplayFormat.dms, null),
         isNull,
       );
       expect(
-        inSignField(45, 0, SignScheme.trueSidereal, null, DisplayFormat.dms),
+        inSignField(
+          45,
+          0,
+          SignScheme.trueSidereal,
+          null,
+          DisplayFormat.dms,
+          null,
+        ),
         isNull,
       );
       expect(
-        inSignField(double.nan, 0, zodiac, null, DisplayFormat.dms),
+        inSignField(double.nan, 0, zodiac, null, DisplayFormat.dms, null),
         isNull,
       );
     });
