@@ -108,13 +108,13 @@ class AyanamsaPreset {
 const int ayanamsaTrueSiderealId = -2;
 
 /// Built-in SE_SIDM_USER presets. True Sidereal is `swe_set_sid_mode(
-/// SE_SIDM_USER, 2451545, 31.2816)` — the ayanamsha that aligns the zodiac with
-/// the true constellation boundaries at J2000, under Swiss Ephemeris' default
-/// Vondrák 2011 long-term precession.
+/// SE_SIDM_USER, 2451545, 31.2816)` — the True Sidereal ayanamsha defined by
+/// Chimenti, aligning the zodiac with the true constellation boundaries at
+/// J2000.
 const List<AyanamsaPreset> ayanamsaPresets = [
   AyanamsaPreset(
     id: ayanamsaTrueSiderealId,
-    name: 'True Sidereal (Vondrák 2011)',
+    name: 'True Sidereal (Chimenti)',
     t0: 2451545.0, // J2000
     value: 31.2816,
   ),

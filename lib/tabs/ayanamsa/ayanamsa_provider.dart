@@ -39,16 +39,18 @@ class AyanamsaCalcResult {
 }
 
 /// Built-in ayanamsa modes shown on this tab (User-defined excluded — it is an
-/// add action, not a toggle). Canonical catalog from ayanamsa_catalog.dart,
-/// plus the SE_SIDM_USER presets (True Sidereal), keyed by their pseudo-ids.
+/// add action, not a toggle). SE_SIDM_USER presets (True Sidereal) lead, keyed
+/// by their pseudo-ids, so they sit at the top of the chip list rather than
+/// below the ~47 numbered modes; then the canonical catalog from
+/// ayanamsa_catalog.dart.
 Map<int, String> ayanamsaModesFor() {
   final map = <int, String>{};
+  for (final p in ayanamsaPresets) {
+    map[p.id] = p.name;
+  }
   for (final e in ayanamsaCatalog) {
     if (e.id == ayanamsaUserId) continue;
     map[e.id] = e.name;
-  }
-  for (final p in ayanamsaPresets) {
-    map[p.id] = p.name;
   }
   return map;
 }
