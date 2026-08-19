@@ -162,17 +162,19 @@ class SignNameSelector extends ConsumerWidget {
           enabled: canTrueSidereal,
           disabledTooltip: _trueSiderealTooltip,
         ),
+      for (final s in sets)
+        _item(theme, _SchemeChoice.user(s.id), labels[s.id] ?? 'Sign set'),
+      // Actions last: add, then the two manage entries — sign-name sets, then
+      // True Sidereal sets at the very bottom.
+      _item(theme, const _SchemeChoice.add(), 'Add sign-name set…'),
+      // Manage (rename/edit/delete) only makes sense once a set exists.
+      if (sets.isNotEmpty)
+        _item(theme, const _SchemeChoice.manage(), 'Manage sign-name sets…'),
       _item(
         theme,
         const _SchemeChoice.manageTrue(),
         'Manage True Sidereal sets…',
       ),
-      for (final s in sets)
-        _item(theme, _SchemeChoice.user(s.id), labels[s.id] ?? 'Sign set'),
-      _item(theme, const _SchemeChoice.add(), 'Add sign-name set…'),
-      // Manage (rename/edit/delete) only makes sense once a set exists.
-      if (sets.isNotEmpty)
-        _item(theme, const _SchemeChoice.manage(), 'Manage sign-name sets…'),
     ];
 
     final row = Row(
