@@ -48,20 +48,20 @@ class _SchemeChoice {
 class SignNameSelector extends ConsumerWidget {
   const SignNameSelector({super.key});
 
-  static const _unlockTooltip =
+  static const _trueSiderealTooltip =
       'Unlocks under Zodiac: Sidereal + Ayanamsa: True Sidereal';
+  static const _adityaTooltip = 'Unlocks under Zodiac: Tropical';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sel = ref.watch(signNameSelectionProvider);
     final sets = ref.watch(userSignSetsProvider);
-    final canTrueSidereal = ref.watch(
-      contextBarProvider.select(
-        (s) =>
-            s.zodiacRef == ZodiacRef.sidereal &&
-            s.ayanamsa == ayanamsaTrueSiderealId,
-      ),
-    );
+    final zodiac = ref.watch(contextBarProvider.select((s) => s.zodiacRef));
+    final ayanamsa = ref.watch(contextBarProvider.select((s) => s.ayanamsa));
+    // Aditya is a tropical relabelling; True Sidereal needs its own ayanamsha.
+    final canAditya = zodiac == ZodiacRef.tropical;
+    final canTrueSidereal =
+        zodiac == ZodiacRef.sidereal && ayanamsa == ayanamsaTrueSiderealId;
 
     final labels = <int, String>{
       for (var i = 0; i < sets.length; i++)
@@ -87,13 +87,19 @@ class SignNameSelector extends ConsumerWidget {
     final items = <DropdownMenuItem<_SchemeChoice>>[
       _item(theme, const _SchemeChoice.scheme(SignScheme.none), 'None'),
       _item(theme, const _SchemeChoice.scheme(SignScheme.zodiac), 'Zodiac'),
-      _item(theme, const _SchemeChoice.scheme(SignScheme.aditya), 'Aditya'),
+      _item(
+        theme,
+        const _SchemeChoice.scheme(SignScheme.aditya),
+        'Aditya',
+        enabled: canAditya,
+        disabledTooltip: _adityaTooltip,
+      ),
       _item(
         theme,
         const _SchemeChoice.scheme(SignScheme.trueSidereal),
         'True Sidereal',
         enabled: canTrueSidereal,
-        disabledTooltip: _unlockTooltip,
+        disabledTooltip: _trueSiderealTooltip,
       ),
       for (final s in sets)
         _item(theme, _SchemeChoice.user(s.id), labels[s.id] ?? 'Sign set'),
