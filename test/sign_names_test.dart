@@ -282,5 +282,43 @@ void main() {
       n.reconcile([]);
       expect(n.state.scheme, SignScheme.aditya);
     });
+
+    test('reconcileScheme collapses Aditya when the zodiac turns sidereal', () {
+      final n = SignNameSelectionNotifier(
+        initial: const SignNameSelection(scheme: SignScheme.aditya),
+      );
+      // Still tropical: held.
+      n.reconcileScheme(_ctx());
+      expect(n.state.scheme, SignScheme.aditya);
+      // Sidereal: Aditya cannot render, collapses to Zodiac.
+      n.reconcileScheme(_ctx(zodiac: ZodiacRef.sidereal, ayanamsa: 1));
+      expect(n.state.scheme, SignScheme.zodiac);
+    });
+
+    test('reconcileScheme collapses True Sidereal when its frame is left', () {
+      final n = SignNameSelectionNotifier(
+        initial: const SignNameSelection(scheme: SignScheme.trueSidereal),
+      );
+      // In frame: held.
+      n.reconcileScheme(
+        _ctx(zodiac: ZodiacRef.sidereal, ayanamsa: ayanamsaTrueSiderealId),
+      );
+      expect(n.state.scheme, SignScheme.trueSidereal);
+      // Back to tropical: collapses.
+      n.reconcileScheme(_ctx());
+      expect(n.state.scheme, SignScheme.zodiac);
+    });
+
+    test('reconcileScheme leaves userDefined (valid in every frame) alone', () {
+      final n = SignNameSelectionNotifier(
+        initial: const SignNameSelection(
+          scheme: SignScheme.userDefined,
+          userSetId: 4,
+        ),
+      );
+      n.reconcileScheme(_ctx(zodiac: ZodiacRef.sidereal, ayanamsa: 1));
+      expect(n.state.scheme, SignScheme.userDefined);
+      expect(n.state.userSetId, 4);
+    });
   });
 }

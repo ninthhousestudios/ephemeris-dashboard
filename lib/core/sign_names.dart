@@ -490,6 +490,17 @@ class SignNameSelectionNotifier extends StateNotifier<SignNameSelection> {
     if (setIds.contains(state.userSetId)) return;
     _emit(const SignNameSelection(scheme: SignScheme.zodiac));
   }
+
+  /// Collapse a built-in scheme the Context no longer supports — Aditya once the
+  /// zodiac turns sidereal, True Sidereal once its frame is left — down to its
+  /// [effectiveSchemeFor] fallback, so the selector stops showing (greyed) a
+  /// mode that cannot render. userDefined is unaffected (valid in every frame).
+  void reconcileScheme(ContextBarState ctx) {
+    final effective = effectiveSchemeFor(state, ctx);
+    if (effective != state.scheme) {
+      _emit(SignNameSelection(scheme: effective));
+    }
+  }
 }
 
 final signNameSelectionProvider =
@@ -518,6 +529,15 @@ final signNameSelectionProvider =
       ref.listen<List<UserSignSet>>(
         userSignSetsProvider,
         (_, sets) => reconcile(sets),
+      );
+
+      // Also collapse a scheme the Context stops supporting (Aditya⇒sidereal,
+      // True Sidereal⇒out of frame) so a stale, un-renderable mode does not sit
+      // selected in the dropdown.
+      notifier.reconcileScheme(ref.read(contextBarProvider));
+      ref.listen<ContextBarState>(
+        contextBarProvider,
+        (_, ctx) => notifier.reconcileScheme(ctx),
       );
 
       return notifier;
