@@ -14,6 +14,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/jd_utils.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/time_scale.dart';
@@ -158,6 +159,8 @@ List<ExportRow> nodesApsToExportRows(
   TimeScale scale, {
   bool isXyz = false,
   int coordValue = 0,
+  SignScheme scheme = SignScheme.none,
+  UserSignSet? signSet,
 }) {
   final lbl = coordLabels(coordValue);
   String deg(double v) => formatAngle(v, fmt);
@@ -165,6 +168,7 @@ List<ExportRow> nodesApsToExportRows(
 
   List<(String, String)> posFields(CalcResult pos) => [
     (lbl.c1, isXyz ? formatAu(pos.longitude, fmt) : deg(pos.longitude)),
+    ?inSignField(pos.longitude, coordValue, scheme, signSet, fmt),
     (lbl.c2, isXyz ? formatAu(pos.latitude, fmt) : deg(pos.latitude)),
     (
       isXyz ? lbl.c3 : 'Distance (AU)',

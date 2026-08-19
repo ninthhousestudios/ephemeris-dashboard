@@ -15,6 +15,7 @@ import '../../core/date_time_input.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/jd_utils.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
@@ -340,10 +341,13 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
                 ExportButton(
                   hasResults: diffOutcome is CalcOk<DiffResult>,
                   getRows: () {
+                    final signs = ref.read(resolvedSignNamesProvider);
                     return switch (diffOutcome) {
                       CalcOk(value: final result) => diffToExportRows(
                         result,
                         ref.read(diffFormatProvider),
+                        scheme: signs.scheme,
+                        signSet: signs.set,
                       ),
                       CalcError() => [],
                     };
@@ -372,8 +376,14 @@ class _DifferentialTabState extends ConsumerState<DifferentialTab> {
   Widget _buildSeries() {
     final format = ref.watch(diffFormatProvider);
     final steps = ref.watch(diffSeriesProvider);
+    final signs = ref.watch(resolvedSignNamesProvider);
 
-    List<ExportRow> rows(DiffResult result) => diffToExportRows(result, format);
+    List<ExportRow> rows(DiffResult result) => diffToExportRows(
+      result,
+      format,
+      scheme: signs.scheme,
+      signSet: signs.set,
+    );
 
     return SeriesView(
       tabId: AppTab.differential.name,
@@ -581,20 +591,30 @@ class _DiffResults extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final outcome = ref.watch(diffResultProvider);
     final fmt = ref.watch(diffFormatProvider);
+    final signs = ref.watch(resolvedSignNamesProvider);
 
     return switch (outcome) {
       CalcError(:final message) => Center(
         child: Text('Calculation error: $message'),
       ),
-      CalcOk(value: final result) => _resultCard(result, fmt),
+      CalcOk(value: final result) => _resultCard(result, fmt, signs),
     };
   }
 
   // One label/value source for the card and export alike — see diffSections.
-  Widget _resultCard(DiffResult result, DisplayFormat fmt) {
+  Widget _resultCard(
+    DiffResult result,
+    DisplayFormat fmt,
+    ResolvedSignNames signs,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
-      child: diffSections(result, fmt).first.toCard(),
+      child: diffSections(
+        result,
+        fmt,
+        scheme: signs.scheme,
+        signSet: signs.set,
+      ).first.toCard(),
     );
   }
 }

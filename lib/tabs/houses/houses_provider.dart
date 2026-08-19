@@ -11,6 +11,7 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/house_systems.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -101,17 +102,31 @@ final housesSeriesProvider =
     });
 
 /// Convert house results to export rows.
-List<ExportRow> housesToExportRows(HousesCalcResult result, DisplayFormat fmt) {
+List<ExportRow> housesToExportRows(
+  HousesCalcResult result,
+  DisplayFormat fmt, {
+  SignScheme scheme = SignScheme.none,
+  UserSignSet? signSet,
+}) {
+  // Cusps and the angles are bare ecliptic longitudes (no equatorial/XYZ mode),
+  // so the sign gate is always the ecliptic path. ARMC is Right Ascension of
+  // the MC — a sidereal-time measure — so it is intentionally left unsigned.
+  (String, String)? signCell(double lon) =>
+      inSignField(lon, 0, scheme, signSet, fmt);
   final rows = <ExportRow>[
     // Angles card first
     ExportRow(
       header: 'Angles (${result.hsysName})',
       fields: [
         ('Asc', formatAngle(result.asc, fmt)),
+        ?signCell(result.asc),
         ('MC', formatAngle(result.mc, fmt)),
+        ?signCell(result.mc),
         ('ARMC', formatAngle(result.armc, fmt)),
         ('Vertex', formatAngle(result.vertex, fmt)),
+        ?signCell(result.vertex),
         ('Eq Asc', formatAngle(result.equatorialAsc, fmt)),
+        ?signCell(result.equatorialAsc),
       ],
     ),
   ];
@@ -121,7 +136,10 @@ List<ExportRow> housesToExportRows(HousesCalcResult result, DisplayFormat fmt) {
     rows.add(
       ExportRow(
         header: 'Cusp $i',
-        fields: [('Longitude', formatAngle(result.cusps[i], fmt))],
+        fields: [
+          ('Longitude', formatAngle(result.cusps[i], fmt)),
+          ?signCell(result.cusps[i]),
+        ],
       ),
     );
   }

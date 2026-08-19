@@ -23,6 +23,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/house_systems.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -441,6 +442,8 @@ List<ExportRow> starToExportRows(
   DisplayFormat fmt, {
   bool isXyz = false,
   int coordValue = 0,
+  SignScheme scheme = SignScheme.none,
+  UserSignSet? signSet,
 }) {
   final lbl = coordLabels(coordValue);
   return results.map((result) {
@@ -457,6 +460,7 @@ List<ExportRow> starToExportRows(
                     ? formatAu(result.longitude, fmt)
                     : formatAngle(result.longitude, fmt),
               ),
+              ?inSignField(result.longitude, coordValue, scheme, signSet, fmt),
               (
                 lbl.c2,
                 isXyz

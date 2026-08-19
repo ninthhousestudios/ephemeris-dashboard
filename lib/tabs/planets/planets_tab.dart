@@ -17,6 +17,7 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/sign_names.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
@@ -162,12 +163,15 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
     final format = ref.watch(planetsFormatProvider);
     final flags = ref.watch(flagBarProvider);
     final steps = ref.watch(planetsSeriesProvider);
+    final signs = ref.watch(resolvedSignNamesProvider);
 
     List<ExportRow> rows(List<PlanetResult> results) => planetsToExportRows(
       results,
       format,
       isXyz: flags.isXyz,
       coordValue: flags.coordValue,
+      scheme: signs.scheme,
+      signSet: signs.set,
     );
 
     return SeriesView(
@@ -206,6 +210,14 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
     final showHorizontal = ref.watch(planetsShowHorizontalProvider);
+    final signs = ref.watch(resolvedSignNamesProvider);
+    final signField = inSignField(
+      r.longitude,
+      flags.coordValue,
+      signs.scheme,
+      signs.set,
+      format,
+    );
 
     return ResultCard(
       title: r.bodyName,
@@ -221,6 +233,12 @@ class _PlanetsTabState extends ConsumerState<PlanetsTab> {
                     : formatAngle(r.longitude, format),
                 rawValue: r.longitude,
               ),
+              if (signField != null)
+                ResultField(
+                  label: signField.$1,
+                  value: signField.$2,
+                  rawValue: inSignLongitude(r.longitude),
+                ),
               ResultField(
                 label: lbl.c2,
                 value: isXyz
@@ -332,11 +350,14 @@ class PlanetsFormatTrailing extends ConsumerWidget {
           hasResults: results.isNotEmpty,
           getRows: () {
             final f = ref.read(flagBarProvider);
+            final signs = ref.read(resolvedSignNamesProvider);
             return planetsToExportRows(
               results,
               format,
               isXyz: f.isXyz,
               coordValue: f.coordValue,
+              scheme: signs.scheme,
+              signSet: signs.set,
             );
           },
           filenameStem: 'swe_planets_${jd.toStringAsFixed(4)}',

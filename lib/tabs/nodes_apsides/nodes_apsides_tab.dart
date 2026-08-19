@@ -15,6 +15,7 @@ import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
@@ -218,6 +219,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                   hasResults: nodesOutcome is CalcOk<NodesApsResult>,
                   getRows: () {
                     final f = ref.read(flagBarProvider);
+                    final signs = ref.read(resolvedSignNamesProvider);
                     return switch (nodesOutcome) {
                       CalcOk(value: final result) => nodesApsToExportRows(
                         result,
@@ -226,6 +228,8 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
                         ref.read(clockViewProvider).scale,
                         isXyz: f.isXyz,
                         coordValue: f.coordValue,
+                        scheme: signs.scheme,
+                        signSet: signs.set,
                       ),
                       CalcError() => [],
                     };
@@ -258,6 +262,7 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
 
     final swe = ref.read(sweProvider);
     final scale = ref.watch(clockViewProvider).scale;
+    final signs = ref.watch(resolvedSignNamesProvider);
 
     List<ExportRow> rows(NodesApsResult result) => nodesApsToExportRows(
       result,
@@ -266,6 +271,8 @@ class _NodesApsidesTabState extends ConsumerState<NodesApsidesTab> {
       scale,
       isXyz: flags.isXyz,
       coordValue: flags.coordValue,
+      scheme: signs.scheme,
+      signSet: signs.set,
     );
 
     return SeriesView(
@@ -302,6 +309,7 @@ class _NodesResults extends ConsumerWidget {
     final flags = ref.watch(flagBarProvider);
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
+    final signs = ref.watch(resolvedSignNamesProvider);
 
     String deg(double v) => formatAngle(v, fmt);
     String raw(double v) => v.toStringAsFixed(8);
@@ -312,6 +320,19 @@ class _NodesResults extends ConsumerWidget {
         value: isXyz ? formatAu(pos.longitude, fmt) : deg(pos.longitude),
         rawValue: pos.longitude,
       ),
+      if (inSignField(
+            pos.longitude,
+            flags.coordValue,
+            signs.scheme,
+            signs.set,
+            fmt,
+          )
+          case final sf?)
+        ResultField(
+          label: sf.$1,
+          value: sf.$2,
+          rawValue: inSignLongitude(pos.longitude),
+        ),
       ResultField(
         label: lbl.c2,
         value: isXyz ? formatAu(pos.latitude, fmt) : deg(pos.latitude),

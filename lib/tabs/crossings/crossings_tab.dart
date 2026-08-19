@@ -11,6 +11,8 @@ import '../../widgets/body_chips.dart';
 
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/context_provider.dart';
+import '../../core/display_format.dart';
+import '../../core/sign_names.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/result_card.dart';
 import 'crossings_provider.dart';
@@ -170,12 +172,15 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
               Consumer(
                 builder: (context, ref, _) {
                   final outcome = ref.watch(crossingResultProvider);
+                  final signs = ref.watch(resolvedSignNamesProvider);
                   final jd = ref.watch(contextBarProvider).jdUt;
                   return ExportButton(
                     hasResults: outcome is CalcOk<CrossingResult>,
                     getRows: () => switch (outcome) {
                       CalcOk(value: final result) => crossingToExportRows(
                         result,
+                        scheme: signs.scheme,
+                        signSet: signs.set,
                       ),
                       CalcError() => [],
                     },
@@ -215,6 +220,13 @@ class _ResultView extends ConsumerWidget {
     CrossingResult result,
   ) {
     final isError = result.crossingJd.isNaN;
+    final signs = ref.watch(resolvedSignNamesProvider);
+    // The crossing tab has no display-format selector; its longitude is fixed
+    // decimal degrees, so the in-sign line follows suit ([DisplayFormat.decimal]).
+    final lon = result.crossingLongitude;
+    final signField = lon == null
+        ? null
+        : inSignField(lon, 0, signs.scheme, signs.set, DisplayFormat.decimal);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(8),
@@ -232,11 +244,17 @@ class _ResultView extends ConsumerWidget {
             value: result.crossingDate,
             rawValue: null,
           ),
-          if (result.crossingLongitude != null)
+          if (lon != null)
             ResultField(
               label: 'Node Longitude',
-              value: '${result.crossingLongitude!.toStringAsFixed(6)}°',
-              rawValue: result.crossingLongitude,
+              value: '${lon.toStringAsFixed(6)}°',
+              rawValue: lon,
+            ),
+          if (signField != null && lon != null)
+            ResultField(
+              label: signField.$1,
+              value: signField.$2,
+              rawValue: inSignLongitude(lon),
             ),
         ],
       ),

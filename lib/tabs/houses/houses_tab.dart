@@ -9,6 +9,7 @@ import '../../core/calculation/series_settings_provider.dart';
 import '../../core/export_service.dart';
 import '../../core/context_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/sign_names.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
 import '../../widgets/house_system_dropdown.dart';
@@ -67,9 +68,14 @@ class _HousesTabState extends ConsumerState<HousesTab> {
   Widget _buildSeries() {
     final format = ref.watch(housesFormatProvider);
     final steps = ref.watch(housesSeriesProvider);
+    final signs = ref.watch(resolvedSignNamesProvider);
 
-    List<ExportRow> rows(HousesCalcResult result) =>
-        housesToExportRows(result, format);
+    List<ExportRow> rows(HousesCalcResult result) => housesToExportRows(
+      result,
+      format,
+      scheme: signs.scheme,
+      signSet: signs.set,
+    );
 
     return SeriesView(
       tabId: AppTab.houses.name,
@@ -96,6 +102,19 @@ class _HousesTabState extends ConsumerState<HousesTab> {
       0,
       result.cusps.length - 1,
     );
+    final signs = ref.watch(resolvedSignNamesProvider);
+    // House cusps and the angles are all bare ecliptic longitudes (no
+    // equatorial/XYZ mode here), so the sign gate is always the ecliptic path.
+    ResultField? signRow(double lon) {
+      final sf = inSignField(lon, 0, signs.scheme, signs.set, format);
+      return sf == null
+          ? null
+          : ResultField(
+              label: sf.$1,
+              value: sf.$2,
+              rawValue: inSignLongitude(lon),
+            );
+    }
 
     return ResultCardGrid<int>.items(
       items: [for (int i = 1; i <= cuspCount; i++) i],
@@ -109,6 +128,7 @@ class _HousesTabState extends ConsumerState<HousesTab> {
             value: formatAngle(result.cusps[i], format),
             rawValue: result.cusps[i],
           ),
+          ?signRow(result.cusps[i]),
         ],
       ),
       // Full width below the cusps: the angles are one card, not a grid cell.
@@ -121,11 +141,15 @@ class _HousesTabState extends ConsumerState<HousesTab> {
             value: formatAngle(result.asc, format),
             rawValue: result.asc,
           ),
+          ?signRow(result.asc),
           ResultField(
             label: 'MC',
             value: formatAngle(result.mc, format),
             rawValue: result.mc,
           ),
+          ?signRow(result.mc),
+          // ARMC is Right Ascension of the MC — a sidereal-time measure, not an
+          // ecliptic longitude — so it gets no sign name.
           ResultField(
             label: 'ARMC',
             value: formatAngle(result.armc, format),
@@ -136,11 +160,13 @@ class _HousesTabState extends ConsumerState<HousesTab> {
             value: formatAngle(result.vertex, format),
             rawValue: result.vertex,
           ),
+          ?signRow(result.vertex),
           ResultField(
             label: 'Eq Asc',
             value: formatAngle(result.equatorialAsc, format),
             rawValue: result.equatorialAsc,
           ),
+          ?signRow(result.equatorialAsc),
         ],
       ),
     );
@@ -163,6 +189,7 @@ class HousesFormatTrailing extends ConsumerWidget {
     );
     final format = ref.watch(housesFormatProvider);
     final outcome = ref.watch(housesResultProvider);
+    final signs = ref.watch(resolvedSignNamesProvider);
     final jd = ref.watch(contextBarProvider).jdUt;
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -180,7 +207,12 @@ class HousesFormatTrailing extends ConsumerWidget {
         ExportButton(
           hasResults: outcome is CalcOk<HousesCalcResult>,
           getRows: () => switch (outcome) {
-            CalcOk(value: final r) => housesToExportRows(r, format),
+            CalcOk(value: final r) => housesToExportRows(
+              r,
+              format,
+              scheme: signs.scheme,
+              signSet: signs.set,
+            ),
             CalcError() => [],
           },
           filenameStem: 'swe_houses_${jd.toStringAsFixed(4)}',

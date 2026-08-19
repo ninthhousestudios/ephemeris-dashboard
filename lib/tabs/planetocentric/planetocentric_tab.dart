@@ -15,6 +15,7 @@ import '../../core/display_format.dart';
 import '../../core/ephe/catalog.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/tab_definitions.dart';
@@ -284,6 +285,7 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     final format = ref.watch(planetocentricFormatProvider);
     final flags = ref.watch(flagBarProvider);
     final steps = ref.watch(planetocentricSeriesProvider);
+    final signs = ref.watch(resolvedSignNamesProvider);
 
     List<ExportRow> rows(List<PlanetoCentricResult> results) =>
         planetocentricToExportRows(
@@ -291,6 +293,8 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
           format,
           isXyz: flags.isXyz,
           coordValue: flags.coordValue,
+          scheme: signs.scheme,
+          signSet: signs.set,
         );
 
     return SeriesView(
@@ -329,6 +333,14 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
     final flags = ref.watch(flagBarProvider);
     final isXyz = flags.isXyz;
     final lbl = coordLabels(flags.coordValue);
+    final signs = ref.watch(resolvedSignNamesProvider);
+    final signField = inSignField(
+      r.longitude,
+      flags.coordValue,
+      signs.scheme,
+      signs.set,
+      format,
+    );
 
     return ResultCard(
       title: r.bodyName,
@@ -342,6 +354,12 @@ class _PlanetoCentricTabState extends ConsumerState<PlanetoCentricTab> {
               : formatAngle(r.longitude, format),
           rawValue: r.longitude,
         ),
+        if (signField != null)
+          ResultField(
+            label: signField.$1,
+            value: signField.$2,
+            rawValue: inSignLongitude(r.longitude),
+          ),
         ResultField(
           label: lbl.c2,
           value: isXyz
@@ -434,11 +452,14 @@ class PlanetoCentricFormatTrailing extends ConsumerWidget {
           hasResults: results.isNotEmpty,
           getRows: () {
             final f = ref.read(flagBarProvider);
+            final signs = ref.read(resolvedSignNamesProvider);
             return planetocentricToExportRows(
               results,
               format,
               isXyz: f.isXyz,
               coordValue: f.coordValue,
+              scheme: signs.scheme,
+              signSet: signs.set,
             );
           },
           filenameStem: 'swe_planetocentric_${jd.toStringAsFixed(4)}',

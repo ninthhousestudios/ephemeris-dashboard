@@ -20,6 +20,7 @@ import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
 import '../../core/house_systems.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 
@@ -330,6 +331,8 @@ List<ExportRow> planetsToExportRows(
   DisplayFormat fmt, {
   bool isXyz = false,
   int coordValue = 0,
+  SignScheme scheme = SignScheme.none,
+  UserSignSet? signSet,
 }) {
   final lbl = coordLabels(coordValue);
   return results
@@ -347,6 +350,7 @@ List<ExportRow> planetsToExportRows(
                         ? formatAu(r.longitude, fmt)
                         : formatAngle(r.longitude, fmt),
                   ),
+                  ?inSignField(r.longitude, coordValue, scheme, signSet, fmt),
                   (
                     lbl.c2,
                     isXyz

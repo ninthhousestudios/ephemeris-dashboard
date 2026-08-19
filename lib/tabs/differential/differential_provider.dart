@@ -13,6 +13,7 @@ import '../../core/display_format.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/sign_names.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/result_card.dart';
@@ -136,7 +137,27 @@ final diffSeriesProvider = Provider<List<(Moment, CalcOutcome<DiffResult>)>>((
 /// The Result as card sections — the one encoding of this tab's labels and
 /// formatters. The card renders these; [diffToExportRows] projects the same
 /// list, so a rename cannot land on one side only (yojana swe-dashboard/91).
-List<ResultSection> diffSections(DiffResult result, DisplayFormat fmt) {
+List<ResultSection> diffSections(
+  DiffResult result,
+  DisplayFormat fmt, {
+  SignScheme scheme = SignScheme.none,
+  UserSignSet? signSet,
+}) {
+  // The two body longitudes and their midpoint are ecliptic positions and get
+  // sign names; the difference/complement are separations (arcs between the
+  // bodies), not positions, so they are deliberately left unsigned. Always the
+  // ecliptic path — this tab has no equatorial/XYZ mode.
+  ResultField? signRow(double lon) {
+    final sf = inSignField(lon, 0, scheme, signSet, fmt);
+    return sf == null
+        ? null
+        : ResultField(
+            label: sf.$1,
+            value: sf.$2,
+            rawValue: inSignLongitude(lon),
+          );
+  }
+
   return [
     ResultSection(
       title: '${result.nameA} — ${result.nameB}',
@@ -150,11 +171,13 @@ List<ResultSection> diffSections(DiffResult result, DisplayFormat fmt) {
           value: formatAngle(result.lonA, fmt),
           rawValue: result.lonA,
         ),
+        ?signRow(result.lonA),
         ResultField(
           label: 'Longitude ${result.nameB}',
           value: formatAngle(result.lonB, fmt),
           rawValue: result.lonB,
         ),
+        ?signRow(result.lonB),
         ResultField(
           label: 'Difference (short arc)',
           value: formatAngle(result.difference, fmt),
@@ -170,11 +193,18 @@ List<ResultSection> diffSections(DiffResult result, DisplayFormat fmt) {
           value: formatAngle(result.midpoint, fmt),
           rawValue: result.midpoint,
         ),
+        ?signRow(result.midpoint),
       ],
     ),
   ];
 }
 
 /// Convert a DiffResult to export rows.
-List<ExportRow> diffToExportRows(DiffResult result, DisplayFormat fmt) =>
-    sectionsToExportRows(diffSections(result, fmt));
+List<ExportRow> diffToExportRows(
+  DiffResult result,
+  DisplayFormat fmt, {
+  SignScheme scheme = SignScheme.none,
+  UserSignSet? signSet,
+}) => sectionsToExportRows(
+  diffSections(result, fmt, scheme: scheme, signSet: signSet),
+);
