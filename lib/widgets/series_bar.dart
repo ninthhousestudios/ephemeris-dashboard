@@ -48,6 +48,15 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
   SeriesSettingsNotifier get _notifier =>
       ref.read(seriesSettingsProvider(widget.tabId).notifier);
 
+  /// Flags the pending run so the view shows "Calculating…" for a frame before
+  /// the synchronous step loop starts. Called only when a control actually
+  /// changes the series, so an unchanged re-entry does not force a needless run.
+  void _markCalculating() =>
+      ref.read(seriesCalculatingProvider(widget.tabId).notifier).state = true;
+
+  SeriesSettings get _settings =>
+      ref.read(seriesSettingsProvider(widget.tabId));
+
   @override
   void initState() {
     super.initState();
@@ -76,25 +85,37 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
     _stepValueDebounce?.cancel();
     _stepValueDebounce = Timer(_debounceDuration, () {
       final value = double.tryParse(text);
-      if (value != null) _notifier.setStepValue(value);
+      if (value != null) _applyStepValue(value);
     });
+  }
+
+  void _applyStepValue(double value) {
+    final changed = value != _settings.stepValue;
+    if (_notifier.setStepValue(value) && changed) _markCalculating();
   }
 
   /// Switching to a calendar unit can invalidate a step value that was fine
   /// for the previous one. The notifier snaps it and returns what it took, so
   /// the field never disagrees with the series it produced.
   void _onStepUnitChanged(StepUnit unit) {
+    final changed = unit != _settings.stepUnit;
     final effective = _notifier.setStepUnit(unit);
     final text = _formatStepValue(effective);
     if (_stepValueController.text != text) _stepValueController.text = text;
+    if (changed) _markCalculating();
   }
 
   void _onRowCountChanged(String text) {
     _rowCountDebounce?.cancel();
     _rowCountDebounce = Timer(_debounceDuration, () {
       final rows = int.tryParse(text);
-      if (rows != null) _notifier.setRowCount(rows);
+      if (rows != null) _applyRowCount(rows);
     });
+  }
+
+  void _applyRowCount(int rows) {
+    final changed = rows != _settings.rowCount;
+    if (_notifier.setRowCount(rows) && changed) _markCalculating();
   }
 
   @override
@@ -119,7 +140,17 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
                   label: const Text('Series'),
                   avatar: const Icon(Icons.timeline, size: 16),
                   selected: settings.enabled,
-                  onSelected: _notifier.setEnabled,
+                  // Flag the first run so the placeholder shows; disabling
+                  // clears the flag rather than leaving it armed.
+                  onSelected: (on) {
+                    ref
+                            .read(
+                              seriesCalculatingProvider(widget.tabId).notifier,
+                            )
+                            .state =
+                        on;
+                    _notifier.setEnabled(on);
+                  },
                   visualDensity: VisualDensity.compact,
                 ),
                 if (settings.enabled) ...[
@@ -212,13 +243,13 @@ class _SeriesBarState extends ConsumerState<SeriesBar> {
   void _commitStepValue() {
     _stepValueDebounce?.cancel();
     final value = double.tryParse(_stepValueController.text);
-    if (value != null) _notifier.setStepValue(value);
+    if (value != null) _applyStepValue(value);
   }
 
   void _commitRowCount() {
     _rowCountDebounce?.cancel();
     final rows = int.tryParse(_rowCountController.text);
-    if (rows != null) _notifier.setRowCount(rows);
+    if (rows != null) _applyRowCount(rows);
   }
 
   Widget _numberField(

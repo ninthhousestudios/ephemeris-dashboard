@@ -45,6 +45,13 @@ class SeriesView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A run the user just triggered shows a placeholder for one frame before the
+    // synchronous step loop starts (see [seriesCalculatingProvider]); the steps
+    // are empty until then, so there is nothing else worth building.
+    if (ref.watch(seriesCalculatingProvider(tabId))) {
+      return _SeriesCalculating(tabId: tabId);
+    }
+
     final settings = ref.watch(seriesSettingsProvider(tabId));
     final notifier = ref.read(seriesSettingsProvider(tabId).notifier);
     final table = buildSeriesTable(steps, hiddenLabels: settings.hiddenLabels);
@@ -111,6 +118,54 @@ class SeriesView extends ConsumerWidget {
           layout: settings.layout,
         ),
       ],
+    );
+  }
+}
+
+/// The "Calculating…" placeholder shown for the one frame between a series run
+/// being requested and its synchronous step loop starting.
+///
+/// Clearing [seriesCalculatingProvider] from a post-frame callback here — i.e.
+/// only *after* this has painted — is what lets the message appear before the
+/// isolate-blocking run rather than after it. A static label, not a spinner: the
+/// run blocks the isolate, so an animation would sit frozen and imply progress
+/// it is not making.
+class _SeriesCalculating extends ConsumerStatefulWidget {
+  const _SeriesCalculating({required this.tabId});
+
+  final String tabId;
+
+  @override
+  ConsumerState<_SeriesCalculating> createState() => _SeriesCalculatingState();
+}
+
+class _SeriesCalculatingState extends ConsumerState<_SeriesCalculating> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(seriesCalculatingProvider(widget.tabId).notifier).state = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.hourglass_top, size: 18, color: color),
+          const SizedBox(width: 8),
+          Text(
+            'Calculating…',
+            style: theme.textTheme.bodyMedium?.copyWith(color: color),
+          ),
+        ],
+      ),
     );
   }
 }

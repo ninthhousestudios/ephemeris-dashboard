@@ -241,5 +241,11 @@ List<(Moment, CalcOutcome<T>)> _seriesSteps<T>(
   // one and Riverpod notifies nobody. A fresh `[]` is never `==` to the last
   // one, and every step edit made while the series is off would rebuild the tab.
   if (!settings.enabled) return const [];
+  // A run the user just triggered is held back one frame (same canonical empty
+  // list as the disabled case) so the view can paint its "Calculating…"
+  // placeholder before the synchronous step loop blocks the isolate. The flag is
+  // set by the series controls and cleared by the view once the placeholder is
+  // up; see [seriesCalculatingProvider].
+  if (ref.watch(seriesCalculatingProvider(tabId))) return const [];
   return run(settings);
 }

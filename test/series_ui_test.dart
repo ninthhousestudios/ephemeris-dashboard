@@ -1013,6 +1013,41 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('a deferred run shows "Calculating…" then clears its own flag', (
+      tester,
+    ) async {
+      final steps = [
+        _ok(1.0, [
+          _row('Sun', [('Longitude', '10')]),
+        ]),
+      ];
+
+      final container = await pump(
+        tester,
+        SeriesView(tabId: 'planets', steps: steps),
+        size: const Size(1400, 900),
+      );
+
+      // A settled series shows its grid, not the placeholder.
+      expect(find.text('Calculating…'), findsNothing);
+      expect(find.text('Sun Longitude'), findsOneWidget);
+
+      // Arming the flag (as the controls do on a run) swaps the grid for the
+      // placeholder for one frame.
+      container.read(seriesCalculatingProvider('planets').notifier).state =
+          true;
+      await tester.pump();
+      expect(find.text('Calculating…'), findsOneWidget);
+      expect(find.text('Sun Longitude'), findsNothing);
+
+      // The placeholder cleared the flag as it painted, so the run is no longer
+      // held back — the next frame renders the grid again.
+      expect(container.read(seriesCalculatingProvider('planets')), isFalse);
+      await tester.pump();
+      expect(find.text('Calculating…'), findsNothing);
+      expect(find.text('Sun Longitude'), findsOneWidget);
+    });
+
     testWidgets('a transposed grid puts the steps across and errors along the '
         'bottom', (tester) async {
       final table = buildSeriesTable([

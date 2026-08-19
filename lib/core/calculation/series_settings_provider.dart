@@ -68,6 +68,20 @@ class SeriesSettingsNotifier extends StateNotifier<SeriesSettings> {
   }
 }
 
+/// Whether [tabId]'s series is a recompute the user just asked for and that has
+/// not yet started — set true by the series controls when they trigger a run,
+/// cleared by the view once its "Calculating…" placeholder has painted.
+///
+/// It gates [seriesSteps]: while set, the step loop is skipped and the series
+/// reports no rows, so the run lands one frame *after* the placeholder rather
+/// than in the same frame that requested it — turning an apparent freeze into
+/// visible feedback. View-layer transient state only; a run is still one
+/// synchronous pass (ADR-0001), just deferred a frame, and nothing downstream of
+/// the Moment reads this.
+final seriesCalculatingProvider = StateProvider.family<bool, String>(
+  (ref, tabId) => false,
+);
+
 /// Per-tab series settings, keyed by `TabDescriptor.id`.
 ///
 /// Keyed by a plain String rather than by `AppTab` so the series widgets stay
