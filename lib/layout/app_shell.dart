@@ -7,6 +7,7 @@ import 'tab_definitions.dart';
 import 'tab_registry.dart';
 import 'responsive_layout.dart';
 import '../core/active_tab.dart';
+import '../core/calculation/series_settings_provider.dart';
 import '../core/persistence.dart';
 import '../theme/theme_provider.dart';
 import '../widgets/context_bar/context_bar.dart';
@@ -24,6 +25,25 @@ class _AppShellState extends ConsumerState<AppShell>
   late TabController _tabController;
 
   static final _allTabs = AppTab.values.toList();
+
+  /// Tabs whose persisted series has already been armed for its first deferred
+  /// run this session. Switching to a tab whose series is on (from a past run)
+  /// would otherwise compute on the first frame it appears — nothing touched the
+  /// series controls, so nothing set the flag, and it freezes with no feedback.
+  /// Arm it once so that first run goes behind the "Calculating…" placeholder;
+  /// once armed, a later switch back to the (now cached) tab is left alone.
+  ///
+  /// This is the tab-switch path only. A cold start straight onto a series tab
+  /// is not covered — arming in `initState` would modify a provider mid-mount,
+  /// which Riverpod forbids — but the bootstrap already shows its own spinner.
+  final Set<AppTab> _seriesArmed = {};
+
+  void _armSeriesIfEnabled(AppTab tab) {
+    if (_seriesArmed.contains(tab)) return;
+    if (!ref.read(seriesSettingsProvider(tab.name)).enabled) return;
+    _seriesArmed.add(tab);
+    ref.read(seriesCalculatingProvider(tab.name).notifier).state = true;
+  }
 
   @override
   void initState() {
@@ -59,6 +79,9 @@ class _AppShellState extends ConsumerState<AppShell>
       if (idx >= 0 && _tabController.index != idx) {
         _tabController.animateTo(idx);
       }
+      // Runs before the rebuild that mounts the new tab, so the flag is set in
+      // time for that tab's first series watch to see it and defer.
+      _armSeriesIfEnabled(tab);
     });
     final selectedTab = ref.watch(activeTabProvider);
     final screenSize = ResponsiveLayout.of(context);
