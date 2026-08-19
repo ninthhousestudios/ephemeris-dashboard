@@ -417,8 +417,6 @@ List<ExportRow> riseSetSeriesToExportRows(
 
 // ── Export ────────────────────────────────────────────────────────────────────
 
-String _jdStr(double? jd) => jd != null ? jd.toStringAsFixed(8) : '—';
-
 /// The Date/Time render for one event, on the selected [view].
 ///
 /// The single renderer for both the on-screen card and the export, so the two
@@ -445,13 +443,17 @@ List<ExportRow> riseSetToExportRows(
   ClockView view,
 ) {
   String dtStr(double? jd) => formatRiseSetEventTime(swe, jd, view);
+  (String, String) jdRow(double? jd) {
+    final f = jdScaleField(swe, jd, scale: view.scale);
+    return (f.label, f.value);
+  }
 
   return [
     for (final group in groups) ...[
       ExportRow(
         header: '${group.target.label} — Rise',
         fields: [
-          ('JD', _jdStr(group.result.riseJd)),
+          jdRow(group.result.riseJd),
           ('Date/Time', dtStr(group.result.riseJd)),
           if (group.result.riseError != null)
             ('Error', group.result.riseError!),
@@ -460,7 +462,7 @@ List<ExportRow> riseSetToExportRows(
       ExportRow(
         header: '${group.target.label} — Set',
         fields: [
-          ('JD', _jdStr(group.result.setJd)),
+          jdRow(group.result.setJd),
           ('Date/Time', dtStr(group.result.setJd)),
           if (group.result.setError != null) ('Error', group.result.setError!),
         ],
@@ -468,7 +470,7 @@ List<ExportRow> riseSetToExportRows(
       ExportRow(
         header: '${group.target.label} — Upper Transit',
         fields: [
-          ('JD', _jdStr(group.result.upperTransitJd)),
+          jdRow(group.result.upperTransitJd),
           ('Date/Time', dtStr(group.result.upperTransitJd)),
           if (group.result.upperTransitError != null)
             ('Error', group.result.upperTransitError!),
@@ -477,7 +479,7 @@ List<ExportRow> riseSetToExportRows(
       ExportRow(
         header: '${group.target.label} — Lower Transit',
         fields: [
-          ('JD', _jdStr(group.result.lowerTransitJd)),
+          jdRow(group.result.lowerTransitJd),
           ('Date/Time', dtStr(group.result.lowerTransitJd)),
           if (group.result.lowerTransitError != null)
             ('Error', group.result.lowerTransitError!),

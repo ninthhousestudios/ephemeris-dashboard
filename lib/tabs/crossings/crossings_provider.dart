@@ -44,12 +44,15 @@ class CrossingResult {
     required this.crossingDate,
     required this.crossingLongitude,
     required this.description,
+    required this.jdFieldLabel,
+    required this.jdFieldValue,
+    required this.jdOnScale,
   });
 
-  /// Julian Day of the crossing.
+  /// Canonical UT1 Julian Day of the crossing (NaN when no event was found).
   final double crossingJd;
 
-  /// Human-readable date/time string.
+  /// Human-readable date/time string, on the Context's Scale/Calendar/clock.
   final String crossingDate;
 
   /// For moonNode: the longitude at which the crossing occurs; else null.
@@ -57,6 +60,16 @@ class CrossingResult {
 
   /// Short description of what was computed.
   final String description;
+
+  /// The bare-JD field's label (`JD UT1` / `JD TT`) and value, both on the
+  /// Context's Scale so the number matches [crossingDate] beside it rather than
+  /// sitting on UT1 while the date-time reads in TT. Built once here (the sole
+  /// site with the Scale + engine) so the card and the export cannot drift.
+  final String jdFieldLabel;
+  final String jdFieldValue;
+
+  /// The scale-shifted JD as a number, for a [ResultField.rawValue].
+  final double? jdOnScale;
 }
 
 CrossingResult computeCrossing({
@@ -78,40 +91,47 @@ CrossingResult computeCrossing({
     );
   }
 
+  CrossingResult build(
+    double jd, {
+    double? crossingLongitude,
+    required String description,
+  }) {
+    final f = jdScaleField(swe, jd, scale: view.scale, digits: 6);
+    return CrossingResult(
+      crossingJd: jd,
+      crossingDate: formatJdDateTime(swe, jd, view: view),
+      crossingLongitude: crossingLongitude,
+      description: description,
+      jdFieldLabel: f.label,
+      jdFieldValue: f.value,
+      jdOnScale: f.onScale,
+    );
+  }
+
   switch (type) {
     case CrossingType.sunCross:
-      final jd = eph.solCrossUt(longitude, jdUt, iflag);
-      return CrossingResult(
-        crossingJd: jd,
-        crossingDate: formatJdDateTime(swe, jd, view: view),
-        crossingLongitude: null,
+      return build(
+        eph.solCrossUt(longitude, jdUt, iflag),
         description: 'Sun crosses ${longitude.toStringAsFixed(4)}°',
       );
 
     case CrossingType.moonCross:
-      final jd = eph.moonCrossUt(longitude, jdUt, iflag);
-      return CrossingResult(
-        crossingJd: jd,
-        crossingDate: formatJdDateTime(swe, jd, view: view),
-        crossingLongitude: null,
+      return build(
+        eph.moonCrossUt(longitude, jdUt, iflag),
         description: 'Moon crosses ${longitude.toStringAsFixed(4)}°',
       );
 
     case CrossingType.moonNode:
       final r = eph.moonCrossNodeUt(jdUt, iflag);
-      return CrossingResult(
-        crossingJd: r.jdUt,
-        crossingDate: formatJdDateTime(swe, r.jdUt, view: view),
+      return build(
+        r.jdUt,
         crossingLongitude: r.longitude,
         description: 'Moon crosses node',
       );
 
     case CrossingType.helioCross:
-      final jd = eph.helioCrossUt(helioBody, longitude, jdUt, iflag, helioDir);
-      return CrossingResult(
-        crossingJd: jd,
-        crossingDate: formatJdDateTime(swe, jd, view: view),
-        crossingLongitude: null,
+      return build(
+        eph.helioCrossUt(helioBody, longitude, jdUt, iflag, helioDir),
         description:
             '$helioBodyName helio crosses ${longitude.toStringAsFixed(4)}° '
             '(${helioDir == 1 ? 'forward' : 'backward'})',
@@ -156,12 +176,7 @@ List<ExportRow> crossingToExportRows(CrossingResult result) {
     ExportRow(
       header: result.description,
       fields: [
-        (
-          'JD (UT)',
-          result.crossingJd.isNaN
-              ? 'NaN'
-              : result.crossingJd.toStringAsFixed(6),
-        ),
+        (result.jdFieldLabel, result.jdFieldValue),
         ('Date/Time', result.crossingDate),
         if (result.crossingLongitude != null)
           (

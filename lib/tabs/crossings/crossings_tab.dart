@@ -223,9 +223,9 @@ class _ResultView extends ConsumerWidget {
         subtitle: isError ? 'Error' : 'Crossing found',
         fields: [
           ResultField(
-            label: 'JD (UT)',
-            value: isError ? 'NaN' : result.crossingJd.toStringAsFixed(6),
-            rawValue: result.crossingJd,
+            label: result.jdFieldLabel,
+            value: result.jdFieldValue,
+            rawValue: result.jdOnScale,
           ),
           ResultField(
             label: 'Date/Time',

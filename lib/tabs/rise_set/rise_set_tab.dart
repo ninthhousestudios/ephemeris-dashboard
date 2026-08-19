@@ -8,6 +8,7 @@ import '../../core/swe_constants.dart';
 import '../../core/calculation/calc_outcome.dart';
 import '../../core/calculation/series_settings_provider.dart';
 import '../../core/display_format.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/tab_definitions.dart';
 import '../../widgets/export_button.dart';
@@ -514,21 +515,20 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
   }
 
   Widget _eventCard(String title, double? jd, String? error, double cardWidth) {
+    final swe = ref.read(sweProvider);
+    final view = ref.watch(clockViewProvider);
+    final jdField = jdScaleField(swe, jd, scale: view.scale);
     final fields = error != null
         ? <ResultField>[ResultField(label: 'Error', value: error)]
         : <ResultField>[
             ResultField(
-              label: 'JD',
-              value: jd != null ? jd.toStringAsFixed(8) : '—',
-              rawValue: jd,
+              label: jdField.label,
+              value: jdField.value,
+              rawValue: jdField.onScale,
             ),
             ResultField(
               label: 'Date/Time',
-              value: formatRiseSetEventTime(
-                ref.read(sweProvider),
-                jd,
-                ref.watch(clockViewProvider),
-              ),
+              value: formatRiseSetEventTime(swe, jd, view),
             ),
           ];
 

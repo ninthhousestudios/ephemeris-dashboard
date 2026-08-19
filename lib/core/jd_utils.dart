@@ -311,6 +311,36 @@ String _p2(int n) => n.toString().padLeft(2, '0');
 String jdScaleLabel(TimeScale scale) =>
     (scale == TimeScale.utc ? TimeScale.ut1 : scale).label;
 
+/// A bare Julian Day card/export field for [jd] shown on the Context's [scale].
+///
+/// The number companion to [formatJdDateTime]: a card that shows the raw JD
+/// beside a civil date-time must put both on the same scale, or it gives two
+/// answers to one question (a JD sitting on UT1 next to a date-time rendered in
+/// TT). The [label] names the scale via [jdScaleLabel] so the number is never
+/// read as a scale it is not on; [onScale] is the shifted value for a
+/// [ResultField.rawValue].
+///
+/// A `null` [jd] is absent ([empty]); a non-finite one is `NaN` (a real engine
+/// failure, not a calendar it cannot render). Both leave [onScale] null.
+({String label, String value, double? onScale}) jdScaleField(
+  SweUtils swe,
+  double? jd, {
+  required TimeScale scale,
+  String prefix = 'JD',
+  int digits = 8,
+  String empty = '—',
+}) {
+  final label = '$prefix (${jdScaleLabel(scale)})';
+  if (jd == null) return (label: label, value: empty, onScale: null);
+  if (!jd.isFinite) return (label: label, value: 'NaN', onScale: null);
+  final onScale = JdUtils(swe).jdOnScale(jd, scale);
+  return (
+    label: label,
+    value: onScale.toStringAsFixed(digits),
+    onScale: onScale,
+  );
+}
+
 /// Formats the canonical UT1 Julian Day [jd] as a civil date-time string.
 ///
 /// The base render is the Moment expressed on the Context's Scale (UT1/TT/UTC)

@@ -572,15 +572,21 @@ ResultSection _eclipseSection(EclipseEvent e, SweUtils swe, ClockView view) {
     fields.add(ResultField(label: 'Type', value: e.eclipseTypeLabel));
 
     if (e.maxEclipseJd != null) {
+      final maxJd = jdScaleField(
+        swe,
+        e.maxEclipseJd,
+        scale: view.scale,
+        prefix: 'Max JD',
+      );
       fields.addAll([
         ResultField(
           label: 'Max Eclipse',
           value: formatJdDateTime(swe, e.maxEclipseJd!, view: view),
         ),
         ResultField(
-          label: 'Max JD',
-          value: e.maxEclipseJd!.toStringAsFixed(8),
-          rawValue: e.maxEclipseJd,
+          label: maxJd.label,
+          value: maxJd.value,
+          rawValue: maxJd.onScale,
         ),
       ]);
     }
