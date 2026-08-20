@@ -30,6 +30,7 @@ class _AddStarScreenState extends ConsumerState<AddStarScreen> {
   bool _loading = false;
   bool _writing = false;
   String? _error;
+  List<String> _suggestions = const [];
 
   @override
   void dispose() {
@@ -45,12 +46,22 @@ class _AddStarScreenState extends ConsumerState<AddStarScreen> {
       _loading = true;
       _error = null;
       _result = null;
+      _suggestions = const [];
     });
     try {
       final star = await querySimbad(q, ref.read(simbadDioProvider));
       if (!mounted) return;
       setState(() {
         _result = star;
+        _loading = false;
+      });
+    } on SimbadNotFoundException catch (e) {
+      if (!mounted) return;
+      // SIMBAD doesn't know the name — offer close catalog names as fixes.
+      final catalog = ref.read(starCatalogProvider).valueOrNull ?? const [];
+      setState(() {
+        _error = 'SIMBAD: ${e.message}';
+        _suggestions = closestNames(q, catalog.map((e) => e.commonName));
         _loading = false;
       });
     } on SimbadException catch (e) {
@@ -60,6 +71,11 @@ class _AddStarScreenState extends ConsumerState<AddStarScreen> {
         _loading = false;
       });
     }
+  }
+
+  void _retryWith(String name) {
+    _queryCtrl.text = name;
+    _search();
   }
 
   void _addCustomName() {
@@ -190,6 +206,22 @@ class _AddStarScreenState extends ConsumerState<AddStarScreen> {
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.error,
               ),
+            ),
+          ],
+          if (_suggestions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                Text('Did you mean', style: theme.textTheme.bodyMedium),
+                for (final name in _suggestions)
+                  ActionChip(
+                    label: Text(name),
+                    onPressed: _loading ? null : () => _retryWith(name),
+                  ),
+              ],
             ),
           ],
           if (_result != null) ...[

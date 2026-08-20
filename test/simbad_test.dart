@@ -131,4 +131,51 @@ void main() {
     expect(url, contains('Ident=62+Sagittarii'));
     expect(url, contains('output.format=ASCII'));
   });
+
+  group('simbadErrorLine', () {
+    test('extracts the message from a SIMBAD not-found body', () {
+      const body =
+          "!! 'Reglus': No known catalog could be found\n query string: Reglus";
+      expect(
+        simbadErrorLine(body),
+        "'Reglus': No known catalog could be found",
+      );
+    });
+
+    test('returns null for a normal record', () {
+      const body = 'C.D.S. - SIMBAD4\nObject alf Tau ---\n';
+      expect(simbadErrorLine(body), isNull);
+    });
+  });
+
+  group('levenshtein', () {
+    test('single edits', () {
+      expect(levenshtein('Reglus', 'Regulus'), 1); // one insertion
+      expect(levenshtein('kitten', 'sitting'), 3);
+      expect(levenshtein('Vega', 'Vega'), 0);
+    });
+
+    test('case-insensitive', () {
+      expect(levenshtein('SPICA', 'spica'), 0);
+    });
+  });
+
+  group('closestNames', () {
+    const catalog = ['Regulus', 'Rigel', 'Aldebaran', 'Antares', 'Betelgeuse'];
+
+    test('suggests the near miss, nearest first', () {
+      expect(closestNames('Reglus', catalog), contains('Regulus'));
+    });
+
+    test('drops far-off and exact matches', () {
+      // Exact match yields no suggestion (distance 0 excluded).
+      expect(closestNames('Regulus', catalog), isNot(contains('Regulus')));
+      // Nothing within 2 edits of a wildly different query.
+      expect(closestNames('Zxqwv', catalog), isEmpty);
+    });
+
+    test('ignores queries shorter than 3 chars', () {
+      expect(closestNames('Ri', catalog), isEmpty);
+    });
+  });
 }

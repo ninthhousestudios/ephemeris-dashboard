@@ -63,6 +63,26 @@ class SimbadException implements Exception {
   String toString() => 'SimbadException: $message';
 }
 
+/// Thrown when SIMBAD explicitly reports the identifier is unknown (its `!!`
+/// error line), as opposed to a network failure or an unreadable record. The
+/// UI treats this as a name problem and offers spelling suggestions.
+class SimbadNotFoundException extends SimbadException {
+  const SimbadNotFoundException(super.message);
+}
+
+/// If [text] is a SIMBAD error response — a line beginning with `!!`, which is
+/// how SIMBAD reports an unknown identifier (over HTTP 200) — return that
+/// line's message; otherwise null.
+String? simbadErrorLine(String text) {
+  for (final line in const LineSplitter().convert(text)) {
+    final trimmed = line.trimLeft();
+    if (trimmed.startsWith('!!')) {
+      return trimmed.substring(2).trim();
+    }
+  }
+  return null;
+}
+
 String simbadUrl(String name) {
   final encoded = name.replaceAll(' ', '+');
   return '$_simbadBase?Ident=$encoded&NbIdent=1&Radius=2&Radius.unit=arcmin'
@@ -80,9 +100,17 @@ Future<SimbadStar> querySimbad(String name, Dio dio) async {
   } on DioException catch (e) {
     throw SimbadException('Network error: ${e.message ?? e}');
   }
-  final star = parseSimbadResponse(resp.data ?? '');
+  final body = resp.data ?? '';
+  final error = simbadErrorLine(body);
+  if (error != null) {
+    throw SimbadNotFoundException(error);
+  }
+  final star = parseSimbadResponse(body);
   if (star == null) {
-    throw SimbadException("Could not parse SIMBAD response for '$name'");
+    throw SimbadException(
+      "Could not read the SIMBAD record for '$name' — its format was "
+      'unexpected.',
+    );
   }
   return star;
 }
@@ -509,3 +537,60 @@ String nomenToLongForm(String rawNomen) {
 }
 
 bool _isAsciiDigit(int codeUnit) => codeUnit >= 0x30 && codeUnit <= 0x39;
+
+/// Classic Levenshtein edit distance (insert/delete/substitute each cost 1),
+/// case-insensitive. Used to suggest catalog names for a misspelled query.
+int levenshtein(String a, String b) {
+  final s = a.toLowerCase();
+  final t = b.toLowerCase();
+  if (s == t) return 0;
+  if (s.isEmpty) return t.length;
+  if (t.isEmpty) return s.length;
+
+  var prev = List<int>.generate(t.length + 1, (i) => i);
+  var curr = List<int>.filled(t.length + 1, 0);
+  for (var i = 0; i < s.length; i++) {
+    curr[0] = i + 1;
+    for (var j = 0; j < t.length; j++) {
+      final cost = s.codeUnitAt(i) == t.codeUnitAt(j) ? 0 : 1;
+      final insertion = curr[j] + 1;
+      final deletion = prev[j + 1] + 1;
+      final substitution = prev[j] + cost;
+      var best = insertion < deletion ? insertion : deletion;
+      if (substitution < best) best = substitution;
+      curr[j + 1] = best;
+    }
+    final tmp = prev;
+    prev = curr;
+    curr = tmp;
+  }
+  return prev[t.length];
+}
+
+/// Candidate names within [maxDistance] edits of [query], nearest first,
+/// de-duplicated (case-insensitively) and capped at [limit]. Kept free of any
+/// catalog type so it stays in core: callers pass the candidate name strings.
+List<String> closestNames(
+  String query,
+  Iterable<String> candidates, {
+  int maxDistance = 2,
+  int limit = 3,
+}) {
+  final q = query.trim();
+  if (q.length < 3) return const [];
+
+  final scored = <({String name, int dist})>[];
+  final seen = <String>{};
+  for (final candidate in candidates) {
+    final name = candidate.trim();
+    if (name.isEmpty) continue;
+    // A length gap larger than maxDistance can't be bridged in that many edits,
+    // so prune before the O(n*m) distance computation.
+    if ((name.length - q.length).abs() > maxDistance) continue;
+    if (!seen.add(name.toLowerCase())) continue;
+    final d = levenshtein(q, name);
+    if (d > 0 && d <= maxDistance) scored.add((name: name, dist: d));
+  }
+  scored.sort((a, b) => a.dist.compareTo(b.dist));
+  return [for (final s in scored.take(limit)) s.name];
+}
