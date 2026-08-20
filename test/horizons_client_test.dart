@@ -86,10 +86,21 @@ void main() {
         time: TimeList(['2451545.0', '2033-Jan-17 12:10']),
         options: ObserverOptions(),
       );
-      expect(
-        req.toQueryParameters()['TLIST'],
-        "'2451545.0' '2033-Jan-17 12:10'",
+      final p = req.toQueryParameters();
+      expect(p['TLIST'], "'2451545.0' '2033-Jan-17 12:10'");
+      expect(p.containsKey('TLIST_TYPE'), isFalse);
+    });
+
+    test('TLIST_TYPE is emitted for JD epochs', () {
+      const req = HorizonsRequest(
+        target: HorizonsTarget('499'),
+        center: CoordinateCenter('500@399'),
+        time: TimeList(['2451545.0'], type: TimeListType.jd),
+        options: ObserverOptions(),
       );
+      final p = req.toQueryParameters();
+      expect(p['TLIST'], "'2451545.0'");
+      expect(p['TLIST_TYPE'], "'JD'");
     });
 
     test('rawOverrides win over built params', () {

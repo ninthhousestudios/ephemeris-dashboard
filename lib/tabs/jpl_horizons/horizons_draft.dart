@@ -31,6 +31,7 @@ class HorizonsDraft {
     this.stopTime = '',
     this.stepSize = '',
     this.tlistText = '',
+    this.tlistType = TimeListType.calendar,
     this.timeScale = TimeScale.ut,
     this.calendarFormat = CalendarFormat.calendar,
     this.refSystem = RefSystem.icrf,
@@ -66,6 +67,7 @@ class HorizonsDraft {
   final String stopTime;
   final String stepSize;
   final String tlistText;
+  final TimeListType tlistType;
   final TimeScale timeScale;
   final CalendarFormat calendarFormat;
   final RefSystem refSystem;
@@ -109,6 +111,7 @@ class HorizonsDraft {
     String? stopTime,
     String? stepSize,
     String? tlistText,
+    TimeListType? tlistType,
     TimeScale? timeScale,
     CalendarFormat? calendarFormat,
     RefSystem? refSystem,
@@ -142,6 +145,7 @@ class HorizonsDraft {
       stopTime: stopTime ?? this.stopTime,
       stepSize: stepSize ?? this.stepSize,
       tlistText: tlistText ?? this.tlistText,
+      tlistType: tlistType ?? this.tlistType,
       timeScale: timeScale ?? this.timeScale,
       calendarFormat: calendarFormat ?? this.calendarFormat,
       refSystem: refSystem ?? this.refSystem,
@@ -164,19 +168,29 @@ class HorizonsDraft {
     );
   }
 
-  /// Pre-fill the unambiguous parts of the query from the app Context: the
-  /// Moment (JD, canonical UT1) as a single-epoch TLIST, and the observer
-  /// location as a topocentric Earth site (SITE_COORD is East-longitude,
-  /// latitude in degrees, altitude in km — matching the Swiss/Horizons
-  /// convention the Context already stores). Target is left untouched — mapping
-  /// a BodySelection to a Horizons COMMAND id is a later slice.
+  /// Pre-fill the query from the app Context: the Moment (JD, canonical UT1) as
+  /// a single-epoch TLIST, the observer location as an Earth site (SITE_COORD is
+  /// East-longitude, latitude in degrees, altitude in km — the Swiss/Horizons
+  /// convention the Context already stores), and the center *mirrors the Context
+  /// Origin* — geocentric stays geocentric, only a topocentric Context becomes a
+  /// topocentric site. The site fields are filled regardless so switching to
+  /// topocentric afterwards keeps them. Target is left untouched — mapping a
+  /// BodySelection to a Horizons COMMAND id is a later slice.
   HorizonsDraft loadedFrom(ContextBarState ctx) {
     final altKm = ctx.altitude / 1000.0;
+    final centerMode = switch (ctx.origin) {
+      Origin.geocentric => CenterMode.geocentric,
+      Origin.topocentric => CenterMode.topocentric,
+      Origin.heliocentric => CenterMode.heliocentric,
+      Origin.barycentric => CenterMode.ssb,
+    };
     return copyWith(
       timeMode: TimeMode.list,
-      tlistText: 'JD ${ctx.jdUt}',
+      // Bare JD number + TLIST_TYPE=JD; Horizons rejects a 'JD' prefix in TLIST.
+      tlistText: '${ctx.jdUt}',
+      tlistType: TimeListType.jd,
       timeScale: TimeScale.ut,
-      centerMode: CenterMode.topocentric,
+      centerMode: centerMode,
       coordType: CoordType.geodetic,
       topoBodyId: '399',
       siteCoord: '${ctx.longitude},${ctx.latitude},$altKm',
@@ -220,7 +234,7 @@ class HorizonsDraft {
       stop: stopTime.trim(),
       step: stepSize.trim(),
     ),
-    TimeMode.list => TimeList(_splitLines(tlistText)),
+    TimeMode.list => TimeList(_splitLines(tlistText), type: tlistType),
   };
 
   EphemOptions _buildOptions() => switch (ephemType) {

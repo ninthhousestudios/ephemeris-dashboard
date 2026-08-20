@@ -39,6 +39,18 @@ enum CalendarFormat {
   final String wire;
 }
 
+/// TLIST_TYPE — how the epochs in a discrete [TimeList] are interpreted.
+/// Required when the epochs are Julian Days: Horizons rejects a `JD` prefix
+/// inside TLIST and wants the type as a separate parameter (the BATVAR error).
+enum TimeListType {
+  calendar('CAL'),
+  jd('JD'),
+  mjd('MJD');
+
+  const TimeListType(this.wire);
+  final String wire;
+}
+
 /// COORD_TYPE — interpretation of a topocentric SITE_COORD triple.
 enum CoordType {
   geodetic('GEODETIC'),

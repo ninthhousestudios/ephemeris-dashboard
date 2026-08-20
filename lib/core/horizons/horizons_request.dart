@@ -62,10 +62,13 @@ class TimeRange extends HorizonsTimeSpec {
   final String step;
 }
 
-/// TLIST — a set of discrete epochs, each a raw Horizons time string.
+/// TLIST — a set of discrete epochs, each a raw Horizons time string. [type]
+/// is emitted as TLIST_TYPE (required when the epochs are Julian Days — the
+/// values then carry no `JD` prefix).
 class TimeList extends HorizonsTimeSpec {
-  const TimeList(this.times);
+  const TimeList(this.times, {this.type});
   final List<String> times;
+  final TimeListType? type;
 }
 
 /// EPHEM_TYPE-specific parameters. The variant *is* the ephemeris type, so an
@@ -247,10 +250,13 @@ class HorizonsRequest {
         p['START_TIME'] = _quote(start);
         p['STOP_TIME'] = _quote(stop);
         p['STEP_SIZE'] = _quote(step);
-      case TimeList(:final times):
+      case TimeList(:final times, :final type):
         // TLIST is one parameter whose value is each epoch individually quoted,
-        // space-separated (up to 10,000 entries).
+        // space-separated (up to 10,000 entries). TLIST_TYPE, when set, tells
+        // Horizons how to read them (required for JD epochs — a `JD` prefix
+        // inside TLIST is rejected).
         p['TLIST'] = times.map(_quote).join(' ');
+        if (type != null) p['TLIST_TYPE'] = _quote(type.wire);
     }
   }
 

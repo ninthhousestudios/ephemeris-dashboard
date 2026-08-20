@@ -209,8 +209,17 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
             _text('stopTime', 'STOP_TIME'),
             const SizedBox(height: 8),
             _text('stepSize', "STEP_SIZE (e.g. 1 d, 10 m, 30)"),
-          ] else
+          ] else ...[
             _text('tlist', 'TLIST (one epoch per line)', maxLines: 4),
+            const SizedBox(height: 8),
+            _enumDropdown<TimeListType>(
+              'TLIST type',
+              draft.tlistType,
+              TimeListType.values,
+              (v) => _notifier.updateDraft((d) => d.copyWith(tlistType: v)),
+              labelOf: (t) => t.wire,
+            ),
+          ],
           const SizedBox(height: 8),
           Wrap(
             spacing: 12,
@@ -466,8 +475,11 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
     ValueChanged<T> onChanged, {
     required String Function(T) labelOf,
   }) {
+    // Fixed width is unavoidable for a Wrap child, so scale it with zoom and
+    // floor it (CLAUDE.md) — a flat 200px squashes labels at >100%.
+    final scale = MediaQuery.textScalerOf(context).scale(1.0);
     return SizedBox(
-      width: 200,
+      width: (220 * scale).floorToDouble(),
       child: InputDecorator(
         decoration: InputDecoration(
           labelText: label,
