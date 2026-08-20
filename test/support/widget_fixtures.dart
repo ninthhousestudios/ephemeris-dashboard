@@ -29,6 +29,7 @@ import 'package:swe_dashboard/tabs/heliacal/heliacal_provider.dart';
 import 'package:swe_dashboard/tabs/heliacal/heliacal_tab.dart';
 import 'package:swe_dashboard/tabs/houses/houses_provider.dart';
 import 'package:swe_dashboard/tabs/houses/houses_tab.dart';
+import 'package:swe_dashboard/tabs/jpl_horizons/jpl_horizons_tab.dart';
 import 'package:swe_dashboard/tabs/math/math_tab.dart';
 import 'package:swe_dashboard/tabs/nodes_apsides/nodes_apsides_tab.dart';
 import 'package:swe_dashboard/tabs/phenomena/phenomena_tab.dart';
@@ -251,6 +252,11 @@ final List<WidgetCase> allWidgetCases = [
     overrides: [...tabOverrides, heliacalResultOverride],
   ),
   (name: 'houses_tab', widget: const HousesTab(), overrides: tabOverrides),
+  (
+    name: 'jpl_horizons_tab',
+    widget: const JplHorizonsTab(),
+    overrides: tabOverrides,
+  ),
   (name: 'math_tab', widget: const MathTab(), overrides: tabOverrides),
   (
     name: 'nodes_apsides_tab',

@@ -12,6 +12,7 @@ import '../tabs/differential/differential_tab.dart';
 import '../tabs/eclipses/eclipses_tab.dart';
 import '../tabs/heliacal/heliacal_tab.dart';
 import '../tabs/houses/houses_tab.dart';
+import '../tabs/jpl_horizons/jpl_horizons_tab.dart';
 import '../tabs/math/math_tab.dart';
 import '../tabs/other_bodies/other_bodies_tab.dart';
 import '../tabs/nodes_apsides/nodes_apsides_tab.dart';
@@ -66,6 +67,7 @@ final List<TabDescriptor> tabRegistry = [
     tab: AppTab.ephemerisManager,
     content: () => const EphemerisManagerTabs(),
   ),
+  TabDescriptor(tab: AppTab.jplHorizons, content: () => const JplHorizonsTab()),
 ];
 
 final Map<AppTab, TabDescriptor> tabDescriptorMap = {

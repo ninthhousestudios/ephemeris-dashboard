@@ -32,6 +32,12 @@ enum AppTab {
     Icons.folder_special,
     hasFlags: false,
     isMore: true,
+  ),
+  jplHorizons(
+    'JPL Horizons',
+    Icons.satellite_alt,
+    hasFlags: false,
+    isMore: true,
   );
 
   const AppTab(
