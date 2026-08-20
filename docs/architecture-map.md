@@ -383,7 +383,25 @@ otherBodies, planetocentric) are `ConsumerWidget`s in their respective tab files
 
 ## Tabs (lib/tabs/)
 
-17 tab directories, each with `*_tab.dart` (UI) + `*_provider.dart` (state/calc):
-planets, houses, ayanamsa, dates, nodes_apsides, stars, coordinates, phenomena,
-rise_set, crossings, heliacal, eclipses, differential, planetocentric,
-math, config, plus ephemeris_manager (widget, not a tab directory).
+17 reactive tab directories, each with `*_tab.dart` (UI) + `*_provider.dart`
+(state/calc): planets, houses, ayanamsa, dates, nodes_apsides, stars,
+coordinates, phenomena, rise_set, crossings, heliacal, eclipses, differential,
+planetocentric, math, config, plus ephemeris_manager (widget, not a tab
+directory). The reactive tabs are pure projections of the Context (ADR-0001).
+
+## JPL Horizons (lib/core/horizons/, lib/tabs/jpl_horizons/)
+
+A remote-query tab, **not** a reactive projection — request/response with an
+explicit Run button (ADR-0003). HTTP is confined to the core seam (dio behind a
+Provider), mirroring the SIMBAD/downloader discipline; the tab imports no
+`package:dio`.
+
+| File | Key types | Role |
+|------|-----------|------|
+| `core/horizons/horizons_types.dart` | `EphemType`, `RefPlane`, `OutUnits`, `VectorTable`, … + `horizonsApiEndpoint` | Fixed-vocabulary enums, each carrying its exact `wire` token (verified against the Horizons API doc). |
+| `core/horizons/horizons_request.dart` | `HorizonsRequest`, sealed `ObserverCenter`/`HorizonsTimeSpec`/`EphemOptions`, `CommonOutput` | The typed query. The `EphemOptions` variant *is* the ephemeris type. `toQueryParameters()` (values single-quoted, `format` bare) + `requestUrl()` (`%20`/`%27` encoded) + `rawOverrides` escape hatch. |
+| `core/horizons/horizons_response.dart` | sealed `HorizonsResponse` (`HorizonsTable`/`HorizonsDisambiguation`/`HorizonsSpk`/`HorizonsApiError`), `HorizonsException` | Result taxonomy. Transport death throws; everything Horizons reports is a value. |
+| `core/horizons/horizons_client.dart` | `queryHorizons`, pure `parseHorizonsBody`, `horizonsDioProvider`, `horizonsCacheKey`, `HorizonsCache`+provider | The seam. `queryHorizons` uses `validateStatus:(_)=>true` so 4xx bodies parse instead of throwing. Cache keyed by sha256 of the normalized query. |
+| `tabs/jpl_horizons/horizons_draft.dart` | `HorizonsDraft`, `CenterMode`, `TimeMode` | Flat editable UI state; `build()` assembles the request, `loadedFrom(ctx)` pre-fills Moment (JD→single-epoch TLIST) + location (topocentric SITE_COORD). |
+| `tabs/jpl_horizons/horizons_tab_providers.dart` | `HorizonsTabState`, `HorizonsTabNotifier`, `horizonsTabProvider` | Holds draft + last result + Run (cache-first; only transport failure sets `transportError`). |
+| `tabs/jpl_horizons/jpl_horizons_tab.dart` | `JplHorizonsTab` | Two-pane console (Row >900px, stacked below). Ephem-type chips gate per-type controls; response pane renders table / api-error / disambiguation chips / spk placeholder. |
