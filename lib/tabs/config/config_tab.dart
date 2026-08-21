@@ -213,6 +213,41 @@ class ConfigTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
+          // ── v2.1 release notes ──
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('New in v2.1', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  _bullet(
+                    theme,
+                    'Sign names. Longitudes now name their zodiac sign, with '
+                    'tropical and Aditya naming schemes.',
+                  ),
+                  _bullet(
+                    theme,
+                    'True sidereal ayanamsa. A 13-sign, constellation-based '
+                    'sidereal zodiac, with its own constellational sign names.',
+                  ),
+                  _bullet(
+                    theme,
+                    'Stars in the ephemeris manager. Search SIMBAD by name and '
+                    'add new stars to the fixed-star catalogue.',
+                  ),
+                  _bullet(
+                    theme,
+                    'JPL Horizons tab. Query NASA/JPL Horizons directly for '
+                    'observer, vector, and orbital-element ephemerides and SPK '
+                    'files, with a parsed table view and CSV export.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           // ── v2 release notes ──
           Card(
             child: Padding(
