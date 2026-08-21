@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/ephe/dir_provider.dart';
 import '../../core/ephe/simbad.dart';
+import '../../core/ephemeris/runner.dart';
 import '../../tabs/stars/stars_provider.dart';
 
 /// "Add Stars" subtab of the Ephemeris Manager: look a star up on SIMBAD and
@@ -122,9 +123,17 @@ class _AddStarScreenState extends ConsumerState<AddStarScreen> {
         mode: FileMode.append,
       );
 
-      // The search fields read the catalog from memory; reload it so the new
-      // names are immediately selectable.
-      ref.invalidate(starCatalogProvider);
+      // Two caches now disagree with the file on disk. The search fields read
+      // sefstars.txt into starCatalogProvider, so reload it for the new names to
+      // be selectable. And the Rust engine caches the fixed-star catalog at
+      // construction (ADR-0002: per-instance state), reloading only on
+      // reconfigure — adding a star changes sefstars.txt but not AppliedGlobals,
+      // so without invalidating the runner the engine keeps its stale catalog
+      // and fixstar2 reports "star not found" for the new name even though the
+      // search box (reading the file directly) shows it.
+      ref
+        ..invalidate(starCatalogProvider)
+        ..invalidate(ephemerisRunnerProvider);
 
       final skippedNote = dedup.skipped.isEmpty
           ? ''
