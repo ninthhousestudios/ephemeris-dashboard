@@ -159,8 +159,7 @@ SimbadStar? parseSimbadResponse(String text) {
       case 2:
         tradName = line;
       case 5:
-        final tokens = line.split(' ');
-        if (tokens.length > 3) nomenName = '${tokens[2]}${tokens[3]}';
+        nomenName = _objectLineNomen(line) ?? nomenName;
       case 7:
         final icrs = line.split(' ');
         if (icrs.length > 7) {
@@ -225,6 +224,29 @@ List<String> _whitespaceTokens(String s) {
   final trimmed = s.trim();
   if (trimmed.isEmpty) return const [];
   return trimmed.split(RegExp(r'\s+'));
+}
+
+/// The compact nomenclature key from SIMBAD's
+/// `Object <MAIN_ID>  ---  <type>  ---  ...` line. The main identifier is the
+/// text before the first `---`. A leading SIMBAD star-type marker (`*`, `V*`,
+/// `**`, ...) is dropped, so a Bayer or variable star collapses to `alfTau` /
+/// `TCrB`; a catalogue object keeps its prefix, so `NGC 7092` becomes `NGC7092`
+/// — which [nomenToLongForm] expands and which the bare, ambiguous `7092`
+/// (what the original star-only `tokens[2] + tokens[3]` read here) did not.
+/// Returns null when the line carries no identifier, leaving the default.
+String? _objectLineNomen(String line) {
+  const marker = 'Object ';
+  final afterObject = line.startsWith(marker)
+      ? line.substring(marker.length)
+      : line;
+  final mainId = afterObject.split('---').first.trim();
+  if (mainId.isEmpty) return null;
+  final tokens = mainId.split(RegExp(r'\s+'));
+  // A leading '*'-bearing token (`*`, `V*`, `**`) is SIMBAD's star-type marker,
+  // not part of the designation; catalogue prefixes (NGC, M, IC, HD, ...) are.
+  final designation = tokens.first.contains('*') ? tokens.sublist(1) : tokens;
+  final nomen = designation.join();
+  return nomen.isEmpty ? null : nomen;
 }
 
 /// Build the `sefstars.txt` lines for [star]. The first line is a `#0#` comment
