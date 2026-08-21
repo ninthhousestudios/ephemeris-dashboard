@@ -43,6 +43,12 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
       'stepSize': TextEditingController(text: d.stepSize),
       'tlist': TextEditingController(text: d.tlistText),
       'extraQuantities': TextEditingController(text: d.extraQuantitiesText),
+      'elevCut': TextEditingController(text: d.elevCut),
+      'airmass': TextEditingController(text: d.airmass),
+      'lhaCutoff': TextEditingController(text: d.lhaCutoff),
+      'angRateCutoff': TextEditingController(text: d.angRateCutoff),
+      'solarElong': TextEditingController(text: d.solarElong),
+      'timeZone': TextEditingController(text: d.timeZone),
       'overrides': TextEditingController(text: d.rawOverridesText),
     };
   }
@@ -387,6 +393,27 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
                 (v) =>
                     _notifier.updateDraft((d) => d.copyWith(skipDaylight: v)),
               ),
+              _switch(
+                'Rise/transit/set only',
+                draft.riseTransitSetOnly,
+                (v) => _notifier.updateDraft(
+                  (d) => d.copyWith(riseTransitSetOnly: v),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _section('Output filters'),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _shortField('elevCut', 'Elevation cut (deg)', hint: 'e.g. 10'),
+              _shortField('airmass', 'Airmass cut', hint: '1=zenith, 38=off'),
+              _shortField('solarElong', 'Solar elong. band', hint: 'min,max'),
+              _shortField('lhaCutoff', 'Hour-angle cut (h)'),
+              _shortField('angRateCutoff', 'Sky-rate cut ("/min)'),
+              _shortField('timeZone', 'Time zone', hint: '+00:00'),
             ],
           ),
         ];
@@ -429,6 +456,18 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
                     _notifier.updateDraft((d) => d.copyWith(vectorRefPlane: v)),
                 labelOf: (r) => r.wire,
               ),
+              _switch(
+                'Component labels',
+                draft.vectorLabels,
+                (v) =>
+                    _notifier.updateDraft((d) => d.copyWith(vectorLabels: v)),
+              ),
+              _switch(
+                'Delta-T column',
+                draft.vectorDeltaT,
+                (v) =>
+                    _notifier.updateDraft((d) => d.copyWith(vectorDeltaT: v)),
+              ),
             ],
           ),
         ];
@@ -457,6 +496,19 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
                 ),
                 labelOf: (r) => r.wire,
               ),
+              _enumDropdown<PeriapsisTimeType>(
+                'Tp type',
+                draft.tpType,
+                PeriapsisTimeType.values,
+                (v) => _notifier.updateDraft((d) => d.copyWith(tpType: v)),
+                labelOf: (t) => t.wire,
+              ),
+              _switch(
+                'Element labels',
+                draft.elementLabels,
+                (v) =>
+                    _notifier.updateDraft((d) => d.copyWith(elementLabels: v)),
+              ),
             ],
           ),
         ];
@@ -471,7 +523,26 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
       case EphemType.approach:
         return [
           _section('Close approach'),
-          const Text('Close-approach table over the time span.'),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _enumDropdown<ApproachTableType>(
+                'Table type',
+                draft.approachTableType,
+                ApproachTableType.values,
+                (v) => _notifier.updateDraft(
+                  (d) => d.copyWith(approachTableType: v),
+                ),
+                labelOf: (t) => t.wire,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Close-approach table over the time span. Distance/time limits '
+            '(CALIM_SB, CALIM_PL, TCA3SG_LIMIT) via raw overrides.',
+          ),
         ];
     }
   }
@@ -526,6 +597,16 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
     );
   }
 
+  /// A [_text] field sized for a [Wrap] row. Fixed width is unavoidable for a
+  /// Wrap child, so scale it with zoom and floor it (CLAUDE.md).
+  Widget _shortField(String key, String label, {String? hint}) {
+    final scale = MediaQuery.textScalerOf(context).scale(1.0);
+    return SizedBox(
+      width: (220 * scale).floorToDouble(),
+      child: _text(key, label, hint: hint),
+    );
+  }
+
   HorizonsDraft _applyText(HorizonsDraft d, String key, String v) {
     switch (key) {
       case 'target':
@@ -546,6 +627,18 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
         return d.copyWith(tlistText: v);
       case 'extraQuantities':
         return d.copyWith(extraQuantitiesText: v);
+      case 'elevCut':
+        return d.copyWith(elevCut: v);
+      case 'airmass':
+        return d.copyWith(airmass: v);
+      case 'lhaCutoff':
+        return d.copyWith(lhaCutoff: v);
+      case 'angRateCutoff':
+        return d.copyWith(angRateCutoff: v);
+      case 'solarElong':
+        return d.copyWith(solarElong: v);
+      case 'timeZone':
+        return d.copyWith(timeZone: v);
       case 'overrides':
         return d.copyWith(rawOverridesText: v);
       default:

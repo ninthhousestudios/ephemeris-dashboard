@@ -90,6 +90,12 @@ class ObserverOptions extends EphemOptions {
     this.suppressRangeRate = false,
     this.skipDaylight = false,
     this.elevationCutDegrees,
+    this.airmass,
+    this.lhaCutoff,
+    this.angRateCutoff,
+    this.solarElong,
+    this.timeZone,
+    this.riseTransitSetOnly = false,
   });
 
   final Set<int> quantities;
@@ -99,8 +105,30 @@ class ObserverOptions extends EphemOptions {
   final bool suppressRangeRate;
   final bool skipDaylight;
 
-  /// ELEV_CUT — minimum target elevation; null leaves it unset.
+  /// Output filters; each null/empty value leaves its parameter unset so
+  /// Horizons keeps its own default (no filtering).
+  ///
+  /// ELEV_CUT — skip rows below this elevation (degrees).
   final double? elevationCutDegrees;
+
+  /// AIRMASS — skip rows above this relative optical airmass (1=zenith,
+  /// ~38=horizon; >=38 turns the filter off).
+  final double? airmass;
+
+  /// LHA_CUTOFF — skip rows beyond this local-hour-angle (hours).
+  final double? lhaCutoff;
+
+  /// ANG_RATE_CUTOFF — skip rows whose plane-of-sky rate exceeds this ("/min).
+  final double? angRateCutoff;
+
+  /// SOLAR_ELONG — `'min,max'` solar-elongation band.
+  final String? solarElong;
+
+  /// TIME_ZONE — local civil-time offset for output, e.g. `'-05:00'`.
+  final String? timeZone;
+
+  /// R_T_S_ONLY — output only at target rise/transit/set.
+  final bool riseTransitSetOnly;
 
   @override
   EphemType get ephemType => EphemType.observer;
@@ -113,12 +141,20 @@ class VectorOptions extends EphemOptions {
     this.correction = VectorCorrection.none,
     this.outUnits = OutUnits.kmSeconds,
     this.refPlane = RefPlane.ecliptic,
+    this.vecLabels = true,
+    this.vecDeltaT = false,
   });
 
   final VectorTable table;
   final VectorCorrection correction;
   final OutUnits outUnits;
   final RefPlane refPlane;
+
+  /// VEC_LABELS — label each vector component (X=, Y=…).
+  final bool vecLabels;
+
+  /// VEC_DELTA_T — add a time-varying TDB−UT column.
+  final bool vecDeltaT;
 
   @override
   EphemType get ephemType => EphemType.vectors;
@@ -129,10 +165,18 @@ class ElementOptions extends EphemOptions {
   const ElementOptions({
     this.outUnits = OutUnits.auDays,
     this.refPlane = RefPlane.ecliptic,
+    this.elmLabels = true,
+    this.tpType = PeriapsisTimeType.absolute,
   });
 
   final OutUnits outUnits;
   final RefPlane refPlane;
+
+  /// ELM_LABELS — label each osculating element.
+  final bool elmLabels;
+
+  /// TP_TYPE — absolute vs relative periapsis time.
+  final PeriapsisTimeType tpType;
 
   @override
   EphemType get ephemType => EphemType.elements;
@@ -147,9 +191,13 @@ class SpkOptions extends EphemOptions {
   EphemType get ephemType => EphemType.spk;
 }
 
-/// APPROACH close-approach table. Driven by target and time span.
+/// APPROACH close-approach table. Driven by target and time span. Numeric
+/// tuning (TCA3SG_LIMIT, CALIM_SB, CALIM_PL) stays in [HorizonsRequest.rawOverrides].
 class ApproachOptions extends EphemOptions {
-  const ApproachOptions();
+  const ApproachOptions({this.tableType = ApproachTableType.standard});
+
+  /// CA_TABLE_TYPE — STANDARD, or EXTENDED (adds Julian Day + B-plane data).
+  final ApproachTableType tableType;
 
   @override
   EphemType get ephemType => EphemType.approach;
@@ -273,21 +321,35 @@ class HorizonsRequest {
         p['RANGE_UNITS'] = _quote(o.rangeUnits.wire);
         p['SUPPRESS_RANGE_RATE'] = _quote(_yesNo(o.suppressRangeRate));
         p['SKIP_DAYLT'] = _quote(_yesNo(o.skipDaylight));
+        p['R_T_S_ONLY'] = _quote(_yesNo(o.riseTransitSetOnly));
         if (o.elevationCutDegrees case final cut?) {
           p['ELEV_CUT'] = _quote('$cut');
+        }
+        if (o.airmass case final a?) p['AIRMASS'] = _quote('$a');
+        if (o.lhaCutoff case final l?) p['LHA_CUTOFF'] = _quote('$l');
+        if (o.angRateCutoff case final r?) p['ANG_RATE_CUTOFF'] = _quote('$r');
+        if (o.solarElong case final s? when s.isNotEmpty) {
+          p['SOLAR_ELONG'] = _quote(s);
+        }
+        if (o.timeZone case final tz? when tz.isNotEmpty) {
+          p['TIME_ZONE'] = _quote(tz);
         }
       case final VectorOptions o:
         p['VEC_TABLE'] = _quote(o.table.wire);
         p['VEC_CORR'] = _quote(o.correction.wire);
         p['OUT_UNITS'] = _quote(o.outUnits.wire);
         p['REF_PLANE'] = _quote(o.refPlane.wire);
+        p['VEC_LABELS'] = _quote(_yesNo(o.vecLabels));
+        p['VEC_DELTA_T'] = _quote(_yesNo(o.vecDeltaT));
       case final ElementOptions o:
         p['OUT_UNITS'] = _quote(o.outUnits.wire);
         p['REF_PLANE'] = _quote(o.refPlane.wire);
+        p['ELM_LABELS'] = _quote(_yesNo(o.elmLabels));
+        p['TP_TYPE'] = _quote(o.tpType.wire);
       case SpkOptions():
         break;
-      case ApproachOptions():
-        break;
+      case final ApproachOptions o:
+        p['CA_TABLE_TYPE'] = _quote(o.tableType.wire);
     }
   }
 }

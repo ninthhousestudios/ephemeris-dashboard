@@ -127,6 +127,65 @@ void main() {
     });
   });
 
+  group('type-specific option params', () {
+    HorizonsRequest req(EphemOptions options) => HorizonsRequest(
+      target: const HorizonsTarget('499'),
+      center: const CoordinateCenter('500@10'),
+      time: const TimeRange(start: 'A', stop: 'B', step: '1 d'),
+      options: options,
+    );
+
+    test('vectors emit VEC_LABELS and VEC_DELTA_T', () {
+      final p = req(
+        const VectorOptions(vecLabels: false, vecDeltaT: true),
+      ).toQueryParameters();
+      expect(p['VEC_LABELS'], "'NO'");
+      expect(p['VEC_DELTA_T'], "'YES'");
+    });
+
+    test('elements emit ELM_LABELS and TP_TYPE', () {
+      final p = req(
+        const ElementOptions(
+          elmLabels: false,
+          tpType: PeriapsisTimeType.relative,
+        ),
+      ).toQueryParameters();
+      expect(p['ELM_LABELS'], "'NO'");
+      expect(p['TP_TYPE'], "'RELATIVE'");
+    });
+
+    test('approach emits CA_TABLE_TYPE', () {
+      final p = req(
+        const ApproachOptions(tableType: ApproachTableType.extended),
+      ).toQueryParameters();
+      expect(p['CA_TABLE_TYPE'], "'EXTENDED'");
+    });
+
+    test('observer filters emit only when set (R_T_S_ONLY always)', () {
+      final bare = req(const ObserverOptions()).toQueryParameters();
+      expect(bare['R_T_S_ONLY'], "'NO'");
+      expect(bare.containsKey('ELEV_CUT'), isFalse);
+      expect(bare.containsKey('AIRMASS'), isFalse);
+      expect(bare.containsKey('SOLAR_ELONG'), isFalse);
+      expect(bare.containsKey('TIME_ZONE'), isFalse);
+
+      final set = req(
+        const ObserverOptions(
+          elevationCutDegrees: 10,
+          airmass: 2.5,
+          solarElong: '0,120',
+          timeZone: '-05:00',
+          riseTransitSetOnly: true,
+        ),
+      ).toQueryParameters();
+      expect(set['ELEV_CUT'], "'10.0'");
+      expect(set['AIRMASS'], "'2.5'");
+      expect(set['SOLAR_ELONG'], "'0,120'");
+      expect(set['TIME_ZONE'], "'-05:00'");
+      expect(set['R_T_S_ONLY'], "'YES'");
+    });
+  });
+
   group('parseHorizonsBody', () {
     test('a result with an ephemeris block is a HorizonsTable', () {
       final body = jsonEncode({

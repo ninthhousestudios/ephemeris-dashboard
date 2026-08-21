@@ -42,12 +42,24 @@ class HorizonsDraft {
     this.rangeUnits = RangeUnits.au,
     this.suppressRangeRate = false,
     this.skipDaylight = false,
+    this.riseTransitSetOnly = false,
+    this.elevCut = '',
+    this.airmass = '',
+    this.lhaCutoff = '',
+    this.angRateCutoff = '',
+    this.solarElong = '',
+    this.timeZone = '',
     this.vectorTable = VectorTable.table3,
     this.vectorCorrection = VectorCorrection.none,
     this.vectorOutUnits = OutUnits.kmSeconds,
     this.vectorRefPlane = RefPlane.ecliptic,
+    this.vectorLabels = true,
+    this.vectorDeltaT = false,
     this.elementOutUnits = OutUnits.auDays,
     this.elementRefPlane = RefPlane.ecliptic,
+    this.elementLabels = true,
+    this.tpType = PeriapsisTimeType.absolute,
+    this.approachTableType = ApproachTableType.standard,
     this.csvFormat = true,
     this.objData = true,
     this.extraPrecision = false,
@@ -87,15 +99,31 @@ class HorizonsDraft {
   final bool suppressRangeRate;
   final bool skipDaylight;
 
+  // OBSERVER output filters — empty string leaves the parameter unset.
+  final bool riseTransitSetOnly;
+  final String elevCut;
+  final String airmass;
+  final String lhaCutoff;
+  final String angRateCutoff;
+  final String solarElong;
+  final String timeZone;
+
   // VECTORS
   final VectorTable vectorTable;
   final VectorCorrection vectorCorrection;
   final OutUnits vectorOutUnits;
   final RefPlane vectorRefPlane;
+  final bool vectorLabels;
+  final bool vectorDeltaT;
 
   // ELEMENTS
   final OutUnits elementOutUnits;
   final RefPlane elementRefPlane;
+  final bool elementLabels;
+  final PeriapsisTimeType tpType;
+
+  // APPROACH
+  final ApproachTableType approachTableType;
 
   // Output
   final bool csvFormat;
@@ -129,12 +157,24 @@ class HorizonsDraft {
     RangeUnits? rangeUnits,
     bool? suppressRangeRate,
     bool? skipDaylight,
+    bool? riseTransitSetOnly,
+    String? elevCut,
+    String? airmass,
+    String? lhaCutoff,
+    String? angRateCutoff,
+    String? solarElong,
+    String? timeZone,
     VectorTable? vectorTable,
     VectorCorrection? vectorCorrection,
     OutUnits? vectorOutUnits,
     RefPlane? vectorRefPlane,
+    bool? vectorLabels,
+    bool? vectorDeltaT,
     OutUnits? elementOutUnits,
     RefPlane? elementRefPlane,
+    bool? elementLabels,
+    PeriapsisTimeType? tpType,
+    ApproachTableType? approachTableType,
     bool? csvFormat,
     bool? objData,
     bool? extraPrecision,
@@ -164,12 +204,24 @@ class HorizonsDraft {
       rangeUnits: rangeUnits ?? this.rangeUnits,
       suppressRangeRate: suppressRangeRate ?? this.suppressRangeRate,
       skipDaylight: skipDaylight ?? this.skipDaylight,
+      riseTransitSetOnly: riseTransitSetOnly ?? this.riseTransitSetOnly,
+      elevCut: elevCut ?? this.elevCut,
+      airmass: airmass ?? this.airmass,
+      lhaCutoff: lhaCutoff ?? this.lhaCutoff,
+      angRateCutoff: angRateCutoff ?? this.angRateCutoff,
+      solarElong: solarElong ?? this.solarElong,
+      timeZone: timeZone ?? this.timeZone,
       vectorTable: vectorTable ?? this.vectorTable,
       vectorCorrection: vectorCorrection ?? this.vectorCorrection,
       vectorOutUnits: vectorOutUnits ?? this.vectorOutUnits,
       vectorRefPlane: vectorRefPlane ?? this.vectorRefPlane,
+      vectorLabels: vectorLabels ?? this.vectorLabels,
+      vectorDeltaT: vectorDeltaT ?? this.vectorDeltaT,
       elementOutUnits: elementOutUnits ?? this.elementOutUnits,
       elementRefPlane: elementRefPlane ?? this.elementRefPlane,
+      elementLabels: elementLabels ?? this.elementLabels,
+      tpType: tpType ?? this.tpType,
+      approachTableType: approachTableType ?? this.approachTableType,
       csvFormat: csvFormat ?? this.csvFormat,
       objData: objData ?? this.objData,
       extraPrecision: extraPrecision ?? this.extraPrecision,
@@ -254,20 +306,36 @@ class HorizonsDraft {
       rangeUnits: rangeUnits,
       suppressRangeRate: suppressRangeRate,
       skipDaylight: skipDaylight,
+      riseTransitSetOnly: riseTransitSetOnly,
+      elevationCutDegrees: _parseDouble(elevCut),
+      airmass: _parseDouble(airmass),
+      lhaCutoff: _parseDouble(lhaCutoff),
+      angRateCutoff: _parseDouble(angRateCutoff),
+      solarElong: _blankToNull(solarElong),
+      timeZone: _blankToNull(timeZone),
     ),
     EphemType.vectors => VectorOptions(
       table: vectorTable,
       correction: vectorCorrection,
       outUnits: vectorOutUnits,
       refPlane: vectorRefPlane,
+      vecLabels: vectorLabels,
+      vecDeltaT: vectorDeltaT,
     ),
     EphemType.elements => ElementOptions(
       outUnits: elementOutUnits,
       refPlane: elementRefPlane,
+      elmLabels: elementLabels,
+      tpType: tpType,
     ),
     EphemType.spk => const SpkOptions(),
-    EphemType.approach => const ApproachOptions(),
+    EphemType.approach => ApproachOptions(tableType: approachTableType),
   };
+
+  static double? _parseDouble(String text) => double.tryParse(text.trim());
+
+  static String? _blankToNull(String text) =>
+      text.trim().isEmpty ? null : text.trim();
 
   Set<int> _parseQuantities(String text) {
     final codes = <int>{};

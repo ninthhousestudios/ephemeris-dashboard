@@ -98,6 +98,20 @@ void main() {
     });
   });
 
+  group('observer filters (draft)', () {
+    test('numeric filter text becomes params; blanks are omitted', () {
+      final p = const HorizonsDraft(
+        target: '499',
+        elevCut: '10',
+        solarElong: '0,120',
+      ).build().toQueryParameters();
+      expect(p['ELEV_CUT'], "'10.0'");
+      expect(p['SOLAR_ELONG'], "'0,120'");
+      expect(p.containsKey('AIRMASS'), isFalse);
+      expect(p.containsKey('TIME_ZONE'), isFalse);
+    });
+  });
+
   group('spk request', () {
     test('SPK emits EPHEM_TYPE=SPK over a time range, no table quantities', () {
       final params = const HorizonsDraft(

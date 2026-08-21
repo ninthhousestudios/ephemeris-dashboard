@@ -142,3 +142,22 @@ enum RangeUnits {
   const RangeUnits(this.wire);
   final String wire;
 }
+
+/// TP_TYPE — how a returned ELEMENTS periapsis time (Tp) is expressed.
+enum PeriapsisTimeType {
+  absolute('ABSOLUTE'),
+  relative('RELATIVE');
+
+  const PeriapsisTimeType(this.wire);
+  final String wire;
+}
+
+/// CA_TABLE_TYPE — APPROACH close-approach table detail. EXTENDED adds Julian
+/// Day numbers and, when a covariance exists, B-plane data.
+enum ApproachTableType {
+  standard('STANDARD'),
+  extended('EXTENDED');
+
+  const ApproachTableType(this.wire);
+  final String wire;
+}
