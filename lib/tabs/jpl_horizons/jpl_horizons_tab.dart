@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/export_service.dart';
+import '../../core/horizons/horizons_bodies.dart';
 import '../../core/horizons/horizons_response.dart';
 import '../../core/horizons/horizons_types.dart';
 import '../../core/horizons/observer_quantities.dart';
@@ -67,6 +68,42 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
     _c('siteCoord').text = d.siteCoord;
     _c('tlist').text = d.tlistText;
     _c('topoBodyId').text = d.topoBodyId;
+  }
+
+  /// Set the target COMMAND from a picked body, syncing the text controller.
+  void _pickBody(HorizonsBody body) {
+    _c('target').text = body.command;
+    _notifier.updateDraft((d) => d.copyWith(target: body.command));
+  }
+
+  /// A popup that inserts a known Horizons id into the target field. Horizons
+  /// takes one target per request, so this is a picker, not a multi-select.
+  Widget _bodyPicker() {
+    return PopupMenuButton<HorizonsBody>(
+      tooltip: 'Insert a known Horizons body id',
+      onSelected: _pickBody,
+      itemBuilder: (context) => [
+        for (final (i, group) in horizonsBodyGroups.indexed) ...[
+          if (i > 0) const PopupMenuDivider(),
+          PopupMenuItem<HorizonsBody>(
+            enabled: false,
+            child: Text(
+              group.label,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ),
+          for (final body in group.bodies)
+            PopupMenuItem<HorizonsBody>(
+              value: body,
+              child: Text('${body.label}  ·  ${body.command}'),
+            ),
+        ],
+      ],
+      child: const Chip(
+        avatar: Icon(Icons.public, size: 16),
+        label: Text('Bodies'),
+      ),
+    );
   }
 
   @override
@@ -163,7 +200,19 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
             ],
           ),
           const SizedBox(height: 12),
-          _text('target', 'Target (COMMAND)', hint: "e.g. 499, Ceres, DES=1;"),
+          Row(
+            children: [
+              Expanded(
+                child: _text(
+                  'target',
+                  'Target (COMMAND)',
+                  hint: "e.g. 499, Ceres, DES=1;",
+                ),
+              ),
+              const SizedBox(width: 8),
+              _bodyPicker(),
+            ],
+          ),
           const SizedBox(height: 12),
           _section('Center'),
           _enumDropdown<CenterMode>(
