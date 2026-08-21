@@ -4,6 +4,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:swe_dashboard/core/context_state.dart';
 import 'package:swe_dashboard/core/horizons/horizons_request.dart';
+import 'package:swe_dashboard/core/horizons/horizons_types.dart';
 import 'package:swe_dashboard/tabs/jpl_horizons/horizons_draft.dart';
 
 ContextBarState _ctx({
@@ -94,6 +95,22 @@ void main() {
         quantities: {23, 1, 9},
       ).build().toQueryParameters();
       expect(params['QUANTITIES'], "'1,9,23'");
+    });
+  });
+
+  group('spk request', () {
+    test('SPK emits EPHEM_TYPE=SPK over a time range, no table quantities', () {
+      final params = const HorizonsDraft(
+        ephemType: EphemType.spk,
+        target: 'DES=1;',
+        startTime: '2025-01-01',
+        stopTime: '2025-02-01',
+      ).build().toQueryParameters();
+      expect(params['EPHEM_TYPE'], "'SPK'");
+      expect(params['START_TIME'], "'2025-01-01'");
+      expect(params['STOP_TIME'], "'2025-02-01'");
+      // SPK is a binary segment, not a table — no OBSERVER columns.
+      expect(params.containsKey('QUANTITIES'), isFalse);
     });
   });
 }

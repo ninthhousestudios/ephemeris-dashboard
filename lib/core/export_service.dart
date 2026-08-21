@@ -121,8 +121,23 @@ class ExportService {
     String stem,
     String ext,
     MimeType mime,
-  ) async {
-    final bytes = Uint8List.fromList(utf8.encode(content));
+  ) => saveBytes(
+    Uint8List.fromList(utf8.encode(content)),
+    stem,
+    ext,
+    mime: mime,
+  );
+
+  /// Save raw [bytes] to `<stem>.<ext>`, offering a save-as dialog on desktop
+  /// and falling back to a browser download on web (where `saveAs` throws).
+  /// Returns a human-readable status for a SnackBar. Shared by the text
+  /// exporters above and by binary payloads (e.g. a Horizons SPK `.bsp`).
+  static Future<String> saveBytes(
+    Uint8List bytes,
+    String stem,
+    String ext, {
+    MimeType mime = MimeType.other,
+  }) async {
     try {
       // saveAs shows a file dialog on desktop; throws on web.
       final path = await FileSaver.instance.saveAs(

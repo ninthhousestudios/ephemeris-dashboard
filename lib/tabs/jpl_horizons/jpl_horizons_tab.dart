@@ -6,9 +6,12 @@
 // and disambiguation candidates. Blank by default; "Load from Context" pulls
 // the Moment + location from the app Context.
 
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/export_service.dart';
 import '../../core/horizons/horizons_response.dart';
 import '../../core/horizons/horizons_types.dart';
 import '../../core/horizons/observer_quantities.dart';
@@ -641,11 +644,9 @@ class _ResultPane extends StatelessWidget {
           _rawBlock(context, rawText),
         ],
       ),
-      HorizonsSpk(:final bytes, :final suggestedFilename) => Text(
-        'SPK ready: ${bytes.length} bytes'
-        '${suggestedFilename == null ? '' : ' ($suggestedFilename)'}. '
-        'Saving arrives with the SPK slice.',
-        style: theme.textTheme.bodyMedium,
+      HorizonsSpk(:final bytes, :final suggestedFilename) => _SpkResult(
+        bytes: bytes,
+        suggestedFilename: suggestedFilename,
       ),
     };
   }
@@ -678,6 +679,51 @@ class _ResultPane extends StatelessWidget {
           const SizedBox(height: 4),
           Text(footer, style: theme.textTheme.labelSmall),
         ],
+      ],
+    );
+  }
+}
+
+/// The SPK result: a decoded `.bsp` segment with a save button. SPK is a
+/// binary payload (not table text), so it routes through
+/// [ExportService.saveBytes] rather than the tabular exporters.
+class _SpkResult extends StatelessWidget {
+  const _SpkResult({required this.bytes, this.suggestedFilename});
+
+  final Uint8List bytes;
+  final String? suggestedFilename;
+
+  Future<void> _save(BuildContext context) async {
+    // Capture the messenger before the await — the save dialog is async and
+    // `context` must not be used across it.
+    final messenger = ScaffoldMessenger.of(context);
+    final name = suggestedFilename ?? 'horizons.bsp';
+    final stem = name.toLowerCase().endsWith('.bsp')
+        ? name.substring(0, name.length - 4)
+        : name;
+    final msg = await ExportService.saveBytes(bytes, stem, 'bsp');
+    messenger.showSnackBar(
+      SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'SPK ready: ${bytes.length} bytes'
+          '${suggestedFilename == null ? '' : ' ($suggestedFilename)'}.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          icon: const Icon(Icons.save_alt, size: 18),
+          label: const Text('Save .bsp'),
+          onPressed: () => _save(context),
+        ),
       ],
     );
   }
