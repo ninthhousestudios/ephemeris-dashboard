@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,16 @@ Future<EphemerisScan> scanEphemerisDirectory(
   if (kIsWeb) {
     return _scanWebMemfs(dir, webFilenames);
   }
+  // The desktop scan is all synchronous IO (`listSync`, per-file `lengthSync`,
+  // and `_probeSeFile` opening every SE1 file to read its magic bytes). Run it
+  // on a background isolate so watching the provider — i.e. opening the
+  // Ephemeris Manager tab — never blocks the UI frame. `EphemerisScan` and
+  // `EpheFile` are plain immutable data, sendable across the isolate boundary;
+  // the closure captures only `dir` (a String).
+  return Isolate.run(() => _scanDirSync(dir));
+}
+
+EphemerisScan _scanDirSync(String dir) {
   final directory = Directory(dir);
   if (!directory.existsSync()) {
     return EphemerisScan(const [], DateTime.now(), dir);
