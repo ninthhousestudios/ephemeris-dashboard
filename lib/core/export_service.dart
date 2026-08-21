@@ -4,7 +4,10 @@
 import 'dart:convert';
 
 import 'package:file_saver/file_saver.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
+import 'desktop_saver_stub.dart' if (dart.library.io) 'desktop_saver_io.dart';
 
 /// A single exportable row — one per result card.
 class ExportRow {
@@ -157,6 +160,11 @@ class ExportService {
     String ext, {
     MimeType mime = MimeType.other,
   }) async {
+    // Linux: file_saver 0.3.1 leaves saveAs unimplemented and silently dumps to
+    // the Downloads directory. Route through file_selector's GTK save dialog.
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.linux) {
+      return saveViaDialog(bytes, stem, ext);
+    }
     try {
       // saveAs shows a file dialog on desktop; throws on web.
       final path = await FileSaver.instance.saveAs(
