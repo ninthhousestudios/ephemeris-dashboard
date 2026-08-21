@@ -8,6 +8,7 @@
 
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -149,13 +150,19 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
                         )
                       : const Icon(Icons.play_arrow, size: 18),
                   label: const Text('Run'),
-                  onPressed: state.running ? null : _notifier.run,
+                  // The browser blocks the Horizons request: NASA's endpoint
+                  // sends no CORS header, so the XHR fails opaquely (there is no
+                  // per-tab proxy). Disable Run on web; the constructed URL can
+                  // still be opened directly in a browser tab (top-level
+                  // navigation is not subject to CORS).
+                  onPressed: (kIsWeb || state.running) ? null : _notifier.run,
                 ),
               ],
             ),
           ),
         ),
         const Divider(height: 1),
+        if (kIsWeb) _webNote(theme),
         LayoutBuilder(
           builder: (context, constraints) {
             final form = _buildForm(draft);
@@ -201,6 +208,31 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
       ],
     );
   }
+
+  /// A banner shown only on web: running is blocked because NASA's Horizons
+  /// endpoint sends no CORS header, so the browser refuses the request. The
+  /// request URL is still built below and can be opened directly in a new tab.
+  Widget _webNote(ThemeData theme) => Container(
+    width: double.infinity,
+    color: theme.colorScheme.surfaceContainerHighest,
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.info_outline, size: 16, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            'Running a query is not available in the browser: NASA\'s Horizons '
+            'API does not permit cross-origin requests. Build a request below '
+            'and open its URL directly in a new browser tab. The desktop build '
+            'runs queries in-app.',
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+      ],
+    ),
+  );
 
   void _rerunWith(String recordId) {
     _c('target').text = '$recordId;';
