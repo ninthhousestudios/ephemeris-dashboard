@@ -55,6 +55,11 @@ class _AppShellState extends ConsumerState<AppShell>
     _tabController = TabController(
       length: _allTabs.length,
       initialIndex: initialIndex >= 0 ? initialIndex : 0,
+      // No TabBarView / indicator rides this controller, so animateTo's default
+      // 300ms had no visual output — it only gated the content swap (the
+      // activeTabProvider listener below waits for !indexIsChanging). Zero makes
+      // the swap land on the tap frame instead of 300ms later.
+      animationDuration: Duration.zero,
       vsync: this,
     );
     _tabController.addListener(() {
