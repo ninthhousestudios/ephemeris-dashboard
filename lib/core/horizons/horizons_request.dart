@@ -78,8 +78,9 @@ sealed class EphemOptions {
   EphemType get ephemType;
 }
 
-/// OBSERVER observables. [quantities] are QUANTITIES codes (1–48); kept as a raw
-/// int set so a code we haven't catalogued is still selectable.
+/// OBSERVER observables. [quantities] are QUANTITIES codes (1–49; see
+/// `observer_quantities.dart`); kept as a raw int set so a code we haven't
+/// catalogued is still selectable.
 class ObserverOptions extends EphemOptions {
   const ObserverOptions({
     this.quantities = const {},

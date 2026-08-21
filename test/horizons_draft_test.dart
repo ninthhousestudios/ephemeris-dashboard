@@ -66,4 +66,34 @@ void main() {
       expect(params['TLIST_TYPE'], "'JD'");
     });
   });
+
+  group('observer quantities', () {
+    test(
+      'merges catalogued checkbox codes with the free-text escape hatch',
+      () {
+        const draft = HorizonsDraft(
+          quantities: {1, 20},
+          extraQuantitiesText: '50, 51 20',
+        );
+        final options = draft.build().options as ObserverOptions;
+        // Union of both sources, de-duplicated (20 appears in each).
+        expect(options.quantities, {1, 20, 50, 51});
+      },
+    );
+
+    test('no quantities selected omits the QUANTITIES parameter', () {
+      final params = const HorizonsDraft(
+        target: '499',
+      ).build().toQueryParameters();
+      expect(params.containsKey('QUANTITIES'), isFalse);
+    });
+
+    test('selected codes serialise sorted into QUANTITIES', () {
+      final params = const HorizonsDraft(
+        target: '499',
+        quantities: {23, 1, 9},
+      ).build().toQueryParameters();
+      expect(params['QUANTITIES'], "'1,9,23'");
+    });
+  });
 }

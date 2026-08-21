@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/horizons/horizons_response.dart';
 import '../../core/horizons/horizons_types.dart';
+import '../../core/horizons/observer_quantities.dart';
 import 'horizons_draft.dart';
 import 'horizons_tab_providers.dart';
 
@@ -37,7 +38,7 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
       'stopTime': TextEditingController(text: d.stopTime),
       'stepSize': TextEditingController(text: d.stepSize),
       'tlist': TextEditingController(text: d.tlistText),
-      'quantities': TextEditingController(text: d.quantitiesText),
+      'extraQuantities': TextEditingController(text: d.extraQuantitiesText),
       'overrides': TextEditingController(text: d.rawOverridesText),
     };
   }
@@ -288,7 +289,13 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
       case EphemType.observer:
         return [
           _section('Observer quantities'),
-          _text('quantities', 'QUANTITIES codes (e.g. 1,9,20,23,24)'),
+          _quantityGrid(draft.quantities),
+          const SizedBox(height: 8),
+          _text(
+            'extraQuantities',
+            'Additional codes (uncatalogued)',
+            hint: 'e.g. 50,51',
+          ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 12,
@@ -427,6 +434,32 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
     ),
   );
 
+  /// Checkbox grid over the catalogued OBSERVER quantities. Toggling a chip
+  /// adds/removes its code from the draft's [HorizonsDraft.quantities] set;
+  /// uncatalogued codes go through the "Additional codes" field instead.
+  Widget _quantityGrid(Set<int> selected) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final q in observerQuantities)
+          FilterChip(
+            label: Text('${q.code}. ${q.label}'),
+            selected: selected.contains(q.code),
+            onSelected: (on) => _notifier.updateDraft((d) {
+              final next = {...d.quantities};
+              if (on) {
+                next.add(q.code);
+              } else {
+                next.remove(q.code);
+              }
+              return d.copyWith(quantities: next);
+            }),
+          ),
+      ],
+    );
+  }
+
   Widget _text(String key, String label, {String? hint, int maxLines = 1}) {
     return TextField(
       controller: _c(key),
@@ -459,8 +492,8 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
         return d.copyWith(stepSize: v);
       case 'tlist':
         return d.copyWith(tlistText: v);
-      case 'quantities':
-        return d.copyWith(quantitiesText: v);
+      case 'extraQuantities':
+        return d.copyWith(extraQuantitiesText: v);
       case 'overrides':
         return d.copyWith(rawOverridesText: v);
       default:

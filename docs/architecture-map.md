@@ -399,6 +399,7 @@ Provider), mirroring the SIMBAD/downloader discipline; the tab imports no
 | File | Key types | Role |
 |------|-----------|------|
 | `core/horizons/horizons_types.dart` | `EphemType`, `RefPlane`, `OutUnits`, `VectorTable`, … + `horizonsApiEndpoint` | Fixed-vocabulary enums, each carrying its exact `wire` token (verified against the Horizons API doc). |
+| `core/horizons/observer_quantities.dart` | `ObserverQuantity`, `observerQuantities`, `catalogedQuantityCodes` | Verbatim OBSERVER quantity table (codes 1–49) from the manual; drives the quantities checkbox grid. |
 | `core/horizons/horizons_request.dart` | `HorizonsRequest`, sealed `ObserverCenter`/`HorizonsTimeSpec`/`EphemOptions`, `CommonOutput` | The typed query. The `EphemOptions` variant *is* the ephemeris type. `toQueryParameters()` (values single-quoted, `format` bare) + `requestUrl()` (`%20`/`%27` encoded) + `rawOverrides` escape hatch. |
 | `core/horizons/horizons_response.dart` | sealed `HorizonsResponse` (`HorizonsTable`/`HorizonsDisambiguation`/`HorizonsSpk`/`HorizonsApiError`), `HorizonsException` | Result taxonomy. Transport death throws; everything Horizons reports is a value. |
 | `core/horizons/horizons_client.dart` | `queryHorizons`, pure `parseHorizonsBody`, `horizonsDioProvider`, `horizonsCacheKey`, `HorizonsCache`+provider | The seam. `queryHorizons` uses `validateStatus:(_)=>true` so 4xx bodies parse instead of throwing. Cache keyed by sha256 of the normalized query. |

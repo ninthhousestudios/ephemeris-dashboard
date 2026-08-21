@@ -35,7 +35,8 @@ class HorizonsDraft {
     this.timeScale = TimeScale.ut,
     this.calendarFormat = CalendarFormat.calendar,
     this.refSystem = RefSystem.icrf,
-    this.quantitiesText = '',
+    this.quantities = const <int>{},
+    this.extraQuantitiesText = '',
     this.angleFormat = AngleFormat.hoursMinutesSeconds,
     this.apparent = ApparentType.airless,
     this.rangeUnits = RangeUnits.au,
@@ -73,7 +74,13 @@ class HorizonsDraft {
   final RefSystem refSystem;
 
   // OBSERVER
-  final String quantitiesText;
+  /// Catalogued QUANTITIES codes, driven by the checkbox grid
+  /// ([observerQuantities]).
+  final Set<int> quantities;
+
+  /// Free-text escape hatch for codes not in the catalogue: comma/space
+  /// separated integers, merged with [quantities] when the request is built.
+  final String extraQuantitiesText;
   final AngleFormat angleFormat;
   final ApparentType apparent;
   final RangeUnits rangeUnits;
@@ -115,7 +122,8 @@ class HorizonsDraft {
     TimeScale? timeScale,
     CalendarFormat? calendarFormat,
     RefSystem? refSystem,
-    String? quantitiesText,
+    Set<int>? quantities,
+    String? extraQuantitiesText,
     AngleFormat? angleFormat,
     ApparentType? apparent,
     RangeUnits? rangeUnits,
@@ -149,7 +157,8 @@ class HorizonsDraft {
       timeScale: timeScale ?? this.timeScale,
       calendarFormat: calendarFormat ?? this.calendarFormat,
       refSystem: refSystem ?? this.refSystem,
-      quantitiesText: quantitiesText ?? this.quantitiesText,
+      quantities: quantities ?? this.quantities,
+      extraQuantitiesText: extraQuantitiesText ?? this.extraQuantitiesText,
       angleFormat: angleFormat ?? this.angleFormat,
       apparent: apparent ?? this.apparent,
       rangeUnits: rangeUnits ?? this.rangeUnits,
@@ -239,7 +248,7 @@ class HorizonsDraft {
 
   EphemOptions _buildOptions() => switch (ephemType) {
     EphemType.observer => ObserverOptions(
-      quantities: _parseQuantities(quantitiesText),
+      quantities: {...quantities, ..._parseQuantities(extraQuantitiesText)},
       angleFormat: angleFormat,
       apparent: apparent,
       rangeUnits: rangeUnits,
