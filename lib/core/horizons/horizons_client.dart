@@ -112,7 +112,62 @@ HorizonsResponse parseHorizonsBody(String body, {required int httpStatus}) {
   return HorizonsTable(
     rawText: resultText,
     signature: _signatureSource(decoded),
+    parsed: parseEphemerisTable(resultText),
   );
+}
+
+/// Parse the CSV ephemeris block delimited by `$$SOE`/`$$EOE` into a
+/// [ParsedEphemeris]. Assumes CSV_FORMAT=YES: the column header is the last
+/// non-separator line above the `$$SOE` marker (Horizons prints a `****` rule
+/// between the header and the data), and each data row is comma-separated.
+///
+/// Returns null when there is no delimited block or no data rows — e.g. a
+/// non-CSV query, or a target/quantity combination Horizons answered as prose.
+/// Rows are fitted to the header width so the result is a rectangular matrix a
+/// table view can render without per-row length checks.
+ParsedEphemeris? parseEphemerisTable(String resultText) {
+  final soe = resultText.indexOf(r'$$SOE');
+  final eoe = resultText.indexOf(r'$$EOE');
+  if (soe < 0 || eoe < 0 || eoe < soe) return null;
+
+  final columns = _headerColumns(resultText.substring(0, soe));
+  if (columns.isEmpty) return null;
+
+  final block = resultText.substring(soe + r'$$SOE'.length, eoe);
+  final rows = <List<String>>[];
+  for (final line in const LineSplitter().convert(block)) {
+    if (line.trim().isEmpty) continue;
+    rows.add(_fitRow(_splitCsvRow(line), columns.length));
+  }
+  if (rows.isEmpty) return null;
+  return ParsedEphemeris(columns: columns, rows: rows);
+}
+
+/// The column header: scanning up from `$$SOE`, the first line that is not
+/// blank and not a `****`/`====` rule.
+List<String> _headerColumns(String head) {
+  final lines = const LineSplitter().convert(head);
+  final separator = RegExp(r'^[*=~\s]*$');
+  for (var i = lines.length - 1; i >= 0; i--) {
+    if (separator.hasMatch(lines[i])) continue;
+    return _splitCsvRow(lines[i]);
+  }
+  return const [];
+}
+
+/// Split one CSV line, trimming each cell and dropping a single trailing empty
+/// cell — Horizons ends both header and data lines with a comma.
+List<String> _splitCsvRow(String line) {
+  final cells = line.split(',').map((c) => c.trim()).toList();
+  if (cells.length > 1 && cells.last.isEmpty) cells.removeLast();
+  return cells;
+}
+
+/// Pad or truncate [cells] to [width] so every row matches the header count.
+List<String> _fitRow(List<String> cells, int width) {
+  if (cells.length == width) return cells;
+  if (cells.length > width) return cells.sublist(0, width);
+  return [...cells, for (var i = cells.length; i < width; i++) ''];
 }
 
 String? _signatureSource(Map<String, Object?> json) {

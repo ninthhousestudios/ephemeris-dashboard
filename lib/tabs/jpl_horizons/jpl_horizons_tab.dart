@@ -602,11 +602,8 @@ class _ResultPane extends StatelessWidget {
       );
     }
     return switch (result) {
-      HorizonsTable(:final rawText, :final signature) => _rawBlock(
-        context,
-        rawText,
-        footer: signature,
-      ),
+      HorizonsTable(:final rawText, :final signature, :final parsed) =>
+        _TableResult(rawText: rawText, signature: signature, parsed: parsed),
       HorizonsApiError(:final message, :final httpStatus, :final rawText) =>
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -617,7 +614,7 @@ class _ResultPane extends StatelessWidget {
             ),
             if (rawText != null) ...[
               const SizedBox(height: 8),
-              _rawBlock(context, rawText),
+              _rawResponseBlock(context, rawText),
             ],
           ],
         ),
@@ -641,7 +638,7 @@ class _ResultPane extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          _rawBlock(context, rawText),
+          _rawResponseBlock(context, rawText),
         ],
       ),
       HorizonsSpk(:final bytes, :final suggestedFilename) => _SpkResult(
@@ -650,38 +647,40 @@ class _ResultPane extends StatelessWidget {
       ),
     };
   }
+}
 
-  Widget _rawBlock(BuildContext context, String text, {String? footer}) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 480),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: SingleChildScrollView(
-              child: SelectableText(
-                text,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontFamily: 'monospace',
-                ),
+/// The scrollable monospace block for raw Horizons text — shared by the table,
+/// api-error, and disambiguation results.
+Widget _rawResponseBlock(BuildContext context, String text, {String? footer}) {
+  final theme = Theme.of(context);
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 480),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: SingleChildScrollView(
+            child: SelectableText(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
               ),
             ),
           ),
         ),
-        if (footer != null) ...[
-          const SizedBox(height: 4),
-          Text(footer, style: theme.textTheme.labelSmall),
-        ],
+      ),
+      if (footer != null) ...[
+        const SizedBox(height: 4),
+        Text(footer, style: theme.textTheme.labelSmall),
       ],
-    );
-  }
+    ],
+  );
 }
 
 /// The SPK result: a decoded `.bsp` segment with a save button. SPK is a
@@ -724,6 +723,148 @@ class _SpkResult extends StatelessWidget {
           label: const Text('Save .bsp'),
           onPressed: () => _save(context),
         ),
+      ],
+    );
+  }
+}
+
+/// A successful ephemeris. Raw monospace text is always available; when
+/// Horizons returned a delimited CSV block ([HorizonsTable.parsed]) a table
+/// view and CSV export are offered, with a Table/Raw toggle.
+class _TableResult extends StatefulWidget {
+  const _TableResult({required this.rawText, this.signature, this.parsed});
+
+  final String rawText;
+  final String? signature;
+  final ParsedEphemeris? parsed;
+
+  @override
+  State<_TableResult> createState() => _TableResultState();
+}
+
+class _TableResultState extends State<_TableResult> {
+  bool _showRaw = false;
+
+  Future<void> _exportCsv(ParsedEphemeris parsed) async {
+    // Capture the messenger before the await — `context` must not cross it.
+    final messenger = ScaffoldMessenger.of(context);
+    final msg = await ExportService.saveText(
+      ExportService.matrixToCsv(parsed.columns, parsed.rows),
+      'horizons',
+      'csv',
+    );
+    messenger.showSnackBar(
+      SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final parsed = widget.parsed;
+    // Non-CSV or prose result: nothing to tabulate, show raw only.
+    if (parsed == null) {
+      return _rawResponseBlock(
+        context,
+        widget.rawText,
+        footer: widget.signature,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Wrap (not Row+Spacer) so the controls reflow instead of overflowing
+        // at high zoom.
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SegmentedButton<bool>(
+              segments: const [
+                ButtonSegment(value: false, label: Text('Table')),
+                ButtonSegment(value: true, label: Text('Raw')),
+              ],
+              selected: {_showRaw},
+              onSelectionChanged: (s) => setState(() => _showRaw = s.first),
+              showSelectedIcon: false,
+            ),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.table_chart_outlined, size: 16),
+              label: const Text('CSV'),
+              onPressed: () => _exportCsv(parsed),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_showRaw)
+          _rawResponseBlock(context, widget.rawText, footer: widget.signature)
+        else
+          _EphemerisTable(parsed: parsed, footer: widget.signature),
+      ],
+    );
+  }
+}
+
+/// The parsed ephemeris rendered as a scrollable table. Nested scroll views
+/// (vertical outer, horizontal inner) keep a wide/tall table inside its box
+/// rather than overflowing — the CLAUDE.md rule for dense grids.
+class _EphemerisTable extends StatelessWidget {
+  const _EphemerisTable({required this.parsed, this.footer});
+
+  final ParsedEphemeris parsed;
+  final String? footer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 480),
+          child: Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: SingleChildScrollView(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowHeight: 36,
+                  dataRowMinHeight: 28,
+                  dataRowMaxHeight: 40,
+                  columns: [
+                    for (final column in parsed.columns)
+                      DataColumn(
+                        label: Text(column, style: theme.textTheme.labelSmall),
+                      ),
+                  ],
+                  rows: [
+                    for (final row in parsed.rows)
+                      DataRow(
+                        cells: [
+                          for (final cell in row)
+                            DataCell(
+                              Text(
+                                cell,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  fontFamily: 'monospace',
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (footer != null) ...[
+          const SizedBox(height: 4),
+          Text(footer!, style: theme.textTheme.labelSmall),
+        ],
       ],
     );
   }

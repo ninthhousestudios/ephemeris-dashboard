@@ -192,6 +192,63 @@ void main() {
     });
   });
 
+  group('parseEphemerisTable', () {
+    // A CSV_FORMAT=YES OBSERVER block: header line, a **** rule, then the
+    // $$SOE/$$EOE-delimited data. Both header and rows end with a trailing
+    // comma (Horizons always does).
+    const result = '''
+Target body: Mars (499)
+*******************************************************************************
+ Date__(UT)__HR:MN, , , R.A._(ICRF), DEC_(ICRF), APmag,
+*******************************************************************************
+\$\$SOE
+2026-Aug-20 00:00, , , 18 44 09.94, -23 02 45.6, -26.75,
+2026-Aug-21 00:00, , , 18 46 12.01, -23 01 10.2, -26.74,
+\$\$EOE
+*******************************************************************************
+''';
+
+    test('extracts columns and rows from the delimited CSV block', () {
+      final parsed = parseEphemerisTable(result)!;
+      expect(parsed.columns, [
+        'Date__(UT)__HR:MN',
+        '',
+        '',
+        'R.A._(ICRF)',
+        'DEC_(ICRF)',
+        'APmag',
+      ]);
+      expect(parsed.rows.length, 2);
+      expect(parsed.rows.first, [
+        '2026-Aug-20 00:00',
+        '',
+        '',
+        '18 44 09.94',
+        '-23 02 45.6',
+        '-26.75',
+      ]);
+      // Every row is fitted to the header width.
+      expect(parsed.rows.every((r) => r.length == parsed.columns.length), true);
+    });
+
+    test('a HorizonsTable populates parsed when the block is present', () {
+      final resp = parseHorizonsBody(
+        jsonEncode({'result': result}),
+        httpStatus: 200,
+      );
+      expect((resp as HorizonsTable).parsed, isNotNull);
+      expect(resp.parsed!.rows.length, 2);
+    });
+
+    test('returns null when there is no \$\$SOE/\$\$EOE block', () {
+      expect(parseEphemerisTable('Target body: Mars\nno table here'), isNull);
+    });
+
+    test('returns null for an empty data block', () {
+      expect(parseEphemerisTable('h1,h2,\n\$\$SOE\n\$\$EOE\n'), isNull);
+    });
+  });
+
   group('horizonsCacheKey', () {
     test('is stable and independent of internal param order', () {
       final key1 = horizonsCacheKey(_observerRequest);

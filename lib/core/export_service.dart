@@ -81,6 +81,18 @@ class ExportService {
     return buf.toString().trimRight();
   }
 
+  /// CSV for a raw column/row matrix. Unlike [toCsv], this takes an already
+  /// rectangular table (columns + string rows) rather than label-keyed
+  /// [ExportRow]s — for sources like the Horizons parsed ephemeris whose
+  /// columns can be empty or duplicated, which the label model cannot represent.
+  static String matrixToCsv(List<String> columns, List<List<String>> rows) {
+    final buf = StringBuffer()..writeln(columns.map(_csvEscape).join(','));
+    for (final row in rows) {
+      buf.writeln(row.map(_csvEscape).join(','));
+    }
+    return buf.toString().trimRight();
+  }
+
   /// JSON array of objects.
   static String toJson(List<ExportRow> rows) {
     final list = rows.map((row) {
@@ -110,18 +122,25 @@ class ExportService {
         await Clipboard.setData(ClipboardData(text: toColonSeparated(rows)));
         return 'Copied ${rows.length} results';
       case ExportFormat.csvFile:
-        return _saveFile(toCsv(rows), filenameStem, 'csv', MimeType.csv);
+        return saveText(toCsv(rows), filenameStem, 'csv', mime: MimeType.csv);
       case ExportFormat.jsonFile:
-        return _saveFile(toJson(rows), filenameStem, 'json', MimeType.json);
+        return saveText(
+          toJson(rows),
+          filenameStem,
+          'json',
+          mime: MimeType.json,
+        );
     }
   }
 
-  static Future<String> _saveFile(
+  /// UTF-8 encode [content] and save it to `<stem>.<ext>`. Thin wrapper over
+  /// [saveBytes] for text payloads (CSV/JSON, and the Horizons parsed table).
+  static Future<String> saveText(
     String content,
     String stem,
-    String ext,
-    MimeType mime,
-  ) => saveBytes(
+    String ext, {
+    MimeType mime = MimeType.other,
+  }) => saveBytes(
     Uint8List.fromList(utf8.encode(content)),
     stem,
     ext,
