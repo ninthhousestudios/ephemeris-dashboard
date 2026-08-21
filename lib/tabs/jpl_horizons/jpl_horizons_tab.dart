@@ -190,9 +190,11 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
                 ],
               );
             }
+            // Narrow (mobile) layout: results on top, form below. Stacking the
+            // form first buried the response off-screen, which read as broken.
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [form, const Divider(height: 1), result],
+              children: [result, const Divider(height: 1), form],
             );
           },
         ),
@@ -369,6 +371,10 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
       case EphemType.observer:
         return [
           _section('Observer quantities'),
+          _note(
+            'None selected → Horizons returns its default quantity set. '
+            'Select any and the output is restricted to just those.',
+          ),
           _quantityGrid(draft.quantities),
           const SizedBox(height: 8),
           _text(
@@ -579,6 +585,17 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
     ),
   );
 
+  /// A muted explanatory line under a section header.
+  Widget _note(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Text(
+      text,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+    ),
+  );
+
   /// Checkbox grid over the catalogued OBSERVER quantities. Toggling a chip
   /// adds/removes its code from the draft's [HorizonsDraft.quantities] set;
   /// uncatalogued codes go through the "Additional codes" field instead.
@@ -778,6 +795,8 @@ class _ResultPane extends StatelessWidget {
             ),
             if (rawText != null) ...[
               const SizedBox(height: 8),
+              _rawTxtExportButton(context, rawText),
+              const SizedBox(height: 8),
               _rawResponseBlock(context, rawText),
             ],
           ],
@@ -801,6 +820,8 @@ class _ResultPane extends StatelessWidget {
                 ),
             ],
           ),
+          const SizedBox(height: 8),
+          _rawTxtExportButton(context, rawText),
           const SizedBox(height: 8),
           _rawResponseBlock(context, rawText),
         ],
@@ -850,6 +871,27 @@ class _SplitHandle extends StatelessWidget {
     );
   }
 }
+
+/// Save [text] verbatim as `horizons.txt`, reporting status in a SnackBar.
+/// Shared by every raw-response view (table raw toggle, prose, api-error,
+/// disambiguation) — the raw block has no columnar structure to tabulate, so it
+/// exports the response as-is rather than through the CSV path.
+Future<void> _saveRawTxt(BuildContext context, String text) async {
+  // Capture the messenger before the await — `context` must not cross it.
+  final messenger = ScaffoldMessenger.of(context);
+  final msg = await ExportService.saveText(text, 'horizons', 'txt');
+  messenger.showSnackBar(
+    SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
+  );
+}
+
+/// A TXT export button for a raw Horizons response.
+Widget _rawTxtExportButton(BuildContext context, String text) =>
+    OutlinedButton.icon(
+      icon: const Icon(Icons.description_outlined, size: 16),
+      label: const Text('TXT'),
+      onPressed: () => _saveRawTxt(context, text),
+    );
 
 /// The scrollable monospace block for raw Horizons text — shared by the table,
 /// api-error, and disambiguation results.
@@ -963,12 +1005,19 @@ class _TableResultState extends State<_TableResult> {
   @override
   Widget build(BuildContext context) {
     final parsed = widget.parsed;
-    // Non-CSV or prose result: nothing to tabulate, show raw only.
+    // Non-CSV or prose result: nothing to tabulate, show raw only — but still
+    // offer a TXT export of the response.
     if (parsed == null) {
-      return _rawResponseBlock(
-        context,
-        widget.rawText,
-        footer: widget.signature,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _rawTxtExportButton(context, widget.rawText),
+          ),
+          const SizedBox(height: 8),
+          _rawResponseBlock(context, widget.rawText, footer: widget.signature),
+        ],
       );
     }
     return Column(
@@ -990,11 +1039,16 @@ class _TableResultState extends State<_TableResult> {
               onSelectionChanged: (s) => setState(() => _showRaw = s.first),
               showSelectedIcon: false,
             ),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.table_chart_outlined, size: 16),
-              label: const Text('CSV'),
-              onPressed: () => _exportCsv(parsed),
-            ),
+            // Export matches the active view: TXT for the raw response, CSV
+            // for the parsed table.
+            if (_showRaw)
+              _rawTxtExportButton(context, widget.rawText)
+            else
+              OutlinedButton.icon(
+                icon: const Icon(Icons.table_chart_outlined, size: 16),
+                label: const Text('CSV'),
+                onPressed: () => _exportCsv(parsed),
+              ),
           ],
         ),
         const SizedBox(height: 8),
