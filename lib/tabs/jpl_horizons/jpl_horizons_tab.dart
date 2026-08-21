@@ -29,6 +29,11 @@ class JplHorizonsTab extends ConsumerStatefulWidget {
 class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
   late final Map<String, TextEditingController> _controllers;
 
+  /// Fraction of the wide (>900px) layout given to the form pane; the result
+  /// pane gets the rest. User-draggable via the divider handle. Defaults to
+  /// favour the result pane (form:result ≈ 4:5).
+  double _splitFraction = 0.45;
+
   @override
   void initState() {
     super.initState();
@@ -159,12 +164,29 @@ class _JplHorizonsTabState extends ConsumerState<JplHorizonsTab> {
               onSelectCandidate: _rerunWith,
             );
             if (constraints.maxWidth > 900) {
+              // Draggable split. Widths derive from the layout constraint (not
+              // fixed pixels) so they stay zoom-safe; floor both to avoid
+              // sub-pixel Row overflow. The unbounded page scroll owns vertical
+              // scrolling, so the Row stays `start`-aligned (no stretch).
+              const handleWidth = 12.0;
+              final available = constraints.maxWidth - handleWidth;
+              final formWidth = (available * _splitFraction).floorToDouble();
+              final resultWidth = (available - formWidth).floorToDouble();
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(flex: 5, child: form),
-                  const VerticalDivider(width: 1),
-                  Flexible(flex: 4, child: result),
+                  SizedBox(width: formWidth, child: form),
+                  _SplitHandle(
+                    width: handleWidth,
+                    height: _resultMaxHeight(context),
+                    onDrag: (dx) => setState(() {
+                      _splitFraction = (_splitFraction + dx / available).clamp(
+                        0.22,
+                        0.78,
+                      );
+                    }),
+                  ),
+                  SizedBox(width: resultWidth, child: result),
                 ],
               );
             }
@@ -791,6 +813,44 @@ class _ResultPane extends StatelessWidget {
   }
 }
 
+/// Cap for the raw/table result box. Viewport-relative (not a fixed 480px) so a
+/// long ephemeris fills the ample vertical space this tab has while still
+/// scrolling internally; floored to keep it sub-pixel clean under zoom. Shared
+/// by [_rawResponseBlock], [_EphemerisTable], and the divider handle height.
+double _resultMaxHeight(BuildContext context) =>
+    (MediaQuery.sizeOf(context).height * 0.62).floorToDouble();
+
+/// The draggable divider between the form and result panes in the wide layout.
+/// A hover shows a column-resize cursor; horizontal drags report their delta so
+/// the parent can adjust the split fraction.
+class _SplitHandle extends StatelessWidget {
+  const _SplitHandle({
+    required this.width,
+    required this.height,
+    required this.onDrag,
+  });
+
+  final double width;
+  final double height;
+  final ValueChanged<double> onDrag;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.resizeColumn,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onHorizontalDragUpdate: (details) => onDrag(details.delta.dx),
+        child: SizedBox(
+          width: width,
+          height: height,
+          child: const Center(child: VerticalDivider(width: 1)),
+        ),
+      ),
+    );
+  }
+}
+
 /// The scrollable monospace block for raw Horizons text — shared by the table,
 /// api-error, and disambiguation results.
 Widget _rawResponseBlock(BuildContext context, String text, {String? footer}) {
@@ -799,7 +859,7 @@ Widget _rawResponseBlock(BuildContext context, String text, {String? footer}) {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 480),
+        constraints: BoxConstraints(maxHeight: _resultMaxHeight(context)),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.all(8),
@@ -963,7 +1023,7 @@ class _EphemerisTable extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 480),
+          constraints: BoxConstraints(maxHeight: _resultMaxHeight(context)),
           child: Container(
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHighest,
