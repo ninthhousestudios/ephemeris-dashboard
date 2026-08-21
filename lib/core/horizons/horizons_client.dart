@@ -11,6 +11,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'horizons_request.dart';
 import 'horizons_response.dart';
+// Adds the Sectigo R46 anchor NASA's chain needs on native (Android in
+// particular); a web no-op. See nasa_trust_io.dart for the full rationale.
+import 'nasa_trust_stub.dart' if (dart.library.io) 'nasa_trust_io.dart';
 
 /// Execute [request] and parse the JSON envelope into the [HorizonsResponse]
 /// taxonomy. Throws [HorizonsException] only on transport failure; a problem
@@ -215,6 +218,7 @@ final horizonsDioProvider = Provider<Dio>((ref) {
       receiveTimeout: const Duration(seconds: 60),
     ),
   );
+  applyNasaTrust(dio);
   ref.onDispose(dio.close);
   return dio;
 });
