@@ -13,6 +13,7 @@ import '../../core/context_provider.dart';
 import '../../core/ephemeris/ephemeris.dart';
 import '../../core/export_service.dart';
 import '../../core/flag_provider.dart';
+import '../../core/jd_utils.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../core/swe_utils.dart';
 import '../../layout/tab_definitions.dart';
@@ -38,6 +39,10 @@ class DatesResult {
     required this.equationOfTime,
     required this.lmtToLat,
     required this.latToLmt,
+    required this.lmtClockJd,
+    required this.latClockJd,
+    this.lmtClock,
+    this.latClock,
     required this.trueObliquity,
     required this.meanObliquity,
     required this.nutationLongitude,
@@ -76,6 +81,21 @@ class DatesResult {
 
   /// LAT→LMT: JD result from swe.latToLmt.
   final double latToLmt;
+
+  /// LMT wall-clock JD of the shown Moment: UT + longitude/15h (= /360 days).
+  final double lmtClockJd;
+
+  /// LAT wall-clock JD of the shown Moment: LMT + equation of time.
+  final double latClockJd;
+
+  /// LMT wall-clock civil reading of the shown Moment, on the Context Calendar.
+  /// Null when [lmtClockJd] falls outside the civil-representable range.
+  final Civil? lmtClock;
+
+  /// LAT wall-clock civil reading of the shown Moment, on the Context Calendar.
+  /// Null when the equation of time was unavailable or [latClockJd] is not
+  /// civil-representable.
+  final Civil? latClock;
 
   /// True obliquity of the ecliptic in degrees (SE_ECL_NUT xx[0]).
   final double trueObliquity;
@@ -197,6 +217,30 @@ DatesResult computeDates(
     equationOfTimeError = e.toString();
   }
 
+  // LMT/LAT wall-clock readings of the shown Moment — the same local solar
+  // clocks the OutputClock companion shows, rendered here as civil times.
+  // LMT = UT + longitude/15h (= /360 days); LAT = LMT + equation of time.
+  // Rendered on the Context Calendar so this card reads like the others; null
+  // when the JD leaves the civil-representable range. LAT stays null when the
+  // equation of time failed, so it never silently collapses onto LMT.
+  final jdUtils = JdUtils(swe);
+  final lmtClockJd = jdUt + geolon / 360.0;
+  final latClockJd = lmtClockJd + equationOfTime;
+  Civil? lmtClock;
+  Civil? latClock;
+  try {
+    lmtClock = jdUtils.civilFieldsOn(lmtClockJd, calendar);
+  } catch (_) {
+    // Leave null: the field renders a placeholder rather than a bad time.
+  }
+  if (equationOfTimeError == null) {
+    try {
+      latClock = jdUtils.civilFieldsOn(latClockJd, calendar);
+    } catch (_) {
+      // Leave null.
+    }
+  }
+
   double lmtToLatVal = 0;
   String? lmtToLatError;
   double latToLmtVal = 0;
@@ -238,6 +282,10 @@ DatesResult computeDates(
     equationOfTime: equationOfTime,
     lmtToLat: lmtToLatVal,
     latToLmt: latToLmtVal,
+    lmtClockJd: lmtClockJd,
+    latClockJd: latClockJd,
+    lmtClock: lmtClock,
+    latClock: latClock,
     trueObliquity: trueObliquity,
     meanObliquity: meanObliquity,
     nutationLongitude: nutationLongitude,
@@ -385,8 +433,22 @@ List<ResultSection> datesSections(DatesResult r, Calendar calendar) {
     ),
     ResultSection(
       title: 'Local Time',
-      subtitle: 'LMT ↔ LAT (by longitude)',
+      subtitle: 'LMT / LAT clock (by longitude) · LMT ↔ LAT (JD)',
       fields: [
+        // The wall-clock readings of the shown Moment, on the Context Calendar.
+        ResultField(
+          label: 'LMT (clock)',
+          value: r.lmtClock != null ? _fmtCivil(r.lmtClock!) : '—',
+          rawValue: r.lmtClockJd,
+        ),
+        if (r.equationOfTimeError != null)
+          _err('LAT (clock) Error', r.equationOfTimeError!)
+        else
+          ResultField(
+            label: 'LAT (clock)',
+            value: r.latClock != null ? _fmtCivil(r.latClock!) : '—',
+            rawValue: r.latClockJd,
+          ),
         if (r.lmtToLatError != null)
           _err('LMT→LAT Error', r.lmtToLatError!)
         else
@@ -442,6 +504,14 @@ List<ResultSection> datesSections(DatesResult r, Calendar calendar) {
 
 ResultField _err(String label, String message) =>
     ResultField(label: label, value: message, rawValue: double.nan);
+
+String _p2(int n) => n.toString().padLeft(2, '0');
+
+/// A civil clock reading as `YYYY-MM-DD HH:MM:SS`. The date is shown in full
+/// because LMT/LAT can differ from UT by up to ±12h and cross midnight.
+String _fmtCivil(Civil c) =>
+    '${c.year}-${_p2(c.month)}-${_p2(c.day)} '
+    '${_p2(c.hour)}:${_p2(c.minute)}:${_p2(c.second)}';
 
 String _monthName(int month) {
   const names = [
