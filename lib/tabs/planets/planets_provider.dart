@@ -100,6 +100,7 @@ List<PlanetResult> computePlanets({
   required double geoalt,
   bool includeHorizontal = false,
   bool includeHousePos = false,
+  bool earthAsAntiSun = false,
   int hsys = 0x50,
 }) {
   final isHorizonOrigin =
@@ -148,6 +149,14 @@ List<PlanetResult> computePlanets({
   final needFrameOfDateCalc = doHorizontal && !isFrameOfDate(iflag);
 
   return bodies.map((body) {
+    // Human Design places the geocentric Earth at the anti-Sun point: the
+    // ephemeris cannot compute Earth's position from Earth, so under the Human
+    // Design sign scheme the geocentric Earth is shown as the exact antipode of
+    // the Sun. Gated on scheme + geocentric + non-XYZ in [_planetsCompute]; see
+    // [_antiSunEarth].
+    if (earthAsAntiSun && body == seEarth) {
+      return _antiSunEarth(eph, moment, iflag, getName, houseRequested);
+    }
     try {
       final r = eph.calcUt(moment.ut, body, iflag | seFlgSpeed);
 
@@ -255,6 +264,73 @@ List<PlanetResult> computePlanets({
   }).toList();
 }
 
+double _wrap360(double d) {
+  final m = d % 360;
+  return m < 0 ? m + 360 : m;
+}
+
+/// The Human Design geocentric Earth, built from the Sun rather than a direct
+/// calc (the ephemeris rejects a geocentric Earth). It is the exact antipode of
+/// the Sun's geocentric position: ecliptic longitude + 180°, latitude negated,
+/// same distance; likewise the equatorial antipode for RA/Dec. A deliberate
+/// HD-only display convention (see sign_names.dart), not a separate body — so
+/// horizontal coordinates, house position, and orbital extrema are left unset
+/// (rendered `—`) rather than synthesised for a point that has none. [iflag]
+/// carries no XYZ bit here ([_planetsCompute] gates that off), so the spherical
+/// antipode is well defined.
+PlanetResult _antiSunEarth(
+  Ephemeris eph,
+  Moment moment,
+  int iflag,
+  String Function(int body) getName,
+  bool houseRequested,
+) {
+  try {
+    final sun = eph.calcUt(moment.ut, seSun, iflag | seFlgSpeed);
+    var ra = double.nan;
+    var dec = double.nan;
+    try {
+      final eq = eph.calcUt(
+        moment.ut,
+        seSun,
+        (iflag | seFlgEquatorial) & ~seFlgXyz,
+      );
+      ra = _wrap360(eq.longitude + 180);
+      dec = -eq.latitude;
+    } catch (_) {
+      // Equatorial Sun failed — RA/Dec stay NaN (`—`), like every other body.
+    }
+    return PlanetResult(
+      body: seEarth,
+      bodyName: getName(seEarth),
+      longitude: _wrap360(sun.longitude + 180),
+      latitude: -sun.latitude,
+      distance: sun.distance,
+      speedLon: sun.longitudeSpeed,
+      speedLat: -sun.latitudeSpeed,
+      speedDist: sun.distanceSpeed,
+      returnFlag: sun.returnFlag,
+      rascension: ra,
+      declination: dec,
+      houseRequested: houseRequested,
+    );
+  } on SweException catch (e) {
+    return PlanetResult(
+      body: seEarth,
+      bodyName: getName(seEarth),
+      longitude: double.nan,
+      latitude: double.nan,
+      distance: double.nan,
+      speedLon: double.nan,
+      speedLat: double.nan,
+      speedDist: double.nan,
+      returnFlag: -1,
+      houseRequested: houseRequested,
+      errorMessage: describeBodyError(seEarth, e.message),
+    );
+  }
+}
+
 /// The tab's compute, bound to everything except the Moment.
 ///
 /// Shared by the single-Moment and series providers so the two modes cannot
@@ -280,6 +356,15 @@ List<PlanetResult> Function(Ephemeris, Moment) _planetsCompute(Ref ref) {
       ref.watch(planetsShowHorizontalProvider) || seriesEnabled;
   final hsys = ref.watch(selectedHouseSystemProvider);
 
+  // Human Design shows the geocentric Earth as the anti-Sun point (see
+  // [_antiSunEarth]). A deliberate display-scheme→compute coupling for this one
+  // scheme: only the ecliptic (non-XYZ) geocentric frame, where the spherical
+  // antipode is meaningful and HD in-sign values actually render.
+  final earthAsAntiSun =
+      ctx.origin == Origin.geocentric &&
+      !flags.isXyz &&
+      ref.watch(resolvedSignNamesProvider).scheme == SignScheme.humanDesign;
+
   return (eph, moment) => computePlanets(
     eph: eph,
     moment: moment,
@@ -292,6 +377,7 @@ List<PlanetResult> Function(Ephemeris, Moment) _planetsCompute(Ref ref) {
     geoalt: ctx.altitude,
     includeHorizontal: includeHorizontal,
     includeHousePos: includeHousePos,
+    earthAsAntiSun: earthAsAntiSun,
     hsys: hsys,
   );
 }
