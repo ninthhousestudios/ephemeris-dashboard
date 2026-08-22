@@ -114,6 +114,12 @@ class _ContextTimeFieldState extends ConsumerState<ContextTimeField> {
     );
     if (picked == null) return;
     _commitLocal(ctx, picked.$1, picked.$2, picked.$3);
+    // _commitLocal arms the self-update guard so the listener does not clobber
+    // in-progress *typing* — but the picker has no such text to protect, and the
+    // field is not focused, so the listener would otherwise skip its resync and
+    // leave the old time shown. Refresh it from the new Moment explicitly.
+    _selfUpdate = false;
+    _sync();
   }
 
   @override
