@@ -142,8 +142,8 @@ class ConfigTab extends ConsumerWidget {
                     theme,
                     Icons.bug_report_outlined,
                     'File an issue on GitHub',
-                    'https://github.com/ninthhousestudios/swe-dashboard/issues',
-                    'https://github.com/ninthhousestudios/swe-dashboard/issues',
+                    'https://github.com/ninthhousestudios/ephemeris-dashboard/issues',
+                    'https://github.com/ninthhousestudios/ephemeris-dashboard/issues',
                   ),
                 ],
               ),
@@ -168,7 +168,7 @@ class ConfigTab extends ConsumerWidget {
                   _repoLink(
                     theme,
                     'Ephemeris Dashboard',
-                    'https://github.com/ninthhousestudios/swe-dashboard',
+                    'https://github.com/ninthhousestudios/ephemeris-dashboard',
                   ),
                   const SizedBox(height: 8),
                   _repoLink(
@@ -207,7 +207,7 @@ class ConfigTab extends ConsumerWidget {
                   const SizedBox(height: 12),
                   _infoRow(theme, 'Engine (Rust)', '0.1.8'),
                   const SizedBox(height: 4),
-                  _infoRow(theme, 'Dart Package', '0.3.0'),
+                  _infoRow(theme, 'Dart Package', '0.3.2'),
                 ],
               ),
             ),
