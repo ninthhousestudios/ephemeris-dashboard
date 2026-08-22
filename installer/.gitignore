@@ -1,0 +1,4 @@
+# Compiled installer output
+Output/
+# Optionally-bundled VC++ redistributable (download separately)
+vc_redist.x64.exe
