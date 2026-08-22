@@ -29,12 +29,19 @@ import 'true_sidereal.dart';
 ///   * [trueSidereal] — passive display mode selectable only under a True
 ///     Sidereal Context; rendering is deferred to swe-dashboard/102, so it
 ///     produces no line here.
+///   * [humanDesign]   — the Human Design gate/line/color/tone/base subdivision
+///     of the ecliptic. Not a 12-sign relabelling at all: gate 1 is anchored to
+///     13°15′ of Scorpio (longitude 223°15′ within the frame), so it is valid in
+///     every ecliptic frame — sidereal shifts the longitudes but the gate
+///     boundaries shift with them. Renders a multi-line In-Sign Longitude field
+///     rather than a single sign name (see [humanDesignPlacement], [inSignField]).
 ///   * [userDefined]  — one of the user's named 12-name sets ([UserSignSet]).
 enum SignScheme {
   none('None'),
   zodiac('Zodiac'),
   aditya('Aditya'),
   trueSidereal('True Sidereal'),
+  humanDesign('Human Design'),
   userDefined('User-defined');
 
   const SignScheme(this.label);
@@ -217,6 +224,116 @@ int signIndex(double lon) => (_norm360(lon) ~/ 30) % 12;
 /// The longitude within its sign, in `[0, 30)`.
 double inSignLongitude(double lon) => _norm360(lon) % 30;
 
+// ── Human Design subdivision ──────────────────────────────────────────
+//
+// Ported from libaditya's YiLongitude (hd/longitude.py, hd/constants.py). The
+// ecliptic is divided into 64 gates in a fixed wheel order starting at
+// [_hdGateOne]; each gate splits into 6 lines, each line into 6 colors, each
+// color into 6 tones, each tone into 5 bases. Gate 1 is anchored at 13°15′ of
+// Scorpio — longitude 223°15′ within the frame — so the scheme works in any
+// ecliptic frame (sidereal shifts every longitude, but the gate boundaries move
+// with it); see [effectiveSchemeFor].
+
+/// The in-frame ecliptic longitude of the start of Human Design gate 1: 223°15′
+/// (13°15′ of Scorpio).
+const double _hdGateOne = 223 + 1 / 4;
+
+/// Angular sizes of each subdivision, in degrees. `gate = 360/64`; each level
+/// below divides the one above (lines/6, colors/6, tones/6, bases/5).
+const double _hdGate = 360 / 64;
+const double _hdLine = _hdGate / 6;
+const double _hdColor = _hdLine / 6;
+const double _hdTone = _hdColor / 6;
+const double _hdBase = _hdTone / 5;
+
+/// The 64 gates in wheel order along the ecliptic, gate 1 first at [_hdGateOne].
+const List<int> _hdWheel = [
+  1, 43, 14, 34, 9, 5, 26, 11, 10, 58, 38, 54, 61, 60, 41, 19, //
+  13, 49, 30, 55, 37, 63, 22, 36, 25, 17, 21, 51, 42, 3, 27, 24, //
+  2, 23, 8, 20, 16, 35, 45, 12, 15, 52, 39, 53, 62, 56, 31, 33, //
+  7, 4, 29, 59, 40, 64, 47, 6, 46, 18, 48, 57, 32, 50, 28, 44, //
+];
+
+/// A Human Design placement: the gate/line/color/tone/base a longitude falls in
+/// (each 1-based), plus, for each level, the longitude *into* that subdivision
+/// and how far through it that is as a percentage. Mirrors the `*_in_longitude`
+/// / `*_elapsed` accessors of libaditya's HDLongitude.
+typedef HumanDesignPlacement = ({
+  int gate,
+  int line,
+  int color,
+  int tone,
+  int base,
+  double gateInLon,
+  double lineInLon,
+  double colorInLon,
+  double toneInLon,
+  double baseInLon,
+  double gateElapsed,
+  double lineElapsed,
+  double colorElapsed,
+  double toneElapsed,
+  double baseElapsed,
+});
+
+/// The Human Design placement of [lon]. Wrap-safe for any finite [lon].
+HumanDesignPlacement humanDesignPlacement(double lon) {
+  final dist = _norm360(lon - _hdGateOne);
+
+  // Total whole bases from gate 1, decomposed level by level (base 1–5; line,
+  // color, tone 1–6) exactly as YiLongitude.init_gate does with divmod.
+  final totalBases = (dist / _hdBase).floor();
+  final tones = totalBases ~/ 5;
+  final base = totalBases % 5 + 1;
+  final colors = tones ~/ 6;
+  final tone = tones % 6 + 1;
+  final lines = colors ~/ 6;
+  final color = colors % 6 + 1;
+  final gatesFrom = lines ~/ 6;
+  final line = lines % 6 + 1;
+  final gate = _hdWheel[gatesFrom];
+
+  final gateInLon = _norm360(lon - (_hdGateOne + _hdGate * gatesFrom));
+  final lineInLon = gateInLon - _hdLine * (line - 1);
+  final colorInLon = lineInLon - _hdColor * (color - 1);
+  final toneInLon = colorInLon - _hdTone * (tone - 1);
+  final baseInLon = toneInLon - _hdBase * (base - 1);
+
+  return (
+    gate: gate,
+    line: line,
+    color: color,
+    tone: tone,
+    base: base,
+    gateInLon: gateInLon,
+    lineInLon: lineInLon,
+    colorInLon: colorInLon,
+    toneInLon: toneInLon,
+    baseInLon: baseInLon,
+    gateElapsed: gateInLon / _hdGate * 100,
+    lineElapsed: lineInLon / _hdLine * 100,
+    colorElapsed: colorInLon / _hdColor * 100,
+    toneElapsed: toneInLon / _hdTone * 100,
+    baseElapsed: baseInLon / _hdBase * 100,
+  );
+}
+
+/// The multi-line In-Sign Longitude value for the Human Design scheme: one line
+/// per level (gate, line, color, tone, base), each formatted as
+/// `IN_LONGITUDE LEVEL N; ELAPSED% elapsed`. [fmt] governs the angle rendering
+/// like every other In-Sign Longitude value.
+String humanDesignInSign(double lon, DisplayFormat fmt) {
+  final p = humanDesignPlacement(lon);
+  String pct(double v) => '${v.toStringAsFixed(2)}%';
+  return [
+    '${formatAngle(p.gateInLon, fmt)} gate ${p.gate}; ${pct(p.gateElapsed)} elapsed',
+    '${formatAngle(p.lineInLon, fmt)} line ${p.line}; ${pct(p.lineElapsed)} elapsed',
+    '${formatAngle(p.colorInLon, fmt)} color ${p.color}; ${pct(p.colorElapsed)} elapsed',
+    '${formatAngle(p.toneInLon, fmt)} tone ${p.tone}; ${pct(p.toneElapsed)} elapsed',
+    '${formatAngle(p.baseInLon, fmt)} base ${p.base}; ${pct(p.baseElapsed)} elapsed',
+  ].join('\n');
+}
+
 /// The named-sign placement of [lon]: the sign/constellation name and the
 /// longitude within it. Null when the scheme renders no name ([SignScheme.none])
 /// or when a [SignScheme.trueSidereal] selection has no [binning] available (out
@@ -251,6 +368,12 @@ double inSignLongitude(double lon) => _norm360(lon) % 30;
       if (binning == null || !lon.isFinite) return null;
       final p = binning.placementAt(lon);
       return (name: p.name, inSign: p.inSign);
+    case SignScheme.humanDesign:
+      // Human Design has no single sign name or in-sign value — it renders a
+      // multi-line field ([humanDesignInSign]). [inSignField] handles it before
+      // reaching here, so this primitive (and the unused [signNameFor]) yield
+      // nothing for it.
+      return null;
   }
 }
 
@@ -275,6 +398,11 @@ double inSignLongitudeFor(
   if (scheme == SignScheme.trueSidereal && binning != null && lon.isFinite) {
     return binning.placementAt(lon).inSign;
   }
+  // Human Design's field is multi-line; its most-significant in-sign value is
+  // the longitude into the gate (`lon mod 30` would be meaningless here).
+  if (scheme == SignScheme.humanDesign && lon.isFinite) {
+    return humanDesignPlacement(lon).gateInLon;
+  }
   return inSignLongitude(lon);
 }
 
@@ -298,6 +426,11 @@ double inSignLongitudeFor(
     return null;
   }
   if (!lon.isFinite) return null;
+  // Human Design is not a single named sign: its value is a multi-line
+  // gate/line/color/tone/base breakdown under the one "In-Sign Longitude" label.
+  if (scheme == SignScheme.humanDesign) {
+    return ('In-Sign Longitude', humanDesignInSign(lon, fmt));
+  }
   final p = signPlacement(lon, scheme, set, binning);
   if (p == null) return null;
   return ('In-Sign Longitude', '${formatAngle(p.inSign, fmt)} ${p.name}');
@@ -316,6 +449,10 @@ SignScheme effectiveSchemeFor(SignNameSelection sel, ContextBarState ctx) {
     case SignScheme.none:
     case SignScheme.zodiac:
     case SignScheme.userDefined:
+    // Human Design anchors gate 1 to 13°15′ of Scorpio (longitude 223°15′ within
+    // the frame). Sidereal shifts every longitude by the ayanamsha, but the gate
+    // boundaries shift with them, so it stays valid in every ecliptic frame.
+    case SignScheme.humanDesign:
       return sel.scheme;
     case SignScheme.aditya:
       return ctx.zodiacRef == ZodiacRef.tropical

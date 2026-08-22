@@ -7,7 +7,8 @@
 /// scheme tables, the ecliptic gate, the Context reconcile (Aditya needs
 /// tropical, True Sidereal needs its ayanamsha, else fall back to Zodiac), the
 /// user-set store round trip, and the selection's fall-back-to-Zodiac when its
-/// set is removed.
+/// set is removed. The Human Design subdivision (gate/line/color/tone/base) is
+/// pinned against libaditya's YiLongitude reference values.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -127,12 +128,97 @@ void main() {
     });
   });
 
+  group('Human Design subdivision', () {
+    // Reference values from libaditya's YiLongitude (hd/longitude.py).
+    test('places lon 0° at gate 25, line 2, color 6, tone 2, base 1', () {
+      final p = humanDesignPlacement(0);
+      expect(p.gate, 25);
+      expect(p.line, 2);
+      expect(p.color, 6);
+      expect(p.tone, 2);
+      expect(p.base, 1);
+      expect(p.gateInLon, closeTo(1.75, 1e-9));
+      expect(p.lineInLon, closeTo(0.8125, 1e-9));
+      expect(p.colorInLon, closeTo(0.03125, 1e-9));
+      expect(p.toneInLon, closeTo(0.005208333, 1e-9));
+      expect(p.baseInLon, closeTo(0.005208333, 1e-9));
+      expect(p.gateElapsed, closeTo(31.11, 1e-2));
+      expect(p.lineElapsed, closeTo(86.67, 1e-2));
+      expect(p.baseElapsed, closeTo(100.0, 1e-2));
+    });
+
+    test('gate 1 begins exactly at 223°15′ (13°15′ Scorpio)', () {
+      final p = humanDesignPlacement(223.25);
+      expect(p.gate, 1);
+      expect(p.line, 1);
+      expect(p.color, 1);
+      expect(p.tone, 1);
+      expect(p.base, 1);
+      expect(p.gateInLon, closeTo(0, 1e-9));
+      expect(p.baseInLon, closeTo(0, 1e-9));
+    });
+
+    test('wraps for lon just under a full turn (359.9°)', () {
+      final p = humanDesignPlacement(359.9);
+      expect(p.gate, 25);
+      expect(p.line, 2);
+      expect(p.color, 5);
+      expect(p.tone, 4);
+      expect(p.base, 2);
+      expect(p.gateInLon, closeTo(1.65, 1e-9));
+    });
+
+    test('inSignField renders the 5-line breakdown under one label', () {
+      final f = inSignField(
+        0,
+        0,
+        SignScheme.humanDesign,
+        null,
+        DisplayFormat.decimal,
+        null,
+      );
+      expect(f, isNotNull);
+      expect(f!.$1, 'In-Sign Longitude');
+      final lines = f.$2.split('\n');
+      expect(lines, hasLength(5));
+      expect(lines[0], contains('gate 25;'));
+      expect(lines[0], contains('31.11% elapsed'));
+      expect(lines[1], contains('line 2;'));
+      expect(lines[4], contains('base 1;'));
+    });
+
+    test('inSignField still excludes equatorial/cartesian for HD', () {
+      expect(
+        inSignField(
+          0,
+          seFlgXyz,
+          SignScheme.humanDesign,
+          null,
+          DisplayFormat.dms,
+          null,
+        ),
+        isNull,
+      );
+    });
+
+    test('signPlacement yields no single name (HD is not a named sign)', () {
+      expect(signNameFor(0, SignScheme.humanDesign, null, null), isNull);
+    });
+  });
+
   group('effectiveSchemeFor — reconcile against the Context', () {
-    test('none, zodiac, userDefined are valid in every frame', () {
+    test('none, zodiac, userDefined, humanDesign valid in every frame', () {
       for (final frame in [
         _ctx(),
         _ctx(zodiac: ZodiacRef.sidereal, ayanamsa: 1),
       ]) {
+        expect(
+          effectiveSchemeFor(
+            const SignNameSelection(scheme: SignScheme.humanDesign),
+            frame,
+          ),
+          SignScheme.humanDesign,
+        );
         expect(
           effectiveSchemeFor(
             const SignNameSelection(scheme: SignScheme.none),

@@ -154,6 +154,14 @@ class SignNameSelector extends ConsumerWidget {
         enabled: canAditya,
         disabledTooltip: _adityaTooltip,
       ),
+      // Human Design anchors gate 1 to 13°15′ Scorpio within the frame, so it
+      // is valid in every frame (unlike Aditya); it renders a
+      // gate/line/color/tone/base breakdown rather than a single sign name.
+      _item(
+        theme,
+        const _SchemeChoice.scheme(SignScheme.humanDesign),
+        'Human Design',
+      ),
       for (var i = 0; i < trueSets.length; i++)
         _item(
           theme,
