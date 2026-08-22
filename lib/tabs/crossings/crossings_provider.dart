@@ -37,8 +37,33 @@ final crossingTypeProvider = StateProvider<CrossingType>(
 /// Target longitude in degrees (0–360).
 final crossingLonProvider = StateProvider<double>((ref) => 0.0);
 
-/// Direction: 1 = forward, -1 = backward (helioCross only).
+/// Direction: 1 = forward (next crossing), -1 = backward (previous crossing).
+/// Applies to all four crossing types.
 final crossingDirProvider = StateProvider<int>((ref) => 1);
+
+// swisseph's sol/moon/node crossings search forward only. The previous crossing
+// is two forward searches: find the next crossing, then search forward again
+// from one period-with-margin before it — with P < margin < 2P the window
+// (next - margin, next) holds exactly the immediately-previous event. These
+// margins are app policy (the periodicity of each body), deliberately kept here
+// and not pushed into the Ephemeris seam, which stays a faithful mirror of
+// swisseph_rs (forward-only for these; only helioCross has a native direction).
+const _sunBackMargin = 370.0; // tropical year ~365.24d
+const _moonBackMargin = 30.0; // sidereal month ~27.32d
+const _nodeBackMargin = 16.0; // successive node crossings ~13.6d apart
+
+/// Previous crossing for a scalar (sol/moon) forward search [nextFrom]:
+/// the next crossing, then a second forward search one period-with-[margin]
+/// before it. Propagates NaN (no event) without a second search.
+double _prevScalarCrossing(
+  double Function(double startJd) nextFrom,
+  double jdUt,
+  double margin,
+) {
+  final next = nextFrom(jdUt);
+  if (next.isNaN) return next;
+  return nextFrom(next - margin);
+}
 
 class CrossingResult {
   const CrossingResult({
@@ -82,7 +107,7 @@ CrossingResult computeCrossing({
   required CrossingType type,
   required double longitude,
   required int helioBody,
-  required int helioDir,
+  required int dir,
   required String helioBodyName,
   required ClockView view,
 }) {
@@ -110,33 +135,52 @@ CrossingResult computeCrossing({
     );
   }
 
+  final dirWord = dir == 1 ? 'forward' : 'backward';
+
   switch (type) {
     case CrossingType.sunCross:
+      final jd = dir == 1
+          ? eph.solCrossUt(longitude, jdUt, iflag)
+          : _prevScalarCrossing(
+              (s) => eph.solCrossUt(longitude, s, iflag),
+              jdUt,
+              _sunBackMargin,
+            );
       return build(
-        eph.solCrossUt(longitude, jdUt, iflag),
-        description: 'Sun crosses ${longitude.toStringAsFixed(4)}°',
+        jd,
+        description: 'Sun crosses ${longitude.toStringAsFixed(4)}° ($dirWord)',
       );
 
     case CrossingType.moonCross:
+      final jd = dir == 1
+          ? eph.moonCrossUt(longitude, jdUt, iflag)
+          : _prevScalarCrossing(
+              (s) => eph.moonCrossUt(longitude, s, iflag),
+              jdUt,
+              _moonBackMargin,
+            );
       return build(
-        eph.moonCrossUt(longitude, jdUt, iflag),
-        description: 'Moon crosses ${longitude.toStringAsFixed(4)}°',
+        jd,
+        description: 'Moon crosses ${longitude.toStringAsFixed(4)}° ($dirWord)',
       );
 
     case CrossingType.moonNode:
-      final r = eph.moonCrossNodeUt(jdUt, iflag);
+      var r = eph.moonCrossNodeUt(jdUt, iflag);
+      if (dir == -1 && !r.jdUt.isNaN) {
+        r = eph.moonCrossNodeUt(r.jdUt - _nodeBackMargin, iflag);
+      }
       return build(
         r.jdUt,
         crossingLongitude: r.longitude,
-        description: 'Moon crosses node',
+        description: 'Moon crosses node ($dirWord)',
       );
 
     case CrossingType.helioCross:
       return build(
-        eph.helioCrossUt(helioBody, longitude, jdUt, iflag, helioDir),
+        eph.helioCrossUt(helioBody, longitude, jdUt, iflag, dir),
         description:
             '$helioBodyName helio crosses ${longitude.toStringAsFixed(4)}° '
-            '(${helioDir == 1 ? 'forward' : 'backward'})',
+            '($dirWord)',
       );
   }
 }
@@ -161,7 +205,7 @@ final _crossingCalcProvider = Provider<CalcOutcome<CrossingResult>>((ref) {
       type: type,
       longitude: lon,
       helioBody: helioBody,
-      helioDir: dir,
+      dir: dir,
       helioBodyName: safeGetName(swe, helioBody),
       swe: swe,
       view: view,

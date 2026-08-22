@@ -93,7 +93,32 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
             ),
           ),
         ),
-        // ── Target longitude + direction ──
+        // ── Direction (applies to all four crossing types) ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text('Direction ', style: labelStyle),
+                const SizedBox(width: 8),
+                SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(value: 1, label: Text('Forward')),
+                    ButtonSegment(value: -1, label: Text('Backward')),
+                  ],
+                  selected: {dir},
+                  onSelectionChanged: (s) =>
+                      ref.read(crossingDirProvider.notifier).state = s.first,
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // ── Target longitude ──
         if (showLon)
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
@@ -127,21 +152,6 @@ class _CrossingsTabState extends ConsumerState<CrossingsTab> {
                     },
                   ),
                 ),
-                if (showHelio) ...[
-                  const SizedBox(width: 12),
-                  SegmentedButton<int>(
-                    segments: const [
-                      ButtonSegment(value: 1, label: Text('Forward')),
-                      ButtonSegment(value: -1, label: Text('Backward')),
-                    ],
-                    selected: {dir},
-                    onSelectionChanged: (s) =>
-                        ref.read(crossingDirProvider.notifier).state = s.first,
-                    style: const ButtonStyle(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
