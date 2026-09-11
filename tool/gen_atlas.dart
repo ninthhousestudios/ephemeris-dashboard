@@ -14,6 +14,14 @@
 // Usage:
 //   dart run tool/gen_atlas.dart <geonames_dir> [out.tsv]
 // where <geonames_dir> holds the three source files above.
+//
+// NOTE: this script needs only dart:io — no package deps. Running `dart run`
+// from inside the package triggers the native-asset build hooks, which fail
+// if the `dart` on PATH is a different SDK than Flutter's bundled one (a
+// stale hooks_runner cache built by one SDK can't be loaded by the other:
+// "Invalid kernel binary format version"). Either run it with Flutter's Dart
+// (`<flutter>/bin/cache/dart-sdk/bin/dart run ...`) or copy it out and run it
+// standalone from a non-package dir (`dart /tmp/gen_atlas.dart ...`).
 
 import 'dart:io';
 
