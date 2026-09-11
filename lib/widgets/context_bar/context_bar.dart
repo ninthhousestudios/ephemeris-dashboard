@@ -20,6 +20,7 @@ import 'clock_selector.dart';
 import 'context_date_field.dart';
 import 'context_jd_field.dart';
 import 'context_location_field.dart';
+import 'location_search_field.dart';
 import 'context_time_field.dart';
 import 'context_utc_field.dart';
 import 'ephe_source_selector.dart';
@@ -265,7 +266,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
             children: [
               Expanded(child: ContextLocationField(LocationFieldKind.altitude)),
               SizedBox(width: 8),
-              Expanded(child: ContextLocationField(LocationFieldKind.city)),
+              Expanded(child: LocationSearchField()),
             ],
           ),
           const Divider(height: 12),
@@ -409,9 +410,7 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                           ),
                         ),
                         SizedBox(width: _colGap),
-                        Expanded(
-                          child: ContextLocationField(LocationFieldKind.city),
-                        ),
+                        Expanded(child: LocationSearchField()),
                       ],
                     ),
                   ],

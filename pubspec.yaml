@@ -35,6 +35,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/ephe/
+    - assets/atlas/
 
 dependency_overrides:
   hooks: ^2.0.2

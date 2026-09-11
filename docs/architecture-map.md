@@ -295,7 +295,8 @@ controller, focus node, and sync/commit logic.
 | `clock_selector.dart` | `ClockSelector` — output-clock dropdown (Standard/LMT/LAT; Standard uses the Context UTC offset, 0 = UT), drives `outputClockProvider` |
 | `time_scale_selector.dart` | `TimeScaleSelector` — time-scale dropdown (UT1/TT/UTC) for the civil time input; drives `ContextBarState.timeScale`. Tooltip surfaces the ΔT-vs-ephemeris consequence |
 | `context_jd_field.dart` | `ContextJdField` — Julian Day text input |
-| `context_location_field.dart` | `ContextLocationField(LocationFieldKind)` — lat/lon/alt/city, parameterized |
+| `context_location_field.dart` | `ContextLocationField(LocationFieldKind)` — lat/lon/alt fields, parameterized (the `city` kind is retired from the bar; see `location_search_field.dart`) |
+| `location_search_field.dart` | `LocationSearchField` — city autocomplete over the bundled gazetteer (`atlasProvider`); on select does one atomic `setLocation(lat, lon, cityLabel)`. `RawAutocomplete` with a floating overlay (not the inline dropdown of `StarSearchField`) so the field stays single-line in the IntrinsicHeight row; reuses `labeledField` |
 | `origin_selector.dart` | `OriginSelector` — geocentric/topocentric/helio dropdown |
 | `zodiac_ref_selector.dart` | `ZodiacRefSelector` — tropical/sidereal dropdown |
 | `eq_ref_selector.dart` | `EqRefSelector` — equinox reference dropdown |
@@ -308,6 +309,19 @@ controller, focus node, and sync/commit logic.
 | `ephe_source_selector.dart` | `EpheSourceSelector` — ephemeris source dropdown |
 | `file_in_use_indicator.dart` | `FileInUseIndicator` — loaded chart file badge |
 | `labeled_dropdown.dart` | `LabeledDropdown<T>` — reusable labeled dropdown layout |
+
+## City atlas (lib/core/atlas/)
+
+`atlas.dart` — `LocationHit`, the `Atlas` interface, `InMemoryAtlas`, and
+`atlasProvider` (FutureProvider, parse-once). Backed by a bundled TSV
+(`assets/atlas/cities.tsv`, GeoNames `cities5000`, ~70k rows, population-sorted)
+generated offline by `tool/gen_atlas.dart`. `search` returns name-prefix matches
+first then substring, each group in descending-population order. The `tz` column
+is carried but unused (reserved for a future approximate local-time feature).
+Bundled asset, so `atlasProvider` loads via `rootBundle` on every platform —
+unlike `starCatalogProvider`, which reads user-downloaded ephemeris files.
+Consumed only by `LocationSearchField`. No download tier by design (we don't host
+data files). GeoNames CC-BY 4.0 attribution lives on the config tab.
 
 ## Shared tab widgets (lib/widgets/)
 

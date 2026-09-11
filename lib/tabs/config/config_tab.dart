@@ -106,6 +106,22 @@ class ConfigTab extends ConsumerWidget {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'City search data \u00a9 GeoNames, licensed under '
+                    'CC BY 4.0.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  _launchRow(
+                    theme,
+                    Icons.open_in_new,
+                    'GeoNames',
+                    'https://www.geonames.org/',
+                    'https://www.geonames.org/',
+                  ),
                 ],
               ),
             ),
