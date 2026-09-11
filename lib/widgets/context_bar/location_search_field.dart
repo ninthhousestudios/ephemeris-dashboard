@@ -88,40 +88,119 @@ class _LocationSearchFieldState extends ConsumerState<LocationSearchField> {
         );
       },
       optionsViewBuilder: (context, onSelected, options) {
-        final theme = Theme.of(context);
-        final hits = options.toList(growable: false);
-        return Align(
-          alignment: Alignment.topLeft,
-          child: Material(
-            elevation: 4,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 240, maxWidth: 320),
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                itemCount: hits.length,
-                itemBuilder: (context, index) {
-                  final hit = hits[index];
-                  final region = hit.admin1.isEmpty
-                      ? hit.country
-                      : '${hit.admin1}, ${hit.country}';
-                  return ListTile(
-                    dense: true,
-                    title: Text(hit.name),
-                    subtitle: Text(
-                      region,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    onTap: () => onSelected(hit),
-                  );
-                },
-              ),
-            ),
-          ),
+        return _LocationOptions(
+          hits: options.toList(growable: false),
+          onSelected: onSelected,
         );
       },
     );
+  }
+}
+
+/// The floating suggestion list. Split out so it can track the option the
+/// RawAutocomplete keyboard shortcuts highlight (`AutocompleteHighlightedOption`)
+/// — a custom optionsViewBuilder must reflect it or arrow-key navigation shows
+/// nothing and never scrolls.
+class _LocationOptions extends StatefulWidget {
+  const _LocationOptions({required this.hits, required this.onSelected});
+
+  final List<LocationHit> hits;
+  final AutocompleteOnSelected<LocationHit> onSelected;
+
+  @override
+  State<_LocationOptions> createState() => _LocationOptionsState();
+}
+
+class _LocationOptionsState extends State<_LocationOptions> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final highlighted = AutocompleteHighlightedOption.of(context);
+    // Row height scales with the text scaler so the two text lines never clip
+    // at high zoom; the scroll math below uses the same value.
+    final scale = MediaQuery.textScalerOf(context).scale(1.0);
+    final rowHeight = (52.0 * scale).floorToDouble();
+
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _scrollTo(highlighted, rowHeight),
+    );
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        elevation: 4,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 260, maxWidth: 320),
+          child: ListView.builder(
+            controller: _scroll,
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemExtent: rowHeight,
+            itemCount: widget.hits.length,
+            itemBuilder: (context, index) {
+              final hit = widget.hits[index];
+              final region = hit.admin1.isEmpty
+                  ? hit.country
+                  : '${hit.admin1}, ${hit.country}';
+              final isHighlighted = index == highlighted;
+              return InkWell(
+                onTap: () => widget.onSelected(hit),
+                child: Container(
+                  color: isHighlighted
+                      ? theme.colorScheme.primary.withAlpha(30)
+                      : null,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        hit.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        region,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _scrollTo(int index, double rowHeight) {
+    if (!_scroll.hasClients) return;
+    final target = index * rowHeight;
+    final offset = _scroll.offset;
+    final viewport = _scroll.position.viewportDimension;
+    if (target < offset) {
+      _scroll.jumpTo(target);
+    } else if (target + rowHeight > offset + viewport) {
+      _scroll.jumpTo(
+        (target + rowHeight - viewport).clamp(
+          0.0,
+          _scroll.position.maxScrollExtent,
+        ),
+      );
+    }
   }
 }
