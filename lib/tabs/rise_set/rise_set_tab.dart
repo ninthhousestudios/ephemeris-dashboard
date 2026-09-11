@@ -225,9 +225,21 @@ class _RiseSetTabState extends ConsumerState<RiseSetTab> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                // Disc reference (upper limb default / center / bottom) is one
-                // exclusive choice. Hindu Rising is a preset that forces center +
-                // no refraction, so while it's on those chips are locked to it.
+                // Disc reference (upper limb / center / bottom) is one exclusive
+                // choice; Disc Top is the Swiss Ephemeris default (no bit set) and
+                // is surfaced so the active reference is always explicit. Hindu
+                // Rising is a preset that forces center + no refraction, so while
+                // it's on those chips are locked to it.
+                _ModifierChip(
+                  label: 'Disc Top',
+                  selected:
+                      !modifiers.hinduRising &&
+                      modifiers.disc == DiscReference.upperLimb,
+                  onSelected: modifiers.hinduRising
+                      ? null
+                      : (on) => _toggleDisc(DiscReference.upperLimb, on),
+                ),
+                const SizedBox(width: 4),
                 _ModifierChip(
                   label: 'Disc Center',
                   selected:
