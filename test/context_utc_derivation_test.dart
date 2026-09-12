@@ -11,16 +11,19 @@
 /// save→restore round trip; and a series step never perturbs it.
 library;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:swe_dashboard/core/calendar.dart';
 import 'package:swe_dashboard/core/context_provider.dart';
 import 'package:swe_dashboard/core/context_state.dart';
+import 'package:swe_dashboard/core/ephe/bootstrap.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
 import 'package:swe_dashboard/core/jd_utils.dart';
 import 'package:swe_dashboard/core/persistence.dart';
 import 'package:swe_dashboard/core/swe_utils.dart';
 import 'package:swe_dashboard/core/timezone_offset.dart';
+import 'package:swe_dashboard/tabs/rise_set/rise_set_provider.dart';
 
 const _nyc = 'America/New_York';
 
@@ -238,8 +241,9 @@ void main() {
     expect(n.state.timeZoneId, 'Asia/Tokyo');
     expect(n.state.utcOffset, 9.0, reason: 'JST at that instant');
     // The offset must be exactly what the instant→offset resolver gives for the
-    // new zone — this is what keeps the Rise/Set search window (which reads
-    // utcOffset as a compute input) coherent after a relocation.
+    // new zone. (That this keeps the Rise/Set search window coherent is a
+    // separate claim, checked end-to-end in the localMidnightStart tests below
+    // — this assertion alone is only the offset value, swe-dashboard/118.)
     expect(
       n.state.utcOffset,
       resolveTzOffsetForInstant(
@@ -294,4 +298,151 @@ void main() {
     expect(n.state.utcOffset, -4.0);
     expect(n.state.timeZoneId, _nyc);
   });
+
+  // ── Relocation status label coherence (swe-dashboard/118) ──────────────────
+  //
+  // The status label (contextTzStatusProvider) must show the offset the
+  // notifier committed. In anchorJd mode the committed offset is instant-
+  // derived; a fall-back fold makes the *reconstructed* wall time ambiguous, so
+  // deriving the label from the wall time re-picked the other occurrence and
+  // contradicted the UTC field. These read the REAL provider through a
+  // container, not a copy of its math.
+  Future<({ContextBarNotifier n, ProviderContainer c})> container() async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final c = ProviderContainer(
+      overrides: [
+        sharedPrefsProvider.overrideWithValue(prefs),
+        epheSeedProvider.overrideWithValue(const EpheBootstrap.none()),
+      ],
+    );
+    addTearDown(c.dispose);
+    return (n: c.read(contextBarProvider.notifier), c: c);
+  }
+
+  // NY fall-back 2021: 02:00 EDT → 01:00 EST on 7 Nov, so local 01:00–02:00
+  // occurs twice — first as EDT (−4, 05:xx UTC), then as EST (−5, 06:xx UTC).
+  // The second occurrence is the one that exposed the bug (committed −5, wall
+  // re-resolved to −4); the first is included so both fold occurrences are
+  // covered.
+  for (final (hourUtc, label, wantOffset) in const [
+    (5, 'first occurrence (EDT)', -4.0),
+    (6, 'second occurrence (EST)', -5.0),
+  ]) {
+    test('anchorJd relocation onto a NY fall-back fold shows the committed '
+        'offset, not the re-resolved wall offset — $label', () async {
+      final (:n, :c) = await container();
+      n.setAnchorJd(true);
+      // Link elsewhere, then relocate to NY holding the folded instant fixed.
+      n.setLocation(
+        latitude: 35.7,
+        longitude: 139.7,
+        cityLabel: 'Tokyo',
+        timeZoneId: 'Asia/Tokyo',
+      );
+      n.setJd(ju.dateTimeToJd(DateTime.utc(2021, 11, 7, hourUtc, 30)));
+      n.setLocation(
+        latitude: 40.7,
+        longitude: -74.0,
+        cityLabel: 'New York',
+        timeZoneId: _nyc,
+      );
+
+      expect(
+        n.state.utcOffset,
+        wantOffset,
+        reason: 'committed instant-derived offset',
+      );
+      final status = c.read(contextTzStatusProvider);
+      expect(status, isNotNull);
+      expect(
+        status!.resolution.offsetHours,
+        n.state.utcOffset,
+        reason: 'the label offset must equal the committed offset at a fold',
+      );
+      expect(
+        status.resolution.warnings,
+        contains(TzWarning.ambiguous),
+        reason: 'the folded wall clock is still flagged — just not mis-valued',
+      );
+    });
+  }
+
+  // ── Rise/Set search window under relocation (swe-dashboard/118) ────────────
+  //
+  // utcOffset is a *compute* input for Rise/Set: localMidnightStart anchors the
+  // search on the local calendar day (lesson 019f9071), so a relocation must
+  // move the window to the new zone's local midnight. Asserting the offset
+  // value alone (the old test) would not catch a broken offset→window wiring —
+  // these drive the real function the provider feeds riseTrans.
+  test('anchorJd relocation moves the Rise/Set local-midnight window to the '
+      'new zone', () async {
+    // Link NY (EDT −4), then relocate to Tokyo (+9) holding the instant.
+    final n = await linkedAt(_c(1985, 7, 15, 14, 30));
+    expect(n.state.utcOffset, -4.0);
+    final staleWindow = localMidnightStart(n.state.jdUt, n.state.utcOffset);
+
+    n.setAnchorJd(true);
+    n.setLocation(
+      latitude: 35.7,
+      longitude: 139.7,
+      cityLabel: 'Tokyo',
+      timeZoneId: 'Asia/Tokyo',
+    );
+    expect(n.state.utcOffset, 9.0, reason: 'JST at the fixed instant');
+
+    final window = localMidnightStart(n.state.jdUt, n.state.utcOffset);
+    expect(
+      window,
+      isNot(staleWindow),
+      reason: 'a relocation that left the offset stale would not move the day',
+    );
+    // The window is local-midnight-in-UT for the NEW zone: reading it back with
+    // the +9 offset must land on Tokyo midnight (NY 14:30 EDT = 18:30Z = Tokyo
+    // 03:30 on the 16th, whose local midnight is 15:00Z on the 15th).
+    final localMid = ju.localCivilOf(
+      window,
+      calendar: Calendar.gregorian,
+      scale: n.state.timeScale,
+      offsetHours: 9.0,
+    );
+    expect((localMid.year, localMid.month, localMid.day), (1985, 7, 16));
+    expect(
+      (localMid.hour, localMid.minute),
+      (0, 0),
+      reason: 'window anchors on Tokyo local midnight',
+    );
+  });
+
+  test(
+    'Rise/Set window under anchorJd uses the DST-transition-day offset',
+    () async {
+      // Relocate onto the NY fall-back day at an instant past the transition
+      // (EST −5). The window must anchor on the local day for −5.
+      final (:n, :c) = await container();
+      n.setAnchorJd(true);
+      n.setJd(ju.dateTimeToJd(DateTime.utc(2021, 11, 7, 6, 30)));
+      n.setLocation(
+        latitude: 40.7,
+        longitude: -74.0,
+        cityLabel: 'New York',
+        timeZoneId: _nyc,
+      );
+      expect(n.state.utcOffset, -5.0, reason: 'EST after the fall-back');
+
+      final window = localMidnightStart(n.state.jdUt, n.state.utcOffset);
+      final localMid = ju.localCivilOf(
+        window,
+        calendar: Calendar.gregorian,
+        scale: n.state.timeScale,
+        offsetHours: -5.0,
+      );
+      expect((localMid.year, localMid.month, localMid.day), (2021, 11, 7));
+      expect(
+        (localMid.hour, localMid.minute),
+        (0, 0),
+        reason: 'window anchors on the local day for the committed offset',
+      );
+    },
+  );
 }

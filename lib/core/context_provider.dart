@@ -57,19 +57,45 @@ final contextTzStatusProvider =
       final zoneId = ctx.timeZoneId;
       if (zoneId == null) return null;
       final jdu = JdUtils(ref.watch(sweProvider));
+
+      // Show the offset the notifier actually committed, which is always the
+      // instant→offset mapping for the canonical Moment: every linked-offset
+      // setter leaves (jdUt, utcOffset) internally consistent, so the instant
+      // resolver reproduces the committed value exactly — relocation mode too.
+      // Deriving the shown offset from the reconstructed *wall* time instead
+      // (the old resolveTzOffsetForLocal call) diverged at a fall-back fold
+      // under anchorJd: the instant resolved to EST while the ambiguous wall
+      // time re-picked EDT, so this label contradicted the UTC field
+      // (swe-dashboard/118).
+      final instant = resolveTzOffsetForInstant(
+        zoneId,
+        jdu.civilFieldsOn(ctx.jdUt, Calendar.gregorian),
+      );
+      if (!instant.resolved) return (zoneId: zoneId, resolution: instant);
+
+      // The gap/fold warnings live only on the wall-time resolver: they say the
+      // *displayed* local clock is a time that never occurs or occurs twice in
+      // this zone — a genuine "verify the moment you mean" signal worth keeping
+      // whichever way the Moment was entered. Merge them onto the instant result
+      // (whose exact offset/abbreviation win) so a real ambiguity is never
+      // dropped while the shown value stays canonical.
       final local = jdu.localCivilOf(
         ctx.jdUt,
         calendar: ctx.calendar,
         scale: ctx.timeScale,
         offsetHours: ctx.utcOffset,
       );
-      // Resolve in Gregorian (tzdata's calendar), matching the notifier — so the
-      // warning shown here is for the same offset the notifier committed.
+      final wall = resolveTzOffsetForLocal(
+        zoneId,
+        jdu.toGregorianCivil(local, ctx.calendar),
+      );
       return (
         zoneId: zoneId,
-        resolution: resolveTzOffsetForLocal(
-          zoneId,
-          jdu.toGregorianCivil(local, ctx.calendar),
+        resolution: TzOffset(
+          offsetHours: instant.offsetHours,
+          resolved: true,
+          warnings: {...instant.warnings, ...wall.warnings},
+          abbreviation: instant.abbreviation,
         ),
       );
     });

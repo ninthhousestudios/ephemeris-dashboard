@@ -324,6 +324,19 @@ the derivation lives only in the notifier's setters, and computes take
 `(Ephemeris, Moment)` with no notifier access (honours the "Moment comes from
 the series step, never the Context" invariant — this is the Context side).
 
+**Status label derivation (`contextTzStatusProvider`, swe-dashboard/118):** the
+label shows the offset/abbreviation the notifier *committed*, which is always
+the instant→offset mapping for the canonical Moment (`resolveTzOffsetForInstant`
+on `jdUt`) — every linked-offset setter leaves `(jdUt, utcOffset)` internally
+consistent, so the instant resolver reproduces the committed value in every
+path, relocation included. The gap/fold warnings come from the wall-time
+resolver (`resolveTzOffsetForLocal` on the reconstructed local clock) and are
+merged onto that result: they flag a *displayed* clock that occurs twice/never,
+so the warning survives while the shown value stays canonical. Deriving the
+shown offset from the wall time instead diverged at a fall-back fold under
+`anchorJd` (instant picked EST, ambiguous wall re-picked EDT — the label
+contradicted the UTC field).
+
 ## Context bar widgets (lib/widgets/context_bar/)
 
 `ContextBar` is a thin composition shell (~310 lines) that arranges shared field
