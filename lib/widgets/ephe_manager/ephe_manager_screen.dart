@@ -9,6 +9,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/atlas/atlas.dart';
+import '../../core/atlas/atlas_catalog.dart';
 import '../../core/ephe/catalog.dart';
 import '../../core/ephe/dir_provider.dart';
 import '../../core/ephe/downloader.dart';
@@ -83,6 +85,8 @@ class _EphemerisManagerScreenState
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _buildAtlasSection(resolved),
+            const Divider(height: 1),
             if (_selected.isNotEmpty) _buildSelectionToolbar(allFiles),
             _buildDirectoryHeader(settings, resolved ?? ''),
             const Divider(height: 1),
@@ -108,6 +112,204 @@ class _EphemerisManagerScreenState
         );
       },
     );
+  }
+
+  // --- City atlas (GeoNames) -------------------------------------------
+  // Not ephemeris files, but the manager is the natural home for optional
+  // data downloads. Atlas tiers land in the `atlas/` subdir (unscanned) and
+  // never reach the engine; the loader picks the biggest installed tier.
+
+  Widget _buildAtlasSection(String? dir) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Text(
+            'City Atlas',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 2, 16, 8),
+          child: Text(
+            'Location search uses a bundled list of cities (population ≥ 5000). '
+            'Download a larger tier for finer coverage — the biggest installed '
+            'tier replaces the bundle. Data © GeoNames (CC BY 4.0).',
+            style: TextStyle(fontSize: 12),
+          ),
+        ),
+        for (final r in atlasReleases) _atlasRow(dir, r),
+      ],
+    );
+  }
+
+  Widget _atlasRow(String? dir, AtlasRelease r) {
+    final downloading = _liveStatus[r.filename] == EpheFileStatus.downloading;
+    final installed = _isAtlasInstalled(dir, r);
+    final sizeMb = (r.sizeBytes / (1024 * 1024)).toStringAsFixed(1);
+    final progress = _progress[r.filename];
+
+    final Widget trailing;
+    if (downloading) {
+      trailing = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              value: (progress ?? 0) > 0 ? progress : null,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Cancel',
+            icon: const Icon(Icons.close),
+            onPressed: () => _handleAtlasCancel(dir, r),
+          ),
+        ],
+      );
+    } else if (installed) {
+      trailing = IconButton(
+        tooltip: 'Delete',
+        icon: const Icon(Icons.delete_outline),
+        onPressed: () => _deleteAtlasRelease(dir, r),
+      );
+    } else {
+      trailing = IconButton(
+        tooltip: 'Download',
+        icon: const Icon(Icons.download_outlined),
+        onPressed: dir == null ? null : () => _runAtlasDownload(dir, r),
+      );
+    }
+
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        installed ? Icons.check_circle_outline : Icons.public,
+        color: installed ? Theme.of(context).colorScheme.primary : null,
+      ),
+      title: Text(r.displayName),
+      subtitle: Text(
+        '~${(r.approxCities / 1000).round()}k cities · $sizeMb MB download',
+      ),
+      trailing: trailing,
+    );
+  }
+
+  bool _isAtlasInstalled(String? dir, AtlasRelease r) {
+    if (dir == null) return false;
+    return File('$dir/$atlasSubdir/${r.filename}').existsSync();
+  }
+
+  Future<void> _runAtlasDownload(String dir, AtlasRelease r) async {
+    final downloader = ref.read(downloaderProvider);
+    final cancel = CancelToken();
+    setState(() {
+      _liveStatus[r.filename] = EpheFileStatus.downloading;
+      _progress[r.filename] = 0;
+      _cancels[r.filename] = cancel;
+    });
+
+    try {
+      await for (final p in downloader.download(
+        spec: r.toDownloadSpec(),
+        destDir: dir,
+        cancel: cancel,
+      )) {
+        if (!mounted) return;
+        setState(() => _progress[r.filename] = p.fraction);
+      }
+      if (!mounted) return;
+      setState(() {
+        _liveStatus.remove(r.filename);
+        _progress.remove(r.filename);
+        _cancels.remove(r.filename);
+      });
+      // Atlas files aren't scanned; the search gazetteer is the only consumer.
+      ref.invalidate(atlasProvider);
+    } on DownloadFailed catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _liveStatus.remove(r.filename);
+        _progress.remove(r.filename);
+        _cancels.remove(r.filename);
+      });
+      if (cancel.isCancelled) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 6),
+            showCloseIcon: true,
+            content: Text(
+              'Atlas download failed (${r.displayName}): '
+              '${_shortError(e.message)}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _runAtlasDownload(dir, r),
+            ),
+          ),
+        );
+    }
+  }
+
+  void _handleAtlasCancel(String? dir, AtlasRelease r) {
+    final token = _cancels[r.filename];
+    if (token != null && !token.isCancelled) token.cancel('user-cancelled');
+    if (dir != null) {
+      final part = File('$dir/$atlasSubdir/${r.filename}.part');
+      if (part.existsSync()) {
+        try {
+          part.deleteSync();
+        } catch (_) {
+          /* best-effort */
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteAtlasRelease(String? dir, AtlasRelease r) async {
+    if (dir == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete ${r.displayName}?'),
+        content: const Text(
+          'This removes the downloaded atlas tier. Location search falls back '
+          'to the next-largest installed tier, or the bundled list.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final f = File('$dir/$atlasSubdir/${r.filename}');
+      if (f.existsSync()) f.deleteSync();
+      final part = File('$dir/$atlasSubdir/${r.filename}.part');
+      if (part.existsSync()) part.deleteSync();
+      ref.invalidate(atlasProvider);
+      setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+    }
   }
 
   Iterable<EpheFile> _buildAllFiles(EphemerisScan scan) sync* {
@@ -776,7 +978,7 @@ class _EphemerisManagerScreenState
 
     try {
       await for (final p in downloader.download(
-        entry: entry,
+        spec: entry.toDownloadSpec(),
         destDir: dir,
         cancel: cancel,
         confirmLargeDownload: (size) => _confirmLarge(entry.filename, size),

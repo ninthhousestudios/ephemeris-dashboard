@@ -4,6 +4,9 @@
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../ephe/dir_provider.dart';
+import 'atlas_store.dart';
+
 /// One city in the bundled gazetteer.
 ///
 /// Geocoding data © GeoNames (CC BY 4.0). The [tz] IANA zone is retained from
@@ -98,9 +101,18 @@ class InMemoryAtlas implements Atlas {
   }
 }
 
-/// Loads the bundled gazetteer once. Available on every platform (unlike the
-/// star catalog, this asset is bundled, not user-downloaded).
+/// Loads the gazetteer once, preferring a higher-coverage tier the user has
+/// downloaded into `<ephe-root>/atlas/` over the bundled cities5000. On web
+/// (no managed filesystem) this is always the bundle.
+///
+/// Not reactive to the filesystem: the ephemeris manager invalidates this
+/// provider when an atlas tier is downloaded or deleted.
 final atlasProvider = FutureProvider<Atlas>((ref) async {
+  final dir = ref.watch(resolvedEphePathProvider);
+  if (dir != null) {
+    final installed = await loadInstalledAtlasTsv(dir);
+    if (installed != null) return InMemoryAtlas.parse(installed);
+  }
   final tsv = await rootBundle.loadString('assets/atlas/cities.tsv');
   return InMemoryAtlas.parse(tsv);
 });

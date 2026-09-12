@@ -73,7 +73,10 @@ void main() {
       sizeBytes: payload.length,
     );
     final events = <DownloadProgress>[];
-    await for (final p in dl.download(entry: entry, destDir: tmp.path)) {
+    await for (final p in dl.download(
+      spec: entry.toDownloadSpec(),
+      destDir: tmp.path,
+    )) {
       events.add(p);
     }
     final out = File('${tmp.path}/payload.bin');
@@ -101,7 +104,10 @@ void main() {
     );
 
     await expectLater(() async {
-      await for (final _ in dl.download(entry: entry, destDir: tmp.path)) {}
+      await for (final _ in dl.download(
+        spec: entry.toDownloadSpec(),
+        destDir: tmp.path,
+      )) {}
     }, throwsA(isA<DownloadFailed>()));
     // On MD5 failure, the .part file must be cleaned up.
     expect(File('${tmp.path}/payload.bin.part').existsSync(), isFalse);
@@ -126,7 +132,10 @@ void main() {
       url: url,
       sizeBytes: payload.length,
     );
-    await for (final _ in dl.download(entry: entry, destDir: tmp.path)) {}
+    await for (final _ in dl.download(
+      spec: entry.toDownloadSpec(),
+      destDir: tmp.path,
+    )) {}
 
     final out = File('${tmp.path}/payload.bin');
     expect(out.existsSync(), isTrue);
@@ -143,7 +152,7 @@ void main() {
     );
     await expectLater(() async {
       await for (final _ in dl.download(
-        entry: entry,
+        spec: entry.toDownloadSpec(),
         destDir: tmp.path,
         confirmLargeDownload: (_) async => false,
       )) {}

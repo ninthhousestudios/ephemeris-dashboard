@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Copyright (C) 2026 Ninth House Studios LLC
 
+import 'download_spec.dart';
 import 'types.dart';
 
 /// One entry in the known-download catalog.
@@ -36,6 +37,20 @@ class CatalogEntry {
   /// Pretty name used in the manager UI (e.g. 'Eros (433)'). Falls back
   /// to [filename] when absent.
   final String? displayName;
+
+  /// Lower this ephemeris entry onto the dataset-agnostic transfer unit the
+  /// downloader consumes. The [BodyFamily] stays here: when no [md5] is
+  /// pinned, a `.se1`/`.eph` payload is sniffed, with the size floor dropped
+  /// for numbered asteroids (legitimately tiny for faint bodies).
+  DownloadSpec toDownloadSpec() => DownloadSpec(
+    url: url,
+    filename: filename,
+    subdir: subdir,
+    sizeBytes: sizeBytes,
+    md5: md5,
+    sniffEphePayload: filename.endsWith('.se1') || filename.endsWith('.eph'),
+    minSniffBytes: family == BodyFamily.numberedAsteroid ? 0 : 16 * 1024,
+  );
 }
 
 /// JPL DE files served from ephe.scryr.io. MD5 values copied from the

@@ -10,8 +10,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'catalog.dart';
-import 'types.dart';
+import 'download_spec.dart';
 import 'validation.dart';
 
 class DownloadProgress {
@@ -59,7 +58,7 @@ class EphemerisDownloader {
   /// downloads via HTTP Range, verifies MD5 (when provided), and retries
   /// network errors. Uses curl when available; falls back to dio.
   Stream<DownloadProgress> download({
-    required CatalogEntry entry,
+    required DownloadSpec spec,
     required String destDir,
     CancelToken? cancel,
     ConfirmLargeDownload? confirmLargeDownload,
@@ -67,19 +66,20 @@ class EphemerisDownloader {
     final controller = StreamController<DownloadProgress>();
 
     Future<void> run() async {
-      // Catalog entries for numbered asteroids live in ast*/ subdirs. Make
-      // sure it exists before writing — a fresh managed dir won't have it.
-      final targetDir = entry.subdir.isEmpty
+      // Some specs target a subdir (numbered asteroids in ast*/, the city
+      // atlas in atlas/). Make sure it exists before writing — a fresh
+      // managed dir won't have it.
+      final targetDir = spec.subdir.isEmpty
           ? destDir
-          : '$destDir/${entry.subdir}';
-      if (entry.subdir.isNotEmpty) {
+          : '$destDir/${spec.subdir}';
+      if (spec.subdir.isNotEmpty) {
         final d = Directory(targetDir);
         if (!d.existsSync()) d.createSync(recursive: true);
       }
-      final partPath = '$targetDir/${entry.filename}.part';
-      final finalPath = '$targetDir/${entry.filename}';
+      final partPath = '$targetDir/${spec.filename}.part';
+      final finalPath = '$targetDir/${spec.filename}';
 
-      final sizeHint = entry.sizeBytes ?? 0;
+      final sizeHint = spec.sizeBytes ?? 0;
       if (sizeHint > kLargeDownloadThreshold && confirmLargeDownload != null) {
         final ok = await confirmLargeDownload(sizeHint);
         if (!ok) throw const DownloadFailed('Cancelled by user.');
@@ -92,7 +92,7 @@ class EphemerisDownloader {
       final engine = await _pickEngine();
       if (engine == _Engine.curl) {
         await _runCurl(
-          entry: entry,
+          spec: spec,
           partPath: partPath,
           sizeHint: sizeHint,
           cancel: cancel,
@@ -100,7 +100,7 @@ class EphemerisDownloader {
         );
       } else {
         await _runDio(
-          entry: entry,
+          spec: spec,
           partPath: partPath,
           sizeHint: sizeHint,
           cancel: cancel,
@@ -109,7 +109,7 @@ class EphemerisDownloader {
       }
 
       await _finalize(
-        entry: entry,
+        spec: spec,
         partPath: partPath,
         finalPath: finalPath,
         controller: controller,
@@ -145,7 +145,7 @@ class EphemerisDownloader {
   /// (`--fail`), and transient retries (`--retry 3`). We poll the .part
   /// file size for progress — cheaper than parsing curl's stderr.
   Future<void> _runCurl({
-    required CatalogEntry entry,
+    required DownloadSpec spec,
     required String partPath,
     required int sizeHint,
     required CancelToken? cancel,
@@ -164,7 +164,7 @@ class EphemerisDownloader {
       '1',
       '-o',
       partPath,
-      entry.url,
+      spec.url,
     ];
 
     final proc = await Process.start('curl', args);
@@ -216,7 +216,7 @@ class EphemerisDownloader {
   /// but measurably slower on bulk binary. Used when curl isn't on PATH
   /// (or on web — though the manager screen gates web out earlier).
   Future<void> _runDio({
-    required CatalogEntry entry,
+    required DownloadSpec spec,
     required String partPath,
     required int sizeHint,
     required CancelToken? cancel,
@@ -238,7 +238,7 @@ class EphemerisDownloader {
 
       try {
         await _dio.download(
-          entry.url,
+          spec.url,
           partPath,
           cancelToken: cancel,
           deleteOnError: false,
@@ -274,7 +274,7 @@ class EphemerisDownloader {
         // 4xx (except 416/408) means the catalog URL is wrong or the
         // server rejects us — no amount of retry will help.
         if (status != null && status >= 400 && status < 500 && status != 408) {
-          throw DownloadFailed('HTTP $status from ${entry.url}');
+          throw DownloadFailed('HTTP $status from ${spec.url}');
         }
         final retriable =
             e.type == DioExceptionType.connectionError ||
@@ -295,30 +295,29 @@ class EphemerisDownloader {
   /// Verify MD5 (if the catalog provides one) or sniff for HTML-error-page
   /// payloads, then rename `.part` → final and emit the 100% tick.
   Future<void> _finalize({
-    required CatalogEntry entry,
+    required DownloadSpec spec,
     required String partPath,
     required String finalPath,
     required StreamController<DownloadProgress> controller,
   }) async {
     final partFileHandle = File(partPath);
-    if (entry.md5 != null) {
+    if (spec.md5 != null) {
       // Stream the hash so we don't load a multi-GB JPL file into RAM.
       final digest = await md5.bind(partFileHandle.openRead()).last;
-      if (digest.toString() != entry.md5) {
+      if (digest.toString() != spec.md5) {
         partFileHandle.deleteSync();
         throw const DownloadFailed('MD5 mismatch.');
       }
-    } else if (entry.filename.endsWith('.se1') ||
-        entry.filename.endsWith('.eph')) {
-      // No hash in the catalog — at least sanity-check that we didn't
-      // write an HTML error page or a tiny truncated blob to disk.
-      // Numbered-asteroid short files on scryr.io can legitimately be
-      // ~14 KB for faint/short-arc bodies, so drop the size floor for
-      // that family — the HTML-page sniff still rejects error bodies.
-      final minBytes = entry.family == BodyFamily.numberedAsteroid
-          ? 0
-          : 16 * 1024;
-      final rej = validateEpheFile(partFileHandle, minBytes: minBytes);
+    } else if (spec.sniffEphePayload) {
+      // No hash to pin — at least sanity-check that we didn't write an
+      // HTML error page or a tiny truncated blob to disk. Numbered-asteroid
+      // short files on scryr.io can legitimately be ~14 KB for faint bodies,
+      // so the spec drops the size floor for that family — the HTML-page
+      // sniff still rejects error bodies.
+      final rej = validateEpheFile(
+        partFileHandle,
+        minBytes: spec.minSniffBytes,
+      );
       if (rej != null) {
         partFileHandle.deleteSync();
         throw DownloadFailed(
