@@ -19,7 +19,7 @@ library;
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
-import 'jd_utils.dart' show Civil;
+import 'civil.dart' show Civil;
 
 /// Reasons a derived offset should not be presented as authoritative.
 enum TzWarning {

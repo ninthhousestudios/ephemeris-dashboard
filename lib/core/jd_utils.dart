@@ -2,25 +2,15 @@
 // Copyright (C) 2026 Ninth House Studios LLC
 
 import 'calendar.dart';
+import 'civil.dart';
 import 'output_clock.dart';
 import 'swe_utils.dart';
 import 'time_scale.dart';
 
-/// A civil date-time as raw integer fields.
-///
-/// Dart's [DateTime] is proleptic Gregorian and silently rolls a date it cannot
-/// represent (e.g. `DateTime.utc(1900, 2, 29)` → 1 Mar 1900), so it is an
-/// unsound carrier for a calendar-aware civil value: a Julian-only date such as
-/// 29 Feb 1900 (a valid Julian leap day) would not survive a round-trip. These
-/// fields do, because nothing normalises them behind the calendar's back.
-typedef Civil = ({
-  int year,
-  int month,
-  int day,
-  int hour,
-  int minute,
-  int second,
-});
+// Civil lives in its own leaf file (civil.dart) so pure consumers can carry a
+// civil value without importing this engine-coupled file. Re-exported here so
+// the many jd_utils importers keep seeing Civil without a second import.
+export 'civil.dart' show Civil;
 
 /// The widest Julian Day whose derived civil view is trustworthy.
 ///
