@@ -74,6 +74,19 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
   gone with stateless `swisseph_rs`; see ADR-0002.)
 - **JD is canonical** — the Moment is a Julian Day; civil date/time/offset is a
   derived, advisory view. Editing a civil field computes a new Moment.
+- **UTC offset is a derived projection when a zone is linked** — like Locked
+  Flags, the offset is conditionally a pure function of the Context: with a
+  `ContextBarState.timeZoneId` set (from a selected city), it re-derives from
+  (zone, Context date) whenever either changes, via `lib/core/timezone_offset.dart`
+  (swe-dashboard/112). Civil (wall-clock) entry preserves the wall time and
+  recomputes the Moment (`setLocalCivil`); instant entry keeps the instant and
+  shifts the display (`setJd`/`setNow`). A derived offset can still be wrong
+  (pre-1970, LMT, DST gap/fold), so it is surfaced with a verify-this warning and
+  never shown as authoritative. Editing the offset by hand detaches the zone;
+  selecting a city re-links; chart load sets an explicit offset and clears the
+  link. The offset is *not* display-only — it is a compute input for the Rise/Set
+  local-midnight search window. Derivation lives only in the notifier's setters,
+  so series steps never perturb it. Enforcement ledger row 20.
 - **Moment comes from the series step, never the Context** — in series mode a
   compute is repeated over the step Moments, whose start is the Context Moment
   (JD canonical) but whose subsequent values are *not*. This is structural, not

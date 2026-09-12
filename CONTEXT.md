@@ -25,6 +25,18 @@ _Avoid_: date, datetime, time (these name the advisory civil view, not the insta
 The observer point on Earth — latitude, longitude, and altitude — used for
 topocentric calculations and as part of the **Context**.
 
+**Time Zone**:
+The IANA zone (e.g. `America/New_York`) optionally *linked* to the **Context** by
+selecting a city, from which the **Moment**'s UTC offset is *derived* for the
+Context date — re-derived whenever the zone or date changes. A derived offset can
+still be wrong (pre-1970, Local Mean Time, a DST spring-forward gap or fall-back
+fold), so the context bar flags low-confidence cases and never shows them as
+authoritative. Editing the offset by hand *detaches* the link (the offset becomes
+manual); selecting a city re-links. (`ContextBarState.timeZoneId`; resolver in
+`timezone_offset.dart`.)
+_Avoid_: "timezone offset" as one thing — the zone is the link, the offset is the
+derived value.
+
 **Applied Globals**:
 The engine configuration snapshot (ephemeris path, sidereal mode, topocentric
 position, JPL file) derived from the **Context** at calculation time. With

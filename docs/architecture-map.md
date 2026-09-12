@@ -3,7 +3,12 @@
 Living reference for agents planning tasks. Read this first; do targeted
 `sutra_read` on specific symbols, not broad exploration sweeps.
 
-Last updated: 2026-07-27 (swe-dashboard/85: Body Selection module in core —
+Last updated: 2026-09-12 (swe-dashboard/112: the Context UTC offset is now a
+*derived* projection of a linked IANA time zone — `ContextBarState.timeZoneId`
++ `lib/core/timezone_offset.dart` resolver + `contextTzStatusProvider`. See
+"Context subsystem" and "Derived UTC offset" below).
+
+Earlier (swe-dashboard/85: Body Selection module in core —
 `BodySelection` registry + `BodyCatalog` replace the tab-provider imports that
 made core downstream of `lib/tabs/`. See "Body Selection" below).
 
@@ -267,9 +272,10 @@ Tabs access the engine two ways:
 
 | File | Key types |
 |------|-----------|
-| `context_state.dart` | `ContextBarState` — immutable: jdUt, calendar, timeScale, lat, lon, alt, zodiacRef, origin, epheSource. Also `contextBarPrefFields` — the declarative list of persisted fields, collocated with the state class; save and restore both fold over it (swe-dashboard/86). |
+| `context_state.dart` | `ContextBarState` — immutable: jdUt, calendar, timeScale, lat, lon, alt, cityLabel, `timeZoneId` (nullable — the linked IANA zone, or null when the offset is manual), zodiacRef, origin, epheSource. Also `contextBarPrefFields` — the declarative list of persisted fields, collocated with the state class; save and restore both fold over it (swe-dashboard/86). `timeZoneId` persists nullable like `jplFilename` (getter-returns-null erases the key). |
+| `timezone_offset.dart` | `TzOffset`, `TzWarning`, `resolveTzOffsetForLocal`, `resolveTzOffsetForInstant`, `ensureTimeZonesInitialized`, `describeTzWarnings` | The zone→offset resolver behind `package:timezone` (swe-dashboard/112). Pure, engine-free. Returns the offset *and* the confidence: `TzWarning.{preModern, lmt, gap, ambiguous}` (mean time is detected by a sub-minute offset, not just the `LMT` label). `resolveTzOffsetForLocal` treats a *wall time* as the anchor and detects DST gaps/folds by validity-around-the-transition; `resolveTzOffsetForInstant` maps a *UTC instant* (unambiguous, no gap/fold). |
 | `time_scale.dart` | `TimeScale` (ut1/tt/utc) — pure enum: which time scale the civil date/time is entered/displayed on (swetest `-ut`/`-t`/`-utc`). View-layer only, like `Calendar`; the Moment stays a UT1 JD. Threaded into `JdUtils.civilToJdUt`/`jdUtToCivil` (the scale-aware civil↔JD mapping), Context-owned via `ContextBarState.timeScale`. |
-| `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState. Individual setters: setDateTime, setJd, setCalendar, setTimeScale, setUtcOffset, setLatitude, setLongitude, setAltitude, setCityLabel, setOrigin, etc. `setDateTime`/`setJd` read/render civil fields on the current calendar; `setCalendar` re-renders the displayed date from the (canonical) jdUt. The date/time fields commit through `setJd` (having mapped scale-civil → UT1 via `JdUtils.civilToJdUt`). |
+| `context_provider.dart` | `ContextBarNotifier` — edits context, produces ContextBarState. Individual setters: setJd, setLocalCivil, setNow, setCalendar, setTimeScale, setUtcOffset, setLocation, setLatitude, setLongitude, setAltitude, setCityLabel, setOrigin, etc. `setCalendar` re-renders the displayed date from the (canonical) jdUt. The date/time fields commit **civil (wall-clock) fields through `setLocalCivil`** (which owns the civil→Moment mapping and, when a zone is linked, re-derives the offset for those fields — see below); the JD field and `setNow` commit an **instant through `setJd`**. Also hosts `contextTzStatusProvider` — the derived trust status of the linked zone for the current Context (ADR-0001 projection), consumed by the UTC field. |
 | `date_time_input.dart` | Shared helpers: fmtDate, fmtTime, fmtOffset, fmtCoord, parseDateFields, parseTimeFields, labeledField, dateTimeIconButton, showPreciseTimePicker, showInvalidEntry (the revert-and-report snackbar every context-bar entry field uses) |
 | `calc_context.dart` | `EffectiveContext` — merges context + flags into iflag, jdUt, lat, lon, alt, and resolves `userAyanId` against `userAyanamsasProvider` into the SE_SIDM_USER params (t0, value, `jdisut`) |
 | `user_ayanamsa.dart` | `UserAyanamsa` (id, optional name, t0, value, t0IsUt), `UserAyanamsaNotifier`/`userAyanamsasProvider`, `userAyanamsaLabel` (name or "User-defined N"), `resolveUserAyanamsa`, `UserAyanamsaListPrefCodec`. In core because the Ayanamsa tab and the context bar share one list (swe-dashboard/96). |
@@ -278,6 +284,32 @@ Tabs access the engine two ways:
 | `pref_field.dart` | `PrefField<S>` / `TypedPrefField<S, T>` / `PrefCodec<T>` — one persisted field as getter + copyWith-setter + codec + key. `PersistenceService` folds over a state owner's list in both directions, so a field is persisted by adding one row beside it rather than by keeping a writer, a reader and an applier in lockstep (swe-dashboard/86). |
 | `flag_provider.dart` | `FlagBarNotifier` — auto-links locked flags from context via ref.listen |
 | `active_tab.dart` | `activeTabProvider` (`StateProvider<AppTab>`) — the single source of truth for which tab is on screen, seeded from persistence; `activeTabIdProvider` is a derived `Provider<String>` over its `.name`. Lives in core, not `app_shell.dart`, because non-shell widgets set it (the file-in-use indicator jumps to Charts) and reaching it through the shell is what made app_shell → context_bar → file_in_use_indicator a cycle (swe-dashboard/81). |
+
+### Derived UTC offset (swe-dashboard/112)
+
+The offset is a derived projection of a linked zone, but the *direction* differs
+by entry kind, so the notifier has two derivation paths (both call
+`timezone_offset`):
+
+- **Civil (wall-clock) entry** — `setLocalCivil`, used by the date/time fields.
+  The wall time is the anchor: the offset is re-derived for it
+  (`resolveTzOffsetForLocal`, which detects DST gap/fold) and the canonical UT
+  Moment is recomputed to *keep the wall time*. This is why picking a city after
+  typing a birth time, or later moving the date across a DST boundary, gives the
+  same wall-clock birth time on the correct offset. (`jdUt` stays canonical and
+  stored; only its value moves.)
+- **Instant entry** — `setJd` / `setNow`, used by the JD field and Now. The
+  instant is the anchor: the offset is re-derived for it
+  (`resolveTzOffsetForInstant`, unambiguous) and the local *display* shifts.
+
+`setUtcOffset` (manual edit / dropdown pick) detaches the zone; `setLocation`
+with a non-empty `timeZoneId` (re)links; `loadFromChart` sets the chart's
+explicit offset and clears the link. `utcOffset` is not purely display — it is a
+compute input for the Rise/Set local-midnight search window — so deriving it
+correctly is a correctness win, not cosmetics. Series steps never re-derive it:
+the derivation lives only in the notifier's setters, and computes take
+`(Ephemeris, Moment)` with no notifier access (honours the "Moment comes from
+the series step, never the Context" invariant — this is the Context side).
 
 ## Context bar widgets (lib/widgets/context_bar/)
 
@@ -291,7 +323,7 @@ controller, focus node, and sync/commit logic.
 | `context_bar.dart` | `ContextBar` — layout shell, chart actions, calculate button |
 | `context_date_field.dart` | `ContextDateField` — date text + calendar picker |
 | `context_time_field.dart` | `ContextTimeField` — time text + clock picker; `showNowButton` param |
-| `context_utc_field.dart` | `ContextUtcField` — UTC offset text + half-hour dropdown |
+| `context_utc_field.dart` | `ContextUtcField` — UTC offset text (accepts arbitrary derived offsets, not just the half-hour dropdown) + half-hour quick-pick dropdown. When a zone is linked (`contextTzStatusProvider`) it shows a zone indicator: a subtle icon (tooltip = zone + abbreviation + offset) when confident, an amber warning when low-confidence (pre-1970/LMT/gap/fold), never presenting a flagged offset as fact. Editing the field detaches the zone (via `setUtcOffset`) |
 | `clock_selector.dart` | `ClockSelector` — output-clock dropdown (Standard/LMT/LAT; Standard uses the Context UTC offset, 0 = UT), drives `outputClockProvider` |
 | `time_scale_selector.dart` | `TimeScaleSelector` — time-scale dropdown (UT1/TT/UTC) for the civil time input; drives `ContextBarState.timeScale`. Tooltip surfaces the ΔT-vs-ephemeris consequence |
 | `context_jd_field.dart` | `ContextJdField` — Julian Day text input |
@@ -317,7 +349,8 @@ controller, focus node, and sync/commit logic.
 (`assets/atlas/cities.tsv`, GeoNames `cities5000`, ~70k rows, population-sorted)
 generated offline by `tool/gen_atlas.dart`. `search` returns name-prefix matches
 first then substring, each group in descending-population order. The `tz` column
-is carried but unused (reserved for a future approximate local-time feature).
+is the IANA zone fed to the derived-UTC-offset feature: `LocationSearchField`
+passes `hit.tz` to `setLocation(timeZoneId:)` (swe-dashboard/112).
 Bundled asset, so `atlasProvider` loads via `rootBundle` on every platform —
 unlike `starCatalogProvider`, which reads user-downloaded ephemeris files.
 Consumed only by `LocationSearchField`. No download tier by design (we don't host
