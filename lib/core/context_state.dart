@@ -22,6 +22,7 @@ class ContextBarState {
     this.altitude = 0.0,
     this.cityLabel = '',
     this.timeZoneId,
+    this.anchorJd = false,
     this.origin = Origin.geocentric,
     this.zodiacRef = ZodiacRef.tropical,
     this.eqRef = EqRef.trueEquinoxOfDate,
@@ -61,6 +62,20 @@ class ContextBarState {
   /// `timezone_offset.dart`.
   final String? timeZoneId;
 
+  /// Relocation mode: what a *location change* does to the Moment.
+  ///
+  /// - `false` (default): a city select keeps the entered **wall-clock time**
+  ///   and recomputes [jdUt] for the new zone — "same local time, elsewhere".
+  /// - `true`: a city select keeps the **instant** ([jdUt]) fixed and re-derives
+  ///   the local clock (offset) for the new place — the astrological
+  ///   *relocation chart* (angles/houses swing; body longitudes stay put).
+  ///
+  /// Scoped to the location-change path only. Editing the civil date/time
+  /// fields always sets a new wall clock and therefore always moves the
+  /// instant, regardless of this flag — see [ContextBarNotifier.setLocation]
+  /// vs [ContextBarNotifier.setLocalCivil].
+  final bool anchorJd;
+
   // Calculation options
   final Origin origin;
   final ZodiacRef zodiacRef;
@@ -88,6 +103,7 @@ class ContextBarState {
     double? altitude,
     String? cityLabel,
     Object? timeZoneId = _sentinel,
+    bool? anchorJd,
     Origin? origin,
     ZodiacRef? zodiacRef,
     EqRef? eqRef,
@@ -110,6 +126,7 @@ class ContextBarState {
       timeZoneId: identical(timeZoneId, _sentinel)
           ? this.timeZoneId
           : timeZoneId as String?,
+      anchorJd: anchorJd ?? this.anchorJd,
       origin: origin ?? this.origin,
       zodiacRef: zodiacRef ?? this.zodiacRef,
       eqRef: eqRef ?? this.eqRef,
@@ -137,6 +154,7 @@ class ContextBarState {
           altitude == other.altitude &&
           cityLabel == other.cityLabel &&
           timeZoneId == other.timeZoneId &&
+          anchorJd == other.anchorJd &&
           origin == other.origin &&
           zodiacRef == other.zodiacRef &&
           eqRef == other.eqRef &&
@@ -158,6 +176,7 @@ class ContextBarState {
     altitude,
     cityLabel,
     timeZoneId,
+    anchorJd,
     origin,
     zodiacRef,
     eqRef,
@@ -232,6 +251,12 @@ final contextBarPrefFields = <PrefField<ContextBarState>>[
     getter: (s) => s.timeZoneId,
     setter: (s, v) => s.copyWith(timeZoneId: v),
     codec: stringPref,
+  ),
+  _CtxPref<bool>(
+    key: 'ctx_anchor_jd',
+    getter: (s) => s.anchorJd,
+    setter: (s, v) => s.copyWith(anchorJd: v),
+    codec: boolPref,
   ),
   _CtxPref<Origin>(
     key: 'ctx_origin',

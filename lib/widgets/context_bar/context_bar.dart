@@ -14,6 +14,7 @@ import '../../core/jd_utils.dart';
 import '../../core/swe_utils_provider.dart';
 import '../../layout/responsive_layout.dart';
 import '../chart_file_dialog.dart';
+import 'anchor_jd_toggle.dart';
 import 'ayanamsa_selector.dart';
 import 'calendar_selector.dart';
 import 'clock_selector.dart';
@@ -270,6 +271,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               Expanded(child: LocationSearchField()),
             ],
           ),
+          const SizedBox(height: 4),
+          const Row(children: [Expanded(child: AnchorJdToggle())]),
           // Linked time zone (full width; self-hides when the offset is manual)
           const ContextTimeZoneLabel(),
           const Divider(height: 12),
@@ -416,6 +419,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         Expanded(child: LocationSearchField()),
                       ],
                     ),
+                    const SizedBox(height: _rowGap),
+                    const Row(children: [Expanded(child: AnchorJdToggle())]),
                     // Linked time zone (full width; self-hides when manual)
                     const ContextTimeZoneLabel(),
                   ],

@@ -217,6 +217,63 @@ void main() {
     );
   });
 
+  // ── Relocation mode (anchorJd, swe-dashboard/117) ──────────────────────────
+
+  test('relocation mode keeps the instant and re-derives the clock for the '
+      'new place', () async {
+    // Start linked to New York at a summer wall time (EDT, -4).
+    final n = await linkedAt(_c(1985, 7, 15, 14, 30));
+    final jdFixed = n.state.jdUt;
+    expect(n.state.utcOffset, -4.0);
+
+    n.setAnchorJd(true);
+    n.setLocation(
+      latitude: 35.7,
+      longitude: 139.7,
+      cityLabel: 'Tokyo',
+      timeZoneId: 'Asia/Tokyo',
+    );
+
+    expect(n.state.jdUt, jdFixed, reason: 'the instant is held fixed');
+    expect(n.state.timeZoneId, 'Asia/Tokyo');
+    expect(n.state.utcOffset, 9.0, reason: 'JST at that instant');
+    // The offset must be exactly what the instant→offset resolver gives for the
+    // new zone — this is what keeps the Rise/Set search window (which reads
+    // utcOffset as a compute input) coherent after a relocation.
+    expect(
+      n.state.utcOffset,
+      resolveTzOffsetForInstant(
+        'Asia/Tokyo',
+        ju.civilFieldsOn(jdFixed, Calendar.gregorian),
+      ).offsetHours,
+    );
+    // Same instant, new offset → the wall clock shifts. NY 14:30 EDT is
+    // 18:30 UTC; Tokyo (+9) reads that as 03:30 the next day.
+    expect(wallOf(n.state), (1985, 7, 16, 3, 30));
+  });
+
+  test('default mode keeps the wall clock on a place change (relocation off '
+      'contrast)', () async {
+    final n = await linkedAt(_c(1985, 7, 15, 14, 30));
+    expect(n.state.anchorJd, isFalse, reason: 'off by default');
+    final jdBefore = n.state.jdUt;
+
+    n.setLocation(
+      latitude: 35.7,
+      longitude: 139.7,
+      cityLabel: 'Tokyo',
+      timeZoneId: 'Asia/Tokyo',
+    );
+
+    expect(n.state.utcOffset, 9.0, reason: 'JST');
+    expect(wallOf(n.state), (1985, 7, 15, 14, 30), reason: 'wall time kept');
+    expect(
+      n.state.jdUt,
+      isNot(closeTo(jdBefore, 1e-9)),
+      reason: 'the instant moves so the wall clock can stay put',
+    );
+  });
+
   test('series-step Moments do not re-derive the Context offset', () async {
     final n = await linkedAt(_c(1985, 7, 15, 14, 30));
     expect(n.state.utcOffset, -4.0);

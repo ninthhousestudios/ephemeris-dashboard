@@ -83,8 +83,10 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
   shifts the display (`setJd`/`setNow`). A derived offset can still be wrong
   (pre-1970, LMT, DST gap/fold), so it is surfaced with a verify-this warning and
   never shown as authoritative. Editing the offset by hand detaches the zone;
-  selecting a city re-links; chart load sets an explicit offset and clears the
-  link. The offset is *not* display-only — it is a compute input for the Rise/Set
+  selecting a city re-links (keeping the wall clock by default, or holding the
+  instant fixed and re-deriving the clock when relocation mode
+  `ContextBarState.anchorJd` is on — swe-dashboard/117); chart load sets an
+  explicit offset and clears the link. The offset is *not* display-only — it is a compute input for the Rise/Set
   local-midnight search window. Derivation lives in the notifier's setters and
   its restore path (never a series step), so series steps never perturb it, and a
   linked offset re-derives on restart for the fresh Moment rather than restoring

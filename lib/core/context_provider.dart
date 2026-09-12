@@ -121,7 +121,9 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     // otherwise a summer-saved link restarts on a winter Moment still holding
     // the summer offset (swe-dashboard/113).
     if (state.timeZoneId != null) {
-      state = state.copyWith(utcOffset: _deriveOffsetForInstant(state.jdUt));
+      state = state.copyWith(
+        utcOffset: _deriveOffsetForInstant(state.jdUt, state.timeZoneId),
+      );
     }
   }
 
@@ -134,18 +136,19 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   /// consistent. Civil (wall-clock) entry goes through [setLocalCivil] instead,
   /// which keeps the wall time and moves the instant.
   void setJd(double jd) {
-    final offset = _deriveOffsetForInstant(jd);
+    final offset = _deriveOffsetForInstant(jd, state.timeZoneId);
     state = state.copyWith(jdUt: jd, utcOffset: offset);
     // jd is not persisted; a re-derived offset is, so save only when a zone
     // could have changed it.
     if (state.timeZoneId != null) _save();
   }
 
-  /// The offset a linked zone implies for the UTC instant [jd], keeping the
-  /// instant (letting the local display shift). UTC→local is unambiguous, so no
-  /// gap/fold arises here. Returns the current offset when no zone is linked.
-  double _deriveOffsetForInstant(double jd) {
-    final zoneId = state.timeZoneId;
+  /// The offset [zoneId] implies for the UTC instant [jd], keeping the instant
+  /// (letting the local display shift). UTC→local is unambiguous, so no gap/fold
+  /// arises here. [zoneId] is passed explicitly rather than read from state so
+  /// [setLocation]'s relocation branch can derive for the *newly* linked zone
+  /// before it is committed. Returns the current offset when [zoneId] is null.
+  double _deriveOffsetForInstant(double jd, String? zoneId) {
     if (zoneId == null) return state.utcOffset;
     // tzdata is Gregorian-indexed and the instant→offset map is calendar-
     // independent, so query in Gregorian regardless of the display calendar.
@@ -202,6 +205,16 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     _save();
   }
 
+  /// Set relocation mode (see [ContextBarState.anchorJd]). Persisted, and
+  /// changes nothing on its own — it only steers the *next* location change:
+  /// when on, a city select keeps the instant ([jdUt]) fixed and re-derives the
+  /// local clock for the new place; when off, the wall clock is kept and the
+  /// instant moves.
+  void setAnchorJd(bool anchorJd) {
+    state = state.copyWith(anchorJd: anchorJd);
+    _save();
+  }
+
   /// Set the UTC offset by hand. A hand-picked offset is a manual override, so
   /// this *detaches* from any linked time zone (clears [ContextBarState.timeZoneId]);
   /// selecting a city re-links. Does not change the Moment (UT/JD) — only the
@@ -216,16 +229,25 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   /// re-derives for it (local display becomes the current time in that zone).
   void setNow() {
     final jd = _jdUtils.dateTimeToJd(DateTime.now().toUtc());
-    state = state.copyWith(jdUt: jd, utcOffset: _deriveOffsetForInstant(jd));
+    state = state.copyWith(
+      jdUt: jd,
+      utcOffset: _deriveOffsetForInstant(jd, state.timeZoneId),
+    );
     // jd not persisted; a re-derived offset is.
     if (state.timeZoneId != null) _save();
   }
 
   /// Set geographic location. [timeZoneId] links the offset to a zone (the
   /// selected city's IANA zone); a null/empty id leaves the offset manual and
-  /// clears any previous link. When a zone links, the current local wall time is
-  /// preserved and the offset re-derived for it (recomputing the Moment), so
-  /// entering a birth time before or after picking the city gives the same UT.
+  /// clears any previous link.
+  ///
+  /// When a zone links, what happens to the Moment depends on relocation mode
+  /// ([ContextBarState.anchorJd]):
+  /// - off (default): the current local wall time is preserved and the offset
+  ///   re-derived for it (recomputing the Moment), so entering a birth time
+  ///   before or after picking the city gives the same UT.
+  /// - on: the instant ([jdUt]) is held fixed and the offset re-derived for it,
+  ///   so the local clock shifts to the new place — a relocation chart.
   void setLocation({
     required double latitude,
     required double longitude,
@@ -239,13 +261,18 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     var jd = state.jdUt;
     var offset = state.utcOffset;
     if (zone != null) {
-      final local = _jdUtils.localCivilOf(
-        state.jdUt,
-        calendar: state.calendar,
-        scale: state.timeScale,
-        offsetHours: state.utcOffset,
-      );
-      (jd, offset) = _applyLocalWithZone(local, zone);
+      if (state.anchorJd) {
+        // Relocation: keep the instant, re-derive the clock for the new zone.
+        offset = _deriveOffsetForInstant(state.jdUt, zone);
+      } else {
+        final local = _jdUtils.localCivilOf(
+          state.jdUt,
+          calendar: state.calendar,
+          scale: state.timeScale,
+          offsetHours: state.utcOffset,
+        );
+        (jd, offset) = _applyLocalWithZone(local, zone);
+      }
     }
     state = state.copyWith(
       latitude: latitude,
