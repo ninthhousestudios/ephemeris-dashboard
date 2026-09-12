@@ -324,6 +324,7 @@ controller, focus node, and sync/commit logic.
 | `context_date_field.dart` | `ContextDateField` — date text + calendar picker |
 | `context_time_field.dart` | `ContextTimeField` — time text + clock picker; `showNowButton` param |
 | `context_utc_field.dart` | `ContextUtcField` — UTC offset text (accepts arbitrary derived offsets, not just the half-hour dropdown) + half-hour quick-pick dropdown. When a zone is linked (`contextTzStatusProvider`) it shows a zone indicator: a subtle icon (tooltip = zone + abbreviation + offset) when confident, an amber warning when low-confidence (pre-1970/LMT/gap/fold), never presenting a flagged offset as fact. Editing the field detaches the zone (via `setUtcOffset`) |
+| `context_time_zone_label.dart` | `ContextTimeZoneLabel` — full-width row beneath the Lat/Lon/Alt/City row naming the linked IANA zone as a *visible string* (not just a tooltip): `Time zone: Europe/Paris · CEST +02:00`, amber "approximate, verify" when low-confidence. Watches `contextTzStatusProvider`; self-hides (zero height) when the offset is manual (swe-dashboard/112) |
 | `clock_selector.dart` | `ClockSelector` — output-clock dropdown (Standard/LMT/LAT; Standard uses the Context UTC offset, 0 = UT), drives `outputClockProvider` |
 | `time_scale_selector.dart` | `TimeScaleSelector` — time-scale dropdown (UT1/TT/UTC) for the civil time input; drives `ContextBarState.timeScale`. Tooltip surfaces the ΔT-vs-ephemeris consequence |
 | `context_jd_field.dart` | `ContextJdField` — Julian Day text input |
