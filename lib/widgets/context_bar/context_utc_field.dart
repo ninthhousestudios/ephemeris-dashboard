@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/context_provider.dart';
 import '../../core/date_time_input.dart';
+import '../../core/timezone_offset.dart';
 
 class ContextUtcField extends ConsumerStatefulWidget {
   const ContextUtcField({super.key});
@@ -71,6 +72,8 @@ class _ContextUtcFieldState extends ConsumerState<ContextUtcField> {
     });
     if (_controller.text.isEmpty) _sync();
 
+    final tzStatus = ref.watch(contextTzStatusProvider);
+
     final labelStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
       color: Theme.of(context).colorScheme.onSurfaceVariant,
     );
@@ -113,7 +116,47 @@ class _ContextUtcFieldState extends ConsumerState<ContextUtcField> {
             ref.read(contextBarProvider.notifier).setUtcOffset(offset);
           },
         ),
+        if (tzStatus != null) _tzIndicator(context, tzStatus),
       ],
+    );
+  }
+
+  /// Zone-link indicator: a subtle icon when a linked zone drives the offset,
+  /// or an amber warning when the derived value is low-confidence (pre-1970,
+  /// LMT, or a DST gap/fold). Never presents a flagged offset as fact — the
+  /// tooltip names the zone and says to verify.
+  Widget _tzIndicator(
+    BuildContext context,
+    ({String zoneId, TzOffset resolution}) status,
+  ) {
+    final res = status.resolution;
+    final scheme = Theme.of(context).colorScheme;
+    final String message;
+    final IconData icon;
+    final Color color;
+    if (!res.resolved) {
+      message =
+          'Time zone "${status.zoneId}" is not in the database — the offset '
+          'was not derived. Verify it manually.';
+      icon = Icons.help_outline;
+      color = Colors.amber.shade800;
+    } else if (res.lowConfidence) {
+      message =
+          '${status.zoneId} (${res.abbreviation}): offset '
+          '${fmtOffset(res.offsetHours)} is approximate — '
+          '${describeTzWarnings(res.warnings)}. Verify against a birth record.';
+      icon = Icons.warning_amber_rounded;
+      color = Colors.amber.shade800;
+    } else {
+      message =
+          'Time zone: ${status.zoneId} (${res.abbreviation}, '
+          'UTC${fmtOffset(res.offsetHours)}). Editing the offset unlinks it.';
+      icon = Icons.public;
+      color = scheme.onSurfaceVariant;
+    }
+    return Tooltip(
+      message: message,
+      child: Icon(icon, size: 16, color: color),
     );
   }
 }

@@ -46,6 +46,7 @@ const _custom = ContextBarState(
   longitude: -0.1278,
   altitude: 35.0,
   cityLabel: 'London',
+  timeZoneId: 'Europe/London',
   origin: Origin.topocentric,
   zodiacRef: ZodiacRef.sidereal,
   eqRef: EqRef.meanEquinoxJ2000,

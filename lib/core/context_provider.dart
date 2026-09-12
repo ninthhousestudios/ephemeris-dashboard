@@ -11,6 +11,7 @@ import 'ephe/bootstrap.dart';
 import 'swe_utils_provider.dart';
 import 'swe_utils.dart';
 import 'time_scale.dart';
+import 'timezone_offset.dart';
 import 'user_ayanamsa.dart';
 import 'chart_io.dart';
 
@@ -39,6 +40,32 @@ final contextBarProvider =
       );
 
       return notifier;
+    });
+
+/// Trust status of the Context's linked time zone — null when the offset is
+/// manual/free (no zone linked).
+///
+/// A reactive projection (ADR-0001): the confidence of the *current* Context's
+/// derived offset, recomputed on any Context change, so the context bar can
+/// flag a low-confidence offset (pre-1970 / LMT / DST gap or fold) without the
+/// notifier storing derived state. Carries the zone id alongside its resolution
+/// for display. The offset math is shared with the notifier (`timezone_offset`),
+/// so a value shown here matches the one the notifier committed.
+final contextTzStatusProvider =
+    Provider<({String zoneId, TzOffset resolution})?>((ref) {
+      final ctx = ref.watch(contextBarProvider);
+      final zoneId = ctx.timeZoneId;
+      if (zoneId == null) return null;
+      final local = JdUtils(ref.watch(sweProvider)).localCivilOf(
+        ctx.jdUt,
+        calendar: ctx.calendar,
+        scale: ctx.timeScale,
+        offsetHours: ctx.utcOffset,
+      );
+      return (
+        zoneId: zoneId,
+        resolution: resolveTzOffsetForLocal(zoneId, local),
+      );
     });
 
 /// Manages context bar state with bidirectional JD ↔ DateTime sync.
@@ -86,9 +113,56 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   void _save() => _persistence.saveContextBar(state);
 
   /// Set Julian Day. The Moment is canonical; the civil view is derived on read.
+  ///
+  /// This is the *instant* entry path (a raw JD): the instant is kept and, when
+  /// a zone is linked, the offset re-derives for it so the local display stays
+  /// consistent. Civil (wall-clock) entry goes through [setLocalCivil] instead,
+  /// which keeps the wall time and moves the instant.
   void setJd(double jd) {
-    state = state.copyWith(jdUt: jd);
-    // jd not persisted
+    final offset = _deriveOffsetForInstant(jd);
+    state = state.copyWith(jdUt: jd, utcOffset: offset);
+    // jd is not persisted; a re-derived offset is, so save only when a zone
+    // could have changed it.
+    if (state.timeZoneId != null) _save();
+  }
+
+  /// The offset a linked zone implies for the UTC instant [jd], keeping the
+  /// instant (letting the local display shift). UTC→local is unambiguous, so no
+  /// gap/fold arises here. Returns the current offset when no zone is linked.
+  double _deriveOffsetForInstant(double jd) {
+    final zoneId = state.timeZoneId;
+    if (zoneId == null) return state.utcOffset;
+    final utc = _jdUtils.civilFieldsOn(jd, state.calendar);
+    final r = resolveTzOffsetForInstant(zoneId, utc);
+    return r.resolved ? r.offsetHours : state.utcOffset;
+  }
+
+  /// Map local wall-clock [local] to (canonical UT1 JD, offset). When [zoneId]
+  /// is linked the offset re-derives for these fields and the returned JD keeps
+  /// the wall time; otherwise the current offset is used unchanged.
+  (double, double) _applyLocalWithZone(Civil local, String? zoneId) {
+    var offset = state.utcOffset;
+    if (zoneId != null) {
+      final r = resolveTzOffsetForLocal(zoneId, local);
+      if (r.resolved) offset = r.offsetHours;
+    }
+    final jd = _jdUtils.localCivilToJdUt(
+      local,
+      calendar: state.calendar,
+      scale: state.timeScale,
+      offsetHours: offset,
+    );
+    return (jd, offset);
+  }
+
+  /// Commit local civil (wall-clock) fields as the new Moment — the civil-entry
+  /// path the date/time fields commit through. When a zone is linked the offset
+  /// is re-derived for these fields (preserving the wall time, recomputing the
+  /// canonical UT1 Moment); otherwise the current offset is used.
+  void setLocalCivil(Civil local) {
+    final (jd, offset) = _applyLocalWithZone(local, state.timeZoneId);
+    state = state.copyWith(jdUt: jd, utcOffset: offset);
+    _save();
   }
 
   /// Set the calendar civil dates are read/rendered in. The Moment (JD) stays
@@ -107,31 +181,59 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     _save();
   }
 
-  /// Set UTC offset (display only — does not change UT or JD).
+  /// Set the UTC offset by hand. A hand-picked offset is a manual override, so
+  /// this *detaches* from any linked time zone (clears [ContextBarState.timeZoneId]);
+  /// selecting a city re-links. Does not change the Moment (UT/JD) — only the
+  /// offset (which is itself a compute input for the Rise/Set search window, not
+  /// merely display).
   void setUtcOffset(double offsetHours) {
-    state = state.copyWith(utcOffset: offsetHours);
+    state = state.copyWith(utcOffset: offsetHours, timeZoneId: null);
     _save();
   }
 
-  /// Set "now" — current system time.
+  /// Set "now" — current system time. An instant, so a linked zone's offset
+  /// re-derives for it (local display becomes the current time in that zone).
   void setNow() {
     final jd = _jdUtils.dateTimeToJd(DateTime.now().toUtc());
-    state = state.copyWith(jdUt: jd);
-    // jd not persisted
+    state = state.copyWith(jdUt: jd, utcOffset: _deriveOffsetForInstant(jd));
+    // jd not persisted; a re-derived offset is.
+    if (state.timeZoneId != null) _save();
   }
 
-  /// Set geographic location.
+  /// Set geographic location. [timeZoneId] links the offset to a zone (the
+  /// selected city's IANA zone); a null/empty id leaves the offset manual and
+  /// clears any previous link. When a zone links, the current local wall time is
+  /// preserved and the offset re-derived for it (recomputing the Moment), so
+  /// entering a birth time before or after picking the city gives the same UT.
   void setLocation({
     required double latitude,
     required double longitude,
     double? altitude,
     String? cityLabel,
+    String? timeZoneId,
   }) {
+    final zone = (timeZoneId != null && timeZoneId.isNotEmpty)
+        ? timeZoneId
+        : null;
+    var jd = state.jdUt;
+    var offset = state.utcOffset;
+    if (zone != null) {
+      final local = _jdUtils.localCivilOf(
+        state.jdUt,
+        calendar: state.calendar,
+        scale: state.timeScale,
+        offsetHours: state.utcOffset,
+      );
+      (jd, offset) = _applyLocalWithZone(local, zone);
+    }
     state = state.copyWith(
       latitude: latitude,
       longitude: longitude,
       altitude: altitude,
       cityLabel: cityLabel,
+      jdUt: jd,
+      utcOffset: offset,
+      timeZoneId: zone,
     );
     _save();
   }
@@ -261,6 +363,9 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
       latitude: loc.latitude,
       longitude: loc.longitude,
       cityLabel: '${loc.city}, ${loc.country}',
+      // The chart carries its own explicit offset+DST; that is authoritative,
+      // so no zone link — the offset is manual until a city is selected.
+      timeZoneId: null,
     );
     _save();
   }

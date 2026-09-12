@@ -48,6 +48,7 @@ class _LocationSearchFieldState extends ConsumerState<LocationSearchField> {
           latitude: hit.lat,
           longitude: hit.lon,
           cityLabel: hit.label,
+          timeZoneId: hit.tz,
         );
     _focusNode.unfocus();
   }

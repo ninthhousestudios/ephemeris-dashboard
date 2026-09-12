@@ -7,10 +7,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/ephe/bootstrap.dart';
 import 'core/persistence.dart';
+import 'core/timezone_offset.dart';
 import 'core/user_ayanamsa.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // tzdata for deriving UTC offsets from a selected city's IANA zone
+  // (swe-dashboard/112). Idempotent, so the resolver can also self-init.
+  ensureTimeZonesInitialized();
   final ephe = await bootstrapEpheSource();
   final prefs = await SharedPreferences.getInstance();
   // Before any provider reads the store, so the Context and the user-defined

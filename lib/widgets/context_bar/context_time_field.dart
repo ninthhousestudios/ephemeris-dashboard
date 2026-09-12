@@ -60,21 +60,17 @@ class _ContextTimeFieldState extends ConsumerState<ContextTimeField> {
   /// Day — all in raw fields so the date is not normalised away.
   void _commitLocal(ContextBarState ctx, int hour, int minute, int second) {
     final local = _localOf(ctx);
-    final jdUt = _jdUtils.localCivilToJdUt(
-      (
-        year: local.year,
-        month: local.month,
-        day: local.day,
-        hour: hour,
-        minute: minute,
-        second: second,
-      ),
-      calendar: ctx.calendar,
-      scale: ctx.timeScale,
-      offsetHours: ctx.utcOffset,
-    );
     _selfUpdate = true;
-    ref.read(contextBarProvider.notifier).setJd(jdUt);
+    // The notifier owns the civil→Moment mapping (re-derives a linked zone's
+    // offset for these wall fields), so it is not pinned to the old offset here.
+    ref.read(contextBarProvider.notifier).setLocalCivil((
+      year: local.year,
+      month: local.month,
+      day: local.day,
+      hour: hour,
+      minute: minute,
+      second: second,
+    ));
   }
 
   void _sync() {

@@ -21,6 +21,7 @@ class ContextBarState {
     this.longitude = 0.0,
     this.altitude = 0.0,
     this.cityLabel = '',
+    this.timeZoneId,
     this.origin = Origin.geocentric,
     this.zodiacRef = ZodiacRef.tropical,
     this.eqRef = EqRef.trueEquinoxOfDate,
@@ -53,6 +54,13 @@ class ContextBarState {
   final double altitude; // meters
   final String cityLabel;
 
+  /// IANA time-zone id (e.g. `America/New_York`) linking [utcOffset] to a zone,
+  /// or null when the offset is manual/free. Set on city select; cleared when
+  /// the offset is edited directly. When set, [utcOffset] is a *derived*
+  /// projection of (this zone, the Context date) — see swe-dashboard/112 and
+  /// `timezone_offset.dart`.
+  final String? timeZoneId;
+
   // Calculation options
   final Origin origin;
   final ZodiacRef zodiacRef;
@@ -79,6 +87,7 @@ class ContextBarState {
     double? longitude,
     double? altitude,
     String? cityLabel,
+    Object? timeZoneId = _sentinel,
     Origin? origin,
     ZodiacRef? zodiacRef,
     EqRef? eqRef,
@@ -98,6 +107,9 @@ class ContextBarState {
       longitude: longitude ?? this.longitude,
       altitude: altitude ?? this.altitude,
       cityLabel: cityLabel ?? this.cityLabel,
+      timeZoneId: identical(timeZoneId, _sentinel)
+          ? this.timeZoneId
+          : timeZoneId as String?,
       origin: origin ?? this.origin,
       zodiacRef: zodiacRef ?? this.zodiacRef,
       eqRef: eqRef ?? this.eqRef,
@@ -124,6 +136,7 @@ class ContextBarState {
           longitude == other.longitude &&
           altitude == other.altitude &&
           cityLabel == other.cityLabel &&
+          timeZoneId == other.timeZoneId &&
           origin == other.origin &&
           zodiacRef == other.zodiacRef &&
           eqRef == other.eqRef &&
@@ -144,6 +157,7 @@ class ContextBarState {
     longitude,
     altitude,
     cityLabel,
+    timeZoneId,
     origin,
     zodiacRef,
     eqRef,
@@ -208,6 +222,15 @@ final contextBarPrefFields = <PrefField<ContextBarState>>[
     key: 'ctx_city_label',
     getter: (s) => s.cityLabel,
     setter: (s, v) => s.copyWith(cityLabel: v),
+    codec: stringPref,
+  ),
+  // Nullable like `jplFilename`: no linked zone must erase the key rather than
+  // leave the previous one behind for the next restore. The getter returning
+  // null is what does that.
+  _CtxPref<String>(
+    key: 'ctx_time_zone_id',
+    getter: (s) => s.timeZoneId,
+    setter: (s, v) => s.copyWith(timeZoneId: v),
     codec: stringPref,
   ),
   _CtxPref<Origin>(
