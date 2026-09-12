@@ -222,21 +222,15 @@ class _EphemerisManagerScreenState
         setState(() => _progress[r.filename] = p.fraction);
       }
       if (!mounted) return;
-      setState(() {
-        _liveStatus.remove(r.filename);
-        _progress.remove(r.filename);
-        _cancels.remove(r.filename);
-      });
       // Atlas files aren't scanned; the search gazetteer is the only consumer.
       ref.invalidate(atlasProvider);
-    } on DownloadFailed catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _liveStatus.remove(r.filename);
-        _progress.remove(r.filename);
-        _cancels.remove(r.filename);
-      });
-      if (cancel.isCancelled) return;
+    } catch (e) {
+      // Catch broadly: the shared downloader surfaces DownloadFailed, but raw
+      // FileSystemException can also escape (atlas/ createSync, .part md5
+      // openRead, final rename — e.g. a read-only ephe dir). Either way the
+      // row must not be stranded mid-download.
+      if (!mounted || cancel.isCancelled) return;
+      final message = e is DownloadFailed ? e.message : e.toString();
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -246,7 +240,7 @@ class _EphemerisManagerScreenState
             showCloseIcon: true,
             content: Text(
               'Atlas download failed (${r.displayName}): '
-              '${_shortError(e.message)}',
+              '${_shortError(message)}',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -256,6 +250,17 @@ class _EphemerisManagerScreenState
             ),
           ),
         );
+    } finally {
+      // Clear live state on every terminal outcome (success, DownloadFailed,
+      // raw FS error, cancel) so a row never keeps a dead spinner + cancel
+      // token.
+      if (mounted) {
+        setState(() {
+          _liveStatus.remove(r.filename);
+          _progress.remove(r.filename);
+          _cancels.remove(r.filename);
+        });
+      }
     }
   }
 
@@ -297,18 +302,37 @@ class _EphemerisManagerScreenState
       ),
     );
     if (confirmed != true || !mounted) return;
+    var removedFinal = false;
     try {
       final f = File('$dir/$atlasSubdir/${r.filename}');
-      if (f.existsSync()) f.deleteSync();
+      if (f.existsSync()) {
+        f.deleteSync();
+        removedFinal = true;
+      }
+      // Stale .part cleanup is best-effort and independent: its failure (e.g. a
+      // locked partial on Windows) must not suppress the invalidation below,
+      // or atlasProvider would keep serving the just-deleted tier.
       final part = File('$dir/$atlasSubdir/${r.filename}.part');
-      if (part.existsSync()) part.deleteSync();
-      ref.invalidate(atlasProvider);
-      setState(() {});
+      if (part.existsSync()) {
+        try {
+          part.deleteSync();
+        } catch (_) {
+          /* best-effort */
+        }
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Delete failed: $e')));
+      }
+    } finally {
+      // Availability changed the moment the final file was removed — rebuild
+      // the gazetteer regardless of how .part cleanup fared.
+      if (removedFinal && mounted) {
+        ref.invalidate(atlasProvider);
+        setState(() {});
+      }
     }
   }
 

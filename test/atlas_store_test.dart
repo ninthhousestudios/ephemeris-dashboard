@@ -24,6 +24,14 @@ void main() {
     File('${tmp.path}/$atlasSubdir/${r.filename}').writeAsBytesSync(gz);
   }
 
+  // Write non-gzip garbage under a tier's name — stands in for a truncated or
+  // corrupted download that slipped past the download-time md5 check.
+  void writeCorruptTier(AtlasRelease r) {
+    File(
+      '${tmp.path}/$atlasSubdir/${r.filename}',
+    ).writeAsBytesSync([0, 1, 2, 3, 4, 5]);
+  }
+
   // Highest-coverage first, so index 0 is the biggest tier, last is smallest.
   final biggest = atlasReleases.first;
   final smallest = atlasReleases.last;
@@ -44,4 +52,21 @@ void main() {
     writeTier(biggest, 'BIG');
     expect(await loadInstalledAtlasTsv(tmp.path), 'BIG');
   });
+
+  test(
+    'corrupt highest tier falls through to the next installed tier',
+    () async {
+      writeCorruptTier(biggest);
+      writeTier(smallest, 'SMALL');
+      expect(await loadInstalledAtlasTsv(tmp.path), 'SMALL');
+    },
+  );
+
+  test(
+    'corrupt sole tier returns null (caller falls back to the bundle)',
+    () async {
+      writeCorruptTier(biggest);
+      expect(await loadInstalledAtlasTsv(tmp.path), isNull);
+    },
+  );
 }
