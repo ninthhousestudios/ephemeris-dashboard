@@ -22,6 +22,7 @@ import 'context_jd_field.dart';
 import 'context_location_field.dart';
 import 'location_search_field.dart';
 import 'context_time_field.dart';
+import 'context_time_zone_label.dart';
 import 'context_utc_field.dart';
 import 'ephe_source_selector.dart';
 import 'eq_ref_selector.dart';
@@ -269,6 +270,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
               Expanded(child: LocationSearchField()),
             ],
           ),
+          // Linked time zone (full width; self-hides when the offset is manual)
+          const ContextTimeZoneLabel(),
           const Divider(height: 12),
           // ── OPTIONS ──
           Text('OPTIONS', style: sectionLabel),
@@ -413,6 +416,8 @@ class _ContextBarState extends ConsumerState<ContextBar> {
                         Expanded(child: LocationSearchField()),
                       ],
                     ),
+                    // Linked time zone (full width; self-hides when manual)
+                    const ContextTimeZoneLabel(),
                   ],
                 ),
               ),
