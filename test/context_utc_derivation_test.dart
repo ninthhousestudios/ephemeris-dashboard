@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:swe_dashboard/core/calendar.dart';
 import 'package:swe_dashboard/core/context_provider.dart';
 import 'package:swe_dashboard/core/context_state.dart';
 import 'package:swe_dashboard/core/ephemeris/runner.dart';
@@ -166,6 +167,55 @@ void main() {
       expect(n2.state.timeZoneId, isNull);
     },
   );
+
+  test('a Julian-calendar wall date resolves on the Gregorian frame', () async {
+    // tzdata is Gregorian-indexed. Julian 2021-03-07 == Gregorian 2021-03-20,
+    // which is past New York's 2021-03-14 spring-forward, so the offset is
+    // EDT (-4). Reading the fields as Gregorian March 7 would wrongly give
+    // EST (-5) with no warning — the TZ-002 defect.
+    final n = await notifier();
+    n.setUtcOffset(0);
+    n.setCalendar(Calendar.julian);
+    n.setLocalCivil(_c(2021, 3, 7, 12));
+    n.setLocation(
+      latitude: 40.7,
+      longitude: -74.0,
+      cityLabel: 'New York',
+      timeZoneId: _nyc,
+    );
+    expect(
+      n.state.utcOffset,
+      -4.0,
+      reason: 'the Gregorian equivalent (2021-03-20) is EDT',
+    );
+  });
+
+  test('a linked zone re-derives its offset on restore, discarding a stale '
+      'persisted value', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    // The shape a cross-season restart leaves behind: a linked NY zone with an
+    // offset no NY date produces (saved in one DST regime, restored on a "now"
+    // Moment in another — jdUt is not persisted). Restore must re-derive it.
+    await prefs.setString('ctx_time_zone_id', _nyc);
+    await prefs.setDouble('ctx_utc_offset', 9.0);
+    final store = PersistenceService(prefs);
+
+    final n = ContextBarNotifier(swe, store, true);
+    addTearDown(n.dispose);
+
+    expect(n.state.timeZoneId, _nyc, reason: 'the link restores');
+    expect(
+      n.state.utcOffset,
+      isNot(9.0),
+      reason: 'the stale persisted offset must be re-derived, not kept',
+    );
+    expect(
+      n.state.utcOffset,
+      anyOf(-5.0, -4.0),
+      reason: 'a real New York offset for the fresh Moment',
+    );
+  });
 
   test('series-step Moments do not re-derive the Context offset', () async {
     final n = await linkedAt(_c(1985, 7, 15, 14, 30));

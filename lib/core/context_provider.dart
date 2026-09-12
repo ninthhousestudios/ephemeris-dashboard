@@ -56,15 +56,21 @@ final contextTzStatusProvider =
       final ctx = ref.watch(contextBarProvider);
       final zoneId = ctx.timeZoneId;
       if (zoneId == null) return null;
-      final local = JdUtils(ref.watch(sweProvider)).localCivilOf(
+      final jdu = JdUtils(ref.watch(sweProvider));
+      final local = jdu.localCivilOf(
         ctx.jdUt,
         calendar: ctx.calendar,
         scale: ctx.timeScale,
         offsetHours: ctx.utcOffset,
       );
+      // Resolve in Gregorian (tzdata's calendar), matching the notifier — so the
+      // warning shown here is for the same offset the notifier committed.
       return (
         zoneId: zoneId,
-        resolution: resolveTzOffsetForLocal(zoneId, local),
+        resolution: resolveTzOffsetForLocal(
+          zoneId,
+          jdu.toGregorianCivil(local, ctx.calendar),
+        ),
       );
     });
 
@@ -108,6 +114,15 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
     if (!_hasEpheFiles) {
       state = state.copyWith(epheSource: EpheSource.moshier);
     }
+    // A linked offset is a pure function of (zone, Moment), but the Moment is
+    // not persisted — a fresh "now" JD comes from [_initialState]. The persisted
+    // offset belongs to whenever it was saved, so re-derive it for the current
+    // instant (keeping the old value only if the zone no longer resolves);
+    // otherwise a summer-saved link restarts on a winter Moment still holding
+    // the summer offset (swe-dashboard/113).
+    if (state.timeZoneId != null) {
+      state = state.copyWith(utcOffset: _deriveOffsetForInstant(state.jdUt));
+    }
   }
 
   void _save() => _persistence.saveContextBar(state);
@@ -132,7 +147,9 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   double _deriveOffsetForInstant(double jd) {
     final zoneId = state.timeZoneId;
     if (zoneId == null) return state.utcOffset;
-    final utc = _jdUtils.civilFieldsOn(jd, state.calendar);
+    // tzdata is Gregorian-indexed and the instant→offset map is calendar-
+    // independent, so query in Gregorian regardless of the display calendar.
+    final utc = _jdUtils.civilFieldsOn(jd, Calendar.gregorian);
     final r = resolveTzOffsetForInstant(zoneId, utc);
     return r.resolved ? r.offsetHours : state.utcOffset;
   }
@@ -143,7 +160,11 @@ class ContextBarNotifier extends StateNotifier<ContextBarState> {
   (double, double) _applyLocalWithZone(Civil local, String? zoneId) {
     var offset = state.utcOffset;
     if (zoneId != null) {
-      final r = resolveTzOffsetForLocal(zoneId, local);
+      // tzdata is Gregorian-indexed: reinterpret the wall date across the
+      // calendar reform before resolving, so a Julian/auto date can't land the
+      // query on the wrong side of a DST transition. Identity for Gregorian.
+      final greg = _jdUtils.toGregorianCivil(local, state.calendar);
+      final r = resolveTzOffsetForLocal(zoneId, greg);
       if (r.resolved) offset = r.offsetHours;
     }
     final jd = _jdUtils.localCivilToJdUt(

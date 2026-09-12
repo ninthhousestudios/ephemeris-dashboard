@@ -185,6 +185,29 @@ class JdUtils {
     );
   }
 
+  /// Reinterpret wall-clock civil fields read on [from] as the equivalent
+  /// proleptic-Gregorian civil fields — same wall clock, date converted across
+  /// the calendar reform.
+  ///
+  /// tzdata's transition table is Gregorian-indexed, so a Julian (or auto,
+  /// pre-reform) wall date must be converted before it can be resolved to an
+  /// offset; skipping this lands the query ~13 days off, on the wrong side of a
+  /// DST transition. The conversion is offset-independent (a pure date remap via
+  /// [julday]/[revjul]), so it is done before the offset is known. A [from] of
+  /// [Calendar.gregorian] is the identity.
+  Civil toGregorianCivil(Civil civil, Calendar from) {
+    if (from == Calendar.gregorian) return civil;
+    final hour = civil.hour + civil.minute / 60.0 + civil.second / 3600.0;
+    final jd = _swe.julday(
+      civil.year,
+      civil.month,
+      civil.day,
+      hour,
+      gregorian: from.isGregorianForCivil(civil.year, civil.month, civil.day),
+    );
+    return civilFieldsOn(jd, Calendar.gregorian);
+  }
+
   /// Local civil fields for the Moment [jdUt], rendered on [scale]/[calendar]
   /// and shifted to local by [offsetHours].
   ///

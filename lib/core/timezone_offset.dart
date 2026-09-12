@@ -16,7 +16,7 @@
 /// tzdata, so every case is unit-testable without a widget or an engine.
 library;
 
-import 'package:timezone/data/latest.dart' as tzdata;
+import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
 import 'jd_utils.dart' show Civil;
@@ -78,19 +78,25 @@ void ensureTimeZonesInitialized() {
   tzdata.initializeTimeZones();
 }
 
-// A DST transition shifts the offset by at most a couple of hours; sampling the
-// offset 12h either side of a wall time straddles any single transition without
-// ever spanning two, so the pair {before, after} enumerates the candidate
-// offsets for that wall time.
-const int _windowMs = 12 * 3600 * 1000;
+// To enumerate a wall time's candidate offsets we sample the zone this far
+// either side of it. The window must EXCEED the largest offset in play: a fold's
+// earlier occurrence sits one whole offset before the naive (read-as-UTC) wall
+// time, so a 12h window can't reach it for zones east of UTC+12 — Pacific/Auckland
+// (+13) and Pacific/Chatham (+13:45) folds would then read as unambiguous. 15h
+// clears +13:45 (and the +14:00 max) while staying far below the gap between two
+// DST transitions, so the sample pair {before, after} still straddles exactly one.
+const int _windowMs = 15 * 3600 * 1000;
 
 /// Offset for a *local wall-clock* civil time in [zoneId] — the direction where
 /// DST gaps and folds live, so [local] is treated as the anchor and the
 /// ambiguity is detected and flagged (never silently resolved to a guess).
 ///
+/// [local] MUST be proleptic-Gregorian civil fields: tzdata's transition table
+/// is Gregorian-indexed, so a caller on the Julian (or auto-pre-reform) calendar
+/// must reinterpret the wall date first (`JdUtils.toGregorianCivil`) — otherwise
+/// the ~13-day reform delta lands the query on the wrong side of a transition.
 /// `y/m/d/h/m/s` precision is enough for zone-era selection; do not pass a
-/// [DateTime] built from a Julian-only historical date (see lesson 019f9135) —
-/// [Civil] fields come from the revjul path and stay sound.
+/// [DateTime] built from a Julian-only historical date (see lesson 019f9135).
 TzOffset resolveTzOffsetForLocal(String zoneId, Civil local) {
   ensureTimeZonesInitialized();
   final tz.Location loc;
@@ -153,6 +159,10 @@ TzOffset resolveTzOffsetForLocal(String zoneId, Civil local) {
 /// Moment) in [zoneId]. UTC→local is unambiguous, so this cannot gap or fold —
 /// only [TzWarning.preModern] / [TzWarning.lmt] apply. Used when the entry is an
 /// instant (a raw JD, "now") rather than a wall time.
+///
+/// [utc] MUST be proleptic-Gregorian civil fields (tzdata's calendar). The
+/// instant→offset map is calendar-independent, so derive them with
+/// `civilFieldsOn(jd, Calendar.gregorian)`, never the Context's display calendar.
 TzOffset resolveTzOffsetForInstant(String zoneId, Civil utc) {
   ensureTimeZonesInitialized();
   final tz.Location loc;

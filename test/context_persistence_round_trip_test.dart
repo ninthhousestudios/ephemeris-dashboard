@@ -109,8 +109,21 @@ void main() {
     );
     addTearDown(notifier.dispose);
 
-    // jdUt is not persisted: the notifier starts at "now", so compare the rest.
-    expect(notifier.state.copyWith(jdUt: _custom.jdUt), _custom);
+    // jdUt is not persisted (the notifier starts at "now"), and with a zone
+    // linked utcOffset is a derived projection re-computed for that fresh Moment
+    // rather than restored verbatim (swe-dashboard/113). Pin both, compare the
+    // rest, then check the link restored and the stale 5.5 was actually
+    // re-derived away.
+    expect(
+      notifier.state.copyWith(jdUt: _custom.jdUt, utcOffset: _custom.utcOffset),
+      _custom,
+    );
+    expect(notifier.state.timeZoneId, 'Europe/London');
+    expect(
+      notifier.state.utcOffset,
+      isNot(5.5),
+      reason: 'a linked offset re-derives on restore, not restores verbatim',
+    );
   });
 
   test(
