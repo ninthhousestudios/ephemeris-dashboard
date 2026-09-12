@@ -85,8 +85,14 @@ These are enforced or tracked. Graph constraints live in `.sutra/rules.toml`
   never shown as authoritative. Editing the offset by hand detaches the zone;
   selecting a city re-links; chart load sets an explicit offset and clears the
   link. The offset is *not* display-only — it is a compute input for the Rise/Set
-  local-midnight search window. Derivation lives only in the notifier's setters,
-  so series steps never perturb it. Enforcement ledger row 20.
+  local-midnight search window. Derivation lives in the notifier's setters and
+  its restore path (never a series step), so series steps never perturb it, and a
+  linked offset re-derives on restart for the fresh Moment rather than restoring
+  a stale saved value (swe-dashboard/113). tzdata is Gregorian-indexed and drops
+  link/alias zones, so resolution runs on the full `latest_all` database and the
+  wall/instant civil is reinterpreted to proleptic Gregorian
+  (`JdUtils.toGregorianCivil`) before the lookup — a Julian date must not be read
+  as Gregorian. Enforcement ledger row 20.
 - **Moment comes from the series step, never the Context** — in series mode a
   compute is repeated over the step Moments, whose start is the Context Moment
   (JD canonical) but whose subsequent values are *not*. This is structural, not
