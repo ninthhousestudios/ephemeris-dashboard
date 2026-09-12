@@ -229,6 +229,42 @@ class ConfigTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
+          // ── v2.2 release notes ──
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('New in v2.2', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 8),
+                  _bullet(
+                    theme,
+                    'City search. Type a place name in the context bar to set '
+                    'the location — the app ships a GeoNames gazetteer of '
+                    'cities (population ≥ 5000) and fills in the '
+                    'coordinates and time zone for you.',
+                  ),
+                  _bullet(
+                    theme,
+                    'Larger city atlases. On desktop and mobile you can '
+                    'optionally download higher-coverage tiers — cities down '
+                    'to population 1000 (~171k places) or 500 (~236k places) — '
+                    'for finer location coverage. The largest installed tier '
+                    'replaces the bundled list; web stays on the bundle.',
+                  ),
+                  _bullet(
+                    theme,
+                    'Disc Top for Rise/Set. An explicit "Disc Top" option now '
+                    'sits alongside Disc Center and Disc Bottom, so the default '
+                    'upper-limb disc reference is visible and selectable rather '
+                    'than implied.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
           // ── v2.1 release notes ──
           Card(
             child: Padding(
