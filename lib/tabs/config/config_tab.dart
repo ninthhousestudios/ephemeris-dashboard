@@ -255,6 +255,16 @@ class ConfigTab extends ConsumerWidget {
                   ),
                   _bullet(
                     theme,
+                    'Relocation mode. A "Keep instant" toggle by the location '
+                    'fields holds the moment (JD) fixed when you change city, '
+                    're-deriving the local clock for the new place — the '
+                    'relocation chart, where cusps and angles move across '
+                    'cities at one instant while body longitudes stay put. Off '
+                    'by default, a city select keeps the entered wall-clock '
+                    'time and recomputes the moment.',
+                  ),
+                  _bullet(
+                    theme,
                     'Disc Top for Rise/Set. An explicit "Disc Top" option now '
                     'sits alongside Disc Center and Disc Bottom, so the default '
                     'upper-limb disc reference is visible and selectable rather '
