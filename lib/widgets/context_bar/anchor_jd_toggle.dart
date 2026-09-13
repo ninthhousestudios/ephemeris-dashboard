@@ -17,7 +17,6 @@ class AnchorJdToggle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final anchorJd = ref.watch(contextBarProvider.select((s) => s.anchorJd));
-    final notifier = ref.read(contextBarProvider.notifier);
     final onSurfaceVariant = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Tooltip(
@@ -29,20 +28,31 @@ class AnchorJdToggle extends ConsumerWidget {
           'Off: the entered local (wall-clock) time is kept and the instant '
           'moves.',
       child: InkWell(
-        onTap: () => notifier.setAnchorJd(!anchorJd),
+        // Read the notifier fresh in the callback rather than capturing it in
+        // build: contextBarProvider watches upstream providers (swe, ephe
+        // bootstrap) and is recreated when they change, disposing the old
+        // notifier — a captured reference would be stale (swe-dashboard).
+        onTap: () =>
+            ref.read(contextBarProvider.notifier).setAnchorJd(!anchorJd),
         borderRadius: BorderRadius.circular(4),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 2),
           child: Row(
             children: [
+              // The InkWell owns the tap; the checkbox is purely visual.
+              // Giving it its own onChanged too made both handlers fire on a
+              // tap over the box, cancelling out — and which one won was
+              // browser-dependent on web (swe-dashboard).
               SizedBox(
                 width: 24,
                 height: 24,
-                child: Checkbox(
-                  value: anchorJd,
-                  onChanged: (v) => notifier.setAnchorJd(v ?? false),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                child: IgnorePointer(
+                  child: Checkbox(
+                    value: anchorJd,
+                    onChanged: (_) {},
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ),
               const SizedBox(width: 6),
