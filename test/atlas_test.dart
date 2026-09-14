@@ -54,4 +54,14 @@ void main() {
   test('empty query returns nothing', () {
     expect(atlas.search('   '), isEmpty);
   });
+
+  test('CRLF line endings leave no trailing carriage return on the tz', () {
+    // A Windows checkout (core.autocrlf=true) rewrites the bundled asset to
+    // CRLF; splitting on '\n' alone would leave '\r' on the last column (tz)
+    // and break the timezone lookup (swe-dashboard/119).
+    final crlf = _tsv.replaceAll('\n', '\r\n');
+    final hit = InMemoryAtlas.parse(crlf).search('new york').first;
+    expect(hit.tz, 'America/New_York');
+    expect(hit.tz, isNot(contains('\r')));
+  });
 }

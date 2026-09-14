@@ -56,7 +56,10 @@ class InMemoryAtlas implements Atlas {
   factory InMemoryAtlas.parse(String tsv) {
     final entries = <LocationHit>[];
     final names = <String>[];
-    for (final line in tsv.split('\n')) {
+    // Split on CRLF or LF: a Windows checkout (core.autocrlf=true) rewrites
+    // the bundled asset to CRLF, which would otherwise leave a trailing \r on
+    // the last column (tz) and break the timezone lookup (swe-dashboard/119).
+    for (final line in tsv.split(RegExp(r'\r?\n'))) {
       if (line.isEmpty) continue;
       final f = line.split('\t');
       if (f.length < 7) continue;

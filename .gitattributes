@@ -1,0 +1,6 @@
+# Data assets must stay LF on every platform. On a Windows checkout with
+# core.autocrlf=true, an unspecified text file is rewritten to CRLF, which
+# leaves a trailing \r on the last TSV column (the tz) and breaks the timezone
+# lookup once the asset is bundled (swe-dashboard/119). Pin them to LF.
+*.tsv text eol=lf
+assets/atlas/** text eol=lf
