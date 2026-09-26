@@ -168,3 +168,59 @@ name = "no-silent-empty-catch"
 severity = "blocking"
 provenance = "swe-dashboard/93 — gap left by empty_catches"
 scope = "lib/"
+
+
+# ═══════════════════════════════════════════════════════════════════
+# Swallowed-error ratchet (sutra/486)
+# ═══════════════════════════════════════════════════════════════════
+# From vidhi/language-rules (back-test: sutra docs/swallow-ratchet-backtest.md).
+# Tier A (blocking): the guard denies an introduced match unless the line, or
+# the comment lines directly above it, say `// swallow: <reason>`. sutra_review
+# lists every justification a diff adds. Tier B (advisory): reported by review
+# and `sutra check` on added lines only; never blocks.
+
+[[constraint]]
+kind = "forbidden_pattern"
+language = "dart"
+query = '''
+(try_statement (catch_clause exception: (identifier) @match (#eq? @match "_")) . (block) @b (#not-match? @b "rethrow|throw "))
+'''
+name = "dart-catch-underscore"
+severity = "blocking"
+scope = "lib/"
+justify = "swallow:"
+provenance = "vidhi language-rules (sutra/486)"
+
+[[constraint]]
+kind = "forbidden_pattern"
+language = "dart"
+query = '''
+((identifier) @match (#eq? @match "valueOrNull"))
+'''
+name = "dart-value-or-null"
+severity = "blocking"
+scope = "lib/"
+justify = "swallow:"
+provenance = "vidhi language-rules (sutra/486)"
+
+[[constraint]]
+kind = "forbidden_pattern"
+language = "dart"
+query = '''
+(try_statement (block) . (catch_clause) @match . (block) @b (#not-match? @b "rethrow|throw "))
+'''
+name = "dart-catch-all"
+severity = "advisory"
+scope = "lib/"
+provenance = "vidhi language-rules (sutra/486)"
+
+[[constraint]]
+kind = "forbidden_pattern"
+language = "dart"
+query = '''
+(if_null_expression . (call_expression function: (member_expression property: (identifier) @match (#eq? @match "tryParse"))))
+'''
+name = "dart-tryparse-default"
+severity = "advisory"
+scope = "lib/"
+provenance = "vidhi language-rules (sutra/486)"
